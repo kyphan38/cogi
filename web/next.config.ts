@@ -63,43 +63,11 @@ const nextConfig: NextConfig = {
       ...base,
       tailwindcss: tailwindResolved,
     };
-    const distDirRaw = typeof config.output?.path === "string" ? config.output.path : null;
     logDebug("H2-H3", "next.config.ts:51", "webpack config resolved", {
-      webpackOutputPath: distDirRaw,
       rootRoutesManifest: path.join(rootNextDir, "routes-manifest.json"),
       appRoutesManifest: path.join(appNextDir, "routes-manifest.json"),
       rootDeterministicManifest: path.join(rootNextDir, "routes-manifest-deterministic.json"),
       appDeterministicManifest: path.join(appNextDir, "routes-manifest-deterministic.json"),
-    });
-    config.plugins = config.plugins ?? [];
-    config.plugins.push({
-      apply(compiler) {
-        compiler.hooks.done.tap("DebugRoutesManifestPathsPlugin", () => {
-          const outputPath = compiler.options.output.path ?? null;
-          const outputPathStr = typeof outputPath === "string" ? outputPath : null;
-          const outputDeterministicPath =
-            outputPathStr === null
-              ? null
-              : path.join(outputPathStr, "routes-manifest-deterministic.json");
-          const outputRoutesPath =
-            outputPathStr === null ? null : path.join(outputPathStr, "routes-manifest.json");
-          logDebug("H2-H3", "next.config.ts:69", "webpack done manifest existence", {
-            outputPath: outputPathStr,
-            outputRoutesExists: outputRoutesPath ? fs.existsSync(outputRoutesPath) : null,
-            outputDeterministicExists: outputDeterministicPath
-              ? fs.existsSync(outputDeterministicPath)
-              : null,
-            rootRoutesExists: fs.existsSync(path.join(rootNextDir, "routes-manifest.json")),
-            rootDeterministicExists: fs.existsSync(
-              path.join(rootNextDir, "routes-manifest-deterministic.json"),
-            ),
-            appRoutesExists: fs.existsSync(path.join(appNextDir, "routes-manifest.json")),
-            appDeterministicExists: fs.existsSync(
-              path.join(appNextDir, "routes-manifest-deterministic.json"),
-            ),
-          });
-        });
-      },
     });
     return config;
   },
