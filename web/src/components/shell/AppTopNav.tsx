@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
 import { Button } from "@/components/ui/button";
-import { AI_SECRET_STORAGE_KEY } from "@/lib/api/ai-secret-constants";
+import { getFirebaseAuth } from "@/lib/auth/firebase-client";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -31,12 +32,13 @@ export function AppTopNav() {
   const router = useRouter();
   const showDev = process.env.NODE_ENV === "development";
 
-  const signOut = () => {
+  const onSignOut = async () => {
     try {
-      window.localStorage.removeItem(AI_SECRET_STORAGE_KEY);
+      await fetch("/api/auth/session", { method: "DELETE" });
     } catch {
-      /* ignore */
+      // Session cookie cleanup is best-effort.
     }
+    await signOut(getFirebaseAuth());
     router.replace("/login");
   };
 
@@ -57,17 +59,15 @@ export function AppTopNav() {
           </Link>
         ))}
         <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-          {pathname !== "/login" ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground h-8 px-2 text-xs sm:text-sm"
-              onClick={() => signOut()}
-            >
-              Sign out
-            </Button>
-          ) : null}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground h-8 px-2 text-xs sm:text-sm"
+            onClick={() => void onSignOut()}
+          >
+            Sign out
+          </Button>
           {showDev ? (
             <Link
               href="/dev/ai-smoke"

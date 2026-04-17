@@ -35,7 +35,7 @@ export class ThinkingDB extends Dexie {
   weaknesses!: Table<WeaknessEntry>;
 
   constructor() {
-    super("thinking_training_db");
+    super("cogi_db");
     this.version(1).stores({
       exercises: "id, type, domain, createdAt, completedAt",
       journalEntries: "id, exerciseId, createdAt",

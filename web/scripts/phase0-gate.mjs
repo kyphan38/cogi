@@ -1,19 +1,16 @@
 #!/usr/bin/env node
 /**
- * Phase 0 IMP-12 helper: POST /api/ai five times (needs dev server + GEMINI_API_KEY + APP_API_SECRET in env).
+ * Phase 0 IMP-12 helper: POST /api/ai five times (needs dev server + GEMINI_API_KEY).
  *
  *   cd web && npm run dev   # other terminal
  *   cd web && npm run gate:phase0
  *
  * Or: GATE_BASE_URL=http://127.0.0.1:3001 npm run gate:phase0
  *
- * Set APP_API_SECRET in the shell (same value as web/.env.local), e.g.:
- *   export APP_API_SECRET='your-secret'
  * Or: node --env-file=.env.local ./scripts/phase0-gate.mjs  (Node 20+)
  */
 
 const BASE = process.env.GATE_BASE_URL ?? "http://127.0.0.1:3000";
-const APP_SECRET = process.env.APP_API_SECRET?.trim();
 
 const domains = [
   "DevOps / SRE",
@@ -24,10 +21,6 @@ const domains = [
 ];
 
 async function main() {
-  if (!APP_SECRET) {
-    console.error("Missing APP_API_SECRET (must match web/.env.local). Export it or use node --env-file=.env.local");
-    process.exit(1);
-  }
   let passes = 0;
   for (let i = 0; i < 5; i++) {
     let res;
@@ -36,7 +29,6 @@ async function main() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-App-Api-Secret": APP_SECRET,
         },
         body: JSON.stringify({
           domain: domains[i],

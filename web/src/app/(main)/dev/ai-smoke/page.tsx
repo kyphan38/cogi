@@ -79,11 +79,11 @@ export default function AiSmokePage() {
               value={userContext}
               onChange={(e) => setUserContext(e.target.value)}
               rows={4}
-              placeholder="Personal context for the prompt…"
+              placeholder="Personal context for the prompt..."
             />
           </div>
           <Button type="button" disabled={loading} onClick={onGenerate}>
-            {loading ? "Generating…" : "Generate"}
+            {loading ? "Generating..." : "Generate"}
           </Button>
         </CardContent>
       </Card>

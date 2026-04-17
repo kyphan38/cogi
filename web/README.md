@@ -1,4 +1,4 @@
-# Thinking app (Phase 0)
+# cogi app (Phase 0)
 
 Next.js app lives in `web/` (repo root keeps `ai_plan.txt`).
 
@@ -13,22 +13,25 @@ Next.js app lives in `web/` (repo root keeps `ai_plan.txt`).
 ```bash
 cd web
 npm install
-cp .env.example .env.local   # then set APP_API_SECRET and GEMINI_API_KEY
+cp .env.example .env.local   # set Firebase NEXT_PUBLIC_*, Firebase Admin, allowlist, GEMINI_API_KEY
 npm run dev
 ```
 
-- Sign in: open any app route (e.g. [http://localhost:3000/dashboard](http://localhost:3000/dashboard)) — you are redirected to **`/login`** until you enter `APP_API_SECRET`. The browser stores it in `localStorage` and sends header **`X-App-Api-Secret`** on every AI request.
+- Sign in: open any app route (e.g. [http://localhost:3000/dashboard](http://localhost:3000/dashboard)) — you are redirected to **`/login`** and continue with Google Sign-In.
+- Access control:
+  - client allowlist: `NEXT_PUBLIC_ALLOWED_USER_UID` or `NEXT_PUBLIC_ALLOWED_EMAIL`
+  - server allowlist (middleware/API): `ALLOWED_USER_UID` or `ALLOWED_USER_EMAIL`
+- Server enforcement: middleware now protects app routes and `/api/ai/*`; unauthorized page requests redirect to `/login`, unauthorized API requests return `401`.
 - Home: [http://localhost:3000](http://localhost:3000) — in development, link to **AI smoke test**.
 - Smoke UI: [http://localhost:3000/dev/ai-smoke](http://localhost:3000/dev/ai-smoke) (requires sign-in first).
 
 ## Phase 0 gate (IMP-12)
 
-With valid `APP_API_SECRET` and `GEMINI_API_KEY` in `.env.local`, sign in in the browser, then click **Generate** five times (vary domain / context). At least **four** responses should return `{ "ok": true, "data": … }` without changing the prompt between runs.
+With valid Firebase client/admin envs and `GEMINI_API_KEY` in `.env.local`, sign in in the browser, then click **Generate** five times (vary domain / context). At least **four** responses should return `{ "ok": true, "data": … }` without changing the prompt between runs.
 
-Automated helper (dev server must be running, default `http://127.0.0.1:3000`). Export the same secret as in `.env.local`:
+Automated helper (dev server must be running, default `http://127.0.0.1:3000`):
 
 ```bash
-export APP_API_SECRET='same-as-env-local'
 npm run gate:phase0
 ```
 
@@ -37,9 +40,10 @@ API check without browser:
 ```bash
 curl -sS -X POST http://localhost:3000/api/ai \
   -H 'Content-Type: application/json' \
-  -H "X-App-Api-Secret: ${APP_API_SECRET}" \
   -d '{"domain":"DevOps / SRE"}' | head -c 400
 ```
+
+Expected unauthenticated result: HTTP `401`.
 
 ## Production build
 

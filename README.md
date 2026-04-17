@@ -1,4 +1,4 @@
-# thinking
+# cogi
 
 Product requirements: [ai_plan.txt](ai_plan.txt).
 

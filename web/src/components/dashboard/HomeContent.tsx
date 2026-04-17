@@ -84,7 +84,7 @@ export function HomeContent() {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
       <div className="space-y-1">
-        <p className="text-muted-foreground text-sm">Thinking Training</p>
+        <p className="text-muted-foreground text-sm">cogi</p>
         <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Good moment to practice</h1>
         <p className="text-muted-foreground max-w-xl text-sm leading-relaxed">
           Pick a mode below. Everything stays in this browser until you export it.

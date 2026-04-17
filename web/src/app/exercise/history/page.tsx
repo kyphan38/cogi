@@ -44,6 +44,8 @@ import { getStructuredPerspectiveSections } from "@/lib/perspective/format-struc
 import { listPerspectiveDisagreementsForExercise } from "@/lib/db/disagreements";
 import type { PerspectiveDisagreementRow } from "@/lib/types/disagreement";
 import { Trash2 } from "lucide-react";
+import { FirebaseAuthGate } from "@/components/auth/FirebaseAuthGate";
+import { AppTopNav } from "@/components/shell/AppTopNav";
 
 type ThinkingTypeFilter =
   | "all"
@@ -397,7 +399,10 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+    <>
+      <AppTopNav />
+      <FirebaseAuthGate>
+        <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Exercise history</h1>
         <p className="text-muted-foreground text-sm">
@@ -950,6 +955,8 @@ export default function HistoryPage() {
           </div>
         </div>
       ) : null}
-    </div>
+        </div>
+      </FirebaseAuthGate>
+    </>
   );
 }

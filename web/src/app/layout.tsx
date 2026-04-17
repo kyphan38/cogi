@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
-import { RequireAiSecret } from "@/components/auth/RequireAiSecret";
-import { AppTopNav } from "@/components/shell/AppTopNav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -21,8 +19,13 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "Thinking Training",
-  description: "Local-first thinking exercises and calibration in your browser.",
+  title: "cogi",
+  description: "cogi thinking practice app.",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/branding/cogi-icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -37,10 +40,7 @@ export default function RootLayout({
     >
       {/* suppressHydrationWarning: extensions (e.g. WOT wotdisconnected on body) mutate DOM before hydrate */}
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
-        <AppTopNav />
-        <RequireAiSecret>
-          <div className="flex flex-1 flex-col">{children}</div>
-        </RequireAiSecret>
+        <div className="flex flex-1 flex-col">{children}</div>
       </body>
     </html>
   );

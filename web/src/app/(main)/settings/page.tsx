@@ -75,7 +75,7 @@ export default function SettingsPage() {
     try {
       const json = await exportAllJsonString();
       downloadText(
-        `thinking-backup-${new Date().toISOString().slice(0, 10)}.json`,
+        `cogi-backup-${new Date().toISOString().slice(0, 10)}.json`,
         json,
         "application/json",
       );
@@ -91,7 +91,7 @@ export default function SettingsPage() {
     try {
       const md = await exportJournalMarkdown();
       downloadText(
-        `thinking-journal-${new Date().toISOString().slice(0, 10)}.md`,
+        `cogi-journal-${new Date().toISOString().slice(0, 10)}.md`,
         md,
         "text/markdown",
       );
@@ -171,7 +171,7 @@ export default function SettingsPage() {
               rows={8}
               value={ctx}
               onChange={(e) => setCtx(e.target.value)}
-              placeholder="e.g. role, goals, constraints…"
+              placeholder="e.g. role, goals, constraints..."
             />
           </div>
           <div className="flex flex-wrap gap-2">
