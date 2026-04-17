@@ -1,0 +1,95 @@
+export function buildAnalyticalGenerationPrompt(input: {
+  domain: string;
+  userContext?: string;
+  /** Phase 7 — optional soft steering; must not change required JSON shape. */
+  adaptationAppendix?: string;
+}): string {
+  const ctx = input.userContext?.trim() || "(none provided)";
+  const adapt = input.adaptationAppendix?.trim();
+  return `You are generating a thinking exercise. Return ONLY valid JSON (no markdown, no prose).
+
+USER context: ${ctx}
+
+Generate a ${input.domain} analysis passage (250-350 words) that contains exactly:
+- 1 obvious issue (most people would catch this)
+- 2 moderate issues (requires careful reading)
+- 1 subtle issue (only critical thinkers would catch)
+- 2 "decoy" statements that LOOK suspicious but are actually valid (these go in validPoints, not embeddedIssues)
+
+The passage should read naturally, like a real ${input.domain} analysis or plan.
+Do NOT make issues cartoonishly obvious.
+
+Return a single JSON object with this exact shape:
+{
+  "title": string,
+  "passage": string,
+  "embeddedIssues": [
+    {
+      "description": string,
+      "type": "logical_fallacy" | "hidden_assumption" | "weak_evidence" | "bias",
+      "severity": "obvious" | "moderate" | "subtle",
+      "textSegment": string (exact substring from passage),
+      "explanation": string
+    }
+  ],
+  "validPoints": [
+    {
+      "textSegment": string (exact substring that looks suspicious but is valid),
+      "explanation": string
+    }
+  ]
+}
+
+embeddedIssues must have exactly 4 items (1 obvious, 2 moderate, 1 subtle severities).
+validPoints must have exactly 2 items (the decoys).${adapt ? `\n\n${adapt}` : ""}`;
+}
+
+export function buildAnalyticalFromUserTextPrompt(input: {
+  domain: string;
+  userContext?: string;
+  userText: string;
+  adaptationAppendix?: string;
+}): string {
+  const ctx = input.userContext?.trim() || "(none provided)";
+  const adapt = input.adaptationAppendix?.trim();
+  return `You are analyzing the user's own real-world text. Return ONLY valid JSON (no markdown, no prose).
+
+USER context: ${ctx}
+
+DOMAIN: ${input.domain}
+
+USER TEXT (already sanitized, do NOT rewrite it, only analyze it):
+"""
+${input.userText}
+"""
+
+Your task:
+- Treat the provided text as the passage.
+- Identify embedded issues and decoy valid points exactly as in the analytical exercise spec.
+
+Return a single JSON object with this exact shape:
+{
+  "title": string,
+  "passage": string,
+  "embeddedIssues": [
+    {
+      "description": string,
+      "type": "logical_fallacy" | "hidden_assumption" | "weak_evidence" | "bias",
+      "severity": "obvious" | "moderate" | "subtle",
+      "textSegment": string (exact substring from passage),
+      "explanation": string
+    }
+  ],
+  "validPoints": [
+    {
+      "textSegment": string (exact substring that looks suspicious but is valid),
+      "explanation": string
+    }
+  ]
+}
+
+Requirements:
+- Use the USER TEXT above directly as the passage. You may lightly trim whitespace but must NOT paraphrase or expand it.
+- embeddedIssues must have exactly 4 items (1 obvious, 2 moderate, 1 subtle severities).
+- validPoints must have exactly 2 items (decoy statements that look suspicious but are actually valid).${adapt ? `\n\n${adapt}` : ""}`;
+}
