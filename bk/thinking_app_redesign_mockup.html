@@ -1,0 +1,360 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#FAF9F7;
+  --surface:#FFFFFF;
+  --border:#E8E6E1;
+  --border-soft:#F0EDE8;
+  --text:#171717;
+  --text-2:#6B6860;
+  --text-3:#9B9890;
+  --accent:#1C4ED8;
+  --accent-bg:#EFF4FF;
+  --accent-text:#1C4ED8;
+  --success:#166534;
+  --success-bg:#F0FDF4;
+  --danger:#991B1B;
+  --danger-bg:#FEF2F2;
+  --warning:#92400E;
+  --warning-bg:#FFFBEB;
+  --radius:8px;
+  --radius-lg:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
+.page{max-width:680px;margin:0 auto;padding:2rem 1.5rem}
+.tabs{position:sticky;top:0;z-index:10;display:flex;gap:0;margin:0 -1.5rem 2rem;padding:0.75rem 1.5rem 0;background:var(--bg);border-bottom:1px solid var(--border)}
+.tab{padding:8px 0;margin-right:24px;font-size:13px;color:var(--text-2);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+.tab.active{color:var(--text);border-bottom-color:var(--text)}
+.section{display:none}.section.active{display:block}
+
+.home-greeting{margin-bottom:2rem}
+.home-greeting h1{font-size:22px;font-weight:600;color:var(--text);letter-spacing:-0.3px}
+.home-greeting p{font-size:14px;color:var(--text-2);margin-top:4px}
+
+.exercise-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.5rem}
+.ex-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;cursor:pointer;transition:border-color .15s,background .15s}
+.ex-card:hover{border-color:#C4BFB8;background:#FDFDFC}
+.ex-card-label{font-size:11px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:4px}
+.ex-card-title{font-size:14px;font-weight:500;color:var(--text)}
+.ex-card-desc{font-size:12px;color:var(--text-2);margin-top:3px;line-height:1.5}
+.ex-card.primary{border-color:#93A9E8;background:var(--accent-bg)}
+.ex-card.primary .ex-card-label{color:var(--accent)}
+.ex-card.primary .ex-card-title{color:#1C3A9E}
+.ex-combo{grid-column:1/-1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:border-color .15s}
+.ex-combo:hover{border-color:#C4BFB8}
+.ex-combo-left{}
+.ex-combo-label{font-size:11px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:2px}
+.ex-combo-title{font-size:14px;font-weight:500;color:var(--text)}
+.arrow{font-size:16px;color:var(--text-3)}
+
+.divider{height:1px;background:var(--border-soft);margin:1.5rem 0}
+
+.open-actions{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px}
+.oa-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.oa-title{font-size:13px;font-weight:500;color:var(--text)}
+.oa-week{font-size:12px;color:var(--text-3)}
+.oa-item{background:var(--bg);border-radius:var(--radius);padding:10px 12px}
+.oa-item-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px}
+.oa-item-text{font-size:12px;color:var(--text-2);margin-bottom:8px}
+.oa-check{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--success)}
+.oa-check-box{width:14px;height:14px;background:var(--success-bg);border:1.5px solid var(--success);border-radius:3px;display:flex;align-items:center;justify-content:center}
+.oa-check-box::after{content:'';width:6px;height:4px;border-left:1.5px solid var(--success);border-bottom:1.5px solid var(--success);transform:rotate(-45deg);margin-top:-1px}
+
+.dash-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
+.stat-label{font-size:11px;color:var(--text-3);margin-bottom:4px;letter-spacing:.3px}
+.stat-value{font-size:22px;font-weight:600;color:var(--text);letter-spacing:-0.5px}
+.stat-sub{font-size:11px;color:var(--text-2);margin-top:2px}
+.stat.warn .stat-value{color:#B45309}
+.stat.ok .stat-value{color:#166534}
+
+.dash-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:10px}
+.dash-section-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px}
+.dash-section-body{font-size:13px;color:var(--text-2);line-height:1.6}
+.dash-empty{font-size:12px;color:var(--text-3);font-style:italic}
+.insight-tag{display:inline-block;background:var(--warning-bg);color:var(--warning);font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;margin-right:6px}
+
+.history-cal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:1rem}
+.cal-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:12px}
+.cal-row{display:flex;gap:4px;flex-wrap:wrap}
+.cal-day{width:20px;height:20px;border-radius:3px;background:var(--border-soft)}
+.cal-day.done{background:#BFDBFE}
+.cal-day.done.analytical{background:#6EE7B7}
+.cal-day.done.sequential{background:#93C5FD}
+.cal-day.done.systems{background:#C4B5FD}
+.hist-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:8px}
+.hist-item-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.hist-item-title{font-size:13px;font-weight:500;color:var(--text)}
+.hist-item-date{font-size:11px;color:var(--text-3)}
+.hist-item-tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
+.tag-type{background:#EFF4FF;color:#1C4ED8}
+.tag-domain{background:#F5F3F0;color:#6B6860}
+.tag-gap-neg{background:var(--danger-bg);color:var(--danger)}
+.tag-gap-pos{background:var(--success-bg);color:var(--success)}
+
+.nav-links{display:flex;gap:16px;margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border-soft)}
+.nav-link{font-size:12px;color:var(--text-3);cursor:pointer;transition:color .15s}
+.nav-link:hover{color:var(--text-2)}
+
+.cal-legend{display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:12px;font-size:11px;color:var(--text-2)}
+.cal-legend span{display:inline-flex;align-items:center;gap:6px}
+.cal-legend i{display:inline-block;width:10px;height:10px;border-radius:2px}
+
+input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-color:var(--accent)}
+</style>
+
+<h2 class="sr-only">Thinking Training — redesigned mockup với Paper editorial theme</h2>
+
+<div class="page">
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('home')">Home</div>
+    <div class="tab" onclick="switchTab('dashboard')">Dashboard</div>
+    <div class="tab" onclick="switchTab('history')">History</div>
+    <div class="tab" onclick="switchTab('settings')">Settings</div>
+    <div class="tab" onclick="switchTab('decisions')">Decisions</div>
+  </div>
+
+  <div class="section active" id="home">
+    <div class="home-greeting">
+      <h1>Good morning</h1>
+      <p>Pick a thinking mode to practice today.</p>
+    </div>
+
+    <div class="exercise-grid">
+      <div class="ex-card primary">
+        <div class="ex-card-label">Analytical</div>
+        <div class="ex-card-title">Detect & deconstruct</div>
+        <div class="ex-card-desc">Find hidden assumptions and logical fallacies in text.</div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-label">Sequential</div>
+        <div class="ex-card-title">Order & dependency</div>
+        <div class="ex-card-desc">Arrange steps by cause-effect and priority.</div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-label">Systems</div>
+        <div class="ex-card-title">Connect & impact</div>
+        <div class="ex-card-desc">Draw ripple effects across a system of nodes.</div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-label">Evaluative</div>
+        <div class="ex-card-title">Weigh & trade-off</div>
+        <div class="ex-card-desc">Score options against competing criteria.</div>
+      </div>
+      <div class="ex-card" style="grid-column:1/-1">
+        <div class="ex-card-label">Generative</div>
+        <div class="ex-card-title">Create & reframe</div>
+        <div class="ex-card-desc">Build and defend original arguments from scratch.</div>
+      </div>
+    </div>
+
+    <div class="ex-combo">
+      <div class="ex-combo-left">
+        <div class="ex-combo-label">Combo</div>
+        <div class="ex-combo-title">Multi-step scenario — chains 2–3 modes on one problem</div>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="open-actions">
+      <div class="oa-header">
+        <span class="oa-title">Open actions</span>
+        <span class="oa-week">Week 2026-W16</span>
+      </div>
+      <div class="oa-item">
+        <div class="oa-item-title">Life Strategy Process Ordering Exercise</div>
+        <div class="oa-item-text">Review sequencing of steps before committing to timeline.</div>
+        <div class="oa-check">
+          <div class="oa-check-box"></div>
+          Followed through this week
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="dashboard">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.5rem">
+      <div>
+        <h1 style="font-size:22px;font-weight:600;letter-spacing:-0.3px">Dashboard</h1>
+        <p style="font-size:13px;color:var(--text-2);margin-top:3px">Patterns from your exercises, stored locally.</p>
+      </div>
+    </div>
+
+    <div class="dash-stats">
+      <div class="stat">
+        <div class="stat-label">Exercises</div>
+        <div class="stat-value">1</div>
+        <div class="stat-sub">sequential · 1</div>
+      </div>
+      <div class="stat warn">
+        <div class="stat-label">Avg confidence</div>
+        <div class="stat-value">26%</div>
+        <div class="stat-sub">underconfident</div>
+      </div>
+      <div class="stat ok">
+        <div class="stat-label">Calib. gap</div>
+        <div class="stat-value">−24%</div>
+        <div class="stat-sub">underconfident</div>
+      </div>
+    </div>
+
+    <div class="dash-section">
+      <div class="dash-section-title">Weekly insight</div>
+      <div class="dash-section-body dash-empty">Complete 6 more exercises to unlock your first insight review.</div>
+    </div>
+
+    <div class="dash-section">
+      <div class="dash-section-title">Patterns</div>
+      <div class="dash-section-body">
+        <div class="dash-empty" style="margin-bottom:8px">No emotion patterns yet.</div>
+        <div class="dash-empty">No AI perspective disagreements logged yet.</div>
+      </div>
+    </div>
+
+    <div class="dash-section">
+      <div class="dash-section-title">Delayed recall</div>
+      <div class="dash-section-body dash-empty">No recall cards due right now. Cards appear 48 h after an exercise.</div>
+    </div>
+  </div>
+
+  <div class="section" id="history">
+    <div style="margin-bottom:1.5rem">
+      <h1 style="font-size:22px;font-weight:600;letter-spacing:-0.3px">Exercise history</h1>
+      <p style="font-size:13px;color:var(--text-2);margin-top:3px">Read-only. Calibration averages all completed exercises.</p>
+    </div>
+
+    <div class="history-cal">
+      <div class="cal-title">April 2026</div>
+      <div class="cal-row" id="cal-row"></div>
+      <div class="cal-legend" aria-hidden="false">
+        <span><i style="background:#6EE7B7"></i>Analytical</span>
+        <span><i style="background:#93C5FD"></i>Sequential</span>
+        <span><i style="background:#C4B5FD"></i>Systems</span>
+        <span><i style="background:#FCD34D"></i>Evaluative</span>
+        <span><i style="background:#FDA4AF"></i>Generative</span>
+        <span><i style="background:#94A3B8"></i>Combo</span>
+      </div>
+    </div>
+
+    <div class="hist-item">
+      <div class="hist-item-top">
+        <span class="hist-item-title">Life Strategy Process Ordering Exercise</span>
+        <span class="hist-item-date">17 Apr · 01:59</span>
+      </div>
+      <div class="hist-item-tags">
+        <span class="tag tag-type">sequential</span>
+        <span class="tag tag-domain">Life Strategy</span>
+        <span class="tag tag-gap-neg">gap −24%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="settings">
+    <div style="margin-bottom:1.5rem">
+      <h1 style="font-size:22px;font-weight:600;letter-spacing:-0.3px">Settings</h1>
+    </div>
+
+    <div class="dash-section" style="margin-bottom:10px">
+      <div class="dash-section-title" style="margin-bottom:12px">Personal context</div>
+      <textarea style="width:100%;min-height:80px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:13px;color:var(--text);font-family:inherit;resize:vertical;line-height:1.6;outline:none" placeholder="e.g. DevOps engineer, planning Master's in Germany by 2027, learning German B1, budget 800M VND."></textarea>
+      <button style="margin-top:10px;background:var(--text);color:#FFF;border:none;border-radius:var(--radius);padding:8px 18px;font-size:13px;font-weight:500;cursor:pointer">Save context</button>
+    </div>
+
+    <div class="dash-section" style="margin-bottom:10px">
+      <div class="dash-section-title" style="margin-bottom:12px">Features</div>
+      <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;cursor:pointer">
+        <input type="checkbox" checked style="margin-top:2px;accent-color:var(--accent)">
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--text)">Delayed recall</div>
+          <div style="font-size:12px;color:var(--text-2)">Small card in dashboard sidebar 48 h after an exercise — one question, one answer.</div>
+        </div>
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+        <input type="checkbox" style="margin-top:2px;accent-color:var(--accent)">
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--text)">Adaptive difficulty</div>
+          <div style="font-size:12px;color:var(--text-2)">Enable after 2+ weeks of use. Tracks weakness patterns and injects them into future exercises.</div>
+        </div>
+      </label>
+    </div>
+
+    <div class="dash-section">
+      <div class="dash-section-title" style="margin-bottom:12px">Data</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:7px 14px;font-size:13px;color:var(--text);cursor:pointer">Download JSON backup</button>
+        <button style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:7px 14px;font-size:13px;color:var(--text);cursor:pointer">Export journal as Markdown</button>
+      </div>
+      <div style="margin-top:10px">
+        <label style="font-size:12px;color:var(--text-2);display:block;margin-bottom:6px">Import JSON backup</label>
+        <input type="file" accept=".json" style="font-size:12px;color:var(--text-2)">
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="decisions">
+    <div style="margin-bottom:1.5rem">
+      <h1 style="font-size:22px;font-weight:600;letter-spacing:-0.3px">Real decisions</h1>
+      <p style="font-size:13px;color:var(--text-2);margin-top:3px">Log decisions from life. Link them to exercises. Review outcomes.</p>
+    </div>
+
+    <div class="dash-section" style="margin-bottom:10px">
+      <div class="dash-section-title" style="margin-bottom:12px">Add decision</div>
+      <textarea style="width:100%;min-height:60px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:13px;color:var(--text);font-family:inherit;resize:vertical;outline:none;line-height:1.6" placeholder="Describe the decision you made or are about to make..."></textarea>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div>
+          <label style="font-size:12px;color:var(--text-2);display:block;margin-bottom:4px">Domain</label>
+          <select style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;font-size:13px;color:var(--text)">
+            <option>DevOps / SRE</option>
+            <option>Life Strategy</option>
+            <option>Financial Planning</option>
+            <option>Custom</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--text-2);display:block;margin-bottom:4px">Outcome reminder</label>
+          <select style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;font-size:13px;color:var(--text)">
+            <option>In 7 days</option>
+            <option>In 30 days</option>
+            <option>Off</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <label style="font-size:12px;color:var(--text-2);display:block;margin-bottom:4px">Link to exercise (optional)</label>
+        <select style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;font-size:13px;color:var(--text)">
+          <option>— none —</option>
+          <option>Life Strategy Process Ordering Exercise</option>
+        </select>
+      </div>
+      <button style="margin-top:12px;width:100%;background:var(--text);color:#FFF;border:none;border-radius:var(--radius);padding:9px;font-size:13px;font-weight:500;cursor:pointer">Save decision</button>
+    </div>
+
+    <div class="dash-section">
+      <div class="dash-section-title">Log</div>
+      <div class="dash-section-body dash-empty" style="margin-top:8px">No decisions logged yet.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const ids = ['home','dashboard','history','settings','decisions'];
+    t.classList.toggle('active', ids[i] === id);
+  });
+  document.querySelectorAll('.section').forEach(s => {
+    s.classList.toggle('active', s.id === id);
+  });
+}
+
+const cal = document.getElementById('cal-row');
+for(let i=1;i<=30;i++){
+  const d = document.createElement('div');
+  d.className = 'cal-day' + (i===17?' done sequential':'');
+  d.title = i===17?'sequential exercise':'';
+  cal.appendChild(d);
+}
+</script>
