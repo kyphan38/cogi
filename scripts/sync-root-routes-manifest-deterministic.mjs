@@ -5,8 +5,9 @@ const repoDir = process.cwd();
 const webNextDir = path.join(repoDir, "web", ".next");
 const rootNextDir = path.join(repoDir, ".next");
 const webDeterministicPath = path.join(webNextDir, "routes-manifest-deterministic.json");
-const webRoutesPath = path.join(webNextDir, "routes-manifest.json");
+const webPagesManifestPath = path.join(webNextDir, "server", "pages-manifest.json");
 const rootDeterministicPath = path.join(rootNextDir, "routes-manifest-deterministic.json");
+const rootPagesManifestPath = path.join(rootNextDir, "server", "pages-manifest.json");
 
 // #region agent log
 fetch("http://127.0.0.1:7246/ingest/885cecb3-29b5-46db-8fa2-4c6c940007bf", {
@@ -23,23 +24,45 @@ fetch("http://127.0.0.1:7246/ingest/885cecb3-29b5-46db-8fa2-4c6c940007bf", {
     message: "root deterministic manifest sync precheck",
     data: {
       repoDir,
+      webNextExists: fs.existsSync(webNextDir),
       webDeterministicExists: fs.existsSync(webDeterministicPath),
-      webRoutesExists: fs.existsSync(webRoutesPath),
+      webPagesManifestExists: fs.existsSync(webPagesManifestPath),
       rootNextExists: fs.existsSync(rootNextDir),
       rootDeterministicExists: fs.existsSync(rootDeterministicPath),
+      rootPagesManifestExists: fs.existsSync(rootPagesManifestPath),
     },
     timestamp: Date.now(),
   }),
 }).catch(() => {});
 // #endregion
 
-if (!fs.existsSync(webDeterministicPath) && !fs.existsSync(webRoutesPath)) {
-  console.warn("[postbuild-root] no source manifest found in web/.next, skip root sync");
+if (!fs.existsSync(webNextDir)) {
+  console.warn("[postbuild-root] web/.next not found, skip root sync");
   process.exit(0);
 }
 
-fs.mkdirSync(rootNextDir, { recursive: true });
-const sourcePath = fs.existsSync(webDeterministicPath) ? webDeterministicPath : webRoutesPath;
-fs.copyFileSync(sourcePath, rootDeterministicPath);
+fs.cpSync(webNextDir, rootNextDir, { recursive: true });
 
-console.log(`[postbuild-root] synced ${path.basename(sourcePath)} -> .next/routes-manifest-deterministic.json`);
+// #region agent log
+fetch("http://127.0.0.1:7246/ingest/885cecb3-29b5-46db-8fa2-4c6c940007bf", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "X-Debug-Session-Id": "1161fc",
+  },
+  body: JSON.stringify({
+    sessionId: "1161fc",
+    runId: "post-fix",
+    hypothesisId: "H7",
+    location: "scripts/sync-root-routes-manifest-deterministic.mjs:44",
+    message: "root next sync postcheck",
+    data: {
+      rootDeterministicExists: fs.existsSync(rootDeterministicPath),
+      rootPagesManifestExists: fs.existsSync(rootPagesManifestPath),
+    },
+    timestamp: Date.now(),
+  }),
+}).catch(() => {});
+// #endregion
+
+console.log("[postbuild-root] synced web/.next -> .next");
