@@ -1,9 +1,0 @@
-{
-  "name": "thinking-workspace",
-  "private": true,
-  "scripts": {
-    "dev": "npm run dev --prefix web",
-    "build": "npm run build --prefix web",
-    "lint": "npm run lint --prefix web"
-  }
-}
