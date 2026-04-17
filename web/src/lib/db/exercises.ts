@@ -1,12 +1,20 @@
-import { getDb } from "@/lib/db/schema";
+import { Unsubscribe, deleteDoc, getDoc, setDoc, writeBatch } from "firebase/firestore";
+import { getFirebaseFirestore } from "@/lib/auth/firebase-client";
+import {
+  COGI_COLLECTIONS,
+  listCollectionRows,
+  subscribeCollectionRows,
+  userDocRef,
+} from "@/lib/db/firestore";
 import type { ConfidenceRecord, Exercise, ThinkingType } from "@/lib/types/exercise";
 
 export async function putExercise(ex: Exercise): Promise<void> {
-  await getDb().exercises.put(ex);
+  await setDoc(userDocRef<Exercise>(COGI_COLLECTIONS.exercises, ex.id), ex);
 }
 
 export async function getExercise(id: string): Promise<Exercise | undefined> {
-  return getDb().exercises.get(id);
+  const snapshot = await getDoc(userDocRef<Exercise>(COGI_COLLECTIONS.exercises, id));
+  return snapshot.exists() ? (snapshot.data() as Exercise) : undefined;
 }
 
 export type CompletedExerciseFilter = {
@@ -20,7 +28,7 @@ export type CompletedExerciseFilter = {
 export async function listCompletedExercises(
   filter?: CompletedExerciseFilter,
 ): Promise<Exercise[]> {
-  const all = await getDb().exercises.toArray();
+  const all = await listCollectionRows<Exercise>(COGI_COLLECTIONS.exercises);
   let rows = all.filter(
     (e): e is Exercise & { completedAt: string } => e.completedAt != null,
   );
@@ -43,6 +51,38 @@ export async function listCompletedExercises(
   return rows.sort((a, b) => b.completedAt!.localeCompare(a.completedAt!));
 }
 
+export function subscribeCompletedExercises(
+  filter: CompletedExerciseFilter | undefined,
+  onData: (rows: Exercise[]) => void,
+  onError?: (error: unknown) => void,
+): Unsubscribe {
+  return subscribeCollectionRows<Exercise>(
+    COGI_COLLECTIONS.exercises,
+    (rows) => {
+      const completedRows = rows.filter(
+        (e): e is Exercise & { completedAt: string } => e.completedAt != null,
+      );
+      const f = filter ?? {};
+      let next = completedRows;
+      if (f.type && f.type !== "all") {
+        next = next.filter((e) => e.type === f.type);
+      }
+      if (f.domainContains?.trim()) {
+        const q = f.domainContains.trim().toLowerCase();
+        next = next.filter((e) => e.domain.toLowerCase().includes(q));
+      }
+      if (f.completedAfter?.trim()) {
+        next = next.filter((e) => e.completedAt! >= f.completedAfter!);
+      }
+      if (f.completedBefore?.trim()) {
+        next = next.filter((e) => e.completedAt! <= f.completedBefore!);
+      }
+      onData(next.sort((a, b) => b.completedAt!.localeCompare(a.completedAt!)));
+    },
+    onError,
+  );
+}
+
 /** Completed exercises, newest first (for journal rotation + decision picker). */
 export async function listRecentCompletedExercises(
   limit: number,
@@ -60,13 +100,25 @@ export async function countCompletedByType(type: ThinkingType): Promise<number> 
 export async function getConfidenceRecordForExercise(
   exerciseId: string,
 ): Promise<ConfidenceRecord | undefined> {
-  return getDb().confidenceRecords.where("exerciseId").equals(exerciseId).first();
+  const rows = await listCollectionRows<ConfidenceRecord>(COGI_COLLECTIONS.confidenceRecords);
+  return rows.find((row) => row.exerciseId === exerciseId);
 }
 
 /** All calibration rows, oldest first (for charts). */
 export async function listConfidenceRecords(): Promise<ConfidenceRecord[]> {
-  const rows = await getDb().confidenceRecords.toArray();
+  const rows = await listCollectionRows<ConfidenceRecord>(COGI_COLLECTIONS.confidenceRecords);
   return rows.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+export function subscribeConfidenceRecords(
+  onData: (rows: ConfidenceRecord[]) => void,
+  onError?: (error: unknown) => void,
+): Unsubscribe {
+  return subscribeCollectionRows<ConfidenceRecord>(
+    COGI_COLLECTIONS.confidenceRecords,
+    (rows) => onData(rows.sort((a, b) => a.createdAt.localeCompare(b.createdAt))),
+    onError,
+  );
 }
 
 /**
@@ -76,40 +128,67 @@ export async function listConfidenceRecords(): Promise<ConfidenceRecord[]> {
 export async function deleteCompletedExerciseAndRelatedRecords(
   exerciseId: string,
 ): Promise<void> {
-  const db = getDb();
-  await db.transaction(
-    "rw",
-    [
-      db.journalEntries,
-      db.confidenceRecords,
-      db.actions,
-      db.delayedRecallQueue,
-      db.perspectiveDisagreements,
-      db.exercises,
-    ],
-    async () => {
-      await db.journalEntries.where("exerciseId").equals(exerciseId).delete();
-      await db.confidenceRecords.where("exerciseId").equals(exerciseId).delete();
-      await db.actions.where("exerciseId").equals(exerciseId).delete();
-      await db.delayedRecallQueue.where("exerciseId").equals(exerciseId).delete();
-      await db.perspectiveDisagreements.where("exerciseId").equals(exerciseId).delete();
-      await db.exercises.delete(exerciseId);
-    },
-  );
+  const [journals, confidenceRows, actions, recallRows, disagreements] = await Promise.all([
+    listCollectionRows<{ id: string; exerciseId: string }>(COGI_COLLECTIONS.journalEntries),
+    listCollectionRows<{ id: string; exerciseId: string }>(COGI_COLLECTIONS.confidenceRecords),
+    listCollectionRows<{ id: string; exerciseId: string }>(COGI_COLLECTIONS.actions),
+    listCollectionRows<{ id: string; exerciseId: string }>(COGI_COLLECTIONS.delayedRecallQueue),
+    listCollectionRows<{ id: string; exerciseId: string }>(COGI_COLLECTIONS.perspectiveDisagreements),
+  ]);
+
+  const batch = writeBatch(getFirebaseFirestore());
+  for (const row of journals.filter((row) => row.exerciseId === exerciseId)) {
+    batch.delete(userDocRef(COGI_COLLECTIONS.journalEntries, row.id));
+  }
+  for (const row of confidenceRows.filter((row) => row.exerciseId === exerciseId)) {
+    batch.delete(userDocRef(COGI_COLLECTIONS.confidenceRecords, row.id));
+  }
+  for (const row of actions.filter((row) => row.exerciseId === exerciseId)) {
+    batch.delete(userDocRef(COGI_COLLECTIONS.actions, row.id));
+  }
+  for (const row of recallRows.filter((row) => row.exerciseId === exerciseId)) {
+    batch.delete(userDocRef(COGI_COLLECTIONS.delayedRecallQueue, row.id));
+  }
+  for (const row of disagreements.filter((row) => row.exerciseId === exerciseId)) {
+    batch.delete(userDocRef(COGI_COLLECTIONS.perspectiveDisagreements, row.id));
+  }
+  batch.delete(userDocRef(COGI_COLLECTIONS.exercises, exerciseId));
+  await batch.commit();
 }
 
 export async function listRecentExercisesForPicker(
   limit: number,
 ): Promise<Pick<Exercise, "id" | "title" | "domain" | "createdAt">[]> {
-  const all = await getDb()
-    .exercises.orderBy("createdAt")
-    .reverse()
-    .limit(limit)
-    .toArray();
+  const all = (await listCollectionRows<Exercise>(COGI_COLLECTIONS.exercises))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, limit);
   return all.map((e) => ({
     id: e.id,
     title: e.title,
     domain: e.domain,
     createdAt: e.createdAt,
   }));
+}
+
+export function subscribeRecentExercisesForPicker(
+  limit: number,
+  onData: (rows: Pick<Exercise, "id" | "title" | "domain" | "createdAt">[]) => void,
+  onError?: (error: unknown) => void,
+): Unsubscribe {
+  return subscribeCollectionRows<Exercise>(
+    COGI_COLLECTIONS.exercises,
+    (rows) => {
+      const next = [...rows]
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .slice(0, limit)
+        .map((row) => ({
+          id: row.id,
+          title: row.title,
+          domain: row.domain,
+          createdAt: row.createdAt,
+        }));
+      onData(next);
+    },
+    onError,
+  );
 }

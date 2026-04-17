@@ -1,17 +1,23 @@
-import { getDb } from "@/lib/db/schema";
+import { setDoc, Unsubscribe } from "firebase/firestore";
+import { COGI_COLLECTIONS, listCollectionRows, subscribeCollectionRows, userDocRef } from "@/lib/db/firestore";
 import type { ActionBridge } from "@/lib/types/action";
+import type { Exercise } from "@/lib/types/exercise";
 
 export async function putAction(row: ActionBridge): Promise<void> {
-  await getDb().actions.put(row);
+  await setDoc(userDocRef<ActionBridge>(COGI_COLLECTIONS.actions, row.id), row);
 }
 
 export async function listActionsWithExerciseMeta(): Promise<
   (ActionBridge & { exerciseTitle: string; exerciseCreatedAt: string })[]
 > {
-  const actions = await getDb().actions.toArray();
+  const [actions, exercises] = await Promise.all([
+    listCollectionRows<ActionBridge>(COGI_COLLECTIONS.actions),
+    listCollectionRows<Exercise>(COGI_COLLECTIONS.exercises),
+  ]);
+  const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
   const withMeta = await Promise.all(
     actions.map(async (a) => {
-      const ex = await getDb().exercises.get(a.exerciseId);
+      const ex = exerciseById.get(a.exerciseId);
       return {
         ...a,
         exerciseTitle: ex?.title ?? "(unknown)",
@@ -24,6 +30,20 @@ export async function listActionsWithExerciseMeta(): Promise<
   );
 }
 
+export function subscribeActionsWithExerciseMeta(
+  onData: (rows: (ActionBridge & { exerciseTitle: string; exerciseCreatedAt: string })[]) => void,
+  onError?: (error: unknown) => void,
+): Unsubscribe {
+  return subscribeCollectionRows<ActionBridge>(
+    COGI_COLLECTIONS.actions,
+    async () => {
+      const rows = await listActionsWithExerciseMeta();
+      onData(rows);
+    },
+    onError,
+  );
+}
+
 const MS_14D = 14 * 24 * 3600 * 1000;
 
 /** Actions created in the last 14 days (Phase 5.2 weekly review input). */
@@ -33,6 +53,20 @@ export async function listActionsFromLast14Days(): Promise<
   const cutoff = new Date(Date.now() - MS_14D).toISOString();
   const all = await listActionsWithExerciseMeta();
   return all.filter((a) => a.createdAt >= cutoff);
+}
+
+export async function toggleActionFollowThroughWeek(
+  row: ActionBridge,
+  weekKey: string,
+): Promise<void> {
+  const next = [...row.weeklyFollowThrough];
+  const idx = next.findIndex((item) => item.weekKey === weekKey);
+  if (idx >= 0) {
+    next[idx] = { ...next[idx], done: !next[idx].done };
+  } else {
+    next.push({ weekKey, done: true });
+  }
+  await putAction({ ...row, weeklyFollowThrough: next });
 }
 
 export function currentIsoWeekKey(): string {

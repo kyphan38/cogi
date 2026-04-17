@@ -7,6 +7,7 @@ Next.js app lives in `web/` (repo root keeps `ai_plan.txt`).
 - **[USER_GUIDE.md](docs/USER_GUIDE.md)** — hướng dẫn dùng app chi tiết cho người mới (từng bài tập, tương tác, Dashboard, History, Settings).
 - **[EXPERIENCE_TUNING.md](docs/EXPERIENCE_TUNING.md)** — góc nhìn sản phẩm khi muốn tinh chỉnh trải nghiệm / AI sau này.
 - **[MIGRATE_GEMINI_TO_CLAUDE.md](docs/MIGRATE_GEMINI_TO_CLAUDE.md)** — hướng dẫn chuyển provider AI sang Claude và chỗ chỉnh giới hạn độ dài.
+- **[FIRESTORE_READINESS.md](docs/FIRESTORE_READINESS.md)** — inventory query/index, rules checklist, và runbook xử lý lỗi thiếu index.
 
 ## Commands
 
@@ -50,3 +51,13 @@ Expected unauthenticated result: HTTP `401`.
 ```bash
 npm run build
 ```
+
+## Firestore Index & Rules Rollout
+
+When query patterns are upgraded to `where/orderBy/limit`, deploy index/rules together:
+
+```bash
+firebase deploy --only firestore:indexes,firestore:rules
+```
+
+If you see `failed-precondition` with index hint URL in browser console, follow the troubleshooting flow in `docs/FIRESTORE_READINESS.md`.

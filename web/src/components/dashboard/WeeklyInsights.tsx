@@ -8,26 +8,39 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getDb } from "@/lib/db/schema";
+import { subscribePerspectiveDisagreementCount } from "@/lib/db/disagreements";
+import { subscribeJournalEntries } from "@/lib/db/journal";
+import { logFirestoreQueryError } from "@/lib/db/firestore";
 
 export function WeeklyInsights() {
   const [emotions, setEmotions] = useState<Record<string, number>>({});
   const [disagreeTotal, setDisagreeTotal] = useState(0);
 
   useEffect(() => {
-    void (async () => {
-      const db = getDb();
-      const journals = await db.journalEntries.toArray();
-      const em: Record<string, number> = {};
-      for (const j of journals) {
-        const lab = j.emotionLabel;
-        if (!lab) continue;
-        em[lab] = (em[lab] ?? 0) + 1;
-      }
-      setEmotions(em);
-      const d = await db.perspectiveDisagreements.count();
-      setDisagreeTotal(d);
-    })();
+    const unsubscribeJournals = subscribeJournalEntries(
+      (journals) => {
+        const em: Record<string, number> = {};
+        for (const journal of journals) {
+          const label = journal.emotionLabel;
+          if (!label) continue;
+          em[label] = (em[label] ?? 0) + 1;
+        }
+        setEmotions(em);
+      },
+      (error) => {
+        logFirestoreQueryError("WeeklyInsights", "subscribeJournalEntries", error);
+      },
+    );
+    const unsubscribeDisagreements = subscribePerspectiveDisagreementCount(
+      (count) => setDisagreeTotal(count),
+      (error) => {
+        logFirestoreQueryError("WeeklyInsights", "subscribePerspectiveDisagreementCount", error);
+      },
+    );
+    return () => {
+      unsubscribeJournals();
+      unsubscribeDisagreements();
+    };
   }, []);
 
   const emoEntries = Object.entries(emotions).sort((a, b) => b[1] - a[1]);

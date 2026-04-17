@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -21,16 +21,16 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
-  listCompletedExercises,
   getExercise,
-  getConfidenceRecordForExercise,
-  listConfidenceRecords,
   deleteCompletedExerciseAndRelatedRecords,
+  subscribeCompletedExercises,
+  subscribeConfidenceRecords,
   type CompletedExerciseFilter,
 } from "@/lib/db/exercises";
 import { getJournalForExercise } from "@/lib/db/journal";
 import { JOURNAL_PROMPTS } from "@/lib/ai/prompts/journal-pool";
 import type { Exercise } from "@/lib/types/exercise";
+import type { ConfidenceRecord } from "@/lib/types/exercise";
 import {
   isAnalyticalExercise,
   isComboExercise,
@@ -46,6 +46,7 @@ import type { PerspectiveDisagreementRow } from "@/lib/types/disagreement";
 import { Trash2 } from "lucide-react";
 import { FirebaseAuthGate } from "@/components/auth/FirebaseAuthGate";
 import { AppTopNav } from "@/components/shell/AppTopNav";
+import { logFirestoreQueryError } from "@/lib/db/firestore";
 
 type ThinkingTypeFilter =
   | "all"
@@ -261,30 +262,74 @@ export default function HistoryPage() {
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteErr, setDeleteErr] = useState<string | null>(null);
 
-  const loadList = useCallback(async () => {
+  const [allCompletedRows, setAllCompletedRows] = useState<Exercise[]>([]);
+  const [confidenceRows, setConfidenceRows] = useState<ConfidenceRecord[]>([]);
+
+  useEffect(() => {
     const filter: CompletedExerciseFilter = {
       type: typeFilter,
       domainContains: domainQ.trim() || undefined,
       completedAfter: fromDate ? `${fromDate}T00:00:00.000Z` : undefined,
       completedBefore: toDate ? `${toDate}T23:59:59.999Z` : undefined,
     };
-    const list = await listCompletedExercises(filter);
-    setRows(list);
-    const m = new Map<string, number>();
-    for (const ex of list) {
-      const c = await getConfidenceRecordForExercise(ex.id);
-      if (c) m.set(ex.id, c.gap);
-    }
-    setConfMap(m);
-    const allForStreak = await listCompletedExercises();
-    setStreakDays(computeStreak(allForStreak));
+    const unsubscribe = subscribeCompletedExercises(
+      filter,
+      (list) => {
+        startTransition(() => {
+          setRows(list);
+        });
+      },
+      (error) => {
+        logFirestoreQueryError("HistoryPage", "subscribeCompletedExercises(filtered)", error);
+      },
+    );
+    return () => unsubscribe();
   }, [typeFilter, domainQ, fromDate, toDate]);
 
-  const loadGlobals = useCallback(async () => {
-    const allDone = await listCompletedExercises();
-    setStreakDays(computeStreak(allDone));
-    const ids = new Set(allDone.map((e) => e.id));
-    const recs = (await listConfidenceRecords()).filter((r) => ids.has(r.exerciseId));
+  useEffect(() => {
+    const unsubscribe = subscribeCompletedExercises(
+      undefined,
+      (list) => {
+        startTransition(() => {
+          setAllCompletedRows(list);
+          setStreakDays(computeStreak(list));
+        });
+      },
+      (error) => {
+        logFirestoreQueryError("HistoryPage", "subscribeCompletedExercises(all)", error);
+      },
+    );
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = subscribeConfidenceRecords(
+      (rows) => {
+        startTransition(() => {
+          setConfidenceRows(rows);
+        });
+      },
+      (error) => {
+        logFirestoreQueryError("HistoryPage", "subscribeConfidenceRecords", error);
+      },
+    );
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const m = new Map<string, number>();
+    const filteredIds = new Set(rows.map((row) => row.id));
+    for (const row of confidenceRows) {
+      if (filteredIds.has(row.exerciseId)) {
+        m.set(row.exerciseId, row.gap);
+      }
+    }
+    setConfMap(m);
+  }, [rows, confidenceRows]);
+
+  useEffect(() => {
+    const ids = new Set(allCompletedRows.map((item) => item.id));
+    const recs = confidenceRows.filter((row) => ids.has(row.exerciseId));
     if (recs.length === 0) {
       setGlobalStats({
         avgConf: null,
@@ -294,31 +339,19 @@ export default function HistoryPage() {
       });
       return;
     }
-    const avgConf = recs.reduce((s, r) => s + r.confidenceBefore, 0) / recs.length;
-    const avgAcc = recs.reduce((s, r) => s + r.actualAccuracy, 0) / recs.length;
-    const avgGap = recs.reduce((s, r) => s + r.gap, 0) / recs.length;
+    const avgConf = recs.reduce((sum, row) => sum + row.confidenceBefore, 0) / recs.length;
+    const avgAcc = recs.reduce((sum, row) => sum + row.actualAccuracy, 0) / recs.length;
+    const avgGap = recs.reduce((sum, row) => sum + row.gap, 0) / recs.length;
     const chartPoints = [...recs]
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-      .map((r) => ({ t: r.createdAt, gap: r.gap }));
+      .map((row) => ({ t: row.createdAt, gap: row.gap }));
     setGlobalStats({
       avgConf: Math.round(avgConf * 10) / 10,
       avgAcc: Math.round(avgAcc * 10) / 10,
       avgGap: Math.round(avgGap * 10) / 10,
       chartPoints,
     });
-  }, []);
-
-  useEffect(() => {
-    startTransition(() => {
-      void loadList();
-    });
-  }, [loadList]);
-
-  useEffect(() => {
-    startTransition(() => {
-      void loadGlobals();
-    });
-  }, [loadGlobals]);
+  }, [allCompletedRows, confidenceRows]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -387,10 +420,6 @@ export default function HistoryPage() {
         setSelectedId(null);
       }
       closeDeleteDialog();
-      startTransition(() => {
-        void loadList();
-        void loadGlobals();
-      });
     } catch (e) {
       setDeleteErr(e instanceof Error ? e.message : "Delete failed");
     } finally {
@@ -513,10 +542,10 @@ export default function HistoryPage() {
           <div className="sm:col-span-2">
             <button
               type="button"
+              disabled
               className={cn(buttonVariants({ variant: "secondary" }), "w-full sm:w-auto")}
-              onClick={() => void loadList()}
             >
-              Apply filters
+              Realtime filters enabled
             </button>
           </div>
         </CardContent>

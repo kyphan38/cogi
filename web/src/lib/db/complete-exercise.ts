@@ -1,5 +1,8 @@
 import { recordWeaknessesAfterExercise } from "@/lib/adaptive/record-weaknesses";
-import { getDb } from "@/lib/db/schema";
+import { writeBatch } from "firebase/firestore";
+import { getFirebaseFirestore } from "@/lib/auth/firebase-client";
+import { COGI_COLLECTIONS, userDocRef } from "@/lib/db/firestore";
+import { getAppSettings } from "@/lib/db/settings";
 import type { Exercise } from "@/lib/types/exercise";
 import type { JournalEntry } from "@/lib/types/journal";
 import type { ActionBridge } from "@/lib/types/action";
@@ -22,8 +25,7 @@ export async function completeExerciseFlow(input: {
   confidence: ConfidenceRecord;
   action: ActionBridge;
 }): Promise<void> {
-  const db = getDb();
-  const settings = await db.settings.get("app");
+  const settings = await getAppSettings();
   const recallOn = settings?.delayedRecallEnabled !== false;
   const completedAt = input.exercise.completedAt ?? new Date().toISOString();
 
@@ -42,20 +44,20 @@ export async function completeExerciseFlow(input: {
       }
     : null;
 
-  const run = async () => {
-    await db.exercises.put(input.exercise);
-    await db.journalEntries.put(input.journal);
-    await db.confidenceRecords.put(input.confidence);
-    await db.actions.put(input.action);
-    if (recallRow) {
-      await db.delayedRecallQueue.put(recallRow);
-    }
-  };
-
-  const tables = recallRow
-    ? ([db.exercises, db.journalEntries, db.confidenceRecords, db.actions, db.delayedRecallQueue] as const)
-    : ([db.exercises, db.journalEntries, db.confidenceRecords, db.actions] as const);
-
-  await db.transaction("rw", tables, run);
+  const batch = writeBatch(getFirebaseFirestore());
+  batch.set(userDocRef<Exercise>(COGI_COLLECTIONS.exercises, input.exercise.id), input.exercise);
+  batch.set(userDocRef<JournalEntry>(COGI_COLLECTIONS.journalEntries, input.journal.id), input.journal);
+  batch.set(
+    userDocRef<ConfidenceRecord>(COGI_COLLECTIONS.confidenceRecords, input.confidence.id),
+    input.confidence,
+  );
+  batch.set(userDocRef<ActionBridge>(COGI_COLLECTIONS.actions, input.action.id), input.action);
+  if (recallRow) {
+    batch.set(
+      userDocRef<DelayedRecallQueueRow>(COGI_COLLECTIONS.delayedRecallQueue, recallRow.id),
+      recallRow,
+    );
+  }
+  await batch.commit();
   await recordWeaknessesAfterExercise(input.exercise, input.confidence);
 }

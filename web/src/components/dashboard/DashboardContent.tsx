@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { aiFetch } from "@/lib/api/ai-fetch";
 import { cn } from "@/lib/utils";
@@ -18,27 +18,36 @@ import {
   calibrationGapSeries,
   totalCompleted,
 } from "@/lib/analytics/dashboard-aggregates";
-import { listCompletedExercises, listConfidenceRecords } from "@/lib/db/exercises";
+import {
+  listCompletedExercises,
+  listConfidenceRecords,
+  subscribeCompletedExercises,
+  subscribeConfidenceRecords,
+} from "@/lib/db/exercises";
 import { getJournalForExercise } from "@/lib/db/journal";
 import { listDecisions } from "@/lib/db/decisions";
 import { listActionsFromLast14Days } from "@/lib/db/actions";
 import {
-  getAppSettings,
+  subscribeAppSettings,
   setWeeklyReviewLastCompletedCount,
 } from "@/lib/db/settings";
 import type { AdaptiveExerciseType } from "@/lib/adaptive/types";
 import { getPerformanceSnapshotForThinkingType } from "@/lib/adaptive/performance-profile";
-import { listTopActiveWeaknesses } from "@/lib/db/weaknesses";
+import { subscribeTopActiveWeaknesses } from "@/lib/db/weaknesses";
 import type { WeaknessEntry } from "@/lib/types/weakness";
 import { WEAKNESS_BUCKET } from "@/lib/types/weakness";
-import { listWeeklyReviewsNewestFirst, putWeeklyReview } from "@/lib/db/weekly-reviews";
-import { getNextDueRecall } from "@/lib/db/delayed-recall";
+import {
+  putWeeklyReview,
+  subscribeWeeklyReviewsNewestFirst,
+} from "@/lib/db/weekly-reviews";
+import { subscribeNextDueRecall } from "@/lib/db/delayed-recall";
 import { buildWeeklyReviewSlices } from "@/lib/insights/build-weekly-review-payload";
-import { getDb } from "@/lib/db/schema";
 import type { WeeklyReviewRow } from "@/lib/types/insights";
 import type { DelayedRecallQueueRow } from "@/lib/types/insights";
 import { DelayedRecallCard } from "@/components/dashboard/DelayedRecallCard";
 import { WeeklyInsights } from "@/components/dashboard/WeeklyInsights";
+import { countPerspectiveDisagreementsForExercises } from "@/lib/db/disagreements";
+import { logFirestoreQueryError } from "@/lib/db/firestore";
 
 const ADAPTIVE_TYPES: AdaptiveExerciseType[] = [
   "analytical",
@@ -121,41 +130,92 @@ export function DashboardContent() {
   const [perfByType, setPerfByType] = useState<Partial<Record<AdaptiveExerciseType, PerfSnap>>>({});
   const [topWeak, setTopWeak] = useState<WeaknessEntry[]>([]);
 
-  const load = useCallback(async () => {
-    const [done, conf, settings, reviews, due] = await Promise.all([
-      listCompletedExercises(),
-      listConfidenceRecords(),
-      getAppSettings(),
-      listWeeklyReviewsNewestFirst(),
-      getNextDueRecall(),
-    ]);
-    setCompleted(done);
-    setConfRecords(conf);
-    setLastReviewCount(settings.weeklyReviewLastCompletedCount ?? 0);
-    setPastReviews(reviews);
-    setLatestReview(reviews[0] ?? null);
-    const adaptive = settings.adaptiveDifficultyEnabled === true;
-    setAdaptiveOn(adaptive);
-    if (adaptive) {
-      const snaps = await Promise.all(
-        ADAPTIVE_TYPES.map(async (t) => [t, await getPerformanceSnapshotForThinkingType(t)] as const),
-      );
-      setPerfByType(Object.fromEntries(snaps) as Partial<Record<AdaptiveExerciseType, PerfSnap>>);
-      setTopWeak(await listTopActiveWeaknesses(3));
-    } else {
-      setPerfByType({});
-      setTopWeak([]);
-    }
-    if (settings.delayedRecallEnabled !== false) {
-      setRecall(due ?? null);
-    } else {
-      setRecall(null);
-    }
+  useEffect(() => {
+    let recallEnabled = true;
+    const unsubCompleted = subscribeCompletedExercises(
+      undefined,
+      (rows) => setCompleted(rows),
+      (error) => {
+        logFirestoreQueryError("DashboardContent", "subscribeCompletedExercises", error);
+      },
+    );
+    const unsubConfidence = subscribeConfidenceRecords(
+      (rows) => setConfRecords(rows),
+      (error) => {
+        logFirestoreQueryError("DashboardContent", "subscribeConfidenceRecords", error);
+      },
+    );
+    const unsubSettings = subscribeAppSettings(
+      (settings) => {
+        recallEnabled = settings.delayedRecallEnabled !== false;
+        setLastReviewCount(settings.weeklyReviewLastCompletedCount ?? 0);
+        setAdaptiveOn(settings.adaptiveDifficultyEnabled === true);
+        if (!recallEnabled) {
+          setRecall(null);
+        }
+      },
+      (error) => {
+        logFirestoreQueryError("DashboardContent", "subscribeAppSettings", error);
+      },
+    );
+    const unsubWeekly = subscribeWeeklyReviewsNewestFirst(
+      (rows) => {
+        setPastReviews(rows);
+        setLatestReview(rows[0] ?? null);
+      },
+      (error) => {
+        logFirestoreQueryError("DashboardContent", "subscribeWeeklyReviewsNewestFirst", error);
+      },
+    );
+    const unsubRecall = subscribeNextDueRecall(
+      (row) => {
+        if (recallEnabled) {
+          setRecall(row);
+        }
+      },
+      (error) => {
+        logFirestoreQueryError("DashboardContent", "subscribeNextDueRecall", error);
+      },
+    );
+    return () => {
+      unsubCompleted();
+      unsubConfidence();
+      unsubSettings();
+      unsubWeekly();
+      unsubRecall();
+    };
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    if (!adaptiveOn) {
+      setPerfByType({});
+      setTopWeak([]);
+      return;
+    }
+    void (async () => {
+      const snaps = await Promise.all(
+        ADAPTIVE_TYPES.map(async (type) => [type, await getPerformanceSnapshotForThinkingType(type)] as const),
+      );
+      if (cancelled) return;
+      setPerfByType(Object.fromEntries(snaps) as Partial<Record<AdaptiveExerciseType, PerfSnap>>);
+    })();
+    const unsubscribeWeaknesses = subscribeTopActiveWeaknesses(
+      3,
+      (rows) => {
+        if (!cancelled) {
+          setTopWeak(rows);
+        }
+      },
+      (error) => {
+        logFirestoreQueryError("DashboardContent", "subscribeTopActiveWeaknesses", error);
+      },
+    );
+    return () => {
+      cancelled = true;
+      unsubscribeWeaknesses();
+    };
+  }, [adaptiveOn, completed, confRecords]);
 
   const byType = aggregateCompletedByType(completed);
   const byDomain = aggregateCompletedByDomain(completed);
@@ -201,33 +261,41 @@ export function DashboardContent() {
       const decisions = (await listDecisions()).slice(0, 3);
       const actionsRaw = await listActionsFromLast14Days();
       const ids = new Set(last7.map((ex) => ex.id));
-      const disagreeRows = await getDb().perspectiveDisagreements.toArray();
-      const perspectiveDisagreementCount = disagreeRows.filter((r) => ids.has(r.exerciseId))
-        .length;
+      const perspectiveDisagreementCount = await countPerspectiveDisagreementsForExercises(ids);
       const payload = buildWeeklyReviewSlices(last7, map, decisions, actionsRaw, {
         perspectiveDisagreementCount,
       });
+      const requestId = crypto.randomUUID();
       const res = await aiFetch("/api/ai/weekly-review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...payload,
+          requestId,
+          triggeredAtCompletedExerciseCount: count,
+        }),
       });
       const json = (await res.json()) as
-        | { ok: true; markdown: string }
+        | {
+            ok: true;
+            markdown: string;
+            saved?: { saved: true; id: string; path: string; savedAt: string };
+          }
         | { ok: false; error: string };
       if (!json.ok) {
         setWeeklyError(json.error);
         return;
       }
-      const row: WeeklyReviewRow = {
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-        triggeredAtCompletedExerciseCount: count,
-        markdown: json.markdown,
-      };
-      await putWeeklyReview(row);
+      if (!json.saved?.saved) {
+        const row: WeeklyReviewRow = {
+          id: requestId,
+          createdAt: new Date().toISOString(),
+          triggeredAtCompletedExerciseCount: count,
+          markdown: json.markdown,
+        };
+        await putWeeklyReview(row);
+      }
       await setWeeklyReviewLastCompletedCount(count);
-      await load();
     } catch (e) {
       setWeeklyError(e instanceof Error ? e.message : "Weekly review failed");
     } finally {
@@ -464,7 +532,7 @@ export function DashboardContent() {
             </CardHeader>
             <CardContent>
               {recall ? (
-                <DelayedRecallCard recall={recall} onUpdated={() => void load()} />
+                <DelayedRecallCard recall={recall} onUpdated={() => {}} />
               ) : (
                 <p className="text-muted-foreground text-xs italic">
                   Nothing due in the next window — when an exercise matures, a short recall prompt

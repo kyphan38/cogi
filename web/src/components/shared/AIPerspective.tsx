@@ -58,10 +58,13 @@ function PerspectivePointRow(props: {
     }
     setLoading(true);
     try {
+      const requestId = crypto.randomUUID();
       const res = await aiFetch("/api/ai/disagree", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          requestId,
+          exerciseId,
           kind: perspectiveKind,
           section,
           exerciseTitle,
@@ -72,24 +75,32 @@ function PerspectivePointRow(props: {
           userReason: trimmed,
         }),
       });
-      const data = (await res.json()) as { ok: true; text: string } | { ok: false; error: string };
+      const data = (await res.json()) as
+        | {
+            ok: true;
+            text: string;
+            saved?: { saved: true; id: string; path: string; savedAt: string };
+          }
+        | { ok: false; error: string };
       if (!data.ok) {
         setError(data.error);
         return;
       }
-      const row: PerspectiveDisagreementRow = {
-        id: crypto.randomUUID(),
-        exerciseId,
-        kind: perspectiveKind,
-        section,
-        pointId: point.id,
-        pointTitle: point.title?.trim() ? point.title.trim() : null,
-        pointBody: point.body,
-        userReason: trimmed,
-        aiReply: data.text,
-        createdAt: new Date().toISOString(),
-      };
-      await putPerspectiveDisagreement(row);
+      if (!data.saved?.saved) {
+        const row: PerspectiveDisagreementRow = {
+          id: requestId,
+          exerciseId,
+          kind: perspectiveKind,
+          section,
+          pointId: point.id,
+          pointTitle: point.title?.trim() ? point.title.trim() : null,
+          pointBody: point.body,
+          userReason: trimmed,
+          aiReply: data.text,
+          createdAt: new Date().toISOString(),
+        };
+        await putPerspectiveDisagreement(row);
+      }
       setLocalReply(data.text);
       setOpen(false);
       setReason("");

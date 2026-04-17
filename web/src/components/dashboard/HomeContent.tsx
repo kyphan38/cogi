@@ -11,11 +11,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { listActionsWithExerciseMeta } from "@/lib/db/actions";
+import {
+  listActionsWithExerciseMeta,
+  subscribeActionsWithExerciseMeta,
+  toggleActionFollowThroughWeek,
+} from "@/lib/db/actions";
 import type { ActionBridge } from "@/lib/types/action";
-import { getDb } from "@/lib/db/schema";
 import { currentIsoWeekKey } from "@/lib/db/actions";
 import { ChevronRight } from "lucide-react";
+import { logFirestoreQueryError } from "@/lib/db/firestore";
 
 type ActionRow = ActionBridge & {
   exerciseTitle: string;
@@ -60,25 +64,19 @@ export function HomeContent() {
   const [actions, setActions] = useState<ActionRow[]>([]);
   const weekKey = currentIsoWeekKey();
 
-  const load = () => {
-    void listActionsWithExerciseMeta().then(setActions);
-  };
-
   useEffect(() => {
-    load();
+    void listActionsWithExerciseMeta().then(setActions);
+    const unsubscribe = subscribeActionsWithExerciseMeta(
+      setActions,
+      (error) => {
+        logFirestoreQueryError("HomeContent", "subscribeActionsWithExerciseMeta", error);
+      },
+    );
+    return () => unsubscribe();
   }, []);
 
   const toggleWeek = async (row: ActionBridge) => {
-    const db = getDb();
-    const next = [...row.weeklyFollowThrough];
-    const idx = next.findIndex((w) => w.weekKey === weekKey);
-    if (idx >= 0) {
-      next[idx] = { ...next[idx], done: !next[idx].done };
-    } else {
-      next.push({ weekKey, done: true });
-    }
-    await db.actions.put({ ...row, weeklyFollowThrough: next });
-    load();
+    await toggleActionFollowThroughWeek(row, weekKey);
   };
 
   return (

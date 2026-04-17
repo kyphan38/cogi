@@ -50,16 +50,25 @@ export function DelayedRecallCard({ recall, onUpdated }: DelayedRecallCardProps)
     try {
       const ex = await getExercise(recall.exerciseId);
       const summary = ex ? exerciseSummaryForReview(ex as Exercise) : recall.exerciseTitle;
+      const requestId = crypto.randomUUID();
       const res = await aiFetch("/api/ai/recall-feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          requestId,
+          exerciseId: recall.exerciseId,
           exerciseTitle: recall.exerciseTitle,
           summary,
           userRecall: t,
         }),
       });
-      const json = (await res.json()) as { ok: true; text: string } | { ok: false; error: string };
+      const json = (await res.json()) as
+        | {
+            ok: true;
+            text: string;
+            saved?: { saved: true; id: string; path: string; savedAt: string };
+          }
+        | { ok: false; error: string };
       if (!json.ok) {
         setError(json.error);
         return;

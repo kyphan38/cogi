@@ -1,7 +1,30 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { buildPerspectiveDisagreePrompt } from "@/lib/ai/prompts/disagree";
 import { generatePlainTextRaw } from "@/lib/ai/gemini";
-import type { PerspectiveKind, PerspectiveSectionKey } from "@/lib/types/disagreement";
+import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
+import { getFirebaseAdminFirestore, getUserDocPath } from "@/lib/firebaseAdminFirestore";
+import type { PerspectiveDisagreementRow, PerspectiveKind, PerspectiveSectionKey } from "@/lib/types/disagreement";
+
+const bodySchema = z.object({
+  requestId: z.string().uuid(),
+  exerciseId: z.string().trim().min(1),
+  kind: z.enum([
+    "analytical",
+    "sequential",
+    "systems",
+    "evaluative-matrix",
+    "evaluative-scoring",
+    "generative",
+  ]),
+  section: z.enum(["embedded", "userFound", "additional", "openQuestions"]),
+  exerciseTitle: z.string().trim().min(1),
+  domain: z.string().trim().optional().default(""),
+  pointId: z.string().trim().min(1),
+  pointTitle: z.string().trim().nullable().optional(),
+  pointBody: z.string().trim().min(1),
+  userReason: z.string().trim().min(15),
+});
 
 export async function POST(req: Request) {
   if (!process.env.GEMINI_API_KEY?.trim()) {
@@ -17,61 +40,51 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
-  if (typeof body !== "object" || body === null) {
-    return NextResponse.json({ ok: false, error: "Body must be object" }, { status: 400 });
-  }
-  const b = body as Record<string, unknown>;
-
-  const kind = b.kind as PerspectiveKind | undefined;
-  const allowedKinds: PerspectiveKind[] = [
-    "analytical",
-    "sequential",
-    "systems",
-    "evaluative-matrix",
-    "evaluative-scoring",
-    "generative",
-  ];
-  if (!kind || !allowedKinds.includes(kind)) {
-    return NextResponse.json({ ok: false, error: "kind is invalid" }, { status: 400 });
-  }
-
-  const section = b.section as PerspectiveSectionKey | undefined;
-  const allowedSections: PerspectiveSectionKey[] = [
-    "embedded",
-    "userFound",
-    "additional",
-    "openQuestions",
-  ];
-  if (!section || !allowedSections.includes(section)) {
-    return NextResponse.json({ ok: false, error: "section is invalid" }, { status: 400 });
-  }
-
-  const exerciseTitle = typeof b.exerciseTitle === "string" ? b.exerciseTitle.trim() : "";
-  const domain = typeof b.domain === "string" ? b.domain.trim() : "";
-  const pointId = typeof b.pointId === "string" ? b.pointId.trim() : "";
-  const pointBody = typeof b.pointBody === "string" ? b.pointBody.trim() : "";
-  const userReason = typeof b.userReason === "string" ? b.userReason.trim() : "";
-  const pointTitle =
-    typeof b.pointTitle === "string" && b.pointTitle.trim() ? b.pointTitle.trim() : null;
-
-  if (!exerciseTitle || !pointId || !pointBody || !userReason) {
+  const parsed = bodySchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json(
-      { ok: false, error: "exerciseTitle, pointId, pointBody, userReason are required" },
+      { ok: false, error: parsed.error.issues.map((issue) => issue.message).join("; ") },
       { status: 400 },
     );
   }
-  if (userReason.length < 15) {
-    return NextResponse.json(
-      { ok: false, error: "Please write at least 15 characters explaining your disagreement." },
-      { status: 400 },
-    );
+
+  const auth = await requireAuthenticatedRouteUser(req);
+  if (!auth.ok) return auth.response;
+
+  const {
+    requestId,
+    exerciseId,
+    kind,
+    section,
+    exerciseTitle,
+    domain,
+    pointId,
+    pointTitle,
+    pointBody,
+    userReason,
+  } = parsed.data;
+  const docPath = getUserDocPath(auth.user.uid, "perspectiveDisagreements", requestId);
+  const docRef = getFirebaseAdminFirestore().doc(docPath);
+  const existing = await docRef.get();
+  if (existing.exists) {
+    const saved = existing.data() as PerspectiveDisagreementRow;
+    return NextResponse.json({
+      ok: true,
+      text: saved.aiReply,
+      saved: {
+        saved: true as const,
+        id: saved.id,
+        path: docPath,
+        savedAt: saved.createdAt,
+      },
+    });
   }
 
   const prompt = buildPerspectiveDisagreePrompt({
-    kind,
+    kind: kind as PerspectiveKind,
     exerciseTitle,
     domain: domain || undefined,
-    section,
+    section: section as PerspectiveSectionKey,
     pointTitle,
     pointBody,
     userReason,
@@ -79,7 +92,29 @@ export async function POST(req: Request) {
 
   try {
     const text = await generatePlainTextRaw(prompt);
-    return NextResponse.json({ ok: true, text });
+    const row: PerspectiveDisagreementRow = {
+      id: requestId,
+      exerciseId,
+      kind: kind as PerspectiveKind,
+      section: section as PerspectiveSectionKey,
+      pointId,
+      pointTitle: pointTitle?.trim() ? pointTitle.trim() : null,
+      pointBody,
+      userReason,
+      aiReply: text,
+      createdAt: new Date().toISOString(),
+    };
+    await docRef.set(row);
+    return NextResponse.json({
+      ok: true,
+      text,
+      saved: {
+        saved: true as const,
+        id: row.id,
+        path: docPath,
+        savedAt: row.createdAt,
+      },
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });

@@ -24,10 +24,11 @@ import {
 import type { RealDecisionLogEntry } from "@/lib/types/decision";
 import {
   deleteDecision,
-  listDecisions,
   putDecision,
+  subscribeDecisions,
 } from "@/lib/db/decisions";
-import { listRecentExercisesForPicker } from "@/lib/db/exercises";
+import { subscribeRecentExercisesForPicker } from "@/lib/db/exercises";
+import { logFirestoreQueryError } from "@/lib/db/firestore";
 
 const DOMAINS = [
   "DevOps / SRE",
@@ -56,15 +57,21 @@ export default function DecisionsPage() {
   const effectiveDomain =
     domain === "Custom" ? customDomain.trim() : domain;
 
-  const load = () => {
-    void listDecisions().then(setRows);
-    void listRecentExercisesForPicker(30).then((ex) =>
-      setPicker(ex.map((e) => ({ id: e.id, title: e.title }))),
-    );
-  };
-
   useEffect(() => {
-    load();
+    const unsubDecisions = subscribeDecisions(setRows, (error) => {
+      logFirestoreQueryError("DecisionsPage", "subscribeDecisions", error);
+    });
+    const unsubPicker = subscribeRecentExercisesForPicker(
+      30,
+      (exercises) => setPicker(exercises.map((item) => ({ id: item.id, title: item.title }))),
+      (error) => {
+        logFirestoreQueryError("DecisionsPage", "subscribeRecentExercisesForPicker", error);
+      },
+    );
+    return () => {
+      unsubDecisions();
+      unsubPicker();
+    };
   }, []);
 
   const add = async () => {
@@ -87,14 +94,12 @@ export default function DecisionsPage() {
     setText("");
     setFollowUp("");
     setLinkId("");
-    load();
   };
 
   const updateFollowUp = async (id: string, note: string) => {
     const cur = rows.find((r) => r.id === id);
     if (!cur) return;
     await putDecision({ ...cur, followUpNote: note || null });
-    load();
   };
 
   return (
@@ -239,7 +244,7 @@ export default function DecisionsPage() {
                   variant="ghost"
                   size="sm"
                   className="text-destructive"
-                  onClick={() => void deleteDecision(r.id).then(load)}
+                  onClick={() => void deleteDecision(r.id)}
                 >
                   Delete
                 </Button>

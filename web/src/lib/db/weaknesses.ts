@@ -1,4 +1,5 @@
-import { getDb } from "@/lib/db/schema";
+import { Unsubscribe, setDoc } from "firebase/firestore";
+import { COGI_COLLECTIONS, listCollectionRows, subscribeCollectionRows, userDocRef } from "@/lib/db/firestore";
 import type { WeaknessEntry, WeaknessThinkingGroup } from "@/lib/types/weakness";
 
 const HITS_TO_RESOLVE = 3;
@@ -11,12 +12,12 @@ async function findRow(
   thinkingGroup: WeaknessThinkingGroup,
   type: string,
 ): Promise<WeaknessEntry | undefined> {
-  const rows = await getDb().weaknesses.where("thinkingGroup").equals(thinkingGroup).toArray();
+  const rows = (await listCollectionRows<WeaknessEntry>(COGI_COLLECTIONS.weaknesses))
+    .filter((row) => row.thinkingGroup === thinkingGroup);
   return rows.find((w) => w.type === type);
 }
 
 export async function upsertMiss(thinkingGroup: WeaknessThinkingGroup, type: string): Promise<void> {
-  const db = getDb();
   const existing = await findRow(thinkingGroup, type);
   const ts = nowIso();
   if (!existing) {
@@ -29,11 +30,11 @@ export async function upsertMiss(thinkingGroup: WeaknessThinkingGroup, type: str
       status: "active",
       lastSeen: ts,
     };
-    await db.weaknesses.put(row);
+    await setDoc(userDocRef<WeaknessEntry>(COGI_COLLECTIONS.weaknesses, row.id), row);
     return;
   }
   if (existing.status === "resolved") {
-    await db.weaknesses.put({
+    await setDoc(userDocRef<WeaknessEntry>(COGI_COLLECTIONS.weaknesses, existing.id), {
       ...existing,
       status: "active",
       missCount: existing.missCount + 1,
@@ -42,7 +43,7 @@ export async function upsertMiss(thinkingGroup: WeaknessThinkingGroup, type: str
     });
     return;
   }
-  await db.weaknesses.put({
+  await setDoc(userDocRef<WeaknessEntry>(COGI_COLLECTIONS.weaknesses, existing.id), {
     ...existing,
     missCount: existing.missCount + 1,
     lastSeen: ts,
@@ -50,13 +51,12 @@ export async function upsertMiss(thinkingGroup: WeaknessThinkingGroup, type: str
 }
 
 export async function recordHit(thinkingGroup: WeaknessThinkingGroup, type: string): Promise<void> {
-  const db = getDb();
   const existing = await findRow(thinkingGroup, type);
   if (!existing || existing.status !== "active") return;
   const hitCount = existing.hitCount + 1;
   const ts = nowIso();
   if (hitCount >= HITS_TO_RESOLVE) {
-    await db.weaknesses.put({
+    await setDoc(userDocRef<WeaknessEntry>(COGI_COLLECTIONS.weaknesses, existing.id), {
       ...existing,
       hitCount,
       status: "resolved",
@@ -64,7 +64,7 @@ export async function recordHit(thinkingGroup: WeaknessThinkingGroup, type: stri
     });
     return;
   }
-  await db.weaknesses.put({
+  await setDoc(userDocRef<WeaknessEntry>(COGI_COLLECTIONS.weaknesses, existing.id), {
     ...existing,
     hitCount,
     lastSeen: ts,
@@ -76,7 +76,8 @@ export async function listActiveWeaknessTypes(
   thinkingGroup: WeaknessThinkingGroup,
   limit: number,
 ): Promise<string[]> {
-  const rows = await getDb().weaknesses.where("thinkingGroup").equals(thinkingGroup).toArray();
+  const rows = (await listCollectionRows<WeaknessEntry>(COGI_COLLECTIONS.weaknesses))
+    .filter((row) => row.thinkingGroup === thinkingGroup);
   const active = rows.filter((w) => w.status === "active");
   active.sort((a, b) => b.missCount - a.missCount || b.lastSeen.localeCompare(a.lastSeen));
   const out: string[] = [];
@@ -92,8 +93,24 @@ export async function listActiveWeaknessTypes(
 
 /** Dashboard: top active weaknesses across all thinking groups. */
 export async function listTopActiveWeaknesses(limit: number): Promise<WeaknessEntry[]> {
-  const rows = await getDb().weaknesses.toArray();
+  const rows = await listCollectionRows<WeaknessEntry>(COGI_COLLECTIONS.weaknesses);
   const active = rows.filter((w) => w.status === "active");
   active.sort((a, b) => b.missCount - a.missCount || b.lastSeen.localeCompare(a.lastSeen));
   return active.slice(0, limit);
+}
+
+export function subscribeTopActiveWeaknesses(
+  limit: number,
+  onData: (rows: WeaknessEntry[]) => void,
+  onError?: (error: unknown) => void,
+): Unsubscribe {
+  return subscribeCollectionRows<WeaknessEntry>(
+    COGI_COLLECTIONS.weaknesses,
+    (rows) => {
+      const active = rows.filter((row) => row.status === "active");
+      active.sort((a, b) => b.missCount - a.missCount || b.lastSeen.localeCompare(a.lastSeen));
+      onData(active.slice(0, limit));
+    },
+    onError,
+  );
 }
