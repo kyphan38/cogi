@@ -116,7 +116,7 @@ Export JSON là **cam kết sở hữu dữ liệu**. Khi thêm bảng Dexie m�
 | Prompt theo loại bài | `src/lib/ai/prompts/` |
 | API route / body | `src/app/api/ai/**` |
 | Domain list | `src/components/exercises/*ExerciseFlow.tsx`, `ComboExerciseFlow.tsx` |
-| Settings & cờ | `src/lib/db/schema.ts` (`AppSettingsRow`), `src/lib/db/settings.ts`, `src/app/settings/page.tsx` |
+| Settings & cờ | `src/lib/db/settings.ts` (`AppSettingsRow`), `src/app/(main)/settings/page.tsx` |
 | Adaptive / tier / weakness | `src/lib/adaptive/`, `src/lib/db/weaknesses.ts` |
 | Theme & typography | `src/app/globals.css`, `src/app/layout.tsx`, `src/components/ui/card.tsx`, `src/components/shell/AppTopNav.tsx` |
 | History / heatmap / copy | `src/app/exercise/history/page.tsx` |

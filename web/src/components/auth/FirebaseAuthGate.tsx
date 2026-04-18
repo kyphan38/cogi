@@ -42,7 +42,7 @@ export function FirebaseAuthGate({ children }: FirebaseAuthGateProps) {
       });
     } catch (e) {
       if (isAbortError(e)) return;
-      // Best-effort sync; proxy still checks bearer token for API requests.
+      // Best-effort sync; Edge proxy still checks session cookie for allowlisted deployments.
     }
   }, []);
 

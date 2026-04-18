@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { AIPerspectiveStructured, PerspectivePoint } from "@/lib/types/perspective";
@@ -152,7 +153,13 @@ function PerspectivePointRow(props: {
           {error ? <p className="text-destructive text-xs">{error}</p> : null}
           <div className="flex flex-wrap gap-2">
             <Button type="button" size="sm" disabled={loading} onClick={() => void submit()}>
-              {loading ? "Sending…" : "Submit"}
+              {loading ? (
+                <>
+                  <InlineSpinner /> Sending…
+                </>
+              ) : (
+                "Submit"
+              )}
             </Button>
             <Button
               type="button"

@@ -12,6 +12,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { InlineSpinner } from "@/components/ui/inline-spinner";
+import {
+  DashboardCompletedCardSkeleton,
+  DashboardSummarySkeleton,
+} from "@/components/ui/dashboard-summary-skeleton";
 import {
   aggregateCompletedByDomain,
   aggregateCompletedByType,
@@ -25,7 +30,7 @@ import {
   subscribeConfidenceRecords,
 } from "@/lib/db/exercises";
 import { getJournalForExercise } from "@/lib/db/journal";
-import { listDecisions } from "@/lib/db/decisions";
+import { listDecisions, subscribeDecisions } from "@/lib/db/decisions";
 import { listActionsFromLast14Days } from "@/lib/db/actions";
 import {
   subscribeAppSettings,
@@ -40,11 +45,13 @@ import {
   putWeeklyReview,
   subscribeWeeklyReviewsNewestFirst,
 } from "@/lib/db/weekly-reviews";
-import { subscribeNextDueRecall } from "@/lib/db/delayed-recall";
+import { expireStalePendingRecalls, subscribeNextDueRecall } from "@/lib/db/delayed-recall";
 import { buildWeeklyReviewSlices } from "@/lib/insights/build-weekly-review-payload";
 import type { WeeklyReviewRow } from "@/lib/types/insights";
 import type { DelayedRecallQueueRow } from "@/lib/types/insights";
 import { DelayedRecallCard } from "@/components/dashboard/DelayedRecallCard";
+import { DecisionRemindersCard } from "@/components/dashboard/DecisionRemindersCard";
+import type { RealDecisionLogEntry } from "@/lib/types/decision";
 import { WeeklyInsights } from "@/components/dashboard/WeeklyInsights";
 import { countPerspectiveDisagreementsForExercises } from "@/lib/db/disagreements";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
@@ -123,24 +130,34 @@ export function DashboardContent() {
   const [latestReview, setLatestReview] = useState<WeeklyReviewRow | null>(null);
   const [pastReviews, setPastReviews] = useState<WeeklyReviewRow[]>([]);
   const [recall, setRecall] = useState<DelayedRecallQueueRow | null>(null);
+  const [decisions, setDecisions] = useState<RealDecisionLogEntry[]>([]);
   const [lastReviewCount, setLastReviewCount] = useState<number>(0);
   const [weeklyLoading, setWeeklyLoading] = useState(false);
   const [weeklyError, setWeeklyError] = useState<string | null>(null);
   const [adaptiveOn, setAdaptiveOn] = useState(false);
   const [perfByType, setPerfByType] = useState<Partial<Record<AdaptiveExerciseType, PerfSnap>>>({});
   const [topWeak, setTopWeak] = useState<WeaknessEntry[]>([]);
+  const [completedSnapshotReady, setCompletedSnapshotReady] = useState(false);
+  const [confSnapshotReady, setConfSnapshotReady] = useState(false);
+  const dashboardOverviewReady = completedSnapshotReady && confSnapshotReady;
 
   useEffect(() => {
     let recallEnabled = true;
     const unsubCompleted = subscribeCompletedExercises(
       undefined,
-      (rows) => setCompleted(rows),
+      (rows) => {
+        setCompletedSnapshotReady(true);
+        setCompleted(rows);
+      },
       (error) => {
         logFirestoreQueryError("DashboardContent", "subscribeCompletedExercises", error);
       },
     );
     const unsubConfidence = subscribeConfidenceRecords(
-      (rows) => setConfRecords(rows),
+      (rows) => {
+        setConfSnapshotReady(true);
+        setConfRecords(rows);
+      },
       (error) => {
         logFirestoreQueryError("DashboardContent", "subscribeConfidenceRecords", error);
       },
@@ -177,12 +194,22 @@ export function DashboardContent() {
         logFirestoreQueryError("DashboardContent", "subscribeNextDueRecall", error);
       },
     );
+    const unsubDecisions = subscribeDecisions(
+      (rows) => setDecisions(rows),
+      (error) => {
+        logFirestoreQueryError("DashboardContent", "subscribeDecisions", error);
+      },
+    );
+    void expireStalePendingRecalls().catch((error) => {
+      logFirestoreQueryError("DashboardContent", "expireStalePendingRecalls", error);
+    });
     return () => {
       unsubCompleted();
       unsubConfidence();
       unsubSettings();
       unsubWeekly();
       unsubRecall();
+      unsubDecisions();
     };
   }, []);
 
@@ -326,36 +353,40 @@ export function DashboardContent() {
       <div className="mb-6">
         <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Dashboard</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Trends from exercises stored in this browser.
+          Trends from exercises saved to your account.
         </p>
       </div>
 
-      <div className="mb-6 grid gap-2.5 sm:grid-cols-3">
-        <div className="rounded-lg border border-border bg-card px-3.5 py-3">
-          <p className="text-muted-foreground text-[11px] tracking-wide uppercase">Completed</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{count}</p>
-          <p className="text-muted-foreground mt-0.5 text-xs">Exercises with a completion record.</p>
+      {!dashboardOverviewReady ? (
+        <DashboardSummarySkeleton />
+      ) : (
+        <div className="mb-6 grid gap-2.5 sm:grid-cols-3">
+          <div className="rounded-lg border border-border bg-card px-3.5 py-3">
+            <p className="text-muted-foreground text-[11px] tracking-wide uppercase">Completed</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{count}</p>
+            <p className="text-muted-foreground mt-0.5 text-xs">Exercises with a completion record.</p>
+          </div>
+          <div
+            className={cn(
+              "rounded-lg border px-3.5 py-3",
+              stanceCardClass || "border-border bg-card",
+            )}
+          >
+            <p className="text-muted-foreground text-[11px] tracking-wide uppercase">Calibration</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
+              {calibrationSummary.avgGap != null ? `${calibrationSummary.avgGap > 0 ? "+" : ""}${calibrationSummary.avgGap}%` : "—"}
+            </p>
+            <p className="text-muted-foreground mt-0.5 text-xs leading-snug">{stanceLabel}</p>
+          </div>
+          <div className="rounded-lg border border-border bg-card px-3.5 py-3">
+            <p className="text-muted-foreground text-[11px] tracking-wide uppercase">Measured accuracy</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
+              {calibrationSummary.avgAcc != null ? `${calibrationSummary.avgAcc}%` : "—"}
+            </p>
+            <p className="text-muted-foreground mt-0.5 text-xs">Average actual accuracy across completed runs.</p>
+          </div>
         </div>
-        <div
-          className={cn(
-            "rounded-lg border px-3.5 py-3",
-            stanceCardClass || "border-border bg-card",
-          )}
-        >
-          <p className="text-muted-foreground text-[11px] tracking-wide uppercase">Calibration</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
-            {calibrationSummary.avgGap != null ? `${calibrationSummary.avgGap > 0 ? "+" : ""}${calibrationSummary.avgGap}%` : "—"}
-          </p>
-          <p className="text-muted-foreground mt-0.5 text-xs leading-snug">{stanceLabel}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-card px-3.5 py-3">
-          <p className="text-muted-foreground text-[11px] tracking-wide uppercase">Measured accuracy</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
-            {calibrationSummary.avgAcc != null ? `${calibrationSummary.avgAcc}%` : "—"}
-          </p>
-          <p className="text-muted-foreground mt-0.5 text-xs">Average actual accuracy across completed runs.</p>
-        </div>
-      </div>
+      )}
 
       {!adaptiveOn ? (
         <p className="text-muted-foreground mb-6 text-xs">
@@ -369,38 +400,48 @@ export function DashboardContent() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
         <div className="flex flex-col gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Completed exercises</CardTitle>
-              <CardDescription>Total: {count}</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <p className="text-muted-foreground mb-2 text-xs">By type</p>
-                <ul className="space-y-1 text-sm">
-                  {Object.entries(byType).map(([k, v]) => (
-                    <li key={k}>
-                      <span className="font-medium">{k}</span>: {v}
-                    </li>
-                  ))}
-                  {count === 0 ? <li className="text-muted-foreground">No data yet.</li> : null}
-                </ul>
-              </div>
-              <div>
-                <p className="text-muted-foreground mb-2 text-xs">By domain (top)</p>
-                <ul className="space-y-1 text-sm">
-                  {byDomain.slice(0, 6).map((d) => (
-                    <li key={d.domain}>
-                      {d.domain}: {d.count}
-                    </li>
-                  ))}
-                  {count === 0 ? <li className="text-muted-foreground">No data yet.</li> : null}
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
+          {!dashboardOverviewReady ? (
+            <DashboardCompletedCardSkeleton />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Completed exercises</CardTitle>
+                <CardDescription>Total: {count}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {count === 0 ? (
+                  <p className="text-muted-foreground text-sm italic">
+                    No completions yet — finish an exercise to see breakdowns by type and domain.
+                  </p>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-muted-foreground mb-2 text-xs">By type</p>
+                      <ul className="space-y-1 text-sm">
+                        {Object.entries(byType).map(([k, v]) => (
+                          <li key={k}>
+                            <span className="font-medium">{k}</span>: {v}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground mb-2 text-xs">By domain (top)</p>
+                      <ul className="space-y-1 text-sm">
+                        {byDomain.slice(0, 6).map((d) => (
+                          <li key={d.domain}>
+                            {d.domain}: {d.count}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-          {adaptiveOn ? (
+          {dashboardOverviewReady && adaptiveOn ? (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Adaptive difficulty</CardTitle>
@@ -440,8 +481,7 @@ export function DashboardContent() {
                     </ul>
                   ) : (
                     <p className="text-muted-foreground text-xs italic">
-                      No blind spots queued yet — keep practicing; misses will surface here when
-                      adaptive is on.
+                      No blind spots queued yet — keep practicing.
                     </p>
                   )}
                 </div>
@@ -449,6 +489,8 @@ export function DashboardContent() {
             </Card>
           ) : null}
 
+          {dashboardOverviewReady ? (
+            <>
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Calibration gap</CardTitle>
@@ -471,13 +513,18 @@ export function DashboardContent() {
               {weeklyError ? <p className="text-destructive text-sm">{weeklyError}</p> : null}
               {weeklyEligible ? (
                 <Button type="button" disabled={weeklyLoading} onClick={() => void generateWeekly()}>
-                  {weeklyLoading ? "Generating…" : "Generate weekly review"}
+                  {weeklyLoading ? (
+                    <>
+                      <InlineSpinner /> Generating…
+                    </>
+                  ) : (
+                    "Generate weekly review"
+                  )}
                 </Button>
               ) : (
                 <p className="text-muted-foreground text-sm italic">
                   You need {lastReviewCount + 7 - count} more completed exercise
-                  {lastReviewCount + 7 - count === 1 ? "" : "s"} before the next weekly narrative
-                  unlocks.
+                  {lastReviewCount + 7 - count === 1 ? "" : "s"} before the next weekly narrative unlocks.
                 </p>
               )}
               {latestReview ? (
@@ -492,8 +539,7 @@ export function DashboardContent() {
                 </div>
               ) : (
                 <p className="text-muted-foreground text-sm italic">
-                  No review generated yet — once you are eligible, one click will summarize your last
-                  seven completions.
+                  No review generated yet — once eligible, use the button above to summarize your last seven completions.
                 </p>
               )}
             </CardContent>
@@ -520,9 +566,22 @@ export function DashboardContent() {
               </CardContent>
             </Card>
           ) : null}
+            </>
+          ) : null}
         </div>
 
         <aside className="flex flex-col gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Decision reminders</CardTitle>
+              <CardDescription className="text-xs">
+                Outcome check-ins you set on Real decisions (7 days after decided date).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DecisionRemindersCard decisions={decisions} />
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Delayed recall</CardTitle>
@@ -532,11 +591,10 @@ export function DashboardContent() {
             </CardHeader>
             <CardContent>
               {recall ? (
-                <DelayedRecallCard recall={recall} onUpdated={() => {}} />
+                <DelayedRecallCard key={recall.id} recall={recall} />
               ) : (
                 <p className="text-muted-foreground text-xs italic">
-                  Nothing due in the next window — when an exercise matures, a short recall prompt
-                  will appear here.
+                  Nothing due in the next window — when an exercise matures, a recall prompt will appear here.
                 </p>
               )}
             </CardContent>

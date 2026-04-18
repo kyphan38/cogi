@@ -1,4 +1,4 @@
-import { Unsubscribe, deleteDoc, getDoc, setDoc, writeBatch } from "firebase/firestore";
+import { Unsubscribe, getDoc, setDoc, writeBatch } from "firebase/firestore";
 import { getFirebaseFirestore } from "@/lib/auth/firebase-client";
 import {
   COGI_COLLECTIONS,
@@ -123,7 +123,7 @@ export function subscribeConfidenceRecords(
 
 /**
  * Permanently remove one completed exercise and its journal, calibration, action,
- * delayed-recall queue rows, and perspective disagreements (same browser / IndexedDB).
+ * delayed-recall queue rows, and perspective disagreements (Firestore).
  */
 export async function deleteCompletedExerciseAndRelatedRecords(
   exerciseId: string,

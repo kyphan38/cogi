@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { buildGenerativeRubricPrompt } from "@/lib/ai/prompts/generative-rubric";
 import { generateAnalyticalExerciseRaw } from "@/lib/ai/gemini";
 import type { GenerativeExerciseRow } from "@/lib/types/exercise";
+import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
+
+export const maxDuration = 60;
 
 function parseRubric(raw: string): { overall: number } | null {
   try {
@@ -15,6 +18,9 @@ function parseRubric(raw: string): { overall: number } | null {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAuthenticatedRouteUser(req);
+  if (!auth.ok) return auth.response;
+
   if (!process.env.GEMINI_API_KEY?.trim()) {
     return NextResponse.json(
       { ok: false, error: "Server is missing GEMINI_API_KEY" },

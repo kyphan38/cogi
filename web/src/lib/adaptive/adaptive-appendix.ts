@@ -108,7 +108,7 @@ export function buildAdaptationAppendix(
   if (!hints?.enabled || hints.exerciseType !== exerciseType) return undefined;
   const perf =
     hints.rollingAccuracy != null && hints.sampleCount > 0
-      ? `Recent measured accuracy (rolling mean): ~${hints.rollingAccuracy}% over ${hints.sampleCount} completed exercise(s) in this browser.`
+      ? `Recent measured accuracy (rolling mean): ~${hints.rollingAccuracy}% over ${hints.sampleCount} completed exercise(s) in your account.`
       : "Recent performance data is sparse; avoid over-tuning difficulty.";
   const tierLine = tierGuidance(exerciseType, hints.tier);
   const weak =

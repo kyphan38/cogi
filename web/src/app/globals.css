@@ -136,3 +136,95 @@
     @apply rounded-sm outline-2 outline-offset-2 outline-ring;
   }
 }
+
+@keyframes toast-cogi-slide-in {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.toast-cogi {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 200;
+  animation: toast-cogi-slide-in 0.28s ease-out;
+}
+
+.toast-cogi-success {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.toast-cogi-error {
+  background: var(--destructive);
+  color: oklch(0.99 0.01 264);
+}
+
+.toast-cogi-info {
+  background: oklch(0.42 0.12 264);
+  color: oklch(0.99 0.01 264);
+}
+
+@keyframes cogi-modal-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cogi-modal-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cogi-modal-backdrop {
+  animation: cogi-modal-backdrop-in 0.28s ease-out;
+}
+
+.cogi-modal-panel {
+  animation: cogi-modal-panel-in 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cogi-modal-backdrop,
+  .cogi-modal-panel {
+    animation: none;
+  }
+}
+
+@keyframes cogi-main-route-fade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cogi-main-route-enter {
+  animation: cogi-main-route-fade 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cogi-main-route-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

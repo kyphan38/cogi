@@ -85,7 +85,8 @@ export function HomeContent() {
         <p className="text-muted-foreground text-sm">cogi</p>
         <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Good moment to practice</h1>
         <p className="text-muted-foreground max-w-xl text-sm leading-relaxed">
-          Pick a mode below. Everything stays in this browser until you export it.
+          Pick a mode below. Completed work is saved to your signed-in account (Firebase). Use Settings
+          for a JSON backup copy anytime.
         </p>
       </div>
 

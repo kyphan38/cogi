@@ -8,9 +8,13 @@
  * Or: GATE_BASE_URL=http://127.0.0.1:3001 npm run gate:phase0
  *
  * Or: node --env-file=.env.local ./scripts/phase0-gate.mjs  (Node 20+)
+ *
+ * Requires a Firebase ID token (same user as in browser after sign-in):
+ *   GATE_ID_TOKEN="<paste from browser devtools or short-lived script>"
  */
 
 const BASE = process.env.GATE_BASE_URL ?? "http://127.0.0.1:3000";
+const GATE_ID_TOKEN = process.env.GATE_ID_TOKEN?.trim();
 
 const domains = [
   "DevOps / SRE",
@@ -21,6 +25,12 @@ const domains = [
 ];
 
 async function main() {
+  if (!GATE_ID_TOKEN) {
+    console.error(
+      "Missing GATE_ID_TOKEN. Export a Firebase ID token for an allowed user, e.g.\n  GATE_ID_TOKEN=\"...\" npm run gate:phase0",
+    );
+    process.exit(1);
+  }
   let passes = 0;
   for (let i = 0; i < 5; i++) {
     let res;
@@ -29,6 +39,7 @@ async function main() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${GATE_ID_TOKEN}`,
         },
         body: JSON.stringify({
           domain: domains[i],

@@ -4,7 +4,7 @@ export type DifficultyTierLabel = "Foundation" | "Practitioner" | "Advanced" | "
 
 export type AdaptiveExerciseType = Exclude<ThinkingType, "combo">;
 
-/** Client → `POST /api/ai` (IndexedDB stays client-side; hints are advisory). */
+/** Client → `POST /api/ai` (exercise history in Firestore; adaptive hints are advisory). */
 export interface AdaptiveHintsPayload {
   enabled: boolean;
   exerciseType: AdaptiveExerciseType;

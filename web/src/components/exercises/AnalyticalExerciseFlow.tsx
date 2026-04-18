@@ -26,6 +26,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useToast } from "@/components/ui/toast";
+import { InlineSpinner } from "@/components/ui/inline-spinner";
 import type {
   AnalyticalExerciseRow,
   ConfidenceRecord,
@@ -66,6 +68,7 @@ const DOMAINS = [
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export function AnalyticalExerciseFlow() {
+  const { show: showToast } = useToast();
   const [step, setStep] = useState<FlowStep>(0);
   const [domainChoice, setDomainChoice] = useState<string>(DOMAINS[0]);
   const [customDomain, setCustomDomain] = useState("");
@@ -83,6 +86,7 @@ export function AnalyticalExerciseFlow() {
   const [journalAnswers, setJournalAnswers] = useState<Record<string, string>>({});
   const [aiRefLine, setAiRefLine] = useState<string | null>(null);
   const [journalPrimed, setJournalPrimed] = useState(false);
+  const journalEffectIdRef = useRef(0);
   const [emotionLabel, setEmotionLabel] = useState<
     "anxious" | "excited" | "frustrated" | "confident" | "uncertain" | "defensive" | "neutral"
   >("neutral");
@@ -193,6 +197,10 @@ export function AnalyticalExerciseFlow() {
 
   const submitHighlightsAndConfidence = async () => {
     if (!exercise) return;
+    if (perspectiveText != null) {
+      setStep(3);
+      return;
+    }
     if (highlights.length < 1) {
       setError("Add at least one highlight before continuing.");
       return;
@@ -242,12 +250,13 @@ export function AnalyticalExerciseFlow() {
 
   useEffect(() => {
     if (step !== 4 || journalPrimed || !exercise) return;
+    const effectId = ++journalEffectIdRef.current;
     let cancelled = false;
     (async () => {
       try {
         const excluded = await getPromptIdsUsedInLastNCompleted(5);
         const picks = pickJournalPrompts(excluded);
-        if (cancelled) return;
+        if (cancelled || effectId !== journalEffectIdRef.current) return;
         setJournalPrompts(picks);
         const init: Record<string, string> = {};
         picks.forEach((p) => {
@@ -259,6 +268,7 @@ export function AnalyticalExerciseFlow() {
           exercise.domain,
           3,
         );
+        if (cancelled || effectId !== journalEffectIdRef.current) return;
         if (snippets.length === 0) {
           setAiRefLine(null);
           setJournalPrimed(true);
@@ -267,14 +277,19 @@ export function AnalyticalExerciseFlow() {
         const res = await aiFetch("/api/ai/journal-ref", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ domain: exercise.domain, snippets }),
+          body: JSON.stringify({
+            requestId: crypto.randomUUID(),
+            domain: exercise.domain,
+            snippets,
+          }),
         });
         const j = (await res.json()) as { ok: true; line: string | null };
-        if (!cancelled && j.ok && j.line) setAiRefLine(j.line);
+        if (cancelled || effectId !== journalEffectIdRef.current) return;
+        if (j.ok && j.line) setAiRefLine(j.line);
       } catch {
-        if (!cancelled) setAiRefLine(null);
+        if (!cancelled && effectId === journalEffectIdRef.current) setAiRefLine(null);
       } finally {
-        if (!cancelled) setJournalPrimed(true);
+        if (!cancelled && effectId === journalEffectIdRef.current) setJournalPrimed(true);
       }
     })();
     return () => {
@@ -477,7 +492,6 @@ export function AnalyticalExerciseFlow() {
                     disabled={loading}
                     onClick={() => {
                       void (async () => {
-                        setError(null);
                         try {
                           const t = await navigator.clipboard.readText();
                           const r = sanitizeUserPasteOrClipboard(t);
@@ -487,13 +501,18 @@ export function AnalyticalExerciseFlow() {
                           }
                           setRealText(r.text);
                           setRealWordCount(r.wordCount);
-                          setPasteNotice(
+                          setPasteNotice(null);
+                          showToast(
                             r.hadBlockedHtml
                               ? "Some HTML was flattened to plain text."
                               : "Imported from clipboard.",
+                            r.hadBlockedHtml ? "info" : "success",
                           );
                         } catch {
-                          setError("Could not read clipboard. Grant permission or paste manually.");
+                          showToast(
+                            "Could not read clipboard. Grant permission or paste manually.",
+                            "error",
+                          );
                         }
                       })();
                     }}
@@ -531,7 +550,13 @@ export function AnalyticalExerciseFlow() {
             </p>
             <AdaptiveSetupHint exerciseType="analytical" />
             <Button type="button" disabled={loading} onClick={startGenerate}>
-              {loading ? "Generating…" : "Generate exercise"}
+              {loading ? (
+                <>
+                  <InlineSpinner /> Generating…
+                </>
+              ) : (
+                "Generate exercise"
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -548,6 +573,9 @@ export function AnalyticalExerciseFlow() {
               passage={exercise.passage}
               highlights={highlights}
               onChange={setHighlights}
+              onSelectionOverlap={() =>
+                setError("Selection overlaps an existing highlight. Remove or adjust first.")
+              }
             />
             <div className="flex gap-2">
               <Button type="button" variant="secondary" onClick={() => setStep(0)}>
@@ -590,7 +618,13 @@ export function AnalyticalExerciseFlow() {
                 disabled={loading}
                 onClick={() => void submitHighlightsAndConfidence()}
               >
-                {loading ? "Loading perspective…" : "Submit and get AI perspective"}
+                {loading ? (
+                  <>
+                    <InlineSpinner /> Loading perspective…
+                  </>
+                ) : (
+                  "Submit and get AI perspective"
+                )}
               </Button>
             </div>
           </CardContent>
@@ -734,7 +768,8 @@ export function AnalyticalExerciseFlow() {
           <CardHeader>
             <CardTitle>Exercise saved</CardTitle>
             <CardDescription>
-              Your responses, journal, and action are stored locally in IndexedDB.
+              When you finish the exercise, your responses, journal, and action are saved to your
+              account (Firebase).
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">

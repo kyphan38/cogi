@@ -111,13 +111,15 @@ export default function SettingsPage() {
       try {
         const text = await file.text();
         const merge = window.confirm(
-          "Import mode: OK = merge rows by id (recommended). Cancel = replace all local data with the file (destructive).",
+          "Import mode: OK = merge rows by id into Firebase (recommended). Cancel = replace all matching Firestore collections for this account from the file (destructive).",
         )
           ? "merge"
           : "replace";
         if (
           merge === "replace" &&
-          !window.confirm("This will DELETE existing IndexedDB data in this app. Continue?")
+          !window.confirm(
+            "This will DELETE your existing exercise data in Firebase for this account, then replace it from the file. Continue?",
+          )
         ) {
           return;
         }
@@ -198,8 +200,32 @@ export default function SettingsPage() {
             </Link>
           </div>
           {saved ? (
-            <p className="text-muted-foreground text-sm">Saved to this browser.</p>
+            <p className="text-muted-foreground text-sm">Saved to your account (Firestore).</p>
           ) : null}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Keyboard</CardTitle>
+          <CardDescription>
+            Shortcuts implemented in this app (not every browser default).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            <span className="font-medium text-foreground">Exercise history — delete dialog:</span> press{" "}
+            <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+              Escape
+            </kbd>{" "}
+            to close. Type <span className="font-mono font-semibold text-foreground">Delete</span>, then choose{" "}
+            <span className="text-foreground">Delete permanently</span>. Click the dimmed backdrop to dismiss when the
+            dialog is open.
+          </p>
+          <p>
+            <span className="font-medium text-foreground">Scroll:</span> when you leave a page and return in the same
+            browser tab, the main column tries to restore the last scroll position for that path.
+          </p>
         </CardContent>
       </Card>
 
@@ -207,8 +233,8 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Data backup</CardTitle>
           <CardDescription>
-            Export or import everything stored in this browser (IndexedDB). Journal-only export is
-            Markdown for reading outside the app.
+            Export or import a JSON snapshot of your Firestore data for this signed-in user. Journal-only
+            export is Markdown for reading outside the app.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

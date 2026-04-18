@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { startTransition, Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -20,6 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
+import { HistoryExerciseListSkeleton } from "@/components/ui/history-exercise-list-skeleton";
 import {
   getExercise,
   deleteCompletedExerciseAndRelatedRecords,
@@ -47,6 +50,7 @@ import { Trash2 } from "lucide-react";
 import { FirebaseAuthGate } from "@/components/auth/FirebaseAuthGate";
 import { AppTopNav } from "@/components/shell/AppTopNav";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type ThinkingTypeFilter =
   | "all"
@@ -236,7 +240,10 @@ function GapChart({ points }: { points: { t: string; gap: number }[] }) {
   );
 }
 
-export default function HistoryPage() {
+function HistoryPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { show: showToast } = useToast();
   const [rows, setRows] = useState<Exercise[]>([]);
   const [confMap, setConfMap] = useState<Map<string, number>>(new Map());
   const [globalStats, setGlobalStats] = useState<{
@@ -262,8 +269,43 @@ export default function HistoryPage() {
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteErr, setDeleteErr] = useState<string | null>(null);
 
+  /** First Firestore snapshot for the filtered list (avoid flashing "no matches" while subscribing). */
+  const [filteredListReady, setFilteredListReady] = useState(false);
+
   const [allCompletedRows, setAllCompletedRows] = useState<Exercise[]>([]);
   const [confidenceRows, setConfidenceRows] = useState<ConfidenceRecord[]>([]);
+
+  const openExerciseId = searchParams.get("openExercise")?.trim() || null;
+
+  useEffect(() => {
+    if (!openExerciseId) return;
+    setSelectedId(openExerciseId);
+  }, [openExerciseId]);
+
+  const clearHistoryFilters = () => {
+    setTypeFilter("all");
+    setDomainQ("");
+    setFromDate("");
+    setToDate("");
+    router.replace("/exercise/history");
+  };
+
+  const openExerciseMissing = useMemo(
+    () =>
+      !!openExerciseId &&
+      allCompletedRows.length > 0 &&
+      !allCompletedRows.some((r) => r.id === openExerciseId),
+    [openExerciseId, allCompletedRows],
+  );
+
+  const openExerciseHiddenByFilters = useMemo(
+    () =>
+      !!openExerciseId &&
+      !openExerciseMissing &&
+      filteredListReady &&
+      !rows.some((r) => r.id === openExerciseId),
+    [openExerciseId, openExerciseMissing, filteredListReady, rows],
+  );
 
   useEffect(() => {
     const filter: CompletedExerciseFilter = {
@@ -276,6 +318,7 @@ export default function HistoryPage() {
       filter,
       (list) => {
         startTransition(() => {
+          setFilteredListReady(true);
           setRows(list);
         });
       },
@@ -420,6 +463,7 @@ export default function HistoryPage() {
         setSelectedId(null);
       }
       closeDeleteDialog();
+      showToast("Exercise removed from your account.", "success");
     } catch (e) {
       setDeleteErr(e instanceof Error ? e.message : "Delete failed");
     } finally {
@@ -435,10 +479,31 @@ export default function HistoryPage() {
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Exercise history</h1>
         <p className="text-muted-foreground text-sm">
-          Review completed exercises or remove them from this browser. Calibration averages use every
+          Review completed exercises or remove them from your account. Calibration averages use every
           completion still stored here.
         </p>
       </div>
+
+      {openExerciseHiddenByFilters ? (
+        <Alert>
+          <AlertTitle className="text-sm">Linked exercise is hidden by filters</AlertTitle>
+          <AlertDescription className="flex flex-col gap-2 text-xs sm:flex-row sm:items-center sm:justify-between">
+            <span>Clear filters to show it in the list below.</span>
+            <Button type="button" size="sm" variant="secondary" onClick={clearHistoryFilters}>
+              Clear filters
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {openExerciseMissing ? (
+        <Alert variant="destructive">
+          <AlertTitle className="text-sm">Exercise not found</AlertTitle>
+          <AlertDescription className="text-xs">
+            No completed exercise with this id is in your history. It may have been removed.
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -553,8 +618,12 @@ export default function HistoryPage() {
 
       <div className="space-y-2">
         <h2 className="text-sm font-medium">Completed exercises</h2>
-        {rows.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No exercises match these filters.</p>
+        {!filteredListReady ? (
+          <HistoryExerciseListSkeleton />
+        ) : rows.length === 0 ? (
+          <p className="text-muted-foreground text-sm italic">
+            No exercises match these filters.
+          </p>
         ) : (
           <ul className="space-y-2">
             {rows.map((ex) => (
@@ -926,7 +995,7 @@ export default function HistoryPage() {
 
       {pendingDelete ? (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4"
+          className="cogi-modal-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
           role="presentation"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) closeDeleteDialog();
@@ -936,7 +1005,7 @@ export default function HistoryPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-ex-title"
-            className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-lg"
+            className="cogi-modal-panel w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-lg"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <h2 id="delete-ex-title" className="font-heading text-lg font-medium">
@@ -946,7 +1015,7 @@ export default function HistoryPage() {
               This removes{" "}
               <span className="font-medium text-foreground">&quot;{pendingDelete.title}&quot;</span>{" "}
               and its journal, action, calibration row, perspective disagreements, and delayed-recall
-              reminders from this browser. This cannot be undone.
+              reminders from your account. This cannot be undone.
             </p>
             <div className="mt-4 grid gap-2">
               <Label htmlFor="delete-ex-confirm">
@@ -987,5 +1056,25 @@ export default function HistoryPage() {
         </div>
       </FirebaseAuthGate>
     </>
+  );
+}
+
+export default function HistoryPage() {
+  return (
+    <Suspense
+      fallback={
+        <>
+          <AppTopNav />
+          <FirebaseAuthGate>
+            <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+              <p className="text-muted-foreground text-sm">Loading history…</p>
+              <HistoryExerciseListSkeleton />
+            </div>
+          </FirebaseAuthGate>
+        </>
+      }
+    >
+      <HistoryPageInner />
+    </Suspense>
   );
 }

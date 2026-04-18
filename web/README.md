@@ -21,8 +21,8 @@ npm run dev
 - Sign in: open any app route (e.g. [http://localhost:3000/dashboard](http://localhost:3000/dashboard)) — you are redirected to **`/login`** and continue with Google Sign-In.
 - Access control:
   - client allowlist: `NEXT_PUBLIC_ALLOWED_USER_UID` or `NEXT_PUBLIC_ALLOWED_EMAIL`
-  - server allowlist (middleware/API): `ALLOWED_USER_UID` or `ALLOWED_USER_EMAIL`
-- Server enforcement: middleware now protects app routes and `/api/ai/*`; unauthorized page requests redirect to `/login`, unauthorized API requests return `401`.
+  - server allowlist: `ALLOWED_USER_UID` or `ALLOWED_USER_EMAIL` (checked on **every** `/api/ai/*` handler via `requireAuthenticatedRouteUser`, and on `/api/auth/session`)
+- When allowlist envs are set, **Edge `proxy`** ([`src/proxy.ts`](src/proxy.ts); Next.js 16 convention) also requires a valid session cookie or `Authorization: Bearer` for HTML routes (defense in depth; client still uses `FirebaseAuthGate`). API routes return `401`/`403` without a valid token or if the user is not allowlisted.
 - Home: [http://localhost:3000](http://localhost:3000) — in development, link to **AI smoke test**.
 - Smoke UI: [http://localhost:3000/dev/ai-smoke](http://localhost:3000/dev/ai-smoke) (requires sign-in first).
 
@@ -36,21 +36,28 @@ Automated helper (dev server must be running, default `http://127.0.0.1:3000`):
 npm run gate:phase0
 ```
 
-API check without browser:
+API check without browser (must send a Firebase **ID token** for an allowlisted user):
 
 ```bash
 curl -sS -X POST http://localhost:3000/api/ai \
   -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $GATE_ID_TOKEN" \
   -d '{"domain":"DevOps / SRE"}' | head -c 400
 ```
 
-Expected unauthenticated result: HTTP `401`.
+Expected without `Authorization`: HTTP `401` with `{ "ok": false, "error": "Missing auth token" }` (or similar).
+
+Phase 0 script: set `GATE_ID_TOKEN` the same way — `GATE_ID_TOKEN="..." npm run gate:phase0`.
 
 ## Production build
 
 ```bash
 npm run build
 ```
+
+## Deploy (Vercel) — AI route duration
+
+Serverless routes under `src/app/api/ai/*` use **`export const maxDuration = 60`** in each route handler (Next.js / Vercel). [`vercel.json`](vercel.json) also sets `functions` for the same glob. Effective ceiling still depends on your **Vercel plan** (e.g. Hobby limits are lower than Pro); if generations time out, upgrade the project tier or reduce model latency.
 
 ## Firestore Index & Rules Rollout
 

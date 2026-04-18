@@ -1,4 +1,5 @@
 import { FirebaseAuthGate } from "@/components/auth/FirebaseAuthGate";
+import { MainScrollRestoration } from "@/components/providers/MainScrollRestoration";
 import { AppTopNav } from "@/components/shell/AppTopNav";
 
 export default function MainLayout({
@@ -10,6 +11,7 @@ export default function MainLayout({
     <>
       <AppTopNav />
       <FirebaseAuthGate>
+        <MainScrollRestoration />
         <div className="flex flex-1 flex-col">{children}</div>
       </FirebaseAuthGate>
     </>

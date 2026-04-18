@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AdaptiveSetupHint } from "@/components/adaptive/AdaptiveSetupHint";
 import { ExerciseShell, EVALUATIVE_EXERCISE_STEP_LABELS } from "@/components/shared/ExerciseShell";
@@ -8,6 +8,7 @@ import { EvaluativeMatrixBoard } from "@/components/exercises/EvaluativeMatrixBo
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -137,6 +138,7 @@ export function EvaluativeExerciseFlow() {
   const [journalAnswers, setJournalAnswers] = useState<Record<string, string>>({});
   const [aiRefLine, setAiRefLine] = useState<string | null>(null);
   const [journalPrimed, setJournalPrimed] = useState(false);
+  const journalEffectIdRef = useRef(0);
 
   const [actionText, setActionText] = useState("");
 
@@ -222,6 +224,10 @@ export function EvaluativeExerciseFlow() {
   const submitPerspective = async () => {
     const ex = exercise;
     if (!ex) return;
+    if (perspectiveText != null) {
+      setStep(3);
+      return;
+    }
     if (ex.variant === "matrix" && !matrixReady()) {
       setError("Place every option in a quadrant.");
       return;
@@ -292,12 +298,13 @@ export function EvaluativeExerciseFlow() {
 
   useEffect(() => {
     if (step !== 4 || journalPrimed || !exercise) return;
+    const effectId = ++journalEffectIdRef.current;
     let cancelled = false;
     void (async () => {
       try {
         const excluded = await getPromptIdsUsedInLastNCompleted(5);
         const picks = pickJournalPrompts(excluded);
-        if (cancelled) return;
+        if (cancelled || effectId !== journalEffectIdRef.current) return;
         setJournalPrompts(picks);
         const init: Record<string, string> = {};
         picks.forEach((p) => {
@@ -306,6 +313,7 @@ export function EvaluativeExerciseFlow() {
         setJournalAnswers(init);
 
         const snippets = await getRecentJournalSnippetsForDomain(exercise.domain, 3);
+        if (cancelled || effectId !== journalEffectIdRef.current) return;
         if (snippets.length === 0) {
           setAiRefLine(null);
           setJournalPrimed(true);
@@ -314,14 +322,19 @@ export function EvaluativeExerciseFlow() {
         const res = await aiFetch("/api/ai/journal-ref", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ domain: exercise.domain, snippets }),
+          body: JSON.stringify({
+            requestId: crypto.randomUUID(),
+            domain: exercise.domain,
+            snippets,
+          }),
         });
         const j = (await res.json()) as { ok: true; line: string | null };
-        if (!cancelled && j.ok && j.line) setAiRefLine(j.line);
+        if (cancelled || effectId !== journalEffectIdRef.current) return;
+        if (j.ok && j.line) setAiRefLine(j.line);
       } catch {
-        if (!cancelled) setAiRefLine(null);
+        if (!cancelled && effectId === journalEffectIdRef.current) setAiRefLine(null);
       } finally {
-        if (!cancelled) setJournalPrimed(true);
+        if (!cancelled && effectId === journalEffectIdRef.current) setJournalPrimed(true);
       }
     })();
     return () => {
@@ -480,7 +493,13 @@ export function EvaluativeExerciseFlow() {
             </p>
             <AdaptiveSetupHint exerciseType="evaluative" />
             <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
-              {loading ? "Generating…" : "Generate exercise"}
+              {loading ? (
+                <>
+                  <InlineSpinner /> Generating…
+                </>
+              ) : (
+                "Generate exercise"
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -604,7 +623,13 @@ export function EvaluativeExerciseFlow() {
                 Back
               </Button>
               <Button type="button" disabled={loading} onClick={() => void submitPerspective()}>
-                {loading ? "Loading…" : "Show AI perspective"}
+                {loading ? (
+                  <>
+                    <InlineSpinner /> Loading…
+                  </>
+                ) : (
+                  "Show AI perspective"
+                )}
               </Button>
             </div>
           </CardContent>
@@ -730,7 +755,7 @@ export function EvaluativeExerciseFlow() {
         <Card>
           <CardHeader>
             <CardTitle>Exercise saved</CardTitle>
-            <CardDescription>Stored locally in your browser.</CardDescription>
+            <CardDescription>Saved to your account (Firebase) in exercise history.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
             <Link href="/" className={cn(buttonVariants({ variant: "secondary" }))}>

@@ -38,7 +38,12 @@ const bodySchema = z.object({
   triggeredAtCompletedExerciseCount: z.number().int().min(0),
 });
 
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
+  const auth = await requireAuthenticatedRouteUser(req);
+  if (!auth.ok) return auth.response;
+
   if (!process.env.GEMINI_API_KEY?.trim()) {
     return NextResponse.json(
       { ok: false, error: "Server is missing GEMINI_API_KEY" },
@@ -60,9 +65,6 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-
-  const auth = await requireAuthenticatedRouteUser(req);
-  if (!auth.ok) return auth.response;
 
   const { requestId, triggeredAtCompletedExerciseCount, ...promptPayload } = parsed.data;
   const docPath = getUserDocPath(auth.user.uid, "weeklyReviews", requestId);

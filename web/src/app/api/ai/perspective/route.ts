@@ -28,6 +28,9 @@ import type {
   SystemsNodeImpact,
 } from "@/lib/types/exercise";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
+import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
+
+export const maxDuration = 60;
 
 async function generateStructuredPerspective(prompt: string): Promise<{
   structured: AIPerspectiveStructured;
@@ -50,6 +53,9 @@ async function generateStructuredPerspective(prompt: string): Promise<{
 
 /** POST JSON: perspective narrative after user work + confidence (Phase 1.4 / Phase 2.2 / Phase 3). */
 export async function POST(req: Request) {
+  const auth = await requireAuthenticatedRouteUser(req);
+  if (!auth.ok) return auth.response;
+
   if (!process.env.GEMINI_API_KEY?.trim()) {
     return NextResponse.json(
       { ok: false, error: "Server is missing GEMINI_API_KEY" },

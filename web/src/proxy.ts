@@ -31,6 +31,7 @@ function redirectToLogin(req: NextRequest) {
   return NextResponse.redirect(loginUrl);
 }
 
+/** Next.js 16+ Edge entry (replaces deprecated `middleware` export name). */
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (isExcludedPath(pathname)) {

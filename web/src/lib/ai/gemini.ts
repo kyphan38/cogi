@@ -1,5 +1,13 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+function getGeminiApiKey(): string {
+  const trimmed = (process.env.GEMINI_API_KEY ?? "").trim();
+  if (!trimmed) {
+    throw new Error("GEMINI_API_KEY is not set");
+  }
+  return trimmed;
+}
+
 /**
  * Default model id — Google may rename; override with GEMINI_MODEL in .env.local.
  * responseMimeType: application/json — see IMP-12 tuning in route if parse rate drops.
@@ -7,10 +15,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 export async function generateAnalyticalExerciseRaw(
   fullPrompt: string,
 ): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not set");
-  }
+  const apiKey = getGeminiApiKey();
   const modelId = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
@@ -30,10 +35,7 @@ export async function generateAnalyticalExerciseRaw(
 
 /** Narrative / markdown — no JSON mode. */
 export async function generatePlainTextRaw(fullPrompt: string): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not set");
-  }
+  const apiKey = getGeminiApiKey();
   const modelId = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({

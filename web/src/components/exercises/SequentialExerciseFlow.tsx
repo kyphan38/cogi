@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   DndContext,
@@ -29,6 +29,7 @@ import { ExerciseShell, SEQUENTIAL_EXERCISE_STEP_LABELS } from "@/components/sha
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -182,6 +183,7 @@ export function SequentialExerciseFlow() {
   const [journalAnswers, setJournalAnswers] = useState<Record<string, string>>({});
   const [aiRefLine, setAiRefLine] = useState<string | null>(null);
   const [journalPrimed, setJournalPrimed] = useState(false);
+  const journalEffectIdRef = useRef(0);
 
   const [emotionLabel, setEmotionLabel] = useState<
     "anxious" | "excited" | "frustrated" | "confident" | "uncertain" | "defensive" | "neutral"
@@ -306,6 +308,10 @@ export function SequentialExerciseFlow() {
 
   const submitOrderAndConfidence = async () => {
     if (!exercise) return;
+    if (perspectiveText != null) {
+      setStep(3);
+      return;
+    }
     if (pool.length > 0 || timeline.length !== exercise.steps.length) {
       setError("Move every step into the timeline before continuing.");
       return;
@@ -356,12 +362,13 @@ export function SequentialExerciseFlow() {
 
   useEffect(() => {
     if (step !== 4 || journalPrimed || !exercise) return;
+    const effectId = ++journalEffectIdRef.current;
     let cancelled = false;
     (async () => {
       try {
         const excluded = await getPromptIdsUsedInLastNCompleted(5);
         const picks = pickJournalPrompts(excluded);
-        if (cancelled) return;
+        if (cancelled || effectId !== journalEffectIdRef.current) return;
         setJournalPrompts(picks);
         const init: Record<string, string> = {};
         picks.forEach((p) => {
@@ -373,6 +380,7 @@ export function SequentialExerciseFlow() {
           exercise.domain,
           3,
         );
+        if (cancelled || effectId !== journalEffectIdRef.current) return;
         if (snippets.length === 0) {
           setAiRefLine(null);
           setJournalPrimed(true);
@@ -381,14 +389,19 @@ export function SequentialExerciseFlow() {
         const res = await aiFetch("/api/ai/journal-ref", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ domain: exercise.domain, snippets }),
+          body: JSON.stringify({
+            requestId: crypto.randomUUID(),
+            domain: exercise.domain,
+            snippets,
+          }),
         });
         const j = (await res.json()) as { ok: true; line: string | null };
-        if (!cancelled && j.ok && j.line) setAiRefLine(j.line);
+        if (cancelled || effectId !== journalEffectIdRef.current) return;
+        if (j.ok && j.line) setAiRefLine(j.line);
       } catch {
-        if (!cancelled) setAiRefLine(null);
+        if (!cancelled && effectId === journalEffectIdRef.current) setAiRefLine(null);
       } finally {
-        if (!cancelled) setJournalPrimed(true);
+        if (!cancelled && effectId === journalEffectIdRef.current) setJournalPrimed(true);
       }
     })();
     return () => {
@@ -530,7 +543,13 @@ export function SequentialExerciseFlow() {
             </p>
             <AdaptiveSetupHint exerciseType="sequential" />
             <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
-              {loading ? "Generating…" : "Generate exercise"}
+              {loading ? (
+                <>
+                  <InlineSpinner /> Generating…
+                </>
+              ) : (
+                "Generate exercise"
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -653,7 +672,13 @@ export function SequentialExerciseFlow() {
                 disabled={loading}
                 onClick={() => void submitOrderAndConfidence()}
               >
-                {loading ? "Loading perspective…" : "Submit and get AI perspective"}
+                {loading ? (
+                  <>
+                    <InlineSpinner /> Loading perspective…
+                  </>
+                ) : (
+                  "Submit and get AI perspective"
+                )}
               </Button>
             </div>
           </CardContent>
@@ -825,7 +850,8 @@ export function SequentialExerciseFlow() {
           <CardHeader>
             <CardTitle>Exercise saved</CardTitle>
             <CardDescription>
-              Your responses, journal, and action are stored locally in IndexedDB.
+              When you finish the exercise, your responses, journal, and action are saved to your
+              account (Firebase).
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">

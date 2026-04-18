@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { InlineSpinner } from "@/components/ui/inline-spinner";
 import {
   Card,
   CardContent,
@@ -83,7 +84,13 @@ export default function AiSmokePage() {
             />
           </div>
           <Button type="button" disabled={loading} onClick={onGenerate}>
-            {loading ? "Generating..." : "Generate"}
+            {loading ? (
+              <>
+                <InlineSpinner /> Generating…
+              </>
+            ) : (
+              "Generate"
+            )}
           </Button>
         </CardContent>
       </Card>

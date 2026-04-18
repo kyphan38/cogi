@@ -7,6 +7,7 @@ import { ExerciseShell, GENERATIVE_EXERCISE_STEP_LABELS } from "@/components/sha
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -154,7 +155,8 @@ export function GenerativeExerciseFlow() {
     "anxious" | "excited" | "frustrated" | "confident" | "uncertain" | "defensive" | "neutral"
   >("neutral");
 
-  const debateInitRef = useRef(false);
+  const debateEffectIdRef = useRef(0);
+  const journalEffectIdRef = useRef(0);
 
   const effectiveDomain =
     domainChoice === "Custom" ? customDomain.trim() : domainChoice;
@@ -216,7 +218,6 @@ export function GenerativeExerciseFlow() {
       setAiRefLine(null);
       setJournalPrimed(false);
       setActionText("");
-      debateInitRef.current = false;
       setStep(1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generate failed");
@@ -226,13 +227,8 @@ export function GenerativeExerciseFlow() {
   }, [effectiveDomain]);
 
   useEffect(() => {
-    if (step !== 3) debateInitRef.current = false;
-  }, [step]);
-
-  useEffect(() => {
-    if (step !== 3 || !exercise || debateOpening !== null || debateLoading || debateInitRef.current)
-      return;
-    debateInitRef.current = true;
+    if (step !== 3 || !exercise || debateOpening !== null || debateLoading) return;
+    const effectId = ++debateEffectIdRef.current;
     let cancelled = false;
     void (async () => {
       setDebateLoading(true);
@@ -255,15 +251,11 @@ export function GenerativeExerciseFlow() {
           }),
         });
         const json = (await res.json()) as { ok: true; text: string } | { ok: false; error: string };
-        if (cancelled) return;
+        if (cancelled || effectId !== debateEffectIdRef.current) return;
         if (!json.ok) {
-          if (!cancelled) {
-            debateInitRef.current = false;
-            setError(json.error);
-          }
+          setError(json.error);
           return;
         }
-        if (cancelled) return;
         setDebateOpening(json.text);
         const partial: GenerativeExerciseRow = {
           ...exercise,
@@ -272,19 +264,18 @@ export function GenerativeExerciseFlow() {
           debateTurns,
         };
         await putExercise(partial);
+        if (effectId !== debateEffectIdRef.current) return;
         setExercise(partial);
       } catch (e) {
-        if (!cancelled) {
-          debateInitRef.current = false;
+        if (!cancelled && effectId === debateEffectIdRef.current) {
           setError(e instanceof Error ? e.message : "Debate start failed");
         }
       } finally {
-        if (!cancelled) setDebateLoading(false);
+        if (effectId === debateEffectIdRef.current) setDebateLoading(false);
       }
     })();
     return () => {
       cancelled = true;
-      debateInitRef.current = false;
     };
   }, [step, exercise, debateOpening, debateLoading, answers, debateTurns]);
 
@@ -346,6 +337,10 @@ export function GenerativeExerciseFlow() {
   const finishDebateAndReflect = async () => {
     const base = mergedExercise();
     if (!base || !debateOpening) return;
+    if (perspectiveText != null) {
+      setStep(4);
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
@@ -400,12 +395,13 @@ export function GenerativeExerciseFlow() {
 
   useEffect(() => {
     if (step !== 5 || journalPrimed || !exercise) return;
+    const effectId = ++journalEffectIdRef.current;
     let cancelled = false;
     void (async () => {
       try {
         const excluded = await getPromptIdsUsedInLastNCompleted(5);
         const picks = pickJournalPrompts(excluded);
-        if (cancelled) return;
+        if (cancelled || effectId !== journalEffectIdRef.current) return;
         setJournalPrompts(picks);
         const init: Record<string, string> = {};
         picks.forEach((p) => {
@@ -414,6 +410,7 @@ export function GenerativeExerciseFlow() {
         setJournalAnswers(init);
 
         const snippets = await getRecentJournalSnippetsForDomain(exercise.domain, 3);
+        if (cancelled || effectId !== journalEffectIdRef.current) return;
         if (snippets.length === 0) {
           setAiRefLine(null);
           setJournalPrimed(true);
@@ -422,14 +419,19 @@ export function GenerativeExerciseFlow() {
         const res = await aiFetch("/api/ai/journal-ref", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ domain: exercise.domain, snippets }),
+          body: JSON.stringify({
+            requestId: crypto.randomUUID(),
+            domain: exercise.domain,
+            snippets,
+          }),
         });
         const j = (await res.json()) as { ok: true; line: string | null };
-        if (!cancelled && j.ok && j.line) setAiRefLine(j.line);
+        if (cancelled || effectId !== journalEffectIdRef.current) return;
+        if (j.ok && j.line) setAiRefLine(j.line);
       } catch {
-        if (!cancelled) setAiRefLine(null);
+        if (!cancelled && effectId === journalEffectIdRef.current) setAiRefLine(null);
       } finally {
-        if (!cancelled) setJournalPrimed(true);
+        if (!cancelled && effectId === journalEffectIdRef.current) setJournalPrimed(true);
       }
     })();
     return () => {
@@ -563,7 +565,13 @@ export function GenerativeExerciseFlow() {
             </p>
             <AdaptiveSetupHint exerciseType="generative" />
             <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
-              {loading ? "Generating…" : "Generate exercise"}
+              {loading ? (
+                <>
+                  <InlineSpinner /> Generating…
+                </>
+              ) : (
+                "Generate exercise"
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -723,7 +731,13 @@ export function GenerativeExerciseFlow() {
                   disabled={debateLoading}
                   onClick={() => void sendDebateReply()}
                 >
-                  {debateLoading ? "Sending…" : "Send reply"}
+                  {debateLoading ? (
+                    <>
+                      <InlineSpinner /> Sending…
+                    </>
+                  ) : (
+                    "Send reply"
+                  )}
                 </Button>
               </div>
             ) : null}
@@ -732,7 +746,7 @@ export function GenerativeExerciseFlow() {
                 type="button"
                 variant="secondary"
                 onClick={() => {
-                  debateInitRef.current = false;
+                  debateEffectIdRef.current += 1;
                   setDebateOpening(null);
                   setDebateTurns([]);
                   setDebateDraft("");
@@ -746,7 +760,13 @@ export function GenerativeExerciseFlow() {
                 disabled={!debateOpening || loading}
                 onClick={() => void finishDebateAndReflect()}
               >
-                {loading ? "Working…" : "Continue to AI reflection"}
+                {loading ? (
+                  <>
+                    <InlineSpinner /> Working…
+                  </>
+                ) : (
+                  "Continue to AI reflection"
+                )}
               </Button>
             </div>
           </CardContent>
@@ -866,7 +886,7 @@ export function GenerativeExerciseFlow() {
         <Card>
           <CardHeader>
             <CardTitle>Exercise saved</CardTitle>
-            <CardDescription>Stored locally in your browser.</CardDescription>
+            <CardDescription>Saved to your account (Firebase) in exercise history.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
             <Link href="/" className={cn(buttonVariants({ variant: "secondary" }))}>

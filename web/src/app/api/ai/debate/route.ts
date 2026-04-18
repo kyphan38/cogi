@@ -5,8 +5,14 @@ import {
   type DebateChatMessage,
 } from "@/lib/ai/prompts/generative-debate";
 import { generatePlainTextRaw } from "@/lib/ai/gemini";
+import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
+
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
+  const auth = await requireAuthenticatedRouteUser(req);
+  if (!auth.ok) return auth.response;
+
   if (!process.env.GEMINI_API_KEY?.trim()) {
     return NextResponse.json(
       { ok: false, error: "Server is missing GEMINI_API_KEY" },

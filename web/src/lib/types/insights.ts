@@ -8,7 +8,7 @@ export interface WeeklyReviewRow {
   markdown: string;
 }
 
-export type DelayedRecallStatus = "pending" | "answered" | "dismissed";
+export type DelayedRecallStatus = "pending" | "answered" | "dismissed" | "expired";
 
 /** Queue entry: prompt user 48h after exercise completion (Phase 5.3). */
 export interface DelayedRecallQueueRow {
@@ -23,4 +23,6 @@ export interface DelayedRecallQueueRow {
   feedbackText: string | null;
   dismissedAt: string | null;
   answeredAt: string | null;
+  /** Set when status becomes `expired` (pending but ignored past TTL). */
+  expiredAt?: string | null;
 }

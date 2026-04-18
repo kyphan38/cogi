@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ExerciseShell } from "@/components/shared/ExerciseShell";
 import { HighlightTag } from "@/components/exercises/HighlightTag";
@@ -8,6 +8,7 @@ import { SystemsFlowCanvas } from "@/components/exercises/SystemsFlowCanvas";
 import { EvaluativeMatrixBoard } from "@/components/exercises/EvaluativeMatrixBoard";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -119,6 +120,7 @@ export function ComboExerciseFlow() {
   const [journalAnswers, setJournalAnswers] = useState<Record<string, string>>({});
   const [aiRefLine, setAiRefLine] = useState<string | null>(null);
   const [journalPrimed, setJournalPrimed] = useState(false);
+  const journalEffectIdRef = useRef(0);
   const [emotionLabel, setEmotionLabel] = useState<
     "anxious" | "excited" | "frustrated" | "confident" | "uncertain" | "defensive" | "neutral"
   >("neutral");
@@ -161,6 +163,7 @@ export function ComboExerciseFlow() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          requestId: crypto.randomUUID(),
           preset,
           domain: effectiveDomain,
           userContext: userContext || undefined,
@@ -393,12 +396,13 @@ export function ComboExerciseFlow() {
 
   useEffect(() => {
     if (phase !== "journal" || journalPrimed || !bundle || !comboId) return;
+    const effectId = ++journalEffectIdRef.current;
     let cancelled = false;
     void (async () => {
       try {
         const excluded = await getPromptIdsUsedInLastNCompleted(5);
         const picks = pickJournalPrompts(excluded);
-        if (cancelled) return;
+        if (cancelled || effectId !== journalEffectIdRef.current) return;
         setJournalPrompts(picks);
         const init: Record<string, string> = {};
         picks.forEach((p) => {
@@ -406,6 +410,7 @@ export function ComboExerciseFlow() {
         });
         setJournalAnswers(init);
         const snippets = await getRecentJournalSnippetsForDomain(effectiveDomain, 3);
+        if (cancelled || effectId !== journalEffectIdRef.current) return;
         if (snippets.length === 0) {
           setAiRefLine(null);
           setJournalPrimed(true);
@@ -414,14 +419,19 @@ export function ComboExerciseFlow() {
         const res = await aiFetch("/api/ai/journal-ref", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ domain: effectiveDomain, snippets }),
+          body: JSON.stringify({
+            requestId: crypto.randomUUID(),
+            domain: effectiveDomain,
+            snippets,
+          }),
         });
         const j = (await res.json()) as { ok: true; line: string | null };
-        if (!cancelled && j.ok && j.line) setAiRefLine(j.line);
+        if (cancelled || effectId !== journalEffectIdRef.current) return;
+        if (j.ok && j.line) setAiRefLine(j.line);
       } catch {
-        if (!cancelled) setAiRefLine(null);
+        if (!cancelled && effectId === journalEffectIdRef.current) setAiRefLine(null);
       } finally {
-        if (!cancelled) setJournalPrimed(true);
+        if (!cancelled && effectId === journalEffectIdRef.current) setJournalPrimed(true);
       }
     })();
     return () => {
@@ -630,7 +640,13 @@ export function ComboExerciseFlow() {
               </Select>
             </div>
             <Button type="button" disabled={loading} onClick={() => void generateBundle()}>
-              {loading ? "Generating scenario…" : "Generate combo"}
+              {loading ? (
+                <>
+                  <InlineSpinner /> Generating scenario…
+                </>
+              ) : (
+                "Generate combo"
+              )}
             </Button>
             <Link href="/" className={cn(buttonVariants({ variant: "link" }), "h-auto p-0")}>
               ← Home
@@ -657,6 +673,9 @@ export function ComboExerciseFlow() {
                   passage={analyticalSource.passage}
                   highlights={highlights}
                   onChange={setHighlights}
+                  onSelectionOverlap={() =>
+                    setError("Selection overlaps an existing highlight. Remove or adjust first.")
+                  }
                 />
               ) : null}
               {bundle.preset === "full_analysis" && mechStep === 1 && systemsSource ? (
@@ -869,6 +888,9 @@ export function ComboExerciseFlow() {
                   passage={analyticalSource.passage}
                   highlights={highlights}
                   onChange={setHighlights}
+                  onSelectionOverlap={() =>
+                    setError("Selection overlaps an existing highlight. Remove or adjust first.")
+                  }
                 />
               ) : null}
             </CardContent>

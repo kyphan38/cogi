@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { InlineSpinner } from "@/components/ui/inline-spinner";
 import {
   Card,
   CardContent,
@@ -19,10 +20,9 @@ import type { Exercise } from "@/lib/types/exercise";
 
 export interface DelayedRecallCardProps {
   recall: DelayedRecallQueueRow;
-  onUpdated: () => void;
 }
 
-export function DelayedRecallCard({ recall, onUpdated }: DelayedRecallCardProps) {
+export function DelayedRecallCard({ recall }: DelayedRecallCardProps) {
   const [answer, setAnswer] = useState("");
   const [submittedFeedback, setSubmittedFeedback] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -36,7 +36,6 @@ export function DelayedRecallCard({ recall, onUpdated }: DelayedRecallCardProps)
       status: "dismissed",
       dismissedAt: now,
     });
-    onUpdated();
   };
 
   const submit = async () => {
@@ -96,11 +95,11 @@ export function DelayedRecallCard({ recall, onUpdated }: DelayedRecallCardProps)
           <CardTitle className="text-sm">Recall feedback</CardTitle>
           <CardDescription className="text-xs">{recall.exerciseTitle}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           <p className="text-xs whitespace-pre-wrap text-muted-foreground">{submittedFeedback}</p>
-          <Button type="button" size="sm" variant="secondary" onClick={() => onUpdated()}>
-            Done
-          </Button>
+          <p className="text-muted-foreground text-xs italic">
+            When the next recall is due, it will replace this card automatically.
+          </p>
         </CardContent>
       </Card>
     );
@@ -136,7 +135,13 @@ export function DelayedRecallCard({ recall, onUpdated }: DelayedRecallCardProps)
           className="text-sm"
         />
         <Button type="button" size="sm" disabled={loading} onClick={() => void submit()}>
-          {loading ? "…" : "Submit"}
+          {loading ? (
+            <>
+              <InlineSpinner /> Submitting…
+            </>
+          ) : (
+            "Submit"
+          )}
         </Button>
       </CardContent>
     </Card>

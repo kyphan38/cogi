@@ -31,9 +31,11 @@ export interface HighlightTagProps {
   passage: string;
   highlights: UserHighlight[];
   onChange: (next: UserHighlight[]) => void;
+  /** Called when the user selects text that overlaps an existing highlight (replaces window.alert). */
+  onSelectionOverlap: () => void;
 }
 
-export function HighlightTag({ passage, highlights, onChange }: HighlightTagProps) {
+export function HighlightTag({ passage, highlights, onChange, onSelectionOverlap }: HighlightTagProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [pending, setPending] = useState<{ start: number; end: number } | null>(
     null,
@@ -51,12 +53,12 @@ export function HighlightTag({ passage, highlights, onChange }: HighlightTagProp
     for (const h of highlights) {
       if (overlaps(range.start, range.end, h.startOffset, h.endOffset)) {
         setPending(null);
-        alert("Selection overlaps an existing highlight. Remove or adjust first.");
+        onSelectionOverlap();
         return;
       }
     }
     setPending(range);
-  }, [highlights]);
+  }, [highlights, onSelectionOverlap]);
 
   const applyTag = (tag: TagType) => {
     if (!pending) return;

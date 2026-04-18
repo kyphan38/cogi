@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
+import { ToastLayout } from "@/components/providers/ToastLayout";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -48,7 +49,9 @@ export default function RootLayout({
       </head>
       {/* suppressHydrationWarning: extensions (e.g. WOT wotdisconnected on body) mutate DOM before hydrate */}
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
-        <div className="flex flex-1 flex-col">{children}</div>
+        <ToastLayout>
+          <div className="flex flex-1 flex-col">{children}</div>
+        </ToastLayout>
       </body>
     </html>
   );

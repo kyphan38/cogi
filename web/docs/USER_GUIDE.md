@@ -2,15 +2,16 @@
 
 Ứng dụng giúp bạn **luyện các kiểu tư duy** (phân tích, thứ tự, hệ thống, đánh giá, sáng tạo) qua bài tập ngắn, có **phản hồi từ AI**, **ghi nhật ký**, và **cam kết một hành động** ở cuối mỗi bài.
 
-**Quan trọng:** dữ liệu (bài đã làm, nhật ký, cài đặt…) được lưu **trong trình duyệt** trên máy bạn (IndexedDB). Không đăng nhập tài khoản cloud trong app này. Đổi máy / xóa dữ liệu trình duyệt có thể mất dữ liệu — nên dùng **Settings → Download JSON backup** nếu bạn muốn giữ bản sao.
+**Quan trọng:** bạn **đăng nhập Google (Firebase)**; dữ liệu bài đã làm, nhật ký, cài đặt… được lưu vào **đám mây (Firestore)** theo tài khoản của bạn (cùng project Firebase mà người triển khai cấu hình). Đăng nhập trên máy khác vẫn thấy dữ liệu. Nên dùng **Settings → Download JSON backup** để giữ bản sao ngoài app hoặc phòng khi cần khôi phục/ghép dữ liệu.
 
 ---
 
 ## 1. Bắt đầu nhanh
 
 1. Mở app trong trình duyệt (Chrome, Safari, Firefox, …).
-2. Phía trên cùng có **thanh điều hướng** cố định khi cuộn: **Home**, **Dashboard**, **History**, **Journal**, **Settings**, **Decisions**.
-3. **Home** là điểm vào: chọn một **thẻ bài tập** (hoặc Combo) để bắt đầu.
+2. **Đăng nhập Google** khi app yêu cầu (tài khoản phải nằm trong allowlist nếu người triển khai bật giới hạn).
+3. Phía trên cùng có **thanh điều hướng** cố định khi cuộn: **Home**, **Dashboard**, **History**, **Journal**, **Settings**, **Decisions**.
+4. **Home** là điểm vào: chọn một **thẻ bài tập** (hoặc Combo) để bắt đầu.
 
 ---
 
@@ -138,7 +139,7 @@ Cuối cùng: journal + action + lưu **một** bản ghi combo.
 - **Personal context:** đoạn giới thiệu về bạn (vai trò, mục tiêu, …) — được **đưa vào prompt** khi sinh bài và một số chỗ AI khác. Nên viết ngắn, đúng sự thật bạn muốn model hiểu.
 - **Delayed recall:** bật/tắt thẻ nhắc 48h.
 - **Adaptive difficulty:** bật/tắt gợi ý độ khó + hàng chờ điểm yếu khi generate.
-- **Backup:** tải JSON toàn bộ dữ liệu; nhập lại (merge hoặc replace — replace xóa sạch local, cần xác nhận).
+- **Backup:** tải JSON toàn bộ dữ liệu từ **Firestore** (theo tài khoản đang đăng nhập); nhập lại (merge hoặc replace — replace xóa sạch dữ liệu Firestore trong các collection đó của bạn, cần xác nhận).
 
 ---
 
@@ -161,7 +162,7 @@ Trang riêng để **ghi lại quyết định ngoài đời** (text, domain, ng
 |-------------|--------|
 | Bấm Generate báo thiếu API | Cần người triển khai cấu hình **khóa Gemini** trên server (`.env.local`). Người dùng cuối không tự sửa trong app. |
 | Bài AI không hợp lệ (422) | Thử Generate lại; đôi khi model trả JSON sai schema — không phải lỗi của bạn. |
-| Mất dữ liệu | Không đồng bộ cloud — kiểm tra chưa xóa site data; dùng backup JSON. |
+| Mất dữ liệu / không thấy bài cũ | Kiểm tra đúng tài khoản Google; project Firebase; hoặc dùng **Import JSON** từ bản backup. |
 | Adaptive không thấy gì | Phải **bật** trong Settings và làm thêm vài bài để có dữ liệu. |
 
 ---
@@ -172,4 +173,4 @@ Trang riêng để **ghi lại quyết định ngoài đời** (text, domain, ng
 
 ---
 
-*Nếu bạn in hoặc gửi cho người mới: nhớ nhắc họ cài backup định kỳ và rằng app phụ thuộc trình duyệt hiện tại.*
+*Nếu bạn in hoặc gửi cho người mới: nhắc đăng nhập Google và backup JSON định kỳ nếu họ muốn bản sao ngoài đám mây.*
