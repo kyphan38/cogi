@@ -4,9 +4,10 @@ import { FirebaseApp, FirebaseOptions, getApp, getApps, initializeApp } from "fi
 import { Auth, getAuth } from "firebase/auth";
 import {
   Firestore,
-  enableIndexedDbPersistence,
-  enableMultiTabIndexedDbPersistence,
   getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
 } from "firebase/firestore";
 
 function readFirebaseConfig(): FirebaseOptions {
@@ -36,7 +37,6 @@ function readFirebaseConfig(): FirebaseOptions {
 let cachedApp: FirebaseApp | null = null;
 let cachedAuth: Auth | null = null;
 let cachedFirestore: Firestore | null = null;
-let persistenceInitPromise: Promise<void> | null = null;
 
 export function getFirebaseApp(): FirebaseApp {
   if (cachedApp) return cachedApp;
@@ -51,40 +51,22 @@ export function getFirebaseAuth(): Auth {
   return cachedAuth;
 }
 
-async function initFirestoreOfflinePersistence(db: Firestore): Promise<void> {
-  if (typeof window === "undefined") return;
-  if (persistenceInitPromise) return persistenceInitPromise;
-
-  persistenceInitPromise = (async () => {
-    try {
-      await enableMultiTabIndexedDbPersistence(db);
-      return;
-    } catch (err) {
-      const code = (err as { code?: string } | null)?.code;
-      if (code === "failed-precondition") {
-        try {
-          await enableIndexedDbPersistence(db);
-          return;
-        } catch (fallbackErr) {
-          const fallbackCode = (fallbackErr as { code?: string } | null)?.code;
-          if (fallbackCode === "failed-precondition" || fallbackCode === "unimplemented") {
-            return;
-          }
-          throw fallbackErr;
-        }
-      }
-      if (code === "unimplemented") return;
-      throw err;
-    }
-  })();
-
-  return persistenceInitPromise;
-}
-
 export function getFirebaseFirestore(): Firestore {
   if (cachedFirestore) return cachedFirestore;
-  cachedFirestore = getFirestore(getFirebaseApp());
-  void initFirestoreOfflinePersistence(cachedFirestore);
+  const app = getFirebaseApp();
+  if (typeof window !== "undefined") {
+    try {
+      cachedFirestore = initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+      });
+    } catch {
+      cachedFirestore = getFirestore(app);
+    }
+  } else {
+    cachedFirestore = getFirestore(app);
+  }
   return cachedFirestore;
 }
 

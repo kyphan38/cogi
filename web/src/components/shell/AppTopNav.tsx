@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { getFirebaseAuth } from "@/lib/auth/firebase-client";
+import { awaitRouterReplace } from "@/lib/nav/await-router-replace";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -35,11 +36,13 @@ export function AppTopNav() {
   const onSignOut = async () => {
     try {
       await fetch("/api/auth/session", { method: "DELETE" });
-    } catch {
+    } catch (e) {
+      if (e && typeof e === "object" && "name" in e && (e as { name: string }).name === "AbortError")
+        return;
       // Session cookie cleanup is best-effort.
     }
     await signOut(getFirebaseAuth());
-    router.replace("/login");
+    await awaitRouterReplace(router, "/login");
   };
 
   return (

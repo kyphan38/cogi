@@ -36,8 +36,16 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${sourceSerif.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{window.addEventListener("unhandledrejection",function(e){var r=e.reason;if(r&&typeof r==="object"&&r.name==="AbortError")e.preventDefault();},{capture:true});}catch(_){}})();`,
+          }}
+        />
+      </head>
       {/* suppressHydrationWarning: extensions (e.g. WOT wotdisconnected on body) mutate DOM before hydrate */}
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <div className="flex flex-1 flex-col">{children}</div>
