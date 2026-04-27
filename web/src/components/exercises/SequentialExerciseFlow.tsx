@@ -10,6 +10,7 @@ import {
   DragStartEvent,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   closestCorners,
   useDroppable,
   useDraggable,
@@ -28,6 +29,7 @@ import { AdaptiveSetupHint } from "@/components/adaptive/AdaptiveSetupHint";
 import { ExerciseShell, SEQUENTIAL_EXERCISE_STEP_LABELS } from "@/components/shared/ExerciseShell";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
+import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { cn } from "@/lib/utils";
@@ -67,17 +69,8 @@ import { currentIsoWeekKey } from "@/lib/db/actions";
 import { aiFetch } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
-
-const DOMAINS = [
-  "DevOps / SRE",
-  "MLOps / Data Engineering",
-  "Solution Architecture",
-  "HPC",
-  "Financial Planning",
-  "Life Strategy",
-  "Social & Communication",
-  "Custom",
-] as const;
+import { DomainInput } from "@/components/shared/DomainInput";
+import { listRecentDomains } from "@/lib/db/exercises";
 
 const ZONE_POOL = "__zone_pool__";
 const ZONE_TIMELINE_EMPTY = "__zone_timeline_empty__";
@@ -164,8 +157,8 @@ function DroppableZone({
 
 export function SequentialExerciseFlow() {
   const [step, setStep] = useState<FlowStep>(0);
-  const [domainChoice, setDomainChoice] = useState<string>(DOMAINS[0]);
-  const [customDomain, setCustomDomain] = useState("");
+  const [domain, setDomain] = useState("");
+  const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -193,11 +186,13 @@ export function SequentialExerciseFlow() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const effectiveDomain =
-    domainChoice === "Custom" ? customDomain.trim() : domainChoice;
+  useEffect(() => {
+    void listRecentDomains(20).then(setDomainSuggestions);
+  }, []);
 
   const stepById = useMemo(() => {
     if (!exercise) return new Map<string, string>();
@@ -206,8 +201,9 @@ export function SequentialExerciseFlow() {
 
   const startGenerate = useCallback(async () => {
     setError(null);
-    if (!effectiveDomain) {
-      setError("Choose or enter a domain.");
+    const d = domain.trim();
+    if (!d) {
+      setError("Enter a domain.");
       return;
     }
     setLoading(true);
@@ -218,7 +214,7 @@ export function SequentialExerciseFlow() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          domain: effectiveDomain,
+          domain: d,
           userContext: userContext || undefined,
           exerciseType: "sequential",
           adaptiveHints,
@@ -237,7 +233,7 @@ export function SequentialExerciseFlow() {
       const row: SequentialExerciseRow = {
         id,
         type: "sequential",
-        domain: effectiveDomain,
+        domain: d,
         title: data.title,
         scenario: data.scenario,
         steps: data.steps,
@@ -265,7 +261,16 @@ export function SequentialExerciseFlow() {
     } finally {
       setLoading(false);
     }
-  }, [effectiveDomain]);
+  }, [domain]);
+
+  const regenerate = () => {
+    if (timeline.length > 0) {
+      const ok = window.confirm("Discard current work and regenerate?");
+      if (!ok) return;
+    }
+    setError(null);
+    void startGenerate();
+  };
 
   const handleDragStart = (e: DragStartEvent) => {
     setActiveDragId(String(e.active.id));
@@ -367,7 +372,14 @@ export function SequentialExerciseFlow() {
     (async () => {
       try {
         const excluded = await getPromptIdsUsedInLastNCompleted(5);
-        const picks = pickJournalPrompts(excluded);
+        const accuracy = computeSequentialAccuracy(exercise.steps, timeline);
+        const picks = pickJournalPrompts(excluded, {
+          exerciseType: "sequential",
+          accuracy,
+          confidenceBefore: confidence,
+          overconfident: confidence - accuracy > 20,
+          underconfident: accuracy - confidence > 20,
+        });
         if (cancelled || effectId !== journalEffectIdRef.current) return;
         setJournalPrompts(picks);
         const init: Record<string, string> = {};
@@ -375,6 +387,7 @@ export function SequentialExerciseFlow() {
           init[p.id] = "";
         });
         setJournalAnswers(init);
+        setJournalPrimed(true);
 
         const snippets = await getRecentJournalSnippetsForDomain(
           exercise.domain,
@@ -383,7 +396,6 @@ export function SequentialExerciseFlow() {
         if (cancelled || effectId !== journalEffectIdRef.current) return;
         if (snippets.length === 0) {
           setAiRefLine(null);
-          setJournalPrimed(true);
           return;
         }
         const res = await aiFetch("/api/ai/journal-ref", {
@@ -400,8 +412,6 @@ export function SequentialExerciseFlow() {
         if (j.ok && j.line) setAiRefLine(j.line);
       } catch {
         if (!cancelled && effectId === journalEffectIdRef.current) setAiRefLine(null);
-      } finally {
-        if (!cancelled && effectId === journalEffectIdRef.current) setJournalPrimed(true);
       }
     })();
     return () => {
@@ -497,6 +507,20 @@ export function SequentialExerciseFlow() {
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
+          {step === 0 ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="mt-2"
+              onClick={() => {
+                setError(null);
+                void startGenerate();
+              }}
+            >
+              Retry
+            </Button>
+          ) : null}
         </Alert>
       ) : null}
 
@@ -511,28 +535,7 @@ export function SequentialExerciseFlow() {
           <CardContent className="flex flex-col gap-4">
             <div className="grid gap-2">
               <Label>Domain</Label>
-              <Select
-                value={domainChoice}
-                onValueChange={(v) => setDomainChoice(v ?? DOMAINS[0])}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Domain" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DOMAINS.map((d) => (
-                    <SelectItem key={d} value={d}>
-                      {d}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {domainChoice === "Custom" ? (
-                <Input
-                  placeholder="Describe your domain"
-                  value={customDomain}
-                  onChange={(e) => setCustomDomain(e.target.value)}
-                />
-              ) : null}
+              <DomainInput value={domain} onChange={setDomain} suggestions={domainSuggestions} />
             </div>
             <p className="text-muted-foreground text-xs">
               Personal context for AI is read from{" "}
@@ -635,6 +638,9 @@ export function SequentialExerciseFlow() {
               <Button type="button" variant="secondary" onClick={() => setStep(0)}>
                 Back
               </Button>
+              <Button type="button" variant="secondary" onClick={regenerate}>
+                Regenerate
+              </Button>
               <Button
                 type="button"
                 onClick={() => {
@@ -662,9 +668,19 @@ export function SequentialExerciseFlow() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <ConfidenceSlider value={confidence} onChange={setConfidence} />
+            <ConfidenceSlider
+              value={confidence}
+              onChange={setConfidence}
+              label="How confident are you in your step ordering?"
+            />
+            {loading ? <PerspectiveLoadingCard /> : null}
             <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(1)}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={loading}
+                onClick={() => setStep(1)}
+              >
                 Back
               </Button>
               <Button
@@ -697,7 +713,7 @@ export function SequentialExerciseFlow() {
             <CardContent className="space-y-3 text-sm">
               <div>
                 <p className="text-muted-foreground text-xs font-medium uppercase">Domain</p>
-                <p className="font-medium">{effectiveDomain || "—"}</p>
+                <p className="font-medium">{exercise.domain || "—"}</p>
               </div>
               <div>
                 <p className="text-muted-foreground text-xs font-medium uppercase">Step order</p>

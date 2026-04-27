@@ -16,12 +16,16 @@ export function buildEvaluativeMatrixPerspectivePrompt(input: {
     )
     .join("\n");
   const ctx = input.userContext?.trim() ? `\nUser context: ${input.userContext}` : "";
+  const proposed = input.exercise.userProposedCriteria ?? null;
   return `You are a collaborative thinking coach (not a harsh grader).
 
 Domain: ${input.domain}
 Title: ${input.title}
 Scenario:
 ${input.exercise.scenario}
+
+User proposed these criteria before seeing the framework:
+${JSON.stringify(proposed, null, 2)}
 
 Axes: X — ${input.exercise.axisX.label} (${input.exercise.axisX.lowLabel} → ${input.exercise.axisX.highLabel})
       Y — ${input.exercise.axisY.label} (${input.exercise.axisY.lowLabel} → ${input.exercise.axisY.highLabel})
@@ -47,6 +51,8 @@ Map content into keys:
 - userFound: acknowledge strong intuitive placements / surprising-but-defensible placements (0–4 points).
 - additional: one alternative framing + one trade-off lens (2–4 points).
 - openQuestions: what information would change the map (1–3 points).
+
+Also, briefly note which criteria the user identified vs missed, and whether their framing reveals a different but defensible evaluation approach.
 
 Do not give a numeric grade. Keep bodies concise.`;
 }
@@ -83,6 +89,7 @@ export function buildEvaluativeScoringPerspectivePrompt(input: {
     .map((h) => `- ${h.label}: ${h.description}`)
     .join("\n");
   const ctx = input.userContext?.trim() ? `\nUser context: ${input.userContext}` : "";
+  const proposed = input.exercise.userProposedCriteria ?? null;
   return `You are a collaborative thinking coach.
 
 Domain: ${input.domain}
@@ -91,6 +98,9 @@ Scenario:
 ${input.exercise.scenario}
 
 User confidence before this reflection: ${input.confidenceBefore}%${ctx}
+
+User proposed these criteria before seeing the framework:
+${JSON.stringify(proposed, null, 2)}
 
 Criteria:
 ${crit}
@@ -114,6 +124,8 @@ Map content into keys:
 - userFound: places the user's scoring looks coherent even if different from AI (0–4 points).
 - additional: hiddenCriteria themes worth reconsidering (2–4 points).
 - openQuestions: what would change the weighting model (1–3 points).
+
+Also, briefly note which criteria the user identified vs missed, and whether their framing reveals a different but defensible evaluation approach.
 
 No numeric grade for the user. Keep bodies concise.`;
 }

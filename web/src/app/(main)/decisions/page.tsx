@@ -26,28 +26,21 @@ import {
 import type { RealDecisionLogEntry } from "@/lib/types/decision";
 import {
   deleteDecision,
+  listRecentDecisionDomains,
   putDecision,
   subscribeDecisions,
 } from "@/lib/db/decisions";
-import { getExercise, subscribeRecentExercisesForPicker } from "@/lib/db/exercises";
+import { getExercise, listRecentDomains, subscribeRecentExercisesForPicker } from "@/lib/db/exercises";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
-
-const DOMAINS = [
-  "DevOps / SRE",
-  "MLOps / Data Engineering",
-  "Solution Architecture",
-  "HPC",
-  "Financial Planning",
-  "Life Strategy",
-  "Social & Communication",
-  "Custom",
-] as const;
+import { DomainInput } from "@/components/shared/DomainInput";
+import { useToast } from "@/components/ui/toast";
 
 export default function DecisionsPage() {
+  const { show: showToast } = useToast();
   const [rows, setRows] = useState<RealDecisionLogEntry[]>([]);
   const [text, setText] = useState("");
-  const [domain, setDomain] = useState<string>(DOMAINS[0]);
-  const [customDomain, setCustomDomain] = useState("");
+  const [domain, setDomain] = useState("");
+  const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [decidedAt, setDecidedAt] = useState(() =>
     new Date().toISOString().slice(0, 10),
   );
@@ -59,6 +52,18 @@ export default function DecisionsPage() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [linkTitleById, setLinkTitleById] = useState<Record<string, string>>({});
+  const [savingReviewId, setSavingReviewId] = useState<string | null>(null);
+  const [reviewDrafts, setReviewDrafts] = useState<
+    Record<
+      string,
+      {
+        actualOutcome: string;
+        reasoningQuality: "sound" | "flawed" | "lucky" | "unlucky" | "";
+        counterfactual: string;
+        thinkingPatternNote: string;
+      }
+    >
+  >({});
 
   const pickerTitleMap = useMemo(() => {
     const m: Record<string, string> = {};
@@ -90,9 +95,6 @@ export default function DecisionsPage() {
     };
   }, [rows, pickerTitleMap, linkTitleById]);
 
-  const effectiveDomain =
-    domain === "Custom" ? customDomain.trim() : domain;
-
   useEffect(() => {
     const unsubDecisions = subscribeDecisions(setRows, (error) => {
       logFirestoreQueryError("DecisionsPage", "subscribeDecisions", error);
@@ -110,8 +112,27 @@ export default function DecisionsPage() {
     };
   }, []);
 
+  useEffect(() => {
+    void (async () => {
+      const [exDomains, decDomains] = await Promise.all([
+        listRecentDomains(20),
+        listRecentDecisionDomains(10),
+      ]);
+      const seen = new Set<string>();
+      const merged: string[] = [];
+      for (const d of [...exDomains, ...decDomains]) {
+        if (!seen.has(d)) {
+          seen.add(d);
+          merged.push(d);
+        }
+      }
+      setDomainSuggestions(merged.slice(0, 20));
+    })();
+  }, []);
+
   const add = async () => {
-    if (!text.trim() || !effectiveDomain) return;
+    const d = domain.trim();
+    if (!text.trim() || !d) return;
     setSaving(true);
     setErrorMessage(null);
     try {
@@ -123,7 +144,7 @@ export default function DecisionsPage() {
         id: crypto.randomUUID(),
         text: text.trim(),
         decidedAt: decidedDate.toISOString(),
-        domain: effectiveDomain,
+        domain: d,
         linkedExerciseId: linkId || null,
         followUpNote: followUp.trim() || null,
         remindOutcomeAt,
@@ -148,9 +169,57 @@ export default function DecisionsPage() {
     setErrorMessage(null);
     try {
       await putDecision({ ...cur, followUpNote: note || null });
+      showToast("Saved", "success");
     } catch (e) {
       console.error("DecisionsPage putDecision (follow-up)", e);
-      setErrorMessage("Could not save the follow-up note. Try again.");
+      showToast("Save failed — try again", "error");
+    }
+  };
+
+  const updateOutcomeReview = async (
+    id: string,
+    draft: {
+      actualOutcome: string;
+      reasoningQuality: "sound" | "flawed" | "lucky" | "unlucky" | "";
+      counterfactual: string;
+      thinkingPatternNote: string;
+    },
+  ) => {
+    const cur = rows.find((r) => r.id === id);
+    if (!cur) return;
+    if (!draft.actualOutcome.trim()) {
+      showToast("Enter what actually happened", "error");
+      return;
+    }
+    if (!draft.reasoningQuality) {
+      showToast("Choose how your reasoning was", "error");
+      return;
+    }
+    if (!draft.counterfactual.trim()) {
+      showToast("Enter what you'd change", "error");
+      return;
+    }
+    if (!draft.thinkingPatternNote.trim()) {
+      showToast("Enter a thinking habit note", "error");
+      return;
+    }
+    setSavingReviewId(id);
+    try {
+      await putDecision({
+        ...cur,
+        outcomeReview: {
+          actualOutcome: draft.actualOutcome.trim(),
+          reasoningQuality: draft.reasoningQuality,
+          counterfactual: draft.counterfactual.trim(),
+          thinkingPatternNote: draft.thinkingPatternNote.trim(),
+        },
+      });
+      showToast("Saved", "success");
+    } catch (e) {
+      console.error("DecisionsPage putDecision (outcomeReview)", e);
+      showToast("Save failed — try again", "error");
+    } finally {
+      setSavingReviewId(null);
     }
   };
 
@@ -207,28 +276,7 @@ export default function DecisionsPage() {
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label>Domain</Label>
-              <Select
-                value={domain}
-                onValueChange={(v) => setDomain(v ?? DOMAINS[0])}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DOMAINS.map((d) => (
-                    <SelectItem key={d} value={d}>
-                      {d}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {domain === "Custom" ? (
-                <Input
-                  placeholder="Custom domain"
-                  value={customDomain}
-                  onChange={(e) => setCustomDomain(e.target.value)}
-                />
-              ) : null}
+              <DomainInput value={domain} onChange={setDomain} suggestions={domainSuggestions} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="dat">Date decided</Label>
@@ -309,6 +357,24 @@ export default function DecisionsPage() {
                 r.remindOutcomeAt != null &&
                 r.remindOutcomeAt > nowIso &&
                 (r.outcomeReminderDismissedAt == null || r.outcomeReminderDismissedAt === "");
+
+              const existing = r.outcomeReview ?? null;
+              const draft =
+                reviewDrafts[r.id] ??
+                (existing
+                  ? {
+                      actualOutcome: existing.actualOutcome,
+                      reasoningQuality: existing.reasoningQuality,
+                      counterfactual: existing.counterfactual,
+                      thinkingPatternNote: existing.thinkingPatternNote,
+                    }
+                  : {
+                      actualOutcome: "",
+                      reasoningQuality: "",
+                      counterfactual: "",
+                      thinkingPatternNote: "",
+                    });
+
               return (
               <div key={r.id} className="space-y-2 rounded-lg border p-3 text-sm">
                 <p className="font-medium">{r.text}</p>
@@ -334,16 +400,100 @@ export default function DecisionsPage() {
                     Reminder scheduled for {r.remindOutcomeAt?.slice(0, 10)}
                   </p>
                 ) : null}
-                <div className="grid gap-1">
-                  <Label className="text-xs">Outcome / follow-up note</Label>
-                  <Textarea
-                    rows={2}
-                    defaultValue={r.followUpNote ?? ""}
-                    onBlur={(e) =>
-                      void updateFollowUp(r.id, e.target.value)
-                    }
-                  />
-                </div>
+                {reminderDue ? (
+                  <details className="rounded-md border bg-muted/20 p-3">
+                    <summary className="cursor-pointer font-medium">Review outcome</summary>
+                    <div className="mt-3 grid gap-3">
+                      <div className="grid gap-1">
+                        <Label className="text-xs">What actually happened?</Label>
+                        <Textarea
+                          rows={2}
+                          value={draft.actualOutcome}
+                          onChange={(e) =>
+                            setReviewDrafts((prev) => ({
+                              ...prev,
+                              [r.id]: { ...draft, actualOutcome: e.target.value },
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="grid gap-1">
+                        <Label className="text-xs">How was your reasoning?</Label>
+                        <Select
+                          value={draft.reasoningQuality || "__unset__"}
+                          onValueChange={(v) =>
+                            setReviewDrafts((prev) => ({
+                              ...prev,
+                              [r.id]: {
+                                ...draft,
+                                reasoningQuality:
+                                  v === "__unset__"
+                                    ? ""
+                                    : (v as "sound" | "flawed" | "lucky" | "unlucky"),
+                              },
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__unset__">Choose…</SelectItem>
+                            <SelectItem value="sound">Sound reasoning, expected outcome</SelectItem>
+                            <SelectItem value="flawed">Flawed reasoning — I missed something</SelectItem>
+                            <SelectItem value="lucky">Got lucky — right outcome, wrong reasons</SelectItem>
+                            <SelectItem value="unlucky">Unlucky — good reasoning, bad outcome</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-1">
+                        <Label className="text-xs">
+                          With the same information you had then, what would you change?
+                        </Label>
+                        <Textarea
+                          rows={2}
+                          value={draft.counterfactual}
+                          onChange={(e) =>
+                            setReviewDrafts((prev) => ({
+                              ...prev,
+                              [r.id]: { ...draft, counterfactual: e.target.value },
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="grid gap-1">
+                        <Label className="text-xs">Which thinking habit helped or hurt most?</Label>
+                        <Textarea
+                          rows={2}
+                          value={draft.thinkingPatternNote}
+                          onChange={(e) =>
+                            setReviewDrafts((prev) => ({
+                              ...prev,
+                              [r.id]: { ...draft, thinkingPatternNote: e.target.value },
+                            }))
+                          }
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={savingReviewId === r.id}
+                        onClick={() => void updateOutcomeReview(r.id, draft)}
+                      >
+                        {savingReviewId === r.id ? "Saving…" : "Save review"}
+                      </Button>
+                    </div>
+                  </details>
+                ) : (
+                  <div className="grid gap-1">
+                    <Label className="text-xs">Outcome / follow-up note</Label>
+                    <Textarea
+                      rows={2}
+                      defaultValue={r.followUpNote ?? ""}
+                      onBlur={(e) => void updateFollowUp(r.id, e.target.value)}
+                    />
+                  </div>
+                )}
                 <Button
                   type="button"
                   variant="ghost"

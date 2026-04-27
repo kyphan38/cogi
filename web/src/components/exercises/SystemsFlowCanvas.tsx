@@ -1,16 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ReactFlow,
   Background,
+  BaseEdge,
+  EdgeLabelRenderer,
   Handle,
   Position,
   applyEdgeChanges,
+  getBezierPath,
   useNodesState,
   type Connection,
   type Edge,
   type EdgeChange,
+  type EdgeProps,
   type Node,
   type NodeProps,
 } from "@xyflow/react";
@@ -42,7 +46,7 @@ function SystemFlowNode({ data }: NodeProps) {
       <Handle type="target" position={Position.Top} />
       <div
         className={cn(
-          "pointer-events-none min-w-[96px] max-w-[132px] rounded-md border px-2 py-1.5 text-left text-xs shadow-sm",
+          "min-w-[96px] max-w-[132px] rounded-md border px-2 py-1.5 text-left text-xs shadow-sm",
           border,
         )}
       >
@@ -56,7 +60,62 @@ function SystemFlowNode({ data }: NodeProps) {
   );
 }
 
+function SystemFlowEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  label,
+  data,
+}: EdgeProps) {
+  const [edgePath, labelX, labelY] = getBezierPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  });
+
+  const onDelete = (data as { onDelete?: (id: string) => void } | undefined)
+    ?.onDelete;
+
+  return (
+    <>
+      <BaseEdge path={edgePath} />
+      <EdgeLabelRenderer>
+        <div
+          className="nodrag nopan flex items-center gap-1 rounded border bg-background px-1.5 py-0.5 text-[10px] shadow-sm"
+          style={{
+            position: "absolute",
+            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            pointerEvents: "all",
+          }}
+        >
+          {label ? <span>{label}</span> : null}
+          {onDelete ? (
+            <button
+              className="text-muted-foreground hover:text-destructive leading-none"
+              title="Delete connection"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(id);
+              }}
+            >
+              ×
+            </button>
+          ) : null}
+        </div>
+      </EdgeLabelRenderer>
+    </>
+  );
+}
+
 const nodeTypes = { system: SystemFlowNode };
+const edgeTypes = { systemEdge: SystemFlowEdge };
 
 function toRfNodes(
   specs: SystemsNodeSpec[],
@@ -77,13 +136,17 @@ function toRfNodes(
   }));
 }
 
-function toRfEdges(edges: SystemsUserEdge[]): Edge[] {
+function toRfEdges(
+  edges: SystemsUserEdge[],
+  onDelete: ((id: string) => void) | undefined,
+): Edge[] {
   return edges.map((e) => ({
     id: e.id,
+    type: "systemEdge",
     source: e.source,
     target: e.target,
     label: e.type.replace(/_/g, " "),
-    data: { type: e.type },
+    data: { type: e.type, onDelete },
   }));
 }
 
@@ -106,12 +169,37 @@ export function SystemsFlowCanvas({
   onToggleNodeImpact,
   maxEdges = 20,
 }: SystemsFlowCanvasProps) {
-  const rfEdges = useMemo(() => toRfEdges(userEdges), [userEdges]);
+  const handleDeleteEdge = useCallback(
+    (edgeId: string) => {
+      onUserEdgesChange(userEdges.filter((e) => e.id !== edgeId));
+    },
+    [userEdges, onUserEdgesChange],
+  );
+
+  const rfEdges = useMemo(
+    () => toRfEdges(userEdges, mode === "connect" ? handleDeleteEdge : undefined),
+    [userEdges, mode, handleDeleteEdge],
+  );
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
 
+  const prevSpecsRef = useRef<SystemsNodeSpec[] | null>(null);
+
   useEffect(() => {
-    setNodes(toRfNodes(nodeSpecs, nodeImpact));
+    if (prevSpecsRef.current !== nodeSpecs) {
+      prevSpecsRef.current = nodeSpecs;
+      setNodes(toRfNodes(nodeSpecs, nodeImpact));
+    } else {
+      setNodes((prev) =>
+        prev.map((n) => ({
+          ...n,
+          data: {
+            ...(n.data as Record<string, unknown>),
+            impact: nodeImpact[n.id] ?? "none",
+          },
+        })),
+      );
+    }
   }, [nodeSpecs, nodeImpact, setNodes]);
 
   const onEdgesChange = useCallback(
@@ -156,7 +244,7 @@ export function SystemsFlowCanvas({
   );
 
   return (
-    <div className="h-[380px] w-full rounded-md border bg-muted/20">
+    <div className="h-[min(380px,60svh)] w-full rounded-md border bg-muted/20">
       <ReactFlow
         className="h-full w-full"
         nodes={nodes}
@@ -165,11 +253,14 @@ export function SystemsFlowCanvas({
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
-        nodesDraggable={false}
+        edgeTypes={edgeTypes}
+        nodesDraggable={mode === "connect"}
         nodesConnectable={mode === "connect"}
         edgesReconnectable={false}
         zoomOnScroll={false}
         panOnDrag={false}
+        autoPanOnConnect={false}
+        autoPanOnNodeDrag={false}
         fitView
         fitViewOptions={{ padding: 0.12 }}
         onInit={(inst) => inst.fitView({ padding: 0.12 })}
@@ -178,7 +269,7 @@ export function SystemsFlowCanvas({
             ? (_, n) => onToggleNodeImpact(n.id)
             : undefined
         }
-        deleteKeyCode={mode === "connect" ? "Backspace" : null}
+        deleteKeyCode={mode === "connect" ? ["Backspace", "Delete"] : null}
         proOptions={{ hideAttribution: true }}
       >
         <Background gap={16} size={1} />

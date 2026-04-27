@@ -44,6 +44,7 @@ export async function POST(req: Request) {
   try {
     if (mode === "start") {
       const scenario = typeof b.scenario === "string" ? b.scenario : "";
+      const steelmanText = typeof b.steelmanText === "string" ? b.steelmanText : "";
       const qaRaw = b.qa;
       if (!Array.isArray(qaRaw)) {
         return NextResponse.json(
@@ -65,6 +66,7 @@ export async function POST(req: Request) {
         title: title.trim(),
         scenario: scenario.trim() || title.trim(),
         qa,
+        steelmanText: steelmanText.trim() || null,
       });
       const text = await generatePlainTextRaw(prompt);
       return NextResponse.json({ ok: true, text });

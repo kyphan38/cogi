@@ -15,6 +15,7 @@ export function buildSystemsShockPerspectivePrompt(input: {
   shockEvent: SystemsShockEvent;
   userEdges: SystemsUserEdge[];
   nodeImpact: Record<string, SystemsNodeImpact>;
+  userProposedComponents?: string[] | null;
   confidenceBefore: number;
   userContext?: string;
 }): string {
@@ -27,6 +28,9 @@ Scenario:
 ---
 ${input.scenario}
 ---
+
+User's initial decomposition (before seeing nodes):
+${JSON.stringify(input.userProposedComponents ?? [])}
 
 Nodes:
 ${JSON.stringify(input.nodes, null, 2)}

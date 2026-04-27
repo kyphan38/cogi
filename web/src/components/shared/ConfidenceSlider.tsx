@@ -7,17 +7,19 @@ export interface ConfidenceSliderProps {
   value: number;
   onChange: (v: number) => void;
   disabled?: boolean;
+  label?: string;
 }
 
 export function ConfidenceSlider({
   value,
   onChange,
   disabled,
+  label = "How confident are you in your highlights?",
 }: ConfidenceSliderProps) {
   return (
     <div className="grid max-w-md gap-3">
       <Label htmlFor="confidence">
-        How confident are you in your highlights? ({value}%)
+        {label} ({value}%)
       </Label>
       <Slider
         id="confidence"

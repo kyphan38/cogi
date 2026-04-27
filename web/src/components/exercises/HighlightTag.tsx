@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { TagType, UserHighlight } from "@/lib/types/exercise";
 import { TAG_LABELS, TAG_ORDER } from "@/lib/exercise/tag-labels";
 import { Button } from "@/components/ui/button";
@@ -37,9 +37,15 @@ export interface HighlightTagProps {
 
 export function HighlightTag({ passage, highlights, onChange, onSelectionOverlap }: HighlightTagProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const firstTagButtonRef = useRef<HTMLButtonElement>(null);
   const [pending, setPending] = useState<{ start: number; end: number } | null>(
     null,
   );
+
+  useEffect(() => {
+    if (!pending) return;
+    firstTagButtonRef.current?.focus();
+  }, [pending]);
 
   const onMouseUp = useCallback(() => {
     const el = ref.current;
@@ -87,12 +93,21 @@ export function HighlightTag({ passage, highlights, onChange, onSelectionOverlap
         ref={ref}
         className="select-text cursor-text rounded-lg border bg-card p-4 font-serif text-base leading-relaxed"
         onMouseUp={onMouseUp}
+        onKeyUp={onMouseUp}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setPending(null);
+        }}
+        tabIndex={0}
       >
         {passage}
       </div>
 
       {pending ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-md border border-dashed p-3">
+        <div
+          className="flex flex-wrap items-center gap-2 rounded-md border border-dashed p-3"
+          role="toolbar"
+          aria-label="Apply tag to selection"
+        >
           <span className="text-muted-foreground text-sm">Pick a tag:</span>
           {TAG_ORDER.map((tag) => (
             <Button
@@ -102,6 +117,7 @@ export function HighlightTag({ passage, highlights, onChange, onSelectionOverlap
               variant="secondary"
               className={cn("text-xs", TAG_LABELS[tag].colorClass)}
               onClick={() => applyTag(tag)}
+              ref={tag === TAG_ORDER[0] ? firstTagButtonRef : undefined}
             >
               {TAG_LABELS[tag].label}
             </Button>

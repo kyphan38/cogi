@@ -47,8 +47,6 @@ import { getStructuredPerspectiveSections } from "@/lib/perspective/format-struc
 import { listPerspectiveDisagreementsForExercise } from "@/lib/db/disagreements";
 import type { PerspectiveDisagreementRow } from "@/lib/types/disagreement";
 import { Trash2 } from "lucide-react";
-import { FirebaseAuthGate } from "@/components/auth/FirebaseAuthGate";
-import { AppTopNav } from "@/components/shell/AppTopNav";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -144,14 +142,24 @@ function HistoryActivityHeatmap({ rows }: { rows: Exercise[] }) {
       const key = cellDate.toLocaleDateString("en-CA");
       const afterToday = cellDate.getTime() > today.getTime();
       const entry = latestByDay.get(key);
-      const title = afterToday ? "" : cellDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+      const title = afterToday
+        ? ""
+        : cellDate.toLocaleDateString(undefined, {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          });
       cells.push(
         <div
           key={`${w}-${d}`}
           title={title}
           className={cn(
             "rounded-sm",
-            afterToday ? "bg-muted/25" : entry ? typeSwatchClass(entry.type) : "bg-muted/50",
+            afterToday
+              ? "bg-muted/25"
+              : entry
+                ? typeSwatchClass(entry.type)
+                : "bg-muted/50",
           )}
         />,
       );
@@ -169,17 +177,19 @@ function HistoryActivityHeatmap({ rows }: { rows: Exercise[] }) {
 
   return (
     <div className="space-y-3">
-      <div
-        className="grid gap-1"
-        style={{
-          gridTemplateRows: "repeat(7, 11px)",
-          gridAutoFlow: "column",
-          gridAutoColumns: "minmax(0, 11px)",
-        }}
-        role="img"
-        aria-label="Completed exercises by day, oldest columns on the left"
-      >
-        {cells}
+      <div className="overflow-x-auto">
+        <div
+          className="grid gap-1"
+          style={{
+            gridTemplateRows: "repeat(7, 11px)",
+            gridAutoFlow: "column",
+            gridAutoColumns: "minmax(0, 11px)",
+          }}
+          role="img"
+          aria-label="Completed exercises by day, oldest columns on the left"
+        >
+          {cells}
+        </div>
       </div>
       <p className="text-muted-foreground text-xs leading-relaxed">
         Each square is one day (Mon–Sun top to bottom; columns are weeks). If you finish more than
@@ -211,8 +221,7 @@ function GapChart({ points }: { points: { t: string; gap: number }[] }) {
   const w = 320;
   const h = 120;
   const pad = 8;
-  const xFor = (i: number) =>
-    pad + (i / (points.length - 1)) * (w - pad * 2);
+  const xFor = (i: number) => pad + (i / (points.length - 1)) * (w - pad * 2);
   const yFor = (g: number) => {
     const t = (g - min) / (max - min || 1);
     return h - pad - t * (h - pad * 2);
@@ -472,10 +481,7 @@ function HistoryPageInner() {
   };
 
   return (
-    <>
-      <AppTopNav />
-      <FirebaseAuthGate>
-        <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+    <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Exercise history</h1>
         <p className="text-muted-foreground text-sm">
@@ -521,21 +527,29 @@ function HistoryPageInner() {
               <p className="text-lg font-medium tabular-nums">
                 {globalStats.avgConf != null ? `${globalStats.avgConf}%` : "—"}
               </p>
-              <p className="text-muted-foreground mt-1 text-xs">How sure you said you were before each run.</p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                How sure you said you were before each run.
+              </p>
             </div>
             <div className="rounded-md border border-border bg-muted/10 p-3 text-sm">
               <p className="text-muted-foreground">Avg accuracy</p>
               <p className="text-lg font-medium tabular-nums">
                 {globalStats.avgAcc != null ? `${globalStats.avgAcc}%` : "—"}
               </p>
-              <p className="text-muted-foreground mt-1 text-xs">Measured performance after each exercise.</p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                Measured performance after each exercise.
+              </p>
             </div>
             <div className="rounded-md border border-border bg-muted/10 p-3 text-sm">
               <p className="text-muted-foreground">Avg calibration gap</p>
               <p className="text-lg font-medium tabular-nums">
-                {globalStats.avgGap != null ? `${globalStats.avgGap > 0 ? "+" : ""}${globalStats.avgGap}%` : "—"}
+                {globalStats.avgGap != null
+                  ? `${globalStats.avgGap > 0 ? "+" : ""}${globalStats.avgGap}%`
+                  : "—"}
               </p>
-              <p className="text-muted-foreground mt-1 text-xs">Above zero → confidence tended to exceed accuracy.</p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                Above zero → confidence tended to exceed accuracy.
+              </p>
             </div>
           </div>
           <div>
@@ -570,10 +584,7 @@ function HistoryPageInner() {
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
             <Label>Type</Label>
-            <Select
-              value={typeFilter}
-              onValueChange={(v) => setTypeFilter((v as ThinkingTypeFilter) ?? "all")}
-            >
+            <Select value={typeFilter} onValueChange={(v) => setTypeFilter((v as ThinkingTypeFilter) ?? "all")}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -590,11 +601,7 @@ function HistoryPageInner() {
           </div>
           <div className="grid gap-2">
             <Label>Domain contains</Label>
-            <Input
-              placeholder="e.g. DevOps"
-              value={domainQ}
-              onChange={(e) => setDomainQ(e.target.value)}
-            />
+            <Input placeholder="e.g. DevOps" value={domainQ} onChange={(e) => setDomainQ(e.target.value)} />
           </div>
           <div className="grid gap-2">
             <Label>Completed on or after</Label>
@@ -621,9 +628,7 @@ function HistoryPageInner() {
         {!filteredListReady ? (
           <HistoryExerciseListSkeleton />
         ) : rows.length === 0 ? (
-          <p className="text-muted-foreground text-sm italic">
-            No exercises match these filters.
-          </p>
+          <p className="text-muted-foreground text-sm italic">No exercises match these filters.</p>
         ) : (
           <ul className="space-y-2">
             {rows.map((ex) => (
@@ -648,11 +653,13 @@ function HistoryPageInner() {
                           <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-normal uppercase tracking-wide text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
                             Real data
                           </span>
+                        ) : isAnalyticalExercise(ex) && ex.isSoundReasoning === true ? (
+                          <span className="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-normal uppercase tracking-wide text-sky-800 dark:bg-sky-950/50 dark:text-sky-200">
+                            Sound reasoning
+                          </span>
                         ) : null}
                       </span>
-                      <span className="text-muted-foreground text-xs">
-                        {formatDate(ex.completedAt!)}
-                      </span>
+                      <span className="text-muted-foreground text-xs">{formatDate(ex.completedAt!)}</span>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
@@ -661,26 +668,26 @@ function HistoryPageInner() {
                       <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                         {ex.domain}
                       </span>
-                      {confMap.has(ex.id) ? (
-                        (() => {
-                          const g = confMap.get(ex.id)!;
-                          return (
-                            <span
-                              className={cn(
-                                "rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums",
-                                g > 0
-                                  ? "bg-destructive/10 text-destructive"
-                                  : g < 0
-                                    ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200"
-                                    : "bg-muted text-muted-foreground",
-                              )}
-                            >
-                              gap {g > 0 ? "+" : ""}
-                              {g}%
-                            </span>
-                          );
-                        })()
-                      ) : null}
+                      {confMap.has(ex.id)
+                        ? (() => {
+                            const g = confMap.get(ex.id)!;
+                            return (
+                              <span
+                                className={cn(
+                                  "rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums",
+                                  g > 0
+                                    ? "bg-destructive/10 text-destructive"
+                                    : g < 0
+                                      ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200"
+                                      : "bg-muted text-muted-foreground",
+                                )}
+                              >
+                                gap {g > 0 ? "+" : ""}
+                                {g}%
+                              </span>
+                            );
+                          })()
+                        : null}
                     </div>
                   </button>
                   <Button
@@ -793,9 +800,7 @@ function HistoryPageInner() {
                 </div>
                 <div>
                   <h3 className="mb-1 font-medium">Shock — your impact map</h3>
-                  <p className="text-muted-foreground mb-2 text-xs">
-                    {detailEx.shockEvent.description}
-                  </p>
+                  <p className="text-muted-foreground mb-2 text-xs">{detailEx.shockEvent.description}</p>
                   <ul className="space-y-1 text-xs">
                     {detailEx.nodes.map((n) => (
                       <li key={n.id}>
@@ -826,8 +831,8 @@ function HistoryPageInner() {
                   <div>
                     <h3 className="mb-1 font-medium">Scoring (summary)</h3>
                     <p className="text-muted-foreground text-xs">
-                      {detailEx.options.length} options × {detailEx.criteria.length} criteria
-                      (weights and scores saved).
+                      {detailEx.options.length} options × {detailEx.criteria.length} criteria (weights and
+                      scores saved).
                     </p>
                   </div>
                 )}
@@ -879,21 +884,13 @@ function HistoryPageInner() {
                     {detailEx.subExercises.map((sub, i) => (
                       <li key={`${sub.id}-${i}`}>
                         <span className="font-medium">{sub.type}</span>
-                        {sub.type === "analytical" ? (
-                          <span> — {sub.userHighlights.length} highlight(s)</span>
-                        ) : null}
-                        {sub.type === "sequential" ? (
-                          <span> — {sub.userOrderedStepIds.length} steps ordered</span>
-                        ) : null}
-                        {sub.type === "systems" ? (
-                          <span> — {sub.userEdges.length} edge(s)</span>
-                        ) : null}
+                        {sub.type === "analytical" ? <span> — {sub.userHighlights.length} highlight(s)</span> : null}
+                        {sub.type === "sequential" ? <span> — {sub.userOrderedStepIds.length} steps ordered</span> : null}
+                        {sub.type === "systems" ? <span> — {sub.userEdges.length} edge(s)</span> : null}
                         {sub.type === "evaluative" && sub.variant === "matrix" ? (
                           <span> — {Object.keys(sub.placements).length} placement(s)</span>
                         ) : null}
-                        {sub.type === "generative" ? (
-                          <span> — {Object.keys(sub.answers).length} answer field(s)</span>
-                        ) : null}
+                        {sub.type === "generative" ? <span> — {Object.keys(sub.answers).length} answer field(s)</span> : null}
                       </li>
                     ))}
                   </ol>
@@ -905,33 +902,28 @@ function HistoryPageInner() {
               <h3 className="mb-1 font-medium">AI perspective</h3>
               {isComboExercise(detailEx) ? (
                 <p className="text-muted-foreground leading-relaxed">
-                  Combined exercise — see sub-results above. No separate AI perspective for this
-                  entry.
+                  Combined exercise — see sub-results above. No separate AI perspective for this entry.
                 </p>
               ) : detailEx.aiPerspectiveStructured ? (
                 <div className="text-muted-foreground space-y-4 text-sm leading-relaxed">
-                  {getStructuredPerspectiveSections(detailEx.aiPerspectiveStructured).map(
-                    (sec) => (
-                      <div key={sec.key}>
-                        <h4 className="text-foreground mb-2 font-medium">{sec.title}</h4>
-                        <ul className="list-disc space-y-2 pl-5">
-                          {sec.points.map((p) => (
-                            <li key={p.id} className="whitespace-pre-wrap">
-                              {p.title ? (
-                                <>
-                                  <span className="text-foreground font-medium">
-                                    {p.title}
-                                  </span>
-                                  {" — "}
-                                </>
-                              ) : null}
-                              {p.body}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ),
-                  )}
+                  {getStructuredPerspectiveSections(detailEx.aiPerspectiveStructured).map((sec) => (
+                    <div key={sec.key}>
+                      <h4 className="text-foreground mb-2 font-medium">{sec.title}</h4>
+                      <ul className="list-disc space-y-2 pl-5">
+                        {sec.points.map((p) => (
+                          <li key={p.id} className="whitespace-pre-wrap">
+                            {p.title ? (
+                              <>
+                                <span className="text-foreground font-medium">{p.title}</span>
+                                {" — "}
+                              </>
+                            ) : null}
+                            {p.body}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
@@ -974,21 +966,17 @@ function HistoryPageInner() {
                     </li>
                   ) : null}
                   {detailJournal.promptIds.map((pid) => {
-                    const label =
-                      JOURNAL_PROMPTS.find((p) => p.id === pid)?.text ?? pid;
+                    const label = JOURNAL_PROMPTS.find((p) => p.id === pid)?.text ?? pid;
                     return (
                       <li key={pid}>
                         <p className="text-muted-foreground text-xs">{label}</p>
-                        <p className="whitespace-pre-wrap">
-                          {detailJournal.responses[pid] ?? "—"}
-                        </p>
+                        <p className="whitespace-pre-wrap">{detailJournal.responses[pid] ?? "—"}</p>
                       </li>
                     );
                   })}
                 </ul>
               )}
             </div>
-
           </CardContent>
         </Card>
       ) : null}
@@ -1019,8 +1007,7 @@ function HistoryPageInner() {
             </p>
             <div className="mt-4 grid gap-2">
               <Label htmlFor="delete-ex-confirm">
-                Type <span className="font-mono font-semibold text-foreground">Delete</span> to
-                confirm
+                Type <span className="font-mono font-semibold text-foreground">Delete</span> to confirm
               </Label>
               <Input
                 id="delete-ex-confirm"
@@ -1053,9 +1040,7 @@ function HistoryPageInner() {
           </div>
         </div>
       ) : null}
-        </div>
-      </FirebaseAuthGate>
-    </>
+    </div>
   );
 }
 
@@ -1063,18 +1048,14 @@ export default function HistoryPage() {
   return (
     <Suspense
       fallback={
-        <>
-          <AppTopNav />
-          <FirebaseAuthGate>
-            <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
-              <p className="text-muted-foreground text-sm">Loading history…</p>
-              <HistoryExerciseListSkeleton />
-            </div>
-          </FirebaseAuthGate>
-        </>
+        <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+          <p className="text-muted-foreground text-sm">Loading history…</p>
+          <HistoryExerciseListSkeleton />
+        </div>
       }
     >
       <HistoryPageInner />
     </Suspense>
   );
 }
+

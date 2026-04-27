@@ -7,6 +7,7 @@ import { ExerciseShell, SYSTEMS_EXERCISE_STEP_LABELS } from "@/components/shared
 import { SystemsFlowCanvas } from "@/components/exercises/SystemsFlowCanvas";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
+import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { cn } from "@/lib/utils";
@@ -52,17 +53,8 @@ import { currentIsoWeekKey } from "@/lib/db/actions";
 import { aiFetch } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
-
-const DOMAINS = [
-  "DevOps / SRE",
-  "MLOps / Data Engineering",
-  "Solution Architecture",
-  "HPC",
-  "Financial Planning",
-  "Life Strategy",
-  "Social & Communication",
-  "Custom",
-] as const;
+import { DomainInput } from "@/components/shared/DomainInput";
+import { listRecentDomains } from "@/lib/db/exercises";
 
 const EDGE_TYPES: SystemsConnectionType[] = [
   "depends_on",
@@ -71,7 +63,7 @@ const EDGE_TYPES: SystemsConnectionType[] = [
   "risks",
 ];
 
-type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 function emptyImpact(nodeIds: string[]): Record<string, SystemsNodeImpact> {
   const o: Record<string, SystemsNodeImpact> = {};
@@ -87,14 +79,18 @@ function cycleImpact(v: SystemsNodeImpact): SystemsNodeImpact {
 
 export function SystemsExerciseFlow() {
   const [step, setStep] = useState<FlowStep>(0);
-  const [domainChoice, setDomainChoice] = useState<string>(DOMAINS[0]);
-  const [customDomain, setCustomDomain] = useState("");
+  const [domain, setDomain] = useState("");
+  const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const [exercise, setExercise] = useState<SystemsExerciseRow | null>(null);
   const [userEdges, setUserEdges] = useState<SystemsUserEdge[]>([]);
   const [nodeImpact, setNodeImpact] = useState<Record<string, SystemsNodeImpact>>({});
+  const [userProposedComponents, setUserProposedComponents] = useState<string[]>(() =>
+    Array.from({ length: 6 }, () => ""),
+  );
+  const [decomposePhase, setDecomposePhase] = useState<"input" | "compare">("input");
 
   const [confidence, setConfidence] = useState(50);
   const [perspectiveText, setPerspectiveText] = useState<string | null>(null);
@@ -113,13 +109,15 @@ export function SystemsExerciseFlow() {
     "anxious" | "excited" | "frustrated" | "confident" | "uncertain" | "defensive" | "neutral"
   >("neutral");
 
-  const effectiveDomain =
-    domainChoice === "Custom" ? customDomain.trim() : domainChoice;
+  useEffect(() => {
+    void listRecentDomains(20).then(setDomainSuggestions);
+  }, []);
 
   const startGenerate = useCallback(async () => {
     setError(null);
-    if (!effectiveDomain) {
-      setError("Choose or enter a domain.");
+    const d = domain.trim();
+    if (!d) {
+      setError("Enter a domain.");
       return;
     }
     setLoading(true);
@@ -130,7 +128,7 @@ export function SystemsExerciseFlow() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          domain: effectiveDomain,
+          domain: d,
           userContext: userContext || undefined,
           exerciseType: "systems",
           adaptiveHints,
@@ -149,12 +147,13 @@ export function SystemsExerciseFlow() {
       const row: SystemsExerciseRow = {
         id,
         type: "systems",
-        domain: effectiveDomain,
+        domain: d,
         title: data.title,
         scenario: data.scenario,
         nodes: data.nodes,
         intendedConnections: data.intendedConnections,
         shockEvent: data.shockEvent,
+        userProposedComponents: null,
         userEdges: [],
         nodeImpact: emptyImpact(ids),
         confidenceBefore: null,
@@ -166,6 +165,8 @@ export function SystemsExerciseFlow() {
       setExercise(row);
       setUserEdges([]);
       setNodeImpact(emptyImpact(ids));
+      setUserProposedComponents(Array.from({ length: 6 }, () => ""));
+      setDecomposePhase("input");
       setPerspectiveText(null);
       setPerspectiveStructured(null);
       setJournalAnswers({});
@@ -179,7 +180,16 @@ export function SystemsExerciseFlow() {
     } finally {
       setLoading(false);
     }
-  }, [effectiveDomain]);
+  }, [domain]);
+
+  const regenerate = () => {
+    if (userEdges.length > 0) {
+      const ok = window.confirm("Discard current work and regenerate?");
+      if (!ok) return;
+    }
+    setError(null);
+    void startGenerate();
+  };
 
   const setEdgeType = (edgeId: string, type: SystemsConnectionType) => {
     setUserEdges((prev) =>
@@ -190,7 +200,7 @@ export function SystemsExerciseFlow() {
   const submitShockPerspective = async () => {
     if (!exercise) return;
     if (perspectiveText != null) {
-      setStep(4);
+      setStep(5);
       return;
     }
     setError(null);
@@ -210,6 +220,7 @@ export function SystemsExerciseFlow() {
           shockEvent: exercise.shockEvent,
           userEdges,
           nodeImpact,
+          userProposedComponents: exercise.userProposedComponents ?? null,
           confidenceBefore: confidence,
           userContext: userContext || undefined,
         }),
@@ -232,7 +243,7 @@ export function SystemsExerciseFlow() {
       };
       await putExercise(partial);
       setExercise(partial);
-      setStep(4);
+      setStep(5);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Perspective failed");
     } finally {
@@ -241,13 +252,25 @@ export function SystemsExerciseFlow() {
   };
 
   useEffect(() => {
-    if (step !== 5 || journalPrimed || !exercise) return;
+    if (step !== 6 || journalPrimed || !exercise) return;
     const effectId = ++journalEffectIdRef.current;
     let cancelled = false;
     (async () => {
       try {
         const excluded = await getPromptIdsUsedInLastNCompleted(5);
-        const picks = pickJournalPrompts(excluded);
+        const accuracy = computeSystemsAccuracy({
+          intendedConnections: exercise.intendedConnections,
+          userEdges,
+          shock: exercise.shockEvent,
+          nodeImpact,
+        });
+        const picks = pickJournalPrompts(excluded, {
+          exerciseType: "systems",
+          accuracy,
+          confidenceBefore: confidence,
+          overconfident: confidence - accuracy > 20,
+          underconfident: accuracy - confidence > 20,
+        });
         if (cancelled || effectId !== journalEffectIdRef.current) return;
         setJournalPrompts(picks);
         const init: Record<string, string> = {};
@@ -255,6 +278,7 @@ export function SystemsExerciseFlow() {
           init[p.id] = "";
         });
         setJournalAnswers(init);
+        setJournalPrimed(true);
 
         const snippets = await getRecentJournalSnippetsForDomain(
           exercise.domain,
@@ -263,7 +287,6 @@ export function SystemsExerciseFlow() {
         if (cancelled || effectId !== journalEffectIdRef.current) return;
         if (snippets.length === 0) {
           setAiRefLine(null);
-          setJournalPrimed(true);
           return;
         }
         const res = await aiFetch("/api/ai/journal-ref", {
@@ -280,8 +303,6 @@ export function SystemsExerciseFlow() {
         if (j.ok && j.line) setAiRefLine(j.line);
       } catch {
         if (!cancelled && effectId === journalEffectIdRef.current) setAiRefLine(null);
-      } finally {
-        if (!cancelled && effectId === journalEffectIdRef.current) setJournalPrimed(true);
       }
     })();
     return () => {
@@ -340,6 +361,7 @@ export function SystemsExerciseFlow() {
       ...exercise,
       userEdges,
       nodeImpact,
+      userProposedComponents: exercise.userProposedComponents ?? null,
       confidenceBefore: confidence,
       aiPerspective: perspectiveText,
       aiPerspectiveStructured: perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null,
@@ -353,7 +375,7 @@ export function SystemsExerciseFlow() {
         action,
       });
       setExercise(finalEx);
-      setStep(7);
+      setStep(8);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     }
@@ -365,6 +387,20 @@ export function SystemsExerciseFlow() {
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
+          {step === 0 ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="mt-2"
+              onClick={() => {
+                setError(null);
+                void startGenerate();
+              }}
+            >
+              Retry
+            </Button>
+          ) : null}
         </Alert>
       ) : null}
 
@@ -379,28 +415,7 @@ export function SystemsExerciseFlow() {
           <CardContent className="flex flex-col gap-4">
             <div className="grid gap-2">
               <Label>Domain</Label>
-              <Select
-                value={domainChoice}
-                onValueChange={(v) => setDomainChoice(v ?? DOMAINS[0])}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Domain" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DOMAINS.map((d) => (
-                    <SelectItem key={d} value={d}>
-                      {d}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {domainChoice === "Custom" ? (
-                <Input
-                  placeholder="Describe your domain"
-                  value={customDomain}
-                  onChange={(e) => setCustomDomain(e.target.value)}
-                />
-              ) : null}
+              <DomainInput value={domain} onChange={setDomain} suggestions={domainSuggestions} />
             </div>
             <p className="text-muted-foreground text-xs">
               Personal context for AI is read from{" "}
@@ -431,6 +446,105 @@ export function SystemsExerciseFlow() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm leading-relaxed">{exercise.scenario}</p>
+            {decomposePhase === "input" ? (
+              <div className="space-y-3">
+                <p className="text-muted-foreground text-sm">
+                  Before you see any nodes, what are the 6 most important components or factors in this
+                  scenario?
+                </p>
+                <div className="grid gap-2">
+                  {userProposedComponents.map((v, i) => (
+                    <Input
+                      key={i}
+                      value={v}
+                      maxLength={30}
+                      placeholder={`Component ${i + 1}`}
+                      onChange={(e) =>
+                        setUserProposedComponents((prev) => {
+                          const next = [...prev];
+                          next[i] = e.target.value;
+                          return next;
+                        })
+                      }
+                    />
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="secondary" onClick={() => setStep(0)}>
+                    Back
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const cleaned = userProposedComponents.map((s) => s.trim()).filter(Boolean);
+                      if (cleaned.length !== 6) {
+                        setError("Enter 6 components.");
+                        return;
+                      }
+                      setError(null);
+                      setDecomposePhase("compare");
+                    }}
+                  >
+                    Compare and continue
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-md border p-3">
+                    <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">
+                      Your components
+                    </p>
+                    <ul className="list-inside list-disc space-y-1 text-sm">
+                      {userProposedComponents.map((s, i) => (
+                        <li key={i}>{s.trim() || "—"}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="rounded-md border p-3">
+                    <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">AI nodes</p>
+                    <ul className="list-inside list-disc space-y-1 text-sm">
+                      {exercise.nodes.map((n) => (
+                        <li key={n.id}>{n.label}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="secondary" onClick={() => setDecomposePhase("input")}>
+                    Edit
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const cleaned = userProposedComponents.map((s) => s.trim()).filter(Boolean);
+                      const nextRow: SystemsExerciseRow = {
+                        ...exercise,
+                        userProposedComponents: cleaned.length === 6 ? cleaned : null,
+                      };
+                      void putExercise(nextRow);
+                      setExercise(nextRow);
+                      setStep(2);
+                    }}
+                  >
+                    Continue to connect
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {step === 2 && exercise ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{exercise.title}</CardTitle>
+            <CardDescription>Domain: {exercise.domain}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm leading-relaxed">{exercise.scenario}</p>
             <SystemsFlowCanvas
               nodes={exercise.nodes}
               userEdges={userEdges}
@@ -440,8 +554,8 @@ export function SystemsExerciseFlow() {
             />
             <p className="text-muted-foreground text-xs">
               Drag from one node&apos;s bottom handle to another&apos;s top handle. Max{" "}
-              {20} edges. Select an edge and press Backspace to remove. Set each edge&apos;s
-              type below.
+              {20} edges. Select an edge and press Backspace to remove. Set each edge&apos;s type
+              below.
             </p>
             {userEdges.length > 0 ? (
               <ul className="space-y-2 rounded-md border p-2 text-sm">
@@ -473,8 +587,11 @@ export function SystemsExerciseFlow() {
               </ul>
             ) : null}
             <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(0)}>
+              <Button type="button" variant="secondary" onClick={() => setStep(1)}>
                 Back
+              </Button>
+              <Button type="button" variant="secondary" onClick={regenerate}>
+                Regenerate
               </Button>
               <Button
                 type="button"
@@ -486,7 +603,7 @@ export function SystemsExerciseFlow() {
                   }
                   void putExercise({ ...exercise, userEdges });
                   setExercise({ ...exercise, userEdges });
-                  setStep(2);
+                  setStep(3);
                 }}
               >
                 Done connecting
@@ -496,7 +613,7 @@ export function SystemsExerciseFlow() {
         </Card>
       ) : null}
 
-      {step === 2 && exercise ? (
+      {step === 3 && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Confidence</CardTitle>
@@ -505,12 +622,22 @@ export function SystemsExerciseFlow() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <ConfidenceSlider value={confidence} onChange={setConfidence} />
+            <ConfidenceSlider
+              value={confidence}
+              onChange={setConfidence}
+              label="How confident are you in your dependency map?"
+            />
+            {loading ? <PerspectiveLoadingCard /> : null}
             <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(1)}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={loading}
+                onClick={() => setStep(2)}
+              >
                 Back
               </Button>
-              <Button type="button" onClick={() => setStep(3)}>
+              <Button type="button" onClick={() => setStep(4)}>
                 Continue to shock
               </Button>
             </div>
@@ -518,13 +645,13 @@ export function SystemsExerciseFlow() {
         </Card>
       ) : null}
 
-      {step === 3 && exercise ? (
+      {step === 4 && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Shock scenario</CardTitle>
             <CardDescription>
-              Click nodes to cycle: unaffected → directly affected (orange) → indirectly
-              affected (red).
+              Click nodes to cycle: unaffected → directly affected (orange) → indirectly affected
+              (red).
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -543,14 +670,10 @@ export function SystemsExerciseFlow() {
               }}
             />
             <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(2)}>
+              <Button type="button" variant="secondary" onClick={() => setStep(3)}>
                 Back
               </Button>
-              <Button
-                type="button"
-                disabled={loading}
-                onClick={() => void submitShockPerspective()}
-              >
+              <Button type="button" disabled={loading} onClick={() => void submitShockPerspective()}>
                 {loading ? (
                   <>
                     <InlineSpinner /> Loading…
@@ -564,7 +687,7 @@ export function SystemsExerciseFlow() {
         </Card>
       ) : null}
 
-      {step === 4 && exercise && perspectiveText ? (
+      {step === 5 && exercise && perspectiveText ? (
         <div className="space-y-4">
           <AIPerspective
             text={perspectiveText}
@@ -574,13 +697,13 @@ export function SystemsExerciseFlow() {
             exerciseTitle={exercise.title}
             domain={exercise.domain}
           />
-          <Button type="button" onClick={() => setStep(5)}>
+          <Button type="button" onClick={() => setStep(6)}>
             Continue to journal
           </Button>
         </div>
       ) : null}
 
-      {step === 5 && exercise ? (
+      {step === 6 && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Metacognition journal</CardTitle>
@@ -625,9 +748,7 @@ export function SystemsExerciseFlow() {
                   </Select>
                 </div>
                 {aiRefLine ? (
-                  <p className="text-muted-foreground border-l-2 pl-3 text-sm italic">
-                    {aiRefLine}
-                  </p>
+                  <p className="text-muted-foreground border-l-2 pl-3 text-sm italic">{aiRefLine}</p>
                 ) : null}
                 {journalPrompts.map((p) => (
                   <div key={p.id} className="grid gap-2">
@@ -646,7 +767,7 @@ export function SystemsExerciseFlow() {
                   </div>
                 ))}
                 <div className="flex gap-2">
-                  <Button type="button" variant="secondary" onClick={() => setStep(4)}>
+                  <Button type="button" variant="secondary" onClick={() => setStep(5)}>
                     Back
                   </Button>
                   <Button
@@ -657,7 +778,7 @@ export function SystemsExerciseFlow() {
                         setError("Need two answers with more than 10 characters.");
                         return;
                       }
-                      setStep(6);
+                      setStep(7);
                     }}
                   >
                     Continue to action
@@ -669,7 +790,7 @@ export function SystemsExerciseFlow() {
         </Card>
       ) : null}
 
-      {step === 6 && exercise ? (
+      {step === 7 && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Action bridge</CardTitle>
@@ -685,7 +806,7 @@ export function SystemsExerciseFlow() {
               onChange={(e) => setActionText(e.target.value)}
             />
             <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(5)}>
+              <Button type="button" variant="secondary" onClick={() => setStep(6)}>
                 Back
               </Button>
               <Button type="button" onClick={() => void finishExercise()}>
@@ -696,7 +817,7 @@ export function SystemsExerciseFlow() {
         </Card>
       ) : null}
 
-      {step === 7 ? (
+      {step === 8 ? (
         <Card>
           <CardHeader>
             <CardTitle>Exercise saved</CardTitle>

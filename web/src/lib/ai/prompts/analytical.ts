@@ -44,6 +44,45 @@ embeddedIssues must have exactly 4 items (1 obvious, 2 moderate, 1 subtle severi
 validPoints must have exactly 2 items (the decoys).${adapt ? `\n\n${adapt}` : ""}`;
 }
 
+export function buildAnalyticalSoundReasoningPrompt(input: {
+  domain: string;
+  userContext?: string;
+  adaptationAppendix?: string;
+}): string {
+  const ctx = input.userContext?.trim() || "(none provided)";
+  const adapt = input.adaptationAppendix?.trim();
+  return `You are generating a thinking exercise. Return ONLY valid JSON (no markdown, no prose).
+
+USER context: ${ctx}
+
+Generate a ${input.domain} analysis passage (250-350 words) where the reasoning is GENUINELY SOUND.
+
+The passage should:
+- Make claims that are well-supported by the evidence presented
+- Use valid logical structure
+- Contain 2-3 statements that LOOK suspicious (could be mistaken for fallacies or assumptions) but are actually valid upon careful analysis
+- Read naturally, like a real ${input.domain} analysis
+
+The exercise tests whether the user can distinguish good reasoning from bad — the correct answer here is "this reasoning is mostly sound."
+
+Return a single JSON object with this exact shape:
+{
+  "title": string,
+  "passage": string,
+  "embeddedIssues": [],
+  "validPoints": [
+    {
+      "textSegment": string (exact substring that looks suspicious but is actually valid),
+      "explanation": string (why it's actually sound reasoning)
+    }
+  ],
+  "isSoundReasoning": true
+}
+
+embeddedIssues must be an EMPTY array (there are no real issues).
+validPoints must have 2-3 items (statements that look suspicious but are valid).${adapt ? `\n\n${adapt}` : ""}`;
+}
+
 export function buildAnalyticalFromUserTextPrompt(input: {
   domain: string;
   userContext?: string;

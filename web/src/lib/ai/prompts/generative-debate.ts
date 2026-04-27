@@ -5,10 +5,12 @@ export function buildGenerativeDebateStartPrompt(input: {
   title: string;
   scenario: string;
   qa: { id: string; question: string; answer: string }[];
+  steelmanText?: string | null;
 }): string {
   const block = input.qa
     .map((x) => `${x.id}: ${x.question}\n${x.answer}`)
     .join("\n\n");
+  const steelman = input.steelmanText?.trim();
   return `You are a respectful debate partner challenging the user's written thinking.
 
 Domain: ${input.domain}
@@ -18,6 +20,7 @@ Framing: ${input.scenario}
 User responses:
 ${block}
 
+${steelman ? `The user's own steelman against their position:\n${steelman}\n\nAcknowledge their self-critique where it's strong, then push further on points they didn't cover.\n\n` : ""}
 Task: write ONE opening message that:
 - Challenges specific claims constructively
 - Offers counter-arguments they may have missed

@@ -3,6 +3,15 @@ import { EvaluativeExerciseFlow } from "@/components/exercises/EvaluativeExercis
 import { GenerativeExerciseFlow } from "@/components/exercises/GenerativeExerciseFlow";
 import { SequentialExerciseFlow } from "@/components/exercises/SequentialExerciseFlow";
 import { SystemsExerciseFlow } from "@/components/exercises/SystemsExerciseFlow";
+import { notFound } from "next/navigation";
+
+const FLOW_BY_TYPE: Record<string, React.ComponentType> = {
+  analytical: AnalyticalExerciseFlow,
+  sequential: SequentialExerciseFlow,
+  systems: SystemsExerciseFlow,
+  evaluative: EvaluativeExerciseFlow,
+  generative: GenerativeExerciseFlow,
+};
 
 export default async function ExerciseTypePage({
   params,
@@ -10,44 +19,11 @@ export default async function ExerciseTypePage({
   params: Promise<{ type: string }>;
 }) {
   const { type } = await params;
-  if (type === "analytical") {
-    return (
-      <main>
-        <AnalyticalExerciseFlow />
-      </main>
-    );
-  }
-  if (type === "sequential") {
-    return (
-      <main>
-        <SequentialExerciseFlow />
-      </main>
-    );
-  }
-  if (type === "systems") {
-    return (
-      <main>
-        <SystemsExerciseFlow />
-      </main>
-    );
-  }
-  if (type === "evaluative") {
-    return (
-      <main>
-        <EvaluativeExerciseFlow />
-      </main>
-    );
-  }
-  if (type === "generative") {
-    return (
-      <main>
-        <GenerativeExerciseFlow />
-      </main>
-    );
-  }
+  const Flow = FLOW_BY_TYPE[type];
+  if (!Flow) notFound();
   return (
-    <main className="p-8">
-      <p>This exercise type is not available yet.</p>
+    <main>
+      <Flow />
     </main>
   );
 }

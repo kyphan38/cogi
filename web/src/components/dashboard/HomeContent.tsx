@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -20,18 +19,21 @@ import type { ActionBridge } from "@/lib/types/action";
 import { currentIsoWeekKey } from "@/lib/db/actions";
 import { ChevronRight } from "lucide-react";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
+import { ExercisePickerCard } from "@/components/dashboard/ExercisePickerCard";
 
 type ActionRow = ActionBridge & {
   exerciseTitle: string;
   exerciseCreatedAt: string;
 };
 
-const EXERCISE_CARDS: {
+const ALL_EXERCISE_CARDS: {
   href: string;
   label: string;
   title: string;
-  desc: string;
+  desc?: string;
   primary?: boolean;
+  trailingIcon?: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  className?: string;
 }[] = [
   {
     href: "/exercise/analytical",
@@ -58,6 +60,19 @@ const EXERCISE_CARDS: {
     title: "Compare options fairly",
     desc: "Matrix or weighted scoring against hidden tradeoffs.",
   },
+  {
+    href: "/exercise/generative",
+    label: "Generative",
+    title: "Write, then stress-test your thinking",
+    desc: "Scaffolded prompts, short debate with the model, and a rubric snapshot.",
+  },
+  {
+    href: "/exercise/combo",
+    label: "Combo",
+    title: "Multi-step scenario chain",
+    trailingIcon: ChevronRight,
+    className: "sm:col-span-2",
+  },
 ];
 
 export function HomeContent() {
@@ -65,7 +80,15 @@ export function HomeContent() {
   const weekKey = currentIsoWeekKey();
 
   useEffect(() => {
-    void listActionsWithExerciseMeta().then(setActions);
+    void (async () => {
+      try {
+        const rows = await listActionsWithExerciseMeta();
+        setActions(rows);
+      } catch (e) {
+        logFirestoreQueryError("HomeContent", "listActionsWithExerciseMeta", e);
+        setActions([]);
+      }
+    })();
     const unsubscribe = subscribeActionsWithExerciseMeta(
       setActions,
       (error) => {
@@ -91,59 +114,19 @@ export function HomeContent() {
       </div>
 
       <div className="grid gap-2.5 sm:grid-cols-2">
-        {EXERCISE_CARDS.map((c) => (
-          <Link
+        {ALL_EXERCISE_CARDS.map((c) => (
+          <ExercisePickerCard
             key={c.href}
             href={c.href}
-            className={cn(
-              "rounded-xl border border-border bg-card p-4 transition-colors hover:border-muted-foreground/35 hover:bg-muted/20",
-              c.primary &&
-                "border-primary/35 bg-accent/50 hover:border-primary/45 hover:bg-accent/60",
-            )}
-          >
-            <p
-              className={cn(
-                "mb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase",
-                c.primary && "text-primary",
-              )}
-            >
-              {c.label}
-              {c.primary ? " · suggested today" : null}
-            </p>
-            <p className={cn("text-sm font-medium", c.primary && "text-primary")}>{c.title}</p>
-            <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{c.desc}</p>
-          </Link>
+            label={c.label}
+            title={c.title}
+            desc={c.desc}
+            primary={c.primary}
+            trailingIcon={c.trailingIcon}
+            className={c.className}
+          />
         ))}
       </div>
-
-      <Link
-        href="/exercise/generative"
-        className="block rounded-xl border border-border bg-card p-4 transition-colors hover:border-muted-foreground/35 hover:bg-muted/20"
-      >
-        <p className="text-muted-foreground mb-1 text-[11px] font-medium tracking-wide uppercase">
-          Generative
-        </p>
-        <p className="text-sm font-medium">Write, then stress-test your thinking</p>
-        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-          Scaffolded prompts, short debate with the model, and a rubric snapshot.
-        </p>
-      </Link>
-
-      <Link
-        href="/exercise/combo"
-        className="flex w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3.5 transition-colors hover:border-muted-foreground/35 hover:bg-muted/20"
-      >
-        <div className="min-w-0 flex-1">
-          <p className="text-muted-foreground mb-0.5 text-[11px] font-medium tracking-wide uppercase">
-            Combo
-          </p>
-          <p className="text-sm font-medium">Multi-step scenario chain</p>
-        </div>
-        <ChevronRight
-          className="pointer-events-none size-5 shrink-0 text-muted-foreground"
-          aria-hidden
-        />
-      </Link>
 
       <Card>
         <CardHeader>

@@ -5,6 +5,7 @@ import {
   DndContext,
   type DragEndEvent,
   PointerSensor,
+  TouchSensor,
   useDraggable,
   useDroppable,
   useSensor,
@@ -127,7 +128,10 @@ export function EvaluativeMatrixBoard({
   placements,
   onPlacementsChange,
 }: EvaluativeMatrixBoardProps) {
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  );
 
   const byQuadrant = useMemo(() => {
     const m: Record<EvaluativeQuadrant, EvaluativeMatrixOption[]> = {

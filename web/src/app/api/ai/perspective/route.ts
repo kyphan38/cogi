@@ -221,6 +221,13 @@ export async function POST(req: Request) {
       b.nodeImpact && typeof b.nodeImpact === "object"
         ? (b.nodeImpact as Record<string, SystemsNodeImpact>)
         : {};
+    const userProposedComponentsRaw = b.userProposedComponents;
+    const userProposedComponents = Array.isArray(userProposedComponentsRaw)
+      ? (userProposedComponentsRaw as unknown[])
+          .filter((x): x is string => typeof x === "string")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : null;
     if (
       !title.trim() ||
       !scenario.trim() ||
@@ -251,6 +258,7 @@ export async function POST(req: Request) {
       shockEvent,
       userEdges,
       nodeImpact,
+      userProposedComponents,
       confidenceBefore,
       userContext,
     });

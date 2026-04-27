@@ -31,6 +31,23 @@ export function DecisionRemindersCard({ decisions }: DecisionRemindersCardProps)
     [decisions],
   );
 
+  const reviewSummary = useMemo(() => {
+    const reviewed = decisions.filter((d) => d.outcomeReview?.reasoningQuality);
+    const counts: Record<NonNullable<RealDecisionLogEntry["outcomeReview"]>["reasoningQuality"], number> =
+      {
+        sound: 0,
+        flawed: 0,
+        lucky: 0,
+        unlucky: 0,
+      };
+    for (const d of reviewed) {
+      const q = d.outcomeReview!.reasoningQuality;
+      counts[q] += 1;
+    }
+    const reviewedCount = reviewed.length;
+    return { reviewedCount, counts };
+  }, [decisions]);
+
   const dismiss = async (row: RealDecisionLogEntry) => {
     setError(null);
     setDismissingId(row.id);
@@ -47,14 +64,30 @@ export function DecisionRemindersCard({ decisions }: DecisionRemindersCardProps)
 
   if (due.length === 0) {
     return (
-      <p className="text-muted-foreground text-xs italic">
-        No outcome reminders due — when a logged decision reaches its reminder date, it will show here.
-      </p>
+      <div className="space-y-2">
+        {reviewSummary.reviewedCount > 0 ? (
+          <p className="text-muted-foreground text-xs">
+            Reviewed {reviewSummary.reviewedCount} · {reviewSummary.counts.sound} sound,{" "}
+            {reviewSummary.counts.flawed} flawed, {reviewSummary.counts.lucky} lucky,{" "}
+            {reviewSummary.counts.unlucky} unlucky
+          </p>
+        ) : null}
+        <p className="text-muted-foreground text-xs italic">
+          No outcome reminders due — when a logged decision reaches its reminder date, it will show here.
+        </p>
+      </div>
     );
   }
 
   return (
     <div className="space-y-3 text-sm">
+      {reviewSummary.reviewedCount > 0 ? (
+        <p className="text-muted-foreground text-xs">
+          Reviewed {reviewSummary.reviewedCount} · {reviewSummary.counts.sound} sound,{" "}
+          {reviewSummary.counts.flawed} flawed, {reviewSummary.counts.lucky} lucky,{" "}
+          {reviewSummary.counts.unlucky} unlucky
+        </p>
+      ) : null}
       {error ? <p className="text-destructive text-xs">{error}</p> : null}
       <ul className="space-y-3">
         {due.map((d) => (

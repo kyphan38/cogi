@@ -23,6 +23,7 @@ export const SEQUENTIAL_EXERCISE_STEP_LABELS = [
 
 export const SYSTEMS_EXERCISE_STEP_LABELS = [
   "Setup",
+  "Decompose",
   "Connect",
   "Confidence",
   "Shock",
@@ -34,6 +35,7 @@ export const SYSTEMS_EXERCISE_STEP_LABELS = [
 
 export const EVALUATIVE_EXERCISE_STEP_LABELS = [
   "Setup",
+  "Propose criteria",
   "Evaluate",
   "Confidence",
   "AI perspective",
@@ -45,6 +47,7 @@ export const EVALUATIVE_EXERCISE_STEP_LABELS = [
 export const GENERATIVE_EXERCISE_STEP_LABELS = [
   "Setup",
   "Write",
+  "Steelman",
   "Confidence",
   "Debate",
   "AI reflection",

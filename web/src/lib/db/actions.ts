@@ -36,9 +36,13 @@ export function subscribeActionsWithExerciseMeta(
 ): Unsubscribe {
   return subscribeCollectionRows<ActionBridge>(
     COGI_COLLECTIONS.actions,
-    async () => {
-      const rows = await listActionsWithExerciseMeta();
-      onData(rows);
+    () => {
+      void (async () => {
+        const rows = await listActionsWithExerciseMeta();
+        onData(rows);
+      })().catch((e) => {
+        onError?.(e);
+      });
     },
     onError,
   );

@@ -61,17 +61,8 @@ import { computeEvaluativeMatrixAccuracy } from "@/lib/analytics/calibration-eva
 import { generativeRubricToAccuracy } from "@/lib/analytics/calibration-generative";
 import { currentIsoWeekKey } from "@/lib/db/actions";
 import type { SystemsConnectionType } from "@/lib/ai/validators/systems";
-
-const DOMAINS = [
-  "DevOps / SRE",
-  "MLOps / Data Engineering",
-  "Solution Architecture",
-  "HPC",
-  "Financial Planning",
-  "Life Strategy",
-  "Social & Communication",
-  "Custom",
-] as const;
+import { DomainInput } from "@/components/shared/DomainInput";
+import { listRecentDomains } from "@/lib/db/exercises";
 
 function shuffleIds(ids: string[]): string[] {
   const a = [...ids];
@@ -97,8 +88,8 @@ function cycleImpact(v: SystemsNodeImpact): SystemsNodeImpact {
 type Phase = "pick" | "work" | "journal" | "done";
 
 export function ComboExerciseFlow() {
-  const [domainChoice, setDomainChoice] = useState<string>(DOMAINS[0]);
-  const [customDomain, setCustomDomain] = useState("");
+  const [domain, setDomain] = useState("");
+  const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [preset, setPreset] = useState<ComboPresetId>("full_analysis");
   const [bundle, setBundle] = useState<ComboBundle | null>(null);
   const [comboId, setComboId] = useState<string | null>(null);
@@ -126,8 +117,9 @@ export function ComboExerciseFlow() {
   >("neutral");
   const [actionText, setActionText] = useState("");
 
-  const effectiveDomain =
-    domainChoice === "Custom" ? customDomain.trim() : domainChoice;
+  useEffect(() => {
+    void listRecentDomains(20).then(setDomainSuggestions);
+  }, []);
 
   const mechCount = bundle
     ? bundle.preset === "decision_sprint"
@@ -152,8 +144,9 @@ export function ComboExerciseFlow() {
 
   const generateBundle = useCallback(async () => {
     setError(null);
-    if (!effectiveDomain) {
-      setError("Choose or enter a domain.");
+    const d = domain.trim();
+    if (!d) {
+      setError("Enter a domain.");
       return;
     }
     setLoading(true);
@@ -165,7 +158,7 @@ export function ComboExerciseFlow() {
         body: JSON.stringify({
           requestId: crypto.randomUUID(),
           preset,
-          domain: effectiveDomain,
+          domain: d,
           userContext: userContext || undefined,
         }),
       });
@@ -191,7 +184,22 @@ export function ComboExerciseFlow() {
     } finally {
       setLoading(false);
     }
-  }, [effectiveDomain, preset]);
+  }, [domain, preset]);
+
+  const regenerate = () => {
+    const dirty =
+      highlights.length > 0 ||
+      seqOrder.length > 0 ||
+      userEdges.length > 0 ||
+      Object.keys(placements).length > 0 ||
+      Object.values(genAnswers).some((t) => t.trim().length > 0);
+    if (dirty) {
+      const ok = window.confirm("Discard current work and regenerate?");
+      if (!ok) return;
+    }
+    setError(null);
+    void generateBundle();
+  };
 
   const analyticalSource = useMemo((): AnalyticalExerciseRow | null => {
     if (!bundle || !comboId) return null;
@@ -205,7 +213,7 @@ export function ComboExerciseFlow() {
     return {
       id: `${comboId}-analytical`,
       type: "analytical",
-      domain: effectiveDomain,
+      domain: domain.trim(),
       source: "ai",
       title: a.title,
       passage: bundle.sharedScenario,
@@ -217,7 +225,7 @@ export function ComboExerciseFlow() {
       createdAt: new Date().toISOString(),
       completedAt: null,
     };
-  }, [bundle, comboId, effectiveDomain, highlights]);
+  }, [bundle, comboId, domain, highlights]);
 
   const systemsSource = useMemo((): SystemsExerciseRow | null => {
     if (!bundle || !comboId) return null;
@@ -226,7 +234,7 @@ export function ComboExerciseFlow() {
     return {
       id: `${comboId}-systems`,
       type: "systems",
-      domain: effectiveDomain,
+      domain: domain.trim(),
       title: s.title,
       scenario: bundle.sharedScenario,
       nodes: s.nodes,
@@ -239,7 +247,7 @@ export function ComboExerciseFlow() {
       createdAt: new Date().toISOString(),
       completedAt: null,
     };
-  }, [bundle, comboId, effectiveDomain, userEdges, nodeImpact]);
+  }, [bundle, comboId, domain, userEdges, nodeImpact]);
 
   const matrixSource = useMemo((): EvaluativeMatrixRow | null => {
     if (!bundle || !comboId) return null;
@@ -254,7 +262,7 @@ export function ComboExerciseFlow() {
       id: `${comboId}-matrix`,
       type: "evaluative",
       variant: "matrix",
-      domain: effectiveDomain,
+      domain: domain.trim(),
       title: m.title,
       scenario: bundle.sharedScenario,
       axisX: m.axisX,
@@ -266,7 +274,7 @@ export function ComboExerciseFlow() {
       createdAt: new Date().toISOString(),
       completedAt: null,
     };
-  }, [bundle, comboId, effectiveDomain, placements]);
+  }, [bundle, comboId, domain, placements]);
 
   const sequentialSource = useMemo((): SequentialExerciseRow | null => {
     if (!bundle || bundle.preset !== "root_cause" || !comboId) return null;
@@ -274,7 +282,7 @@ export function ComboExerciseFlow() {
     return {
       id: `${comboId}-sequential`,
       type: "sequential",
-      domain: effectiveDomain,
+      domain: domain.trim(),
       title: s.title,
       scenario: bundle.sharedScenario,
       steps: s.steps,
@@ -285,7 +293,7 @@ export function ComboExerciseFlow() {
       createdAt: new Date().toISOString(),
       completedAt: null,
     };
-  }, [bundle, comboId, effectiveDomain, seqOrder]);
+  }, [bundle, comboId, domain, seqOrder]);
 
   const generativeSource = useMemo((): GenerativeExerciseRow | null => {
     if (!bundle || bundle.preset !== "decision_sprint" || !comboId) return null;
@@ -300,7 +308,7 @@ export function ComboExerciseFlow() {
     return {
       id: `${comboId}-generative`,
       type: "generative",
-      domain: effectiveDomain,
+      domain: domain.trim(),
       title: g.title,
       scenario: bundle.sharedScenario,
       stageAtStart: "independent",
@@ -315,7 +323,7 @@ export function ComboExerciseFlow() {
       createdAt: new Date().toISOString(),
       completedAt: null,
     };
-  }, [bundle, comboId, effectiveDomain, genAnswers]);
+  }, [bundle, comboId, domain, genAnswers]);
 
   const moveSeq = (idx: number, dir: -1 | 1) => {
     setSeqOrder((prev) => {
@@ -396,12 +404,84 @@ export function ComboExerciseFlow() {
 
   useEffect(() => {
     if (phase !== "journal" || journalPrimed || !bundle || !comboId) return;
+    const d = domain.trim();
+    if (!d) return;
     const effectId = ++journalEffectIdRef.current;
     let cancelled = false;
     void (async () => {
       try {
         const excluded = await getPromptIdsUsedInLastNCompleted(5);
-        const picks = pickJournalPrompts(excluded);
+        const accuracies: number[] = [];
+        if (bundle.preset === "full_analysis") {
+          if (analyticalSource) {
+            accuracies.push(
+              computeAnalyticalAccuracy(
+                analyticalSource.passage,
+                analyticalSource.embeddedIssues,
+                analyticalSource.validPoints,
+                highlights,
+                analyticalSource.isSoundReasoning === true,
+              ),
+            );
+          }
+          if (systemsSource) {
+            accuracies.push(
+              computeSystemsAccuracy({
+                intendedConnections: systemsSource.intendedConnections,
+                userEdges,
+                shock: systemsSource.shockEvent,
+                nodeImpact,
+              }),
+            );
+          }
+          if (matrixSource) {
+            accuracies.push(computeEvaluativeMatrixAccuracy({ ...matrixSource, placements }));
+          }
+        } else if (bundle.preset === "decision_sprint") {
+          if (matrixSource) {
+            accuracies.push(computeEvaluativeMatrixAccuracy({ ...matrixSource, placements }));
+          }
+          const gFilled = Object.values(genAnswers).filter((t) => t.trim().length > 20).length;
+          if (gFilled > 0) {
+            accuracies.push(generativeRubricToAccuracy(50));
+          }
+        } else {
+          if (sequentialSource) {
+            accuracies.push(computeSequentialAccuracy(sequentialSource.steps, seqOrder));
+          }
+          if (systemsSource) {
+            accuracies.push(
+              computeSystemsAccuracy({
+                intendedConnections: systemsSource.intendedConnections,
+                userEdges,
+                shock: systemsSource.shockEvent,
+                nodeImpact,
+              }),
+            );
+          }
+          if (analyticalSource) {
+            accuracies.push(
+              computeAnalyticalAccuracy(
+                analyticalSource.passage,
+                analyticalSource.embeddedIssues,
+                analyticalSource.validPoints,
+                highlights,
+                analyticalSource.isSoundReasoning === true,
+              ),
+            );
+          }
+        }
+        const accuracy =
+          accuracies.length > 0
+            ? Math.round(accuracies.reduce((s, n) => s + n, 0) / accuracies.length)
+            : undefined;
+        const picks = pickJournalPrompts(excluded, {
+          exerciseType: "combo",
+          accuracy,
+          confidenceBefore: comboConfidence,
+          overconfident: accuracy != null ? comboConfidence - accuracy > 20 : undefined,
+          underconfident: accuracy != null ? accuracy - comboConfidence > 20 : undefined,
+        });
         if (cancelled || effectId !== journalEffectIdRef.current) return;
         setJournalPrompts(picks);
         const init: Record<string, string> = {};
@@ -409,11 +489,11 @@ export function ComboExerciseFlow() {
           init[p.id] = "";
         });
         setJournalAnswers(init);
-        const snippets = await getRecentJournalSnippetsForDomain(effectiveDomain, 3);
+        setJournalPrimed(true);
+        const snippets = await getRecentJournalSnippetsForDomain(d, 3);
         if (cancelled || effectId !== journalEffectIdRef.current) return;
         if (snippets.length === 0) {
           setAiRefLine(null);
-          setJournalPrimed(true);
           return;
         }
         const res = await aiFetch("/api/ai/journal-ref", {
@@ -421,7 +501,7 @@ export function ComboExerciseFlow() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             requestId: crypto.randomUUID(),
-            domain: effectiveDomain,
+            domain: d,
             snippets,
           }),
         });
@@ -430,14 +510,12 @@ export function ComboExerciseFlow() {
         if (j.ok && j.line) setAiRefLine(j.line);
       } catch {
         if (!cancelled && effectId === journalEffectIdRef.current) setAiRefLine(null);
-      } finally {
-        if (!cancelled && effectId === journalEffectIdRef.current) setJournalPrimed(true);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [phase, journalPrimed, bundle, comboId, effectiveDomain]);
+  }, [phase, journalPrimed, bundle, comboId, domain]);
 
   const journalValid = () => {
     const vals = Object.values(journalAnswers);
@@ -529,7 +607,7 @@ export function ComboExerciseFlow() {
       id: comboId,
       type: "combo",
       preset: bundle.preset,
-      domain: effectiveDomain,
+      domain: domain.trim(),
       title: bundle.sharedTitle,
       scenario: bundle.sharedScenario,
       subExercises: subs,
@@ -580,6 +658,20 @@ export function ComboExerciseFlow() {
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
+          {phase === "pick" ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="mt-2"
+              onClick={() => {
+                setError(null);
+                void generateBundle();
+              }}
+            >
+              Retry
+            </Button>
+          ) : null}
         </Alert>
       ) : null}
 
@@ -594,28 +686,7 @@ export function ComboExerciseFlow() {
           <CardContent className="flex flex-col gap-4">
             <div className="grid gap-2">
               <Label>Domain</Label>
-              <Select
-                value={domainChoice}
-                onValueChange={(v) => setDomainChoice(v ?? DOMAINS[0])}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DOMAINS.map((d) => (
-                    <SelectItem key={d} value={d}>
-                      {d}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {domainChoice === "Custom" ? (
-                <Input
-                  placeholder="Describe your domain"
-                  value={customDomain}
-                  onChange={(e) => setCustomDomain(e.target.value)}
-                />
-              ) : null}
+              <DomainInput value={domain} onChange={setDomain} suggestions={domainSuggestions} />
             </div>
             <div className="grid gap-2">
               <Label>Preset</Label>
@@ -665,6 +736,11 @@ export function ComboExerciseFlow() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="mb-4 flex flex-wrap gap-2">
+                <Button type="button" variant="secondary" onClick={regenerate}>
+                  Regenerate
+                </Button>
+              </div>
               <p className="text-muted-foreground mb-4 text-sm whitespace-pre-wrap">
                 {bundle.sharedScenario}
               </p>
@@ -929,7 +1005,11 @@ export function ComboExerciseFlow() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <ConfidenceSlider value={comboConfidence} onChange={setComboConfidence} />
+              <ConfidenceSlider
+                value={comboConfidence}
+                onChange={setComboConfidence}
+                label="How confident are you in your overall work?"
+              />
               <div className="grid gap-2">
                 <Label>What emotion might be influencing your thinking right now?</Label>
                 <Select

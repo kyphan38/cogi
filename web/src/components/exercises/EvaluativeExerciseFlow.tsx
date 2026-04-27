@@ -7,6 +7,7 @@ import { ExerciseShell, EVALUATIVE_EXERCISE_STEP_LABELS } from "@/components/sha
 import { EvaluativeMatrixBoard } from "@/components/exercises/EvaluativeMatrixBoard";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
+import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { cn } from "@/lib/utils";
@@ -53,19 +54,10 @@ import { currentIsoWeekKey } from "@/lib/db/actions";
 import { aiFetch } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
+import { DomainInput } from "@/components/shared/DomainInput";
+import { listRecentDomains } from "@/lib/db/exercises";
 
-const DOMAINS = [
-  "DevOps / SRE",
-  "MLOps / Data Engineering",
-  "Solution Architecture",
-  "HPC",
-  "Financial Planning",
-  "Life Strategy",
-  "Social & Communication",
-  "Custom",
-] as const;
-
-type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 function payloadToRow(
   id: string,
@@ -80,6 +72,7 @@ function payloadToRow(
       domain,
       title: data.title,
       scenario: data.scenario,
+      userProposedCriteria: null,
       axisX: data.axisX,
       axisY: data.axisY,
       options: data.options,
@@ -104,6 +97,7 @@ function payloadToRow(
     domain,
     title: data.title,
     scenario: data.scenario,
+    userProposedCriteria: null,
     criteria: data.criteria,
     options: data.options,
     hiddenCriteria: data.hiddenCriteria,
@@ -119,8 +113,8 @@ function payloadToRow(
 
 export function EvaluativeExerciseFlow() {
   const [step, setStep] = useState<FlowStep>(0);
-  const [domainChoice, setDomainChoice] = useState<string>(DOMAINS[0]);
-  const [customDomain, setCustomDomain] = useState("");
+  const [domain, setDomain] = useState("");
+  const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -128,6 +122,10 @@ export function EvaluativeExerciseFlow() {
   const [placements, setPlacements] = useState<Partial<Record<string, EvaluativeQuadrant>>>({});
   const [criterionWeights, setCriterionWeights] = useState<Record<string, number>>({});
   const [scores, setScores] = useState<Record<string, Record<string, number>>>({});
+  const [userProposedCriteria, setUserProposedCriteria] = useState<
+    { name: string; rationale: string }[]
+  >(() => Array.from({ length: 4 }, () => ({ name: "", rationale: "" })));
+  const [criteriaPhase, setCriteriaPhase] = useState<"input" | "compare">("input");
 
   const [confidence, setConfidence] = useState(50);
   const [perspectiveText, setPerspectiveText] = useState<string | null>(null);
@@ -146,13 +144,15 @@ export function EvaluativeExerciseFlow() {
     "anxious" | "excited" | "frustrated" | "confident" | "uncertain" | "defensive" | "neutral"
   >("neutral");
 
-  const effectiveDomain =
-    domainChoice === "Custom" ? customDomain.trim() : domainChoice;
+  useEffect(() => {
+    void listRecentDomains(20).then(setDomainSuggestions);
+  }, []);
 
   const startGenerate = useCallback(async () => {
     setError(null);
-    if (!effectiveDomain) {
-      setError("Choose or enter a domain.");
+    const d = domain.trim();
+    if (!d) {
+      setError("Enter a domain.");
       return;
     }
     setLoading(true);
@@ -163,7 +163,7 @@ export function EvaluativeExerciseFlow() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          domain: effectiveDomain,
+          domain: d,
           userContext: userContext || undefined,
           exerciseType: "evaluative",
           adaptiveHints,
@@ -177,7 +177,7 @@ export function EvaluativeExerciseFlow() {
         return;
       }
       const id = crypto.randomUUID();
-      const row = payloadToRow(id, effectiveDomain, json.data);
+      const row = payloadToRow(id, d, json.data);
       await putExercise(row);
       setExercise(row);
       if (row.variant === "matrix") {
@@ -197,13 +197,24 @@ export function EvaluativeExerciseFlow() {
       setJournalPrimed(false);
       setActionText("");
       setEmotionLabel("neutral");
+      setUserProposedCriteria(Array.from({ length: 4 }, () => ({ name: "", rationale: "" })));
+      setCriteriaPhase("input");
       setStep(1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generate failed");
     } finally {
       setLoading(false);
     }
-  }, [effectiveDomain]);
+  }, [domain]);
+
+  const regenerate = () => {
+    if (Object.keys(placements).length > 0) {
+      const ok = window.confirm("Discard current work and regenerate?");
+      if (!ok) return;
+    }
+    setError(null);
+    void startGenerate();
+  };
 
   const mergedMatrixExercise = (): EvaluativeMatrixRow | null => {
     if (!exercise || exercise.variant !== "matrix") return null;
@@ -225,7 +236,7 @@ export function EvaluativeExerciseFlow() {
     const ex = exercise;
     if (!ex) return;
     if (perspectiveText != null) {
-      setStep(3);
+      setStep(4);
       return;
     }
     if (ex.variant === "matrix" && !matrixReady()) {
@@ -288,7 +299,7 @@ export function EvaluativeExerciseFlow() {
             };
       await putExercise(partial);
       setExercise(partial);
-      setStep(3);
+      setStep(4);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Perspective failed");
     } finally {
@@ -297,13 +308,24 @@ export function EvaluativeExerciseFlow() {
   };
 
   useEffect(() => {
-    if (step !== 4 || journalPrimed || !exercise) return;
+    if (step !== 5 || journalPrimed || !exercise) return;
     const effectId = ++journalEffectIdRef.current;
     let cancelled = false;
     void (async () => {
       try {
         const excluded = await getPromptIdsUsedInLastNCompleted(5);
-        const picks = pickJournalPrompts(excluded);
+        const forAccuracy: EvaluativeExerciseRow =
+          exercise.variant === "matrix"
+            ? { ...exercise, placements }
+            : { ...exercise, criterionWeights, scores };
+        const accuracy = computeEvaluativeAccuracy(forAccuracy);
+        const picks = pickJournalPrompts(excluded, {
+          exerciseType: "evaluative",
+          accuracy,
+          confidenceBefore: confidence,
+          overconfident: confidence - accuracy > 20,
+          underconfident: accuracy - confidence > 20,
+        });
         if (cancelled || effectId !== journalEffectIdRef.current) return;
         setJournalPrompts(picks);
         const init: Record<string, string> = {};
@@ -311,12 +333,12 @@ export function EvaluativeExerciseFlow() {
           init[p.id] = "";
         });
         setJournalAnswers(init);
+        setJournalPrimed(true);
 
         const snippets = await getRecentJournalSnippetsForDomain(exercise.domain, 3);
         if (cancelled || effectId !== journalEffectIdRef.current) return;
         if (snippets.length === 0) {
           setAiRefLine(null);
-          setJournalPrimed(true);
           return;
         }
         const res = await aiFetch("/api/ai/journal-ref", {
@@ -333,8 +355,6 @@ export function EvaluativeExerciseFlow() {
         if (j.ok && j.line) setAiRefLine(j.line);
       } catch {
         if (!cancelled && effectId === journalEffectIdRef.current) setAiRefLine(null);
-      } finally {
-        if (!cancelled && effectId === journalEffectIdRef.current) setJournalPrimed(true);
       }
     })();
     return () => {
@@ -432,7 +452,7 @@ export function EvaluativeExerciseFlow() {
         action,
       });
       setExercise(finalEx);
-      setStep(6);
+      setStep(7);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     }
@@ -446,6 +466,20 @@ export function EvaluativeExerciseFlow() {
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
+          {step === 0 ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="mt-2"
+              onClick={() => {
+                setError(null);
+                void startGenerate();
+              }}
+            >
+              Retry
+            </Button>
+          ) : null}
         </Alert>
       ) : null}
 
@@ -461,28 +495,7 @@ export function EvaluativeExerciseFlow() {
           <CardContent className="flex flex-col gap-4">
             <div className="grid gap-2">
               <Label>Domain</Label>
-              <Select
-                value={domainChoice}
-                onValueChange={(v) => setDomainChoice(v ?? DOMAINS[0])}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Domain" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DOMAINS.map((d) => (
-                    <SelectItem key={d} value={d}>
-                      {d}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {domainChoice === "Custom" ? (
-                <Input
-                  placeholder="Custom domain"
-                  value={customDomain}
-                  onChange={(e) => setCustomDomain(e.target.value)}
-                />
-              ) : null}
+              <DomainInput value={domain} onChange={setDomain} suggestions={domainSuggestions} />
             </div>
             <p className="text-muted-foreground text-xs">
               Personal context for AI is read from{" "}
@@ -506,6 +519,161 @@ export function EvaluativeExerciseFlow() {
       ) : null}
 
       {step === 1 && exercise ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{exercise.title}</CardTitle>
+            <CardDescription className="leading-relaxed">{exercise.scenario}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Options</h3>
+              <ul className="space-y-2 text-sm">
+                {exercise.options.map((o) => (
+                  <li key={o.id} className="rounded-md border bg-muted/10 p-2">
+                    <p className="font-medium">{o.title}</p>
+                    <p className="text-muted-foreground text-xs">{o.description}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {criteriaPhase === "input" ? (
+              <div className="space-y-3">
+                <p className="text-muted-foreground text-sm">
+                  What 2–4 criteria would you use to evaluate these options? For each, give a short
+                  name and one sentence explaining why it matters.
+                </p>
+                <div className="grid gap-3">
+                  {userProposedCriteria.map((row, idx) => (
+                    <div key={idx} className="grid gap-2 sm:grid-cols-2">
+                      <Input
+                        value={row.name}
+                        placeholder={`Criterion ${idx + 1} name`}
+                        maxLength={40}
+                        onChange={(e) =>
+                          setUserProposedCriteria((prev) => {
+                            const next = [...prev];
+                            next[idx] = { ...next[idx]!, name: e.target.value };
+                            return next;
+                          })
+                        }
+                      />
+                      <Input
+                        value={row.rationale}
+                        placeholder="Why it matters (1 sentence)"
+                        maxLength={120}
+                        onChange={(e) =>
+                          setUserProposedCriteria((prev) => {
+                            const next = [...prev];
+                            next[idx] = { ...next[idx]!, rationale: e.target.value };
+                            return next;
+                          })
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="secondary" onClick={() => setStep(0)}>
+                    Back
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const cleaned = userProposedCriteria
+                        .map((c) => ({ name: c.name.trim(), rationale: c.rationale.trim() }))
+                        .filter((c) => c.name && c.rationale);
+                      if (cleaned.length < 2) {
+                        setError("Enter at least 2 criteria.");
+                        return;
+                      }
+                      setError(null);
+                      setCriteriaPhase("compare");
+                    }}
+                  >
+                    Compare and continue
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-md border p-3">
+                    <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">
+                      Your criteria
+                    </p>
+                    <ul className="space-y-2 text-sm">
+                      {userProposedCriteria
+                        .map((c) => ({ name: c.name.trim(), rationale: c.rationale.trim() }))
+                        .filter((c) => c.name && c.rationale)
+                        .map((c, i) => (
+                          <li key={i}>
+                            <p className="font-medium">{c.name}</p>
+                            <p className="text-muted-foreground text-xs">{c.rationale}</p>
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                  <div className="rounded-md border p-3">
+                    <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">
+                      AI framework
+                    </p>
+                    {exercise.variant === "matrix" ? (
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <p className="font-medium">X: {exercise.axisX.label}</p>
+                          <p className="text-muted-foreground text-xs">
+                            {exercise.axisX.lowLabel} → {exercise.axisX.highLabel}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Y: {exercise.axisY.label}</p>
+                          <p className="text-muted-foreground text-xs">
+                            {exercise.axisY.lowLabel} → {exercise.axisY.highLabel}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <ul className="space-y-2 text-sm">
+                        {exercise.criteria.map((c) => (
+                          <li key={c.id}>
+                            <p className="font-medium">{c.label}</p>
+                            <p className="text-muted-foreground text-xs">{c.description}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="secondary" onClick={() => setCriteriaPhase("input")}>
+                    Edit
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const cleaned = userProposedCriteria
+                        .map((c) => ({ name: c.name.trim(), rationale: c.rationale.trim() }))
+                        .filter((c) => c.name && c.rationale);
+                      const next: EvaluativeExerciseRow =
+                        exercise.variant === "matrix"
+                          ? { ...exercise, userProposedCriteria: cleaned }
+                          : { ...exercise, userProposedCriteria: cleaned };
+                      void putExercise(next);
+                      setExercise(next);
+                      setStep(2);
+                    }}
+                  >
+                    Continue to evaluate
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {step === 2 && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>{exercise.title}</CardTitle>
@@ -595,9 +763,12 @@ export function EvaluativeExerciseFlow() {
               <Button type="button" variant="secondary" onClick={() => setStep(0)}>
                 Back
               </Button>
+              <Button type="button" variant="secondary" onClick={regenerate}>
+                Regenerate
+              </Button>
               <Button
                 type="button"
-                onClick={() => setStep(2)}
+                onClick={() => setStep(3)}
                 disabled={exercise.variant === "matrix" && !matrixReady()}
               >
                 Continue to confidence
@@ -607,7 +778,7 @@ export function EvaluativeExerciseFlow() {
         </Card>
       ) : null}
 
-      {step === 2 && exercise ? (
+      {step === 3 && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Confidence</CardTitle>
@@ -617,9 +788,19 @@ export function EvaluativeExerciseFlow() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ConfidenceSlider value={confidence} onChange={setConfidence} />
+            <ConfidenceSlider
+              value={confidence}
+              onChange={setConfidence}
+              label="How confident are you in your evaluation?"
+            />
+            {loading ? <PerspectiveLoadingCard /> : null}
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(1)}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={loading}
+                onClick={() => setStep(2)}
+              >
                 Back
               </Button>
               <Button type="button" disabled={loading} onClick={() => void submitPerspective()}>
@@ -636,7 +817,7 @@ export function EvaluativeExerciseFlow() {
         </Card>
       ) : null}
 
-      {step === 3 && exercise && perspectiveText ? (
+      {step === 4 && exercise && perspectiveText ? (
         <Card>
           <CardHeader>
             <CardTitle>AI perspective</CardTitle>
@@ -653,14 +834,14 @@ export function EvaluativeExerciseFlow() {
               exerciseTitle={exercise.title}
               domain={exercise.domain}
             />
-            <Button type="button" onClick={() => setStep(4)}>
+            <Button type="button" onClick={() => setStep(5)}>
               Continue to journal
             </Button>
           </CardContent>
         </Card>
       ) : null}
 
-      {step === 4 && exercise ? (
+      {step === 5 && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Journal</CardTitle>
@@ -716,17 +897,17 @@ export function EvaluativeExerciseFlow() {
                 />
               </div>
             ))}
-            <Button type="button" variant="secondary" onClick={() => setStep(3)}>
+            <Button type="button" variant="secondary" onClick={() => setStep(4)}>
               Back
             </Button>
-            <Button type="button" onClick={() => setStep(5)}>
+            <Button type="button" onClick={() => setStep(6)}>
               Continue to action
             </Button>
           </CardContent>
         </Card>
       ) : null}
 
-      {step === 5 && exercise ? (
+      {step === 6 && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Action bridge</CardTitle>
@@ -740,7 +921,7 @@ export function EvaluativeExerciseFlow() {
               placeholder="e.g. I will revisit the weight on risk next sprint planning…"
             />
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(4)}>
+              <Button type="button" variant="secondary" onClick={() => setStep(5)}>
                 Back
               </Button>
               <Button type="button" onClick={() => void finishExercise()}>
@@ -751,7 +932,7 @@ export function EvaluativeExerciseFlow() {
         </Card>
       ) : null}
 
-      {step === 6 && exercise ? (
+      {step === 7 && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Exercise saved</CardTitle>

@@ -59,5 +59,12 @@ export async function completeExerciseFlow(input: {
     );
   }
   await batch.commit();
-  await recordWeaknessesAfterExercise(input.exercise, input.confidence);
+  try {
+    await recordWeaknessesAfterExercise(input.exercise, input.confidence);
+  } catch (e) {
+    console.error(
+      "[completeExerciseFlow] weakness recording failed (exercise saved ok):",
+      e,
+    );
+  }
 }

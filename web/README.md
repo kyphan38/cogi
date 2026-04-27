@@ -18,6 +18,11 @@ cp .env.example .env.local   # set Firebase NEXT_PUBLIC_*, Firebase Admin, allow
 npm run dev
 ```
 
+- Routing conventions:
+  - Single-type exercises live at `/exercise/[type]` via `src/app/(main)/exercise/[type]/page.tsx` (unknown types return a Next.js 404).
+  - Combo is intentionally static at `/exercise/combo` via `src/app/(main)/exercise/combo/page.tsx` (multi-phase flow).
+  - History is in the `(main)` route group at `src/app/(main)/exercise/history/page.tsx` so it inherits nav/auth, scroll restoration, and route-enter behavior.
+
 - Sign in: open any app route (e.g. [http://localhost:3000/dashboard](http://localhost:3000/dashboard)) — you are redirected to **`/login`** and continue with Google Sign-In.
 - Access control:
   - client allowlist: `NEXT_PUBLIC_ALLOWED_USER_UID` or `NEXT_PUBLIC_ALLOWED_EMAIL`

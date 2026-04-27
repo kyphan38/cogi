@@ -148,12 +148,32 @@
   }
 }
 
+@keyframes toast-cogi-slide-up {
+  from {
+    transform: translateX(50%) translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(50%) translateY(0);
+    opacity: 1;
+  }
+}
+
 .toast-cogi {
   position: fixed;
   bottom: 1.5rem;
   right: 1.5rem;
   z-index: 200;
   animation: toast-cogi-slide-in 0.28s ease-out;
+}
+
+@media (max-width: 639px) {
+  .toast-cogi {
+    right: 50%;
+    transform: translateX(50%);
+    bottom: 1rem;
+    animation: toast-cogi-slide-up 0.28s ease-out;
+  }
 }
 
 .toast-cogi-success {

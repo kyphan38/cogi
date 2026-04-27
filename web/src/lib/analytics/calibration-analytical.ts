@@ -29,7 +29,23 @@ export function computeAnalyticalAccuracy(
   embeddedIssues: EmbeddedIssue[],
   validPoints: { textSegment: string }[],
   highlights: UserHighlight[],
+  isSoundReasoning: boolean = false,
 ): number {
+  if (isSoundReasoning) {
+    let score = 100;
+    for (const h of highlights) {
+      if (
+        h.tag === "logical_fallacy" ||
+        h.tag === "hidden_assumption" ||
+        h.tag === "weak_evidence" ||
+        h.tag === "bias"
+      ) {
+        score -= 12;
+      }
+    }
+    return Math.round(Math.min(100, Math.max(0, score)));
+  }
+
   if (embeddedIssues.length === 0) return 0;
 
   let sum = 0;

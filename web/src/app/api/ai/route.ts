@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   buildAnalyticalGenerationPrompt,
   buildAnalyticalFromUserTextPrompt,
+  buildAnalyticalSoundReasoningPrompt,
 } from "@/lib/ai/prompts/analytical";
 import { buildEvaluativeGenerationPrompt } from "@/lib/ai/prompts/evaluative";
 import { buildGenerativeGenerationPrompt } from "@/lib/ai/prompts/generative";
@@ -215,11 +216,24 @@ export async function POST(req: Request) {
               userContext,
               adaptationAppendix: appendixFor("systems"),
             })
-          : buildAnalyticalGenerationPrompt({
-              domain: domain.trim(),
-              userContext,
-              adaptationAppendix: appendixFor("analytical"),
-            });
+          : (() => {
+              const useSoundReasoning =
+                exerciseType === "analytical" &&
+                analyticalMode === "generated" &&
+                Math.random() < 0.2;
+              const base = useSoundReasoning
+                ? buildAnalyticalSoundReasoningPrompt({
+                    domain: domain.trim(),
+                    userContext,
+                    adaptationAppendix: appendixFor("analytical"),
+                  })
+                : buildAnalyticalGenerationPrompt({
+                    domain: domain.trim(),
+                    userContext,
+                    adaptationAppendix: appendixFor("analytical"),
+                  });
+              return base;
+            })();
 
     if (exerciseType === "systems") {
       const runSystems = async (prompt: string) => {

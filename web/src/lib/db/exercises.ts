@@ -192,3 +192,58 @@ export function subscribeRecentExercisesForPicker(
     onError,
   );
 }
+
+export async function listRecentDomains(limit: number = 20): Promise<string[]> {
+  const all = await listCollectionRows<Exercise>(COGI_COLLECTIONS.exercises);
+  const freq = new Map<string, { count: number; latest: string }>();
+  for (const ex of all) {
+    const d = ex.domain.trim();
+    if (!d) continue;
+    const prev = freq.get(d);
+    if (!prev) {
+      freq.set(d, { count: 1, latest: ex.createdAt });
+    } else {
+      prev.count += 1;
+      if (ex.createdAt > prev.latest) prev.latest = ex.createdAt;
+    }
+  }
+  return [...freq.entries()]
+    .sort(
+      (a, b) => b[1].count - a[1].count || b[1].latest.localeCompare(a[1].latest),
+    )
+    .slice(0, limit)
+    .map(([domain]) => domain);
+}
+
+export function subscribeRecentDomains(
+  limit: number,
+  onData: (domains: string[]) => void,
+  onError?: (error: unknown) => void,
+): Unsubscribe {
+  return subscribeCollectionRows<Exercise>(
+    COGI_COLLECTIONS.exercises,
+    (rows) => {
+      const freq = new Map<string, { count: number; latest: string }>();
+      for (const ex of rows) {
+        const d = ex.domain.trim();
+        if (!d) continue;
+        const prev = freq.get(d);
+        if (!prev) {
+          freq.set(d, { count: 1, latest: ex.createdAt });
+        } else {
+          prev.count += 1;
+          if (ex.createdAt > prev.latest) prev.latest = ex.createdAt;
+        }
+      }
+      const sorted = [...freq.entries()]
+        .sort(
+          (a, b) =>
+            b[1].count - a[1].count || b[1].latest.localeCompare(a[1].latest),
+        )
+        .slice(0, limit)
+        .map(([domain]) => domain);
+      onData(sorted);
+    },
+    onError,
+  );
+}

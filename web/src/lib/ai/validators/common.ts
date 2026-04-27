@@ -26,8 +26,9 @@ const validPointSchema = z.object({
 export const analyticalExerciseSchema = z.object({
   title: z.string(),
   passage: z.string(),
-  embeddedIssues: z.array(embeddedIssueSchema).min(1),
+  embeddedIssues: z.array(embeddedIssueSchema),
   validPoints: z.array(validPointSchema).min(1),
+  isSoundReasoning: z.boolean().optional(),
 });
 
 export type AnalyticalExercise = z.infer<typeof analyticalExerciseSchema>;

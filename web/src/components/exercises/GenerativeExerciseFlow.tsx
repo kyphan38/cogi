@@ -6,6 +6,7 @@ import { AdaptiveSetupHint } from "@/components/adaptive/AdaptiveSetupHint";
 import { ExerciseShell, GENERATIVE_EXERCISE_STEP_LABELS } from "@/components/shared/ExerciseShell";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
+import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { cn } from "@/lib/utils";
@@ -47,19 +48,10 @@ import { aiFetch } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import type { DebateChatMessage } from "@/lib/ai/prompts/generative-debate";
+import { DomainInput } from "@/components/shared/DomainInput";
+import { listRecentDomains } from "@/lib/db/exercises";
 
-const DOMAINS = [
-  "DevOps / SRE",
-  "MLOps / Data Engineering",
-  "Solution Architecture",
-  "HPC",
-  "Financial Planning",
-  "Life Strategy",
-  "Social & Communication",
-  "Custom",
-] as const;
-
-type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 const MAX_DEBATE_USER_TURNS = 3;
 
@@ -122,14 +114,15 @@ function allPromptsNonEmpty(row: GenerativeExerciseRow, minLen: number): boolean
 
 export function GenerativeExerciseFlow() {
   const [step, setStep] = useState<FlowStep>(0);
-  const [domainChoice, setDomainChoice] = useState<string>(DOMAINS[0]);
-  const [customDomain, setCustomDomain] = useState("");
+  const [domain, setDomain] = useState("");
+  const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const [exercise, setExercise] = useState<GenerativeExerciseRow | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [hintRevealed, setHintRevealed] = useState<Record<string, boolean>>({});
+  const [steelmanText, setSteelmanText] = useState("");
 
   const [confidence, setConfidence] = useState(50);
   const [debateOpening, setDebateOpening] = useState<string | null>(null);
@@ -158,24 +151,27 @@ export function GenerativeExerciseFlow() {
   const debateEffectIdRef = useRef(0);
   const journalEffectIdRef = useRef(0);
 
-  const effectiveDomain =
-    domainChoice === "Custom" ? customDomain.trim() : domainChoice;
+  useEffect(() => {
+    void listRecentDomains(20).then(setDomainSuggestions);
+  }, []);
 
   const mergedExercise = useCallback((): GenerativeExerciseRow | null => {
     if (!exercise) return null;
     return {
       ...exercise,
       answers,
+      steelmanText: steelmanText.trim() || null,
       debateOpening,
       debateTurns,
       rubricScore,
     };
-  }, [exercise, answers, debateOpening, debateTurns, rubricScore]);
+  }, [exercise, answers, steelmanText, debateOpening, debateTurns, rubricScore]);
 
   const startGenerate = useCallback(async () => {
     setError(null);
-    if (!effectiveDomain) {
-      setError("Choose or enter a domain.");
+    const d = domain.trim();
+    if (!d) {
+      setError("Enter a domain.");
       return;
     }
     setLoading(true);
@@ -188,7 +184,7 @@ export function GenerativeExerciseFlow() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          domain: effectiveDomain,
+          domain: d,
           userContext: userContext || undefined,
           exerciseType: "generative",
           generativeStage,
@@ -203,11 +199,12 @@ export function GenerativeExerciseFlow() {
         return;
       }
       const id = crypto.randomUUID();
-      const row = buildRowFromPayload(id, effectiveDomain, generativeStage, json.data);
+      const row = buildRowFromPayload(id, d, generativeStage, json.data);
       await putExercise(row);
       setExercise(row);
       setAnswers(row.answers);
       setHintRevealed({});
+      setSteelmanText("");
       setDebateOpening(null);
       setDebateTurns([]);
       setDebateDraft("");
@@ -224,10 +221,20 @@ export function GenerativeExerciseFlow() {
     } finally {
       setLoading(false);
     }
-  }, [effectiveDomain]);
+  }, [domain]);
+
+  const regenerate = () => {
+    const anyAnswer = Object.values(answers).some((t) => t.trim().length > 0);
+    if (anyAnswer) {
+      const ok = window.confirm("Discard current work and regenerate?");
+      if (!ok) return;
+    }
+    setError(null);
+    void startGenerate();
+  };
 
   useEffect(() => {
-    if (step !== 3 || !exercise || debateOpening !== null || debateLoading) return;
+    if (step !== 4 || !exercise || debateOpening !== null || debateLoading) return;
     const effectId = ++debateEffectIdRef.current;
     let cancelled = false;
     void (async () => {
@@ -248,6 +255,7 @@ export function GenerativeExerciseFlow() {
             title: exercise.title,
             scenario: exercise.scenario,
             qa,
+            steelmanText,
           }),
         });
         const json = (await res.json()) as { ok: true; text: string } | { ok: false; error: string };
@@ -260,6 +268,7 @@ export function GenerativeExerciseFlow() {
         const partial: GenerativeExerciseRow = {
           ...exercise,
           answers,
+          steelmanText: steelmanText.trim() || null,
           debateOpening: json.text,
           debateTurns,
         };
@@ -277,7 +286,7 @@ export function GenerativeExerciseFlow() {
     return () => {
       cancelled = true;
     };
-  }, [step, exercise, debateOpening, debateLoading, answers, debateTurns]);
+  }, [step, exercise, debateOpening, debateLoading, answers, debateTurns, steelmanText]);
 
   const debateHistoryMessages = (): DebateChatMessage[] => {
     const h: DebateChatMessage[] = [];
@@ -324,6 +333,7 @@ export function GenerativeExerciseFlow() {
         answers,
         debateOpening,
         debateTurns: nextTurns,
+        steelmanText: steelmanText.trim() || null,
       };
       await putExercise(partial);
       setExercise(partial);
@@ -338,7 +348,7 @@ export function GenerativeExerciseFlow() {
     const base = mergedExercise();
     if (!base || !debateOpening) return;
     if (perspectiveText != null) {
-      setStep(4);
+      setStep(5);
       return;
     }
     setError(null);
@@ -385,7 +395,7 @@ export function GenerativeExerciseFlow() {
       };
       await putExercise(partial);
       setExercise(partial);
-      setStep(4);
+      setStep(5);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Reflection failed");
     } finally {
@@ -394,13 +404,20 @@ export function GenerativeExerciseFlow() {
   };
 
   useEffect(() => {
-    if (step !== 5 || journalPrimed || !exercise) return;
+    if (step !== 6 || journalPrimed || !exercise) return;
     const effectId = ++journalEffectIdRef.current;
     let cancelled = false;
     void (async () => {
       try {
         const excluded = await getPromptIdsUsedInLastNCompleted(5);
-        const picks = pickJournalPrompts(excluded);
+        const accuracy = generativeRubricToAccuracy(rubricScore ?? 0);
+        const picks = pickJournalPrompts(excluded, {
+          exerciseType: "generative",
+          accuracy,
+          confidenceBefore: confidence,
+          overconfident: confidence - accuracy > 20,
+          underconfident: accuracy - confidence > 20,
+        });
         if (cancelled || effectId !== journalEffectIdRef.current) return;
         setJournalPrompts(picks);
         const init: Record<string, string> = {};
@@ -408,12 +425,12 @@ export function GenerativeExerciseFlow() {
           init[p.id] = "";
         });
         setJournalAnswers(init);
+        setJournalPrimed(true);
 
         const snippets = await getRecentJournalSnippetsForDomain(exercise.domain, 3);
         if (cancelled || effectId !== journalEffectIdRef.current) return;
         if (snippets.length === 0) {
           setAiRefLine(null);
-          setJournalPrimed(true);
           return;
         }
         const res = await aiFetch("/api/ai/journal-ref", {
@@ -430,8 +447,6 @@ export function GenerativeExerciseFlow() {
         if (j.ok && j.line) setAiRefLine(j.line);
       } catch {
         if (!cancelled && effectId === journalEffectIdRef.current) setAiRefLine(null);
-      } finally {
-        if (!cancelled && effectId === journalEffectIdRef.current) setJournalPrimed(true);
       }
     })();
     return () => {
@@ -484,6 +499,7 @@ export function GenerativeExerciseFlow() {
     const finalEx: GenerativeExerciseRow = {
       ...exercise,
       answers,
+      steelmanText: steelmanText.trim() || null,
       debateOpening,
       debateTurns,
       rubricScore: rubricScore ?? 0,
@@ -500,7 +516,7 @@ export function GenerativeExerciseFlow() {
         action,
       });
       setExercise(finalEx);
-      setStep(7);
+      setStep(8);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     }
@@ -518,6 +534,20 @@ export function GenerativeExerciseFlow() {
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
+          {step === 0 ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="mt-2"
+              onClick={() => {
+                setError(null);
+                void startGenerate();
+              }}
+            >
+              Retry
+            </Button>
+          ) : null}
         </Alert>
       ) : null}
 
@@ -533,28 +563,7 @@ export function GenerativeExerciseFlow() {
           <CardContent className="flex flex-col gap-4">
             <div className="grid gap-2">
               <Label>Domain</Label>
-              <Select
-                value={domainChoice}
-                onValueChange={(v) => setDomainChoice(v ?? DOMAINS[0])}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Domain" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DOMAINS.map((d) => (
-                    <SelectItem key={d} value={d}>
-                      {d}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {domainChoice === "Custom" ? (
-                <Input
-                  placeholder="Custom domain"
-                  value={customDomain}
-                  onChange={(e) => setCustomDomain(e.target.value)}
-                />
-              ) : null}
+              <DomainInput value={domain} onChange={setDomain} suggestions={domainSuggestions} />
             </div>
             <p className="text-muted-foreground text-xs">
               Personal context for AI is read from{" "}
@@ -646,6 +655,9 @@ export function GenerativeExerciseFlow() {
               <Button type="button" variant="secondary" onClick={() => setStep(0)}>
                 Back
               </Button>
+              <Button type="button" variant="secondary" onClick={regenerate}>
+                Regenerate
+              </Button>
               <Button
                 type="button"
                 onClick={() => setStep(2)}
@@ -655,7 +667,7 @@ export function GenerativeExerciseFlow() {
                   !editStageValid(rowForWriteGate)
                 }
               >
-                Continue to confidence
+                Continue to steelman
               </Button>
             </div>
           </CardContent>
@@ -665,23 +677,89 @@ export function GenerativeExerciseFlow() {
       {step === 2 && exercise ? (
         <Card>
           <CardHeader>
-            <CardTitle>Confidence</CardTitle>
+            <CardTitle>Steelman</CardTitle>
             <CardDescription>
-              How confident are you in this written reasoning before the debate partner joins?
+              Write the strongest possible argument against your position before you rate confidence.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ConfidenceSlider value={confidence} onChange={setConfidence} />
+            <div className="space-y-3">
+              <p className="text-muted-foreground text-sm">
+                Your answers (read-only):
+              </p>
+              <div className="space-y-3 rounded-md border bg-muted/20 p-3 text-sm">
+                {exercise.prompts.map((p) => (
+                  <div key={p.id} className="space-y-1">
+                    <p className="font-medium">{p.question}</p>
+                    <p className="text-muted-foreground whitespace-pre-wrap">
+                      {(answers[p.id] ?? "").trim() || "—"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>
+                Write the strongest possible argument against your position. Assume a smart, well-informed
+                person disagrees — what would they say?
+              </Label>
+              <Textarea
+                rows={6}
+                value={steelmanText}
+                onChange={(e) => setSteelmanText(e.target.value)}
+                placeholder="Your steelman…"
+              />
+              <p className="text-muted-foreground text-xs">
+                Minimum 50 characters to continue ({steelmanText.trim().length}/50).
+              </p>
+            </div>
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="secondary" onClick={() => setStep(1)}>
                 Back
               </Button>
               <Button
                 type="button"
+                onClick={() => setStep(3)}
+                disabled={steelmanText.trim().length < 50}
+              >
+                Continue to confidence
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {step === 3 && exercise ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Confidence</CardTitle>
+            <CardDescription>
+              How confident are you in this written reasoning before the debate partner joins?
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ConfidenceSlider
+              value={confidence}
+              onChange={setConfidence}
+              label="How confident are you in your written reasoning?"
+            />
+            {loading ? <PerspectiveLoadingCard /> : null}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={loading}
+                onClick={() => setStep(2)}
+              >
+                Back
+              </Button>
+              <Button
+                type="button"
+                disabled={loading}
                 onClick={() => {
-                  void putExercise({ ...exercise, answers });
-                  setExercise({ ...exercise, answers });
-                  setStep(3);
+                  void putExercise({ ...exercise, answers, steelmanText: steelmanText.trim() || null });
+                  setExercise({ ...exercise, answers, steelmanText: steelmanText.trim() || null });
+                  setStep(4);
                 }}
               >
                 Continue to debate
@@ -691,7 +769,7 @@ export function GenerativeExerciseFlow() {
         </Card>
       ) : null}
 
-      {step === 3 && exercise ? (
+      {step === 4 && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Debate partner</CardTitle>
@@ -750,7 +828,7 @@ export function GenerativeExerciseFlow() {
                   setDebateOpening(null);
                   setDebateTurns([]);
                   setDebateDraft("");
-                  setStep(2);
+                  setStep(3);
                 }}
               >
                 Back
@@ -773,7 +851,7 @@ export function GenerativeExerciseFlow() {
         </Card>
       ) : null}
 
-      {step === 4 && exercise && perspectiveText ? (
+      {step === 5 && exercise && perspectiveText ? (
         <Card>
           <CardHeader>
             <CardTitle>AI reflection</CardTitle>
@@ -788,14 +866,14 @@ export function GenerativeExerciseFlow() {
               exerciseTitle={exercise.title}
               domain={exercise.domain}
             />
-            <Button type="button" onClick={() => setStep(5)}>
+            <Button type="button" onClick={() => setStep(6)}>
               Continue to journal
             </Button>
           </CardContent>
         </Card>
       ) : null}
 
-      {step === 5 && exercise ? (
+      {step === 6 && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Journal</CardTitle>
@@ -848,17 +926,17 @@ export function GenerativeExerciseFlow() {
                 />
               </div>
             ))}
-            <Button type="button" variant="secondary" onClick={() => setStep(4)}>
+            <Button type="button" variant="secondary" onClick={() => setStep(5)}>
               Back
             </Button>
-            <Button type="button" onClick={() => setStep(6)}>
+            <Button type="button" onClick={() => setStep(7)}>
               Continue to action
             </Button>
           </CardContent>
         </Card>
       ) : null}
 
-      {step === 6 && exercise ? (
+      {step === 7 && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Action bridge</CardTitle>
@@ -871,7 +949,7 @@ export function GenerativeExerciseFlow() {
               rows={3}
             />
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(5)}>
+              <Button type="button" variant="secondary" onClick={() => setStep(6)}>
                 Back
               </Button>
               <Button type="button" onClick={() => void finishExercise()}>
@@ -882,7 +960,7 @@ export function GenerativeExerciseFlow() {
         </Card>
       ) : null}
 
-      {step === 7 && exercise ? (
+      {step === 8 && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Exercise saved</CardTitle>

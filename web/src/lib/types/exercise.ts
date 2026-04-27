@@ -64,6 +64,8 @@ export interface AnalyticalExerciseRow {
   /** If source === "real_data", snapshot of the user's sanitized text. */
   originalUserText?: string | null;
   passage: string;
+  /** True when the passage has no embedded issues (sound reasoning exercise). */
+  isSoundReasoning?: boolean;
   embeddedIssues: EmbeddedIssue[];
   validPoints: ValidPoint[];
   userHighlights: UserHighlight[];
@@ -127,6 +129,8 @@ export interface SystemsExerciseRow {
   nodes: SystemsNodeSpec[];
   intendedConnections: SystemsIntendedConnection[];
   shockEvent: SystemsShockEvent;
+  /** User's proposed components before seeing AI nodes (diagnostic, not scored). */
+  userProposedComponents?: string[] | null;
   userEdges: SystemsUserEdge[];
   /** Per node_id impact assessment after shock. */
   nodeImpact: Record<string, SystemsNodeImpact>;
@@ -159,6 +163,8 @@ export interface EvaluativeMatrixRow {
   domain: string;
   title: string;
   scenario: string;
+  /** User's proposed criteria before seeing AI framework. */
+  userProposedCriteria?: { name: string; rationale: string }[] | null;
   axisX: EvaluativeAxisSpec;
   axisY: EvaluativeAxisSpec;
   options: EvaluativeMatrixOption[];
@@ -199,6 +205,8 @@ export interface EvaluativeScoringRow {
   domain: string;
   title: string;
   scenario: string;
+  /** User's proposed criteria before seeing AI framework. */
+  userProposedCriteria?: { name: string; rationale: string }[] | null;
   criteria: EvaluativeCriterion[];
   options: EvaluativeScoringOption[];
   hiddenCriteria: EvaluativeHiddenCriterion[];
@@ -232,6 +240,7 @@ export interface GenerativeExerciseRow {
   stageAtStart: GenerativeStage;
   prompts: GenerativePromptPersisted[];
   answers: Record<string, string>;
+  steelmanText?: string | null;
   /** Initial drafts for edit-stage edit detection (empty if not edit). */
   draftBaseline: Record<string, string>;
   debateOpening: string | null;

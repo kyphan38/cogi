@@ -2,6 +2,26 @@ import { Unsubscribe, deleteDoc, getDoc, setDoc } from "firebase/firestore";
 import { COGI_COLLECTIONS, listCollectionRows, subscribeCollectionRows, userDocRef } from "@/lib/db/firestore";
 import type { RealDecisionLogEntry } from "@/lib/types/decision";
 
+export async function listRecentDecisionDomains(limit: number = 20): Promise<string[]> {
+  const rows = await listCollectionRows<RealDecisionLogEntry>(COGI_COLLECTIONS.decisions);
+  const freq = new Map<string, { count: number; latest: string }>();
+  for (const d of rows) {
+    const domain = d.domain.trim();
+    if (!domain) continue;
+    const prev = freq.get(domain);
+    if (!prev) {
+      freq.set(domain, { count: 1, latest: d.createdAt });
+    } else {
+      prev.count += 1;
+      if (d.createdAt > prev.latest) prev.latest = d.createdAt;
+    }
+  }
+  return [...freq.entries()]
+    .sort((a, b) => b[1].count - a[1].count || b[1].latest.localeCompare(a[1].latest))
+    .slice(0, limit)
+    .map(([domain]) => domain);
+}
+
 export async function listDecisions(): Promise<RealDecisionLogEntry[]> {
   const rows = await listCollectionRows<RealDecisionLogEntry>(COGI_COLLECTIONS.decisions);
   return rows.sort((a, b) => b.decidedAt.localeCompare(a.decidedAt));
