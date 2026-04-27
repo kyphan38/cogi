@@ -19,6 +19,7 @@ service cloud.firestore {
         "exercises",
         "journalEntries",
         "lessons",
+        "sidebarFolders",
         "perspectiveDisagreements",
         "settings",
         "weaknesses",
