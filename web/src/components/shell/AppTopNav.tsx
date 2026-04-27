@@ -12,7 +12,6 @@ const links = [
   { href: "/", label: "Home" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/exercise/history", label: "History" },
-  { href: "/journal", label: "Journal" },
   { href: "/settings", label: "Settings" },
   { href: "/decisions", label: "Decisions" },
 ] as const;

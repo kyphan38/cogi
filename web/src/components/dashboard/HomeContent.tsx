@@ -17,10 +17,10 @@ import {
 } from "@/lib/db/actions";
 import type { ActionBridge } from "@/lib/types/action";
 import { currentIsoWeekKey } from "@/lib/db/actions";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Trash2 } from "lucide-react";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
 import { ExercisePickerCard } from "@/components/dashboard/ExercisePickerCard";
-import { listIncompleteExercises } from "@/lib/db/exercises";
+import { listIncompleteExercises, deleteCompletedExerciseAndRelatedRecords } from "@/lib/db/exercises";
 import type { Exercise } from "@/lib/types/exercise";
 
 type ActionRow = ActionBridge & {
@@ -130,6 +130,19 @@ export function HomeContent() {
     await toggleActionFollowThroughWeek(row, weekKey);
   };
 
+  const discardIncomplete = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIncompleteExercises((prev) => prev.filter((ex) => ex.id !== id));
+    try {
+      await deleteCompletedExerciseAndRelatedRecords(id);
+    } catch {
+      // restore on failure
+      const rows = await listIncompleteExercises();
+      setIncompleteExercises(rows.slice(0, 5));
+    }
+  };
+
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
       <div className="space-y-1">
@@ -149,22 +162,31 @@ export function HomeContent() {
           </CardHeader>
           <CardContent className="space-y-2">
             {incompleteExercises.map((ex) => (
-              <Link
-                key={ex.id}
-                href={resumeHref(ex)}
-                className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2 text-sm hover:bg-muted/40 transition-colors"
-              >
-                <div className="min-w-0">
-                  <span className="text-muted-foreground mr-2 text-xs font-medium uppercase">
-                    {TYPE_LABEL[ex.type] ?? ex.type}
-                  </span>
-                  <span className="font-medium truncate">{ex.title}</span>
-                  {ex.domain ? (
-                    <span className="text-muted-foreground ml-2 text-xs">· {ex.domain}</span>
-                  ) : null}
-                </div>
-                <ChevronRight className="ml-3 size-4 shrink-0 text-muted-foreground" aria-hidden />
-              </Link>
+              <div key={ex.id} className="group/item flex items-center gap-1">
+                <Link
+                  href={resumeHref(ex)}
+                  className="flex min-w-0 flex-1 items-center justify-between rounded-md border bg-muted/20 px-3 py-2 text-sm hover:bg-muted/40 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <span className="text-muted-foreground mr-2 text-xs font-medium uppercase">
+                      {TYPE_LABEL[ex.type] ?? ex.type}
+                    </span>
+                    <span className="font-medium truncate">{ex.title}</span>
+                    {ex.domain ? (
+                      <span className="text-muted-foreground ml-2 text-xs">· {ex.domain}</span>
+                    ) : null}
+                  </div>
+                  <ChevronRight className="ml-3 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                </Link>
+                <button
+                  type="button"
+                  aria-label="Discard exercise"
+                  onClick={(e) => void discardIncomplete(e, ex.id)}
+                  className="shrink-0 rounded p-1.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 hover:text-destructive focus:opacity-100"
+                >
+                  <Trash2 className="size-3.5" aria-hidden />
+                </button>
+              </div>
             ))}
           </CardContent>
         </Card>
