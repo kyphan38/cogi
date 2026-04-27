@@ -40,7 +40,6 @@ import type { JournalEntry } from "@/lib/types/journal";
 import type { ActionBridge } from "@/lib/types/action";
 import type { SystemsExercisePayload } from "@/lib/ai/validators/systems";
 import { buildAdaptiveHintsForRequest } from "@/lib/adaptive/adaptive-hints";
-import { putExercise } from "@/lib/db/exercises";
 import { getUserContext } from "@/lib/db/settings";
 import { completeExerciseFlow } from "@/lib/db/complete-exercise";
 import {
@@ -54,7 +53,8 @@ import { aiFetch } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { DomainInput } from "@/components/shared/DomainInput";
-import { listRecentDomains } from "@/lib/db/exercises";
+import { listRecentDomains, putExercise, getExercise } from "@/lib/db/exercises";
+import { isSystemsExercise } from "@/lib/types/exercise";
 
 const EDGE_TYPES: SystemsConnectionType[] = [
   "depends_on",
@@ -77,7 +77,7 @@ function cycleImpact(v: SystemsNodeImpact): SystemsNodeImpact {
   return "none";
 }
 
-export function SystemsExerciseFlow() {
+export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
   const [step, setStep] = useState<FlowStep>(0);
   const [domain, setDomain] = useState("");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
@@ -112,6 +112,46 @@ export function SystemsExerciseFlow() {
   useEffect(() => {
     void listRecentDomains(20).then(setDomainSuggestions);
   }, []);
+
+  const advance = useCallback(
+    (next: FlowStep, updatedRow?: SystemsExerciseRow) => {
+      const row = updatedRow ?? exercise;
+      if (row) void putExercise({ ...row, currentStep: next });
+      setStep(next);
+    },
+    [exercise],
+  );
+
+  useEffect(() => {
+    if (!resumeId) return;
+    void (async () => {
+      const row = await getExercise(resumeId);
+      if (!row || row.completedAt || !isSystemsExercise(row)) return;
+      setExercise(row);
+      setUserEdges(row.userEdges ?? []);
+      setNodeImpact(row.nodeImpact ?? {});
+      if (row.userProposedComponents && row.userProposedComponents.length > 0) {
+        setUserProposedComponents(
+          row.userProposedComponents.length === 6
+            ? row.userProposedComponents
+            : [...row.userProposedComponents, ...Array.from({ length: Math.max(0, 6 - row.userProposedComponents.length) }, () => "")],
+        );
+        setDecomposePhase("compare");
+      }
+      setConfidence(row.confidenceBefore ?? 50);
+      if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
+      if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
+      setStep((row.currentStep ?? 1) as FlowStep);
+    })();
+  }, [resumeId]);
+
+  useEffect(() => {
+    if (!exercise || step === 0 || step === 8) return;
+    const timer = setTimeout(() => {
+      void putExercise({ ...exercise, userEdges, nodeImpact, currentStep: step });
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [userEdges, nodeImpact]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startGenerate = useCallback(async () => {
     setError(null);
@@ -160,6 +200,7 @@ export function SystemsExerciseFlow() {
         aiPerspective: null,
         createdAt: new Date().toISOString(),
         completedAt: null,
+        currentStep: 1,
       };
       await putExercise(row);
       setExercise(row);
@@ -200,7 +241,7 @@ export function SystemsExerciseFlow() {
   const submitShockPerspective = async () => {
     if (!exercise) return;
     if (perspectiveText != null) {
-      setStep(5);
+      advance(5);
       return;
     }
     setError(null);
@@ -240,6 +281,7 @@ export function SystemsExerciseFlow() {
         confidenceBefore: confidence,
         aiPerspective: parsed.text,
         aiPerspectiveStructured: parsed.structured,
+        currentStep: 5,
       };
       await putExercise(partial);
       setExercise(partial);
@@ -498,7 +540,7 @@ export function SystemsExerciseFlow() {
                     </p>
                     <ul className="list-inside list-disc space-y-1 text-sm">
                       {userProposedComponents.map((s, i) => (
-                        <li key={i}>{s.trim() || "—"}</li>
+                        <li key={i}>{s.trim() || "-"}</li>
                       ))}
                     </ul>
                   </div>
@@ -522,6 +564,7 @@ export function SystemsExerciseFlow() {
                       const nextRow: SystemsExerciseRow = {
                         ...exercise,
                         userProposedComponents: cleaned.length === 6 ? cleaned : null,
+                        currentStep: 2,
                       };
                       void putExercise(nextRow);
                       setExercise(nextRow);
@@ -601,8 +644,8 @@ export function SystemsExerciseFlow() {
                     setError("Add at least one connection before continuing.");
                     return;
                   }
-                  void putExercise({ ...exercise, userEdges });
-                  setExercise({ ...exercise, userEdges });
+                  void putExercise({ ...exercise, userEdges, currentStep: 3 });
+                  setExercise({ ...exercise, userEdges, currentStep: 3 });
                   setStep(3);
                 }}
               >
@@ -637,7 +680,7 @@ export function SystemsExerciseFlow() {
               >
                 Back
               </Button>
-              <Button type="button" onClick={() => setStep(4)}>
+              <Button type="button" onClick={() => advance(4)}>
                 Continue to shock
               </Button>
             </div>
@@ -697,7 +740,7 @@ export function SystemsExerciseFlow() {
             exerciseTitle={exercise.title}
             domain={exercise.domain}
           />
-          <Button type="button" onClick={() => setStep(6)}>
+          <Button type="button" onClick={() => advance(6)}>
             Continue to journal
           </Button>
         </div>
@@ -778,7 +821,7 @@ export function SystemsExerciseFlow() {
                         setError("Need two answers with more than 10 characters.");
                         return;
                       }
-                      setStep(7);
+                      advance(7);
                     }}
                   >
                     Continue to action

@@ -6,7 +6,7 @@ export type WeaknessStatus = "active" | "resolved";
 export type WeaknessThinkingGroup = Exclude<ThinkingType, "combo">;
 
 /**
- * Phase 7.2 — queued blind spot (Dexie `weaknesses`).
+ * Phase 7.2 - queued blind spot (Dexie `weaknesses`).
  * `type` is an embedded-issue tag for analytical, or a coarse bucket id for other modes.
  */
 export interface WeaknessEntry {

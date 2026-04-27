@@ -17,7 +17,7 @@
 
 ## 2. Trang Home
 
-- Bạn thấy các **ô thẻ** theo từng chế độ tư duy (Analytical được gợi ý “suggested today” — chỉ là gợi ý nhẹ, không bắt buộc).
+- Bạn thấy các **ô thẻ** theo từng chế độ tư duy (Analytical được gợi ý “suggested today” - chỉ là gợi ý nhẹ, không bắt buộc).
 - **Generative** là một hàng rộng; **Combo** là một hàng riêng (chuỗi nhiều bước trên cùng một tình huống).
 - Cuối trang có **Open actions**: những việc bạn đã **cam kết làm** sau các bài trước; có thể tick “theo dõi tuần này”.
 
@@ -31,7 +31,7 @@ Hầu hết bài đi theo **cùng một khung** (thanh tiến trình phía trên
 |---------------------|------------|
 | **Setup** | Chọn **lĩnh vực (domain)** (hoặc gõ Custom), có thể bấm tạo bài (**Generate**). Với Analytical còn có chế độ **dán văn thật (real data)**. |
 | **Bước chính của bài** | Tùy loại: bôi đoạn văn, kéo thả, vẽ sơ đồ, chấm điểm, … (chi tiết từng loại ở mục 4). |
-| **Confidence** | Kéo thanh **mức tự tin** (0–100%) *trước khi* xem góc nhìn AI — để sau này app so sánh với độ chính xác đo được. |
+| **Confidence** | Kéo thanh **mức tự tin** (0–100%) *trước khi* xem góc nhìn AI - để sau này app so sánh với độ chính xác đo được. |
 | **AI perspective / reflection** | Đọc phản hồi của model (văn bản có cấu trúc). Không phải “điểm số thi” mà là so sánh cách nhìn. |
 | **Journal** | Trả lời vài **câu hỏi ngắn** (có thể có một dòng gợi ý từ AI dựa trên bài gần đây). Chọn **cảm xúc** (emotion) nếu có. |
 | **Action** | Viết **một hành động cụ thể** bạn sẽ làm ngoài đời (một câu cũng được). |
@@ -41,14 +41,14 @@ Nút **Back** / **Continue** giúp quay lại bước trước hoặc đi tiếp
 
 ---
 
-## 4. Từng loại bài — bạn tương tác thế nào?
+## 4. Từng loại bài - bạn tương tác thế nào?
 
 ### 4.1 Analytical (phân tích)
 
 **Mục tiêu:** đọc một đoạn văn, tìm **vấn đề ẩn** (giả định sai, lập luận yếu, …) và phân biệt với chỗ **trông đáng ngờ nhưng hợp lý (decoy)**.
 
 - **Generated:** AI tạo đoạn văn + danh sách “đúng/sai” ẩn trong đó.
-- **Real data:** bạn **dán** văn bản của mình (email, ghi chú, …); giới hạn độ dài và ký tự — không dán HTML “nguy hiểm”.
+- **Real data:** bạn **dán** văn bản của mình (email, ghi chú, …); giới hạn độ dài và ký tự - không dán HTML “nguy hiểm”.
 - **Highlight & tag:** bôi chọn trong đoạn văn, gắn **thẻ** (loại vấn đề hoặc “valid point” nếu là decoy). Cần ít nhất một highlight trước khi tiếp tục (theo luồng app).
 - Phần còn lại giống khung chung: confidence → AI → journal → action.
 
@@ -75,7 +75,7 @@ Nút **Back** / **Continue** giúp quay lại bước trước hoặc đi tiếp
 
 ### 4.4 Evaluative (đánh giá)
 
-**Mục tiêu:** so sánh các **lựa chọn** theo tiêu chí — AI có thể cho dạng **ma trận 2×2** hoặc **bảng chấm điểm** nhiều tiêu chí.
+**Mục tiêu:** so sánh các **lựa chọn** theo tiêu chí - AI có thể cho dạng **ma trận 2×2** hoặc **bảng chấm điểm** nhiều tiêu chí.
 
 - **Evaluate:**  
   - **Matrix:** kéo/thả (hoặc đặt) từng lựa chọn vào **góc phần tư** đúng với cách bạn đánh giá.  
@@ -91,7 +91,7 @@ Nút **Back** / **Continue** giúp quay lại bước trước hoặc đi tiếp
 - **Write:** điền nội dung vào các ô (có thể có nút xem hint tùy bài).
 - **Confidence** trước khi sang phần tranh luận.
 - **Debate:** hội thoại ngắn với AI để thử thách ý tưởng của bạn.
-- **AI reflection** (và có thể có bước liên quan **rubric** — chấm điểm kiểu rubric) rồi journal → action.
+- **AI reflection** (và có thể có bước liên quan **rubric** - chấm điểm kiểu rubric) rồi journal → action.
 
 ---
 
@@ -103,9 +103,9 @@ Khi **Setup**:
 
 1. Chọn domain.
 2. Chọn **Preset** (chuỗi cố định):
-   - **Full analysis** — analytical → systems → evaluative (matrix).
-   - **Decision sprint** — evaluative (matrix) → generative.
-   - **Root cause** — sequential → systems → analytical.
+   - **Full analysis** - analytical → systems → evaluative (matrix).
+   - **Decision sprint** - evaluative (matrix) → generative.
+   - **Root cause** - sequential → systems → analytical.
 
 Khi **Work:** làm lần lượt từng mảnh (màn hình sẽ nói rõ “Step X of Y” và lặp lại **cùng scenario**). Tương tác cụ thể trùng với từng loại bài tương ứng (highlight, canvas, matrix, …).
 
@@ -115,7 +115,7 @@ Cuối cùng: journal + action + lưu **một** bản ghi combo.
 
 ## 5. Dashboard
 
-- **Ba ô số đầu:** tóm tắt nhanh — số bài đã hoàn thành, **gap calibration** (tự tin − độ chính xác đo được), và **độ chính xác trung bình**. Ô giữa đổi màu nhẹ theo xu hướng (lệch tự tin quá mức / khá khớp / …) — đọc dòng chữ nhỏ dưới số để hiểu.
+- **Ba ô số đầu:** tóm tắt nhanh - số bài đã hoàn thành, **gap calibration** (tự tin − độ chính xác đo được), và **độ chính xác trung bình**. Ô giữa đổi màu nhẹ theo xu hướng (lệch tự tin quá mức / khá khớp / …) - đọc dòng chữ nhỏ dưới số để hiểu.
 - **Adaptive difficulty:** nếu tắt trong Settings, bạn chỉ thấy **một dòng** nhắc bật trong Settings; nếu bật, sẽ có thêm chi tiết tier và “điểm mù” (blind spots) để bài generate gợi ý phù hợp hơn.
 - **Calibration gap (biểu đồ):** xu hướng gap theo thời gian (cần đủ số điểm mới có đường nét rõ).
 - **Weekly insight:** khi đủ điều kiện (số bài đã hoàn thành theo quy tắc trên màn hình), bấm tạo **bản tóm tắt tuần** (markdown) từ các bài gần đây.
@@ -128,7 +128,7 @@ Cuối cùng: journal + action + lưu **một** bản ghi combo.
 
 - **Calibration:** ba số trung bình toàn cục + **giải thích ngắn** từng số; biểu đồ gap theo thời gian.
 - **Activity:** lưới **heatmap** theo **bộ lọc hiện tại** (màu theo loại bài); có **chú giải màu** và ghi chú nếu một ngày có nhiều bài.
-- **Streak:** số ngày liên tiếp có ít nhất một bài hoàn thành (tính trên **mọi** bài, không phụ thuộc bộ lọc) — để khuyến khích nhịp luyện đều.
+- **Streak:** số ngày liên tiếp có ít nhất một bài hoàn thành (tính trên **mọi** bài, không phụ thuộc bộ lọc) - để khuyến khích nhịp luyện đều.
 - **Danh sách bài:** bấm một dòng để mở **Review** (đọc lại nội dung đã lưu, read-only).
 - **Filters:** lọc theo loại, domain, khoảng ngày; **Apply filters** để tải lại danh sách.
 
@@ -136,10 +136,10 @@ Cuối cùng: journal + action + lưu **một** bản ghi combo.
 
 ## 7. Settings (cài đặt)
 
-- **Personal context:** đoạn giới thiệu về bạn (vai trò, mục tiêu, …) — được **đưa vào prompt** khi sinh bài và một số chỗ AI khác. Nên viết ngắn, đúng sự thật bạn muốn model hiểu.
+- **Personal context:** đoạn giới thiệu về bạn (vai trò, mục tiêu, …) - được **đưa vào prompt** khi sinh bài và một số chỗ AI khác. Nên viết ngắn, đúng sự thật bạn muốn model hiểu.
 - **Delayed recall:** bật/tắt thẻ nhắc 48h.
 - **Adaptive difficulty:** bật/tắt gợi ý độ khó + hàng chờ điểm yếu khi generate.
-- **Backup:** tải JSON toàn bộ dữ liệu từ **Firestore** (theo tài khoản đang đăng nhập); nhập lại (merge hoặc replace — replace xóa sạch dữ liệu Firestore trong các collection đó của bạn, cần xác nhận).
+- **Backup:** tải JSON toàn bộ dữ liệu từ **Firestore** (theo tài khoản đang đăng nhập); nhập lại (merge hoặc replace - replace xóa sạch dữ liệu Firestore trong các collection đó của bạn, cần xác nhận).
 
 ---
 
@@ -152,7 +152,7 @@ Trang riêng để **ghi lại quyết định ngoài đời** (text, domain, ng
 ## 9. Journal (trong menu)
 
 - Trong luồng **mỗi bài tập**, journal là bước **bắt buộc** (câu hỏi ngắn sau bài).
-- Mục menu **Journal** hiện có thể chỉ là **trang placeholder** tùy phiên bản — nếu trên màn hình bạn chỉ thấy dòng chữ tối giản, hãy coi **nhật ký sau bài** là phần journal chính.
+- Mục menu **Journal** hiện có thể chỉ là **trang placeholder** tùy phiên bản - nếu trên màn hình bạn chỉ thấy dòng chữ tối giản, hãy coi **nhật ký sau bài** là phần journal chính.
 
 ---
 
@@ -161,7 +161,7 @@ Trang riêng để **ghi lại quyết định ngoài đời** (text, domain, ng
 | Hiện tượng | Gợi ý |
 |-------------|--------|
 | Bấm Generate báo thiếu API | Cần người triển khai cấu hình **khóa Gemini** trên server (`.env.local`). Người dùng cuối không tự sửa trong app. |
-| Bài AI không hợp lệ (422) | Thử Generate lại; đôi khi model trả JSON sai schema — không phải lỗi của bạn. |
+| Bài AI không hợp lệ (422) | Thử Generate lại; đôi khi model trả JSON sai schema - không phải lỗi của bạn. |
 | Mất dữ liệu / không thấy bài cũ | Kiểm tra đúng tài khoản Google; project Firebase; hoặc dùng **Import JSON** từ bản backup. |
 | Adaptive không thấy gì | Phải **bật** trong Settings và làm thêm vài bài để có dữ liệu. |
 
@@ -169,7 +169,7 @@ Trang riêng để **ghi lại quyết định ngoài đời** (text, domain, ng
 
 ## 11. Tài liệu liên quan (chỉnh sản phẩm / trải nghiệm sâu hơn)
 
-- [`EXPERIENCE_TUNING.md`](./EXPERIENCE_TUNING.md) — các “cần gạt” tinh chỉnh cảm giác app (prompt, model, domain, v.v.) ở góc nhìn sản phẩm.
+- [`EXPERIENCE_TUNING.md`](./EXPERIENCE_TUNING.md) - các “cần gạt” tinh chỉnh cảm giác app (prompt, model, domain, v.v.) ở góc nhìn sản phẩm.
 
 ---
 

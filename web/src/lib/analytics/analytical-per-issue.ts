@@ -22,7 +22,7 @@ function findSegmentRange(passage: string, segment: string): [number, number] | 
 
 /**
  * Same per-issue blend as `computeAnalyticalAccuracy` (70% span IoU + 30% tag),
- * without the global decoy boost — used for weakness hit/miss per issue.
+ * without the global decoy boost - used for weakness hit/miss per issue.
  */
 export function scoreEmbeddedIssueCatch(
   passage: string,

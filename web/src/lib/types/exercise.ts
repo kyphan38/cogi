@@ -74,6 +74,7 @@ export interface AnalyticalExerciseRow {
   aiPerspectiveStructured?: AIPerspectiveStructured | null;
   createdAt: string;
   completedAt: string | null;
+  currentStep?: number;
 }
 
 export type CriticalErrorSeverity = "catastrophic" | "problematic" | "suboptimal";
@@ -108,6 +109,7 @@ export interface SequentialExerciseRow {
   aiPerspectiveStructured?: AIPerspectiveStructured | null;
   createdAt: string;
   completedAt: string | null;
+  currentStep?: number;
 }
 
 export interface SystemsUserEdge {
@@ -139,6 +141,7 @@ export interface SystemsExerciseRow {
   aiPerspectiveStructured?: AIPerspectiveStructured | null;
   createdAt: string;
   completedAt: string | null;
+  currentStep?: number;
 }
 
 export interface EvaluativeAxisSpec {
@@ -175,6 +178,7 @@ export interface EvaluativeMatrixRow {
   aiPerspectiveStructured?: AIPerspectiveStructured | null;
   createdAt: string;
   completedAt: string | null;
+  currentStep?: number;
 }
 
 export interface EvaluativeCriterion {
@@ -217,6 +221,7 @@ export interface EvaluativeScoringRow {
   aiPerspectiveStructured?: AIPerspectiveStructured | null;
   createdAt: string;
   completedAt: string | null;
+  currentStep?: number;
 }
 
 export type EvaluativeExerciseRow = EvaluativeMatrixRow | EvaluativeScoringRow;
@@ -251,6 +256,7 @@ export interface GenerativeExerciseRow {
   aiPerspectiveStructured?: AIPerspectiveStructured | null;
   createdAt: string;
   completedAt: string | null;
+  currentStep?: number;
 }
 
 export type ComboSubExercise =
@@ -274,6 +280,7 @@ export interface ComboExerciseRow {
   aiPerspectiveStructured?: AIPerspectiveStructured | null;
   createdAt: string;
   completedAt: string | null;
+  currentStep?: number;
 }
 
 export type Exercise =

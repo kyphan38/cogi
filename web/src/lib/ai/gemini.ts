@@ -9,8 +9,8 @@ function getGeminiApiKey(): string {
 }
 
 /**
- * Default model id — Google may rename; override with GEMINI_MODEL in .env.local.
- * responseMimeType: application/json — see IMP-12 tuning in route if parse rate drops.
+ * Default model id - Google may rename; override with GEMINI_MODEL in .env.local.
+ * responseMimeType: application/json - see IMP-12 tuning in route if parse rate drops.
  */
 export async function generateAnalyticalExerciseRaw(
   fullPrompt: string,
@@ -33,7 +33,7 @@ export async function generateAnalyticalExerciseRaw(
   return text;
 }
 
-/** Narrative / markdown — no JSON mode. */
+/** Narrative / markdown - no JSON mode. */
 export async function generatePlainTextRaw(fullPrompt: string): Promise<string> {
   const apiKey = getGeminiApiKey();
   const modelId = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";

@@ -30,7 +30,7 @@ ${input.userReason}
 
 Instructions:
 - Respond in plain text (no JSON), 120–220 words.
-- Genuinely engage: you may concede partially, or push back with reasoning — avoid dismissiveness.
+- Genuinely engage: you may concede partially, or push back with reasoning - avoid dismissiveness.
 - Do not invent facts about the user; stay grounded in the text above.
 - Do not give a numeric score.`;
 }

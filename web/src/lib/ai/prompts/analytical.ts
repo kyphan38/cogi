@@ -1,7 +1,7 @@
 export function buildAnalyticalGenerationPrompt(input: {
   domain: string;
   userContext?: string;
-  /** Phase 7 — optional soft steering; must not change required JSON shape. */
+  /** Phase 7 - optional soft steering; must not change required JSON shape. */
   adaptationAppendix?: string;
 }): string {
   const ctx = input.userContext?.trim() || "(none provided)";
@@ -63,7 +63,7 @@ The passage should:
 - Contain 2-3 statements that LOOK suspicious (could be mistaken for fallacies or assumptions) but are actually valid upon careful analysis
 - Read naturally, like a real ${input.domain} analysis
 
-The exercise tests whether the user can distinguish good reasoning from bad — the correct answer here is "this reasoning is mostly sound."
+The exercise tests whether the user can distinguish good reasoning from bad - the correct answer here is "this reasoning is mostly sound."
 
 Return a single JSON object with this exact shape:
 {

@@ -1,5 +1,5 @@
 /**
- * Generative calibration per ai_plan.txt §1.3b (~310): not binary — AI rubric 0–100.
+ * Generative calibration per ai_plan.txt §1.3b (~310): not binary - AI rubric 0–100.
  * The numeric score is produced server-side (POST /api/ai/generative-rubric) and stored
  * on GenerativeExerciseRow.rubricScore. Use this helper to clamp for ConfidenceRecord.actualAccuracy.
  */

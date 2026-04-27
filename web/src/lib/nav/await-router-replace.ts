@@ -8,7 +8,7 @@ function isAbortLike(e: unknown): boolean {
 
 /**
  * `router.replace` may return a Promise (App Router) that rejects with AbortError when
- * a newer navigation supersedes it — must be awaited or explicitly handled.
+ * a newer navigation supersedes it - must be awaited or explicitly handled.
  */
 export async function awaitRouterReplace(router: RouterLike, href: string): Promise<void> {
   try {

@@ -42,12 +42,12 @@ Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
 
 Section meanings (map to those keys exactly):
 - embedded: ground truth recap tied to embeddedIssues (3–6 points).
-- userFound: highlights that do not align with planned embedded issues — evaluate generously (0+ points).
+- userFound: highlights that do not align with planned embedded issues - evaluate generously (0+ points).
 - additional: non-judgmental angles they may have missed (2–5 points).
 - openQuestions: what remains uncertain (1–4 points).
 
 Also include ONE debatable-highlight paragraph inside embedded OR userFound as a point whose body starts with:
-"Your highlight of ... is interesting — here's why that's debatable:"
+"Your highlight of ... is interesting - here's why that's debatable:"
 
 Tone: collaborative peer, not a judge. Do not give a numeric score for the exercise. Keep each body concise (most bodies under ~220 chars).`;
 }

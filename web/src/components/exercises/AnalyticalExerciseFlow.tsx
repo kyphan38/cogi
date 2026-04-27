@@ -38,7 +38,7 @@ import type { ActionBridge } from "@/lib/types/action";
 import type { AnalyticalExercise } from "@/lib/ai/validators/common";
 import { AdaptiveSetupHint } from "@/components/adaptive/AdaptiveSetupHint";
 import { buildAdaptiveHintsForRequest } from "@/lib/adaptive/adaptive-hints";
-import { putExercise } from "@/lib/db/exercises";
+import { putExercise, getExercise } from "@/lib/db/exercises";
 import { getUserContext } from "@/lib/db/settings";
 import { completeExerciseFlow } from "@/lib/db/complete-exercise";
 import {
@@ -56,11 +56,12 @@ import { sanitizeRealDataText } from "@/lib/text/sanitizeRealData";
 import { sanitizeUserPasteOrClipboard } from "@/lib/text/sanitizeRealDataBrowser";
 import { DomainInput } from "@/components/shared/DomainInput";
 import { listRecentDomains } from "@/lib/db/exercises";
+import { isAnalyticalExercise } from "@/lib/types/exercise";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
-export function AnalyticalExerciseFlow() {
+export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
   const { show: showToast } = useToast();
   const [step, setStep] = useState<FlowStep>(0);
   const [domain, setDomain] = useState("");
@@ -97,6 +98,37 @@ export function AnalyticalExerciseFlow() {
   useEffect(() => {
     void listRecentDomains(20).then(setDomainSuggestions);
   }, []);
+
+  const advance = useCallback(
+    (next: FlowStep, updatedRow?: AnalyticalExerciseRow) => {
+      const row = updatedRow ?? exercise;
+      if (row) void putExercise({ ...row, currentStep: next });
+      setStep(next);
+    },
+    [exercise],
+  );
+
+  useEffect(() => {
+    if (!resumeId) return;
+    void (async () => {
+      const row = await getExercise(resumeId);
+      if (!row || row.completedAt || !isAnalyticalExercise(row)) return;
+      setExercise(row);
+      setHighlights(row.userHighlights ?? []);
+      setConfidence(row.confidenceBefore ?? 50);
+      if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
+      if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
+      setStep((row.currentStep ?? 1) as FlowStep);
+    })();
+  }, [resumeId]);
+
+  useEffect(() => {
+    if (!exercise || step === 0 || step === 6) return;
+    const timer = setTimeout(() => {
+      void putExercise({ ...exercise, userHighlights: highlights, currentStep: step });
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [highlights]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startGenerate = useCallback(async () => {
     setError(null);
@@ -172,6 +204,7 @@ export function AnalyticalExerciseFlow() {
         aiPerspective: null,
         createdAt: new Date().toISOString(),
         completedAt: null,
+        currentStep: 1,
       };
       await putExercise(row);
       setExercise(row);
@@ -203,7 +236,7 @@ export function AnalyticalExerciseFlow() {
   const submitHighlightsAndConfidence = async () => {
     if (!exercise) return;
     if (perspectiveText != null) {
-      setStep(3);
+      advance(3);
       return;
     }
     if (highlights.length < 1) {
@@ -242,6 +275,7 @@ export function AnalyticalExerciseFlow() {
         confidenceBefore: confidence,
         aiPerspective: parsed.text,
         aiPerspectiveStructured: parsed.structured,
+        currentStep: 3,
       };
       await putExercise(partial);
       setExercise(partial);
@@ -543,7 +577,7 @@ export function AnalyticalExerciseFlow() {
                     {realSanitizedPreview.wordCount > 2000 ? (
                       <span className="text-destructive font-medium">
                         {" "}
-                        — over 2,000; shorten before generating.
+                        - over 2,000; shorten before generating.
                       </span>
                     ) : null}
                     {realWordCount ? ` · Last generate used: ${realWordCount} words` : null}
@@ -613,7 +647,7 @@ export function AnalyticalExerciseFlow() {
                     setError("Add at least one highlight.");
                     return;
                   }
-                  setStep(2);
+                  advance(2);
                 }}
               >
                 Continue to confidence
@@ -671,7 +705,7 @@ export function AnalyticalExerciseFlow() {
             exerciseTitle={exercise.title}
             domain={exercise.domain}
           />
-          <Button type="button" onClick={() => setStep(4)}>
+          <Button type="button" onClick={() => advance(4)}>
             Continue to journal
           </Button>
         </div>
@@ -754,7 +788,7 @@ export function AnalyticalExerciseFlow() {
                         setError("Need two answers with more than 10 characters.");
                         return;
                       }
-                      setStep(5);
+                      advance(5);
                     }}
                   >
                     Continue to action

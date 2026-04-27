@@ -13,10 +13,10 @@ export function buildGenerativeGenerationPrompt(input: {
 
   const stageBlock =
     input.generativeStage === "edit"
-      ? `Stage EDIT (first exercises): For each of the 4 prompts, include "draftText" with a substantive draft (2-5 sentences) the user will edit — NOT empty.`
+      ? `Stage EDIT (first exercises): For each of the 4 prompts, include "draftText" with a substantive draft (2-5 sentences) the user will edit - NOT empty.`
       : input.generativeStage === "hint"
         ? `Stage HINT: For each prompt, include "hints" as an array of exactly 2 or 3 short bullet strings (not full drafts).`
-        : `Stage INDEPENDENT: Do NOT include draftText or hints. Optionally include "spareHint" per prompt (one sentence) for an optional "show hint" button — may be omitted.`;
+        : `Stage INDEPENDENT: Do NOT include draftText or hints. Optionally include "spareHint" per prompt (one sentence) for an optional "show hint" button - may be omitted.`;
 
   return `You are generating a structured generative-thinking exercise about: ${input.domain}.${ctx}
 
@@ -37,7 +37,7 @@ Return ONLY JSON:
   ]
 }
 
-Prompt themes should cover: core problem, alternatives, strongest counterargument to preferred path, and failure / fallback plan — adapted to the domain.
+Prompt themes should cover: core problem, alternatives, strongest counterargument to preferred path, and failure / fallback plan - adapted to the domain.
 
 Exactly 4 prompts. Unique ids. Questions must be self-contained.${adapt ? `\n\n${adapt}` : ""}`;
 }

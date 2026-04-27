@@ -17,7 +17,7 @@ export function buildComboGenerationPrompt(input: {
   if (input.preset === "full_analysis") {
     return `${ctx}You are designing a linked exercise bundle for domain: ${input.domain}.
 
-Preset: full_analysis — same scenario, three mechanics in order:
+Preset: full_analysis - same scenario, three mechanics in order:
 1) Analytical (passage = sharedScenario, embedded issues to highlight)
 2) Systems (dependency graph + shock on that situation)
 3) Evaluative matrix (trade-offs in that situation)
@@ -33,7 +33,7 @@ Required top-level keys:
 - evaluativeMatrix: { variant: "matrix", title, scenario (must equal sharedScenario), axisX, axisY, options }`;
   }
   if (input.preset === "decision_sprint") {
-    return `${ctx}Domain: ${input.domain}. Preset: decision_sprint — evaluative matrix then generative writing on the SAME scenario.
+    return `${ctx}Domain: ${input.domain}. Preset: decision_sprint - evaluative matrix then generative writing on the SAME scenario.
 
 ${JSON_RULES}
 
@@ -43,7 +43,7 @@ Required keys:
 - evaluativeMatrix: matrix variant as above
 - generative: { title, scenario (sharedScenario), prompts[4] }`;
   }
-  return `${ctx}Domain: ${input.domain}. Preset: root_cause — sequential ordering, then systems map, then analytical deep read on the SAME scenario.
+  return `${ctx}Domain: ${input.domain}. Preset: root_cause - sequential ordering, then systems map, then analytical deep read on the SAME scenario.
 
 ${JSON_RULES}
 

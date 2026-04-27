@@ -20,6 +20,8 @@ import { currentIsoWeekKey } from "@/lib/db/actions";
 import { ChevronRight } from "lucide-react";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
 import { ExercisePickerCard } from "@/components/dashboard/ExercisePickerCard";
+import { listIncompleteExercises } from "@/lib/db/exercises";
+import type { Exercise } from "@/lib/types/exercise";
 
 type ActionRow = ActionBridge & {
   exerciseTitle: string;
@@ -75,8 +77,23 @@ const ALL_EXERCISE_CARDS: {
   },
 ];
 
+const TYPE_LABEL: Record<string, string> = {
+  analytical: "Analytical",
+  sequential: "Sequential",
+  systems: "Systems",
+  evaluative: "Evaluative",
+  generative: "Generative",
+  combo: "Combo",
+};
+
+function resumeHref(ex: Exercise): string {
+  if (ex.type === "combo") return `/exercise/combo?resumeId=${ex.id}`;
+  return `/exercise/${ex.type}?resumeId=${ex.id}`;
+}
+
 export function HomeContent() {
   const [actions, setActions] = useState<ActionRow[]>([]);
+  const [incompleteExercises, setIncompleteExercises] = useState<Exercise[]>([]);
   const weekKey = currentIsoWeekKey();
 
   useEffect(() => {
@@ -98,6 +115,17 @@ export function HomeContent() {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    void (async () => {
+      try {
+        const rows = await listIncompleteExercises();
+        setIncompleteExercises(rows.slice(0, 5));
+      } catch {
+        setIncompleteExercises([]);
+      }
+    })();
+  }, []);
+
   const toggleWeek = async (row: ActionBridge) => {
     await toggleActionFollowThroughWeek(row, weekKey);
   };
@@ -112,6 +140,35 @@ export function HomeContent() {
           for a JSON backup copy anytime.
         </p>
       </div>
+
+      {incompleteExercises.length > 0 ? (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Continue where you left off</CardTitle>
+            <CardDescription>In-progress exercises - pick up where you stopped.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {incompleteExercises.map((ex) => (
+              <Link
+                key={ex.id}
+                href={resumeHref(ex)}
+                className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2 text-sm hover:bg-muted/40 transition-colors"
+              >
+                <div className="min-w-0">
+                  <span className="text-muted-foreground mr-2 text-xs font-medium uppercase">
+                    {TYPE_LABEL[ex.type] ?? ex.type}
+                  </span>
+                  <span className="font-medium truncate">{ex.title}</span>
+                  {ex.domain ? (
+                    <span className="text-muted-foreground ml-2 text-xs">· {ex.domain}</span>
+                  ) : null}
+                </div>
+                <ChevronRight className="ml-3 size-4 shrink-0 text-muted-foreground" aria-hidden />
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-2.5 sm:grid-cols-2">
         {ALL_EXERCISE_CARDS.map((c) => (
@@ -138,7 +195,7 @@ export function HomeContent() {
         <CardContent className="space-y-4">
           {actions.length === 0 ? (
             <p className="text-muted-foreground text-sm italic">
-              Nothing here yet — finish an exercise and write one concrete action to see it listed.
+              Nothing here yet - finish an exercise and write one concrete action to see it listed.
             </p>
           ) : (
             <ul className="space-y-4">

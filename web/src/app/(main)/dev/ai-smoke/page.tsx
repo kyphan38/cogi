@@ -60,7 +60,7 @@ export default function AiSmokePage() {
         <CardHeader>
           <CardTitle>AI smoke test</CardTitle>
           <CardDescription>
-            Phase 0 — calls POST /api/ai (Gemini + Zod). Key stays server-side.
+            Phase 0 - calls POST /api/ai (Gemini + Zod). Key stays server-side.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">

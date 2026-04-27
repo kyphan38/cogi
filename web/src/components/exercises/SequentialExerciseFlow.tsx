@@ -56,7 +56,7 @@ import type { JournalEntry } from "@/lib/types/journal";
 import type { ActionBridge } from "@/lib/types/action";
 import type { SequentialExercisePayload } from "@/lib/ai/validators/sequential";
 import { buildAdaptiveHintsForRequest } from "@/lib/adaptive/adaptive-hints";
-import { putExercise } from "@/lib/db/exercises";
+import { putExercise, getExercise } from "@/lib/db/exercises";
 import { getUserContext } from "@/lib/db/settings";
 import { completeExerciseFlow } from "@/lib/db/complete-exercise";
 import {
@@ -71,6 +71,7 @@ import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { DomainInput } from "@/components/shared/DomainInput";
 import { listRecentDomains } from "@/lib/db/exercises";
+import { isSequentialExercise } from "@/lib/types/exercise";
 
 const ZONE_POOL = "__zone_pool__";
 const ZONE_TIMELINE_EMPTY = "__zone_timeline_empty__";
@@ -155,7 +156,7 @@ function DroppableZone({
   );
 }
 
-export function SequentialExerciseFlow() {
+export function SequentialExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
   const [step, setStep] = useState<FlowStep>(0);
   const [domain, setDomain] = useState("");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
@@ -193,6 +194,40 @@ export function SequentialExerciseFlow() {
   useEffect(() => {
     void listRecentDomains(20).then(setDomainSuggestions);
   }, []);
+
+  const advance = useCallback(
+    (next: FlowStep, updatedRow?: SequentialExerciseRow) => {
+      const row = updatedRow ?? exercise;
+      if (row) void putExercise({ ...row, currentStep: next });
+      setStep(next);
+    },
+    [exercise],
+  );
+
+  useEffect(() => {
+    if (!resumeId) return;
+    void (async () => {
+      const row = await getExercise(resumeId);
+      if (!row || row.completedAt || !isSequentialExercise(row)) return;
+      setExercise(row);
+      const ids = row.steps.map((s) => s.id);
+      const orderedIds = row.userOrderedStepIds ?? [];
+      setTimeline(orderedIds);
+      setPool(ids.filter((id) => !orderedIds.includes(id)));
+      setConfidence(row.confidenceBefore ?? 50);
+      if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
+      if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
+      setStep((row.currentStep ?? 1) as FlowStep);
+    })();
+  }, [resumeId]);
+
+  useEffect(() => {
+    if (!exercise || step === 0 || step === 6) return;
+    const timer = setTimeout(() => {
+      void putExercise({ ...exercise, userOrderedStepIds: timeline, currentStep: step });
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [timeline]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stepById = useMemo(() => {
     if (!exercise) return new Map<string, string>();
@@ -243,6 +278,7 @@ export function SequentialExerciseFlow() {
         aiPerspective: null,
         createdAt: new Date().toISOString(),
         completedAt: null,
+        currentStep: 1,
       };
       await putExercise(row);
       setExercise(row);
@@ -314,7 +350,7 @@ export function SequentialExerciseFlow() {
   const submitOrderAndConfidence = async () => {
     if (!exercise) return;
     if (perspectiveText != null) {
-      setStep(3);
+      advance(3);
       return;
     }
     if (pool.length > 0 || timeline.length !== exercise.steps.length) {
@@ -354,6 +390,7 @@ export function SequentialExerciseFlow() {
         confidenceBefore: confidence,
         aiPerspective: parsed.text,
         aiPerspectiveStructured: parsed.structured,
+        currentStep: 3,
       };
       await putExercise(partial);
       setExercise(partial);
@@ -649,7 +686,7 @@ export function SequentialExerciseFlow() {
                     setError("Place every step in the timeline before continuing.");
                     return;
                   }
-                  setStep(2);
+                  advance(2);
                 }}
               >
                 Continue to confidence
@@ -713,7 +750,7 @@ export function SequentialExerciseFlow() {
             <CardContent className="space-y-3 text-sm">
               <div>
                 <p className="text-muted-foreground text-xs font-medium uppercase">Domain</p>
-                <p className="font-medium">{exercise.domain || "—"}</p>
+                <p className="font-medium">{exercise.domain || "-"}</p>
               </div>
               <div>
                 <p className="text-muted-foreground text-xs font-medium uppercase">Step order</p>
@@ -739,7 +776,7 @@ export function SequentialExerciseFlow() {
             exerciseTitle={exercise.title}
             domain={exercise.domain}
           />
-          <Button type="button" onClick={() => setStep(4)}>
+          <Button type="button" onClick={() => advance(4)}>
             Continue to journal
           </Button>
         </div>
@@ -822,7 +859,7 @@ export function SequentialExerciseFlow() {
                         setError("Need two answers with more than 10 characters.");
                         return;
                       }
-                      setStep(5);
+                      advance(5);
                     }}
                   >
                     Continue to action

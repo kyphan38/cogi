@@ -41,7 +41,7 @@ import type { EvaluativeExercisePayload } from "@/lib/ai/validators/evaluative";
 import type { JournalEntry } from "@/lib/types/journal";
 import type { ActionBridge } from "@/lib/types/action";
 import { buildAdaptiveHintsForRequest } from "@/lib/adaptive/adaptive-hints";
-import { putExercise } from "@/lib/db/exercises";
+import { putExercise, getExercise } from "@/lib/db/exercises";
 import { getUserContext } from "@/lib/db/settings";
 import { completeExerciseFlow } from "@/lib/db/complete-exercise";
 import {
@@ -56,6 +56,7 @@ import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { DomainInput } from "@/components/shared/DomainInput";
 import { listRecentDomains } from "@/lib/db/exercises";
+import { isEvaluativeExercise } from "@/lib/types/exercise";
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
@@ -111,7 +112,7 @@ function payloadToRow(
   return row;
 }
 
-export function EvaluativeExerciseFlow() {
+export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
   const [step, setStep] = useState<FlowStep>(0);
   const [domain, setDomain] = useState("");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
@@ -148,6 +149,50 @@ export function EvaluativeExerciseFlow() {
     void listRecentDomains(20).then(setDomainSuggestions);
   }, []);
 
+  const advance = useCallback(
+    (next: FlowStep, updatedRow?: EvaluativeExerciseRow) => {
+      const row = updatedRow ?? exercise;
+      if (row) void putExercise({ ...row, currentStep: next });
+      setStep(next);
+    },
+    [exercise],
+  );
+
+  useEffect(() => {
+    if (!resumeId) return;
+    void (async () => {
+      const row = await getExercise(resumeId);
+      if (!row || row.completedAt || !isEvaluativeExercise(row)) return;
+      setExercise(row);
+      if (row.variant === "matrix") {
+        setPlacements(row.placements ?? {});
+      } else {
+        setCriterionWeights(row.criterionWeights ?? {});
+        setScores(row.scores ?? {});
+      }
+      if (row.userProposedCriteria && row.userProposedCriteria.length > 0) {
+        setUserProposedCriteria(row.userProposedCriteria);
+        setCriteriaPhase("compare");
+      }
+      setConfidence(row.confidenceBefore ?? 50);
+      if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
+      if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
+      setStep((row.currentStep ?? 1) as FlowStep);
+    })();
+  }, [resumeId]);
+
+  useEffect(() => {
+    if (!exercise || step === 0 || step === 7) return;
+    const timer = setTimeout(() => {
+      const updated: EvaluativeExerciseRow =
+        exercise.variant === "matrix"
+          ? { ...exercise, placements, currentStep: step }
+          : { ...exercise, criterionWeights, scores, currentStep: step };
+      void putExercise(updated);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [placements, scores, criterionWeights]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const startGenerate = useCallback(async () => {
     setError(null);
     const d = domain.trim();
@@ -177,7 +222,7 @@ export function EvaluativeExerciseFlow() {
         return;
       }
       const id = crypto.randomUUID();
-      const row = payloadToRow(id, d, json.data);
+      const row: EvaluativeExerciseRow = { ...payloadToRow(id, d, json.data), currentStep: 1 };
       await putExercise(row);
       setExercise(row);
       if (row.variant === "matrix") {
@@ -236,7 +281,7 @@ export function EvaluativeExerciseFlow() {
     const ex = exercise;
     if (!ex) return;
     if (perspectiveText != null) {
-      setStep(4);
+      advance(4);
       return;
     }
     if (ex.variant === "matrix" && !matrixReady()) {
@@ -288,6 +333,7 @@ export function EvaluativeExerciseFlow() {
               confidenceBefore: confidence,
               aiPerspective: parsed.text,
               aiPerspectiveStructured: parsed.structured,
+              currentStep: 4,
             }
           : {
               ...ex,
@@ -296,6 +342,7 @@ export function EvaluativeExerciseFlow() {
               confidenceBefore: confidence,
               aiPerspective: parsed.text,
               aiPerspectiveStructured: parsed.structured,
+              currentStep: 4,
             };
       await putExercise(partial);
       setExercise(partial);
@@ -657,8 +704,8 @@ export function EvaluativeExerciseFlow() {
                         .filter((c) => c.name && c.rationale);
                       const next: EvaluativeExerciseRow =
                         exercise.variant === "matrix"
-                          ? { ...exercise, userProposedCriteria: cleaned }
-                          : { ...exercise, userProposedCriteria: cleaned };
+                          ? { ...exercise, userProposedCriteria: cleaned, currentStep: 2 }
+                          : { ...exercise, userProposedCriteria: cleaned, currentStep: 2 };
                       void putExercise(next);
                       setExercise(next);
                       setStep(2);
@@ -768,7 +815,7 @@ export function EvaluativeExerciseFlow() {
               </Button>
               <Button
                 type="button"
-                onClick={() => setStep(3)}
+                onClick={() => advance(3)}
                 disabled={exercise.variant === "matrix" && !matrixReady()}
               >
                 Continue to confidence
@@ -821,7 +868,7 @@ export function EvaluativeExerciseFlow() {
         <Card>
           <CardHeader>
             <CardTitle>AI perspective</CardTitle>
-            <CardDescription>Collaborative comparison — not a numeric grade.</CardDescription>
+            <CardDescription>Collaborative comparison - not a numeric grade.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <AIPerspective
@@ -834,7 +881,7 @@ export function EvaluativeExerciseFlow() {
               exerciseTitle={exercise.title}
               domain={exercise.domain}
             />
-            <Button type="button" onClick={() => setStep(5)}>
+            <Button type="button" onClick={() => advance(5)}>
               Continue to journal
             </Button>
           </CardContent>
@@ -900,7 +947,7 @@ export function EvaluativeExerciseFlow() {
             <Button type="button" variant="secondary" onClick={() => setStep(4)}>
               Back
             </Button>
-            <Button type="button" onClick={() => setStep(6)}>
+            <Button type="button" onClick={() => advance(6)}>
               Continue to action
             </Button>
           </CardContent>

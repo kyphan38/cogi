@@ -214,7 +214,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <p>
-            <span className="font-medium text-foreground">Exercise history — delete dialog:</span> press{" "}
+            <span className="font-medium text-foreground">Exercise history - delete dialog:</span> press{" "}
             <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
               Escape
             </kbd>{" "}

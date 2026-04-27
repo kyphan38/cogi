@@ -73,7 +73,7 @@ export function DecisionRemindersCard({ decisions }: DecisionRemindersCardProps)
           </p>
         ) : null}
         <p className="text-muted-foreground text-xs italic">
-          No outcome reminders due — when a logged decision reaches its reminder date, it will show here.
+          No outcome reminders due - when a logged decision reaches its reminder date, it will show here.
         </p>
       </div>
     );

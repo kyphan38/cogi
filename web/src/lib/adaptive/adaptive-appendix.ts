@@ -54,7 +54,7 @@ export function normalizeAdaptiveHints(raw: unknown): AdaptiveHintsPayload | nul
 
 function tierGuidance(exerciseType: AdaptiveExerciseType, tier: DifficultyTierLabel | null): string {
   if (!tier) {
-    return "Insufficient local history for a tier label — keep difficulty neutral and well-structured.";
+    return "Insufficient local history for a tier label - keep difficulty neutral and well-structured.";
   }
   if (exerciseType === "analytical") {
     if (tier === "Foundation") {
@@ -95,7 +95,7 @@ function tierGuidance(exerciseType: AdaptiveExerciseType, tier: DifficultyTierLa
     }
     return "Learner band: Expert. Maximize genuinely hard trade-offs without breaking variant-specific constraints.";
   }
-  return `Learner band: ${tier}. For generative stage rules, tune question depth and how demanding the expected answers are — without changing required counts or stage-specific fields.`;
+  return `Learner band: ${tier}. For generative stage rules, tune question depth and how demanding the expected answers are - without changing required counts or stage-specific fields.`;
 }
 
 /**

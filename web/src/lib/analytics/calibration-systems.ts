@@ -24,7 +24,7 @@ function jaccard(a: Set<string>, b: Set<string>): number {
 }
 
 /**
- * Phase 1.3b — Systems row: % of intendedConnections matched by user-drawn edges
+ * Phase 1.3b - Systems row: % of intendedConnections matched by user-drawn edges
  * with the same (from, to, type) triplet. User edge list is capped by EDGE_BUDGET
  * for matching purposes (only first EDGE_BUDGET user edges participate in hit tests).
  *

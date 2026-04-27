@@ -7,11 +7,11 @@ export type GenerativeStage = z.infer<typeof generativeStageSchema>;
 const promptSchema = z.object({
   id: z.string().min(1).max(20),
   question: z.string().min(1).max(500),
-  /** Stage edit — full draft for user to edit */
+  /** Stage edit - full draft for user to edit */
   draftText: z.string().min(1).max(4000).optional(),
-  /** Stage hint — 2–3 bullets */
+  /** Stage hint - 2–3 bullets */
   hints: z.array(z.string().min(1).max(400)).optional(),
-  /** Stage independent — optional hidden hint until user taps Show hint */
+  /** Stage independent - optional hidden hint until user taps Show hint */
   spareHint: z.string().min(1).max(600).optional(),
 });
 

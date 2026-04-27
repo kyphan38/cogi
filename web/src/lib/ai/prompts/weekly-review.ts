@@ -50,7 +50,7 @@ ${decBlock}
 ## Actions (last 14 days)
 ${actBlock}
 
-Write plain **markdown** (no JSON) with these sections in order — use headings exactly:
+Write plain **markdown** (no JSON) with these sections in order - use headings exactly:
 
 ## This week's patterns
 (2–4 bullets)
@@ -59,7 +59,7 @@ Write plain **markdown** (no JSON) with these sections in order — use headings
 (One short paragraph: improved or worsened by domain where evidence exists; if sparse, say so.)
 
 ## Recurring blind spot
-(One paragraph — pattern from journals / perspectives)
+(One paragraph - pattern from journals / perspectives)
 
 ## Suggested focus for next week
 (Name one thinking type + one domain to practice next.)

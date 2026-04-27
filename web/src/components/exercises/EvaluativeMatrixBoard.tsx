@@ -107,7 +107,7 @@ function PaletteDrop({ children }: { children: React.ReactNode }) {
         isOver ? "border-primary bg-muted/40" : "border-muted-foreground/25",
       )}
     >
-      <p className="text-muted-foreground mb-2 text-xs">Options — drag into a quadrant</p>
+      <p className="text-muted-foreground mb-2 text-xs">Options - drag into a quadrant</p>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );

@@ -130,7 +130,7 @@ function PerspectivePointRow(props: {
         {point.title ? (
           <>
             <span className="text-foreground font-medium">{point.title}</span>
-            {" — "}
+            {" - "}
           </>
         ) : null}
         {point.body}
@@ -184,7 +184,7 @@ function PerspectivePointRow(props: {
   );
 }
 
-/** Phase 1.4 / 6.4 — structured sections + optional one-round disagree. */
+/** Phase 1.4 / 6.4 - structured sections + optional one-round disagree. */
 export function AIPerspective({
   text,
   structured,

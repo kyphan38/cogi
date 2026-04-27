@@ -374,14 +374,14 @@ export function DashboardContent() {
           >
             <p className="text-muted-foreground text-[11px] tracking-wide uppercase">Calibration</p>
             <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
-              {calibrationSummary.avgGap != null ? `${calibrationSummary.avgGap > 0 ? "+" : ""}${calibrationSummary.avgGap}%` : "—"}
+              {calibrationSummary.avgGap != null ? `${calibrationSummary.avgGap > 0 ? "+" : ""}${calibrationSummary.avgGap}%` : "-"}
             </p>
             <p className="text-muted-foreground mt-0.5 text-xs leading-snug">{stanceLabel}</p>
           </div>
           <div className="rounded-lg border border-border bg-card px-3.5 py-3">
             <p className="text-muted-foreground text-[11px] tracking-wide uppercase">Measured accuracy</p>
             <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
-              {calibrationSummary.avgAcc != null ? `${calibrationSummary.avgAcc}%` : "—"}
+              {calibrationSummary.avgAcc != null ? `${calibrationSummary.avgAcc}%` : "-"}
             </p>
             <p className="text-muted-foreground mt-0.5 text-xs">Average actual accuracy across completed runs.</p>
           </div>
@@ -411,7 +411,7 @@ export function DashboardContent() {
               <CardContent>
                 {count === 0 ? (
                   <p className="text-muted-foreground text-sm italic">
-                    No completions yet — finish an exercise to see breakdowns by type and domain.
+                    No completions yet - finish an exercise to see breakdowns by type and domain.
                   </p>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -462,7 +462,7 @@ export function DashboardContent() {
                           ? `${s.tier} (~${s.rollingMean}%, n=${s.sampleCount})`
                           : s.sampleCount > 0 && s.rollingMean != null
                             ? `Collecting (~${s.rollingMean}%, n=${s.sampleCount})`
-                            : "—";
+                            : "-";
                       return (
                         <li key={t}>
                           <span className="font-medium">{t}</span>: {label}
@@ -481,7 +481,7 @@ export function DashboardContent() {
                     </ul>
                   ) : (
                     <p className="text-muted-foreground text-xs italic">
-                      No blind spots queued yet — keep practicing.
+                      No blind spots queued yet - keep practicing.
                     </p>
                   )}
                 </div>
@@ -539,7 +539,7 @@ export function DashboardContent() {
                 </div>
               ) : (
                 <p className="text-muted-foreground text-sm italic">
-                  No review generated yet — once eligible, use the button above to summarize your last seven completions.
+                  No review generated yet - once eligible, use the button above to summarize your last seven completions.
                 </p>
               )}
             </CardContent>
@@ -594,7 +594,7 @@ export function DashboardContent() {
                 <DelayedRecallCard key={recall.id} recall={recall} />
               ) : (
                 <p className="text-muted-foreground text-xs italic">
-                  Nothing due in the next window — when an exercise matures, a recall prompt will appear here.
+                  Nothing due in the next window - when an exercise matures, a recall prompt will appear here.
                 </p>
               )}
             </CardContent>

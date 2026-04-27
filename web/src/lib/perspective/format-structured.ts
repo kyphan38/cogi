@@ -21,7 +21,7 @@ export function getStructuredPerspectiveSections(s: AIPerspectiveStructured): {
 
 function section(title: string, points: { title?: string; body: string }[]): string {
   const lines = points.map((p) => {
-    const head = p.title?.trim() ? `**${p.title.trim()}** — ` : "";
+    const head = p.title?.trim() ? `**${p.title.trim()}** - ` : "";
     return `- ${head}${p.body.trim()}`;
   });
   return `## ${title}\n${lines.join("\n")}`;

@@ -1,7 +1,7 @@
 import type { DifficultyTierLabel } from "@/lib/adaptive/types";
 
 /**
- * Phase 7.1 — map rolling mean `actualAccuracy` (0–100) to a learner-facing band.
+ * Phase 7.1 - map rolling mean `actualAccuracy` (0–100) to a learner-facing band.
  * Thresholds align with ai_plan.txt “Foundation → Expert” progression.
  */
 export function accuracyToTierLabel(mean: number): DifficultyTierLabel {

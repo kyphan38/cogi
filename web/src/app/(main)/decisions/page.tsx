@@ -172,7 +172,7 @@ export default function DecisionsPage() {
       showToast("Saved", "success");
     } catch (e) {
       console.error("DecisionsPage putDecision (follow-up)", e);
-      showToast("Save failed — try again", "error");
+      showToast("Save failed - try again", "error");
     }
   };
 
@@ -217,7 +217,7 @@ export default function DecisionsPage() {
       showToast("Saved", "success");
     } catch (e) {
       console.error("DecisionsPage putDecision (outcomeReview)", e);
-      showToast("Save failed — try again", "error");
+      showToast("Save failed - try again", "error");
     } finally {
       setSavingReviewId(null);
     }
@@ -440,9 +440,9 @@ export default function DecisionsPage() {
                           <SelectContent>
                             <SelectItem value="__unset__">Choose…</SelectItem>
                             <SelectItem value="sound">Sound reasoning, expected outcome</SelectItem>
-                            <SelectItem value="flawed">Flawed reasoning — I missed something</SelectItem>
-                            <SelectItem value="lucky">Got lucky — right outcome, wrong reasons</SelectItem>
-                            <SelectItem value="unlucky">Unlucky — good reasoning, bad outcome</SelectItem>
+                            <SelectItem value="flawed">Flawed reasoning - I missed something</SelectItem>
+                            <SelectItem value="lucky">Got lucky - right outcome, wrong reasons</SelectItem>
+                            <SelectItem value="unlucky">Unlucky - good reasoning, bad outcome</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

@@ -87,7 +87,8 @@ function cycleImpact(v: SystemsNodeImpact): SystemsNodeImpact {
 
 type Phase = "pick" | "work" | "journal" | "done";
 
-export function ComboExerciseFlow() {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string } = {}) {
   const [domain, setDomain] = useState("");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [preset, setPreset] = useState<ComboPresetId>("full_analysis");
@@ -699,13 +700,13 @@ export function ComboExerciseFlow() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="full_analysis">
-                    Full analysis — analytical → systems → evaluative matrix
+                    Full analysis - analytical → systems → evaluative matrix
                   </SelectItem>
                   <SelectItem value="decision_sprint">
-                    Decision sprint — evaluative matrix → generative
+                    Decision sprint - evaluative matrix → generative
                   </SelectItem>
                   <SelectItem value="root_cause">
-                    Root cause — sequential → systems → analytical
+                    Root cause - sequential → systems → analytical
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -732,7 +733,7 @@ export function ComboExerciseFlow() {
             <CardHeader>
               <CardTitle>{bundle.sharedTitle}</CardTitle>
               <CardDescription>
-                Step {mechStep + 1} of {mechCount} — same scenario continues.
+                Step {mechStep + 1} of {mechCount} - same scenario continues.
               </CardDescription>
             </CardHeader>
             <CardContent>

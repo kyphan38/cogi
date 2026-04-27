@@ -12,7 +12,7 @@ export function buildEvaluativeMatrixPerspectivePrompt(input: {
   const intended = input.exercise.options
     .map(
       (o) =>
-        `- ${o.id} (${o.title}): intended quadrant ${o.intendedQuadrant} — ${o.explanation}`,
+        `- ${o.id} (${o.title}): intended quadrant ${o.intendedQuadrant} - ${o.explanation}`,
     )
     .join("\n");
   const ctx = input.userContext?.trim() ? `\nUser context: ${input.userContext}` : "";
@@ -27,12 +27,12 @@ ${input.exercise.scenario}
 User proposed these criteria before seeing the framework:
 ${JSON.stringify(proposed, null, 2)}
 
-Axes: X — ${input.exercise.axisX.label} (${input.exercise.axisX.lowLabel} → ${input.exercise.axisX.highLabel})
-      Y — ${input.exercise.axisY.label} (${input.exercise.axisY.lowLabel} → ${input.exercise.axisY.highLabel})
+Axes: X - ${input.exercise.axisX.label} (${input.exercise.axisX.lowLabel} → ${input.exercise.axisX.highLabel})
+      Y - ${input.exercise.axisY.label} (${input.exercise.axisY.lowLabel} → ${input.exercise.axisY.highLabel})
 
 User stated confidence before seeing your notes: ${input.confidenceBefore}%${ctx}
 
-Intended placements (for your reference — do not present as a numeric score):
+Intended placements (for your reference - do not present as a numeric score):
 ${intended}
 
 User's quadrant placements (option id → quadrant):

@@ -49,7 +49,7 @@
 }
 
 :root {
-  /* Paper / editorial — warm off-white, soft borders (see thinking_app_redesign_mockup.html) */
+  /* Paper / editorial - warm off-white, soft borders (see thinking_app_redesign_mockup.html) */
   --background: oklch(0.985 0.004 85);
   --foreground: oklch(0.22 0.012 75);
   --card: oklch(1 0.002 85);

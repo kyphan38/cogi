@@ -525,7 +525,7 @@ function HistoryPageInner() {
             <div className="rounded-md border border-border bg-muted/10 p-3 text-sm">
               <p className="text-muted-foreground">Avg confidence</p>
               <p className="text-lg font-medium tabular-nums">
-                {globalStats.avgConf != null ? `${globalStats.avgConf}%` : "—"}
+                {globalStats.avgConf != null ? `${globalStats.avgConf}%` : "-"}
               </p>
               <p className="text-muted-foreground mt-1 text-xs">
                 How sure you said you were before each run.
@@ -534,7 +534,7 @@ function HistoryPageInner() {
             <div className="rounded-md border border-border bg-muted/10 p-3 text-sm">
               <p className="text-muted-foreground">Avg accuracy</p>
               <p className="text-lg font-medium tabular-nums">
-                {globalStats.avgAcc != null ? `${globalStats.avgAcc}%` : "—"}
+                {globalStats.avgAcc != null ? `${globalStats.avgAcc}%` : "-"}
               </p>
               <p className="text-muted-foreground mt-1 text-xs">
                 Measured performance after each exercise.
@@ -545,7 +545,7 @@ function HistoryPageInner() {
               <p className="text-lg font-medium tabular-nums">
                 {globalStats.avgGap != null
                   ? `${globalStats.avgGap > 0 ? "+" : ""}${globalStats.avgGap}%`
-                  : "—"}
+                  : "-"}
               </p>
               <p className="text-muted-foreground mt-1 text-xs">
                 Above zero → confidence tended to exceed accuracy.
@@ -779,7 +779,7 @@ function HistoryPageInner() {
                   <ul className="space-y-1 text-xs">
                     {detailEx.nodes.map((n) => (
                       <li key={n.id}>
-                        <span className="font-medium">{n.label}</span> — {n.description}
+                        <span className="font-medium">{n.label}</span> - {n.description}
                       </li>
                     ))}
                   </ul>
@@ -799,7 +799,7 @@ function HistoryPageInner() {
                   )}
                 </div>
                 <div>
-                  <h3 className="mb-1 font-medium">Shock — your impact map</h3>
+                  <h3 className="mb-1 font-medium">Shock - your impact map</h3>
                   <p className="text-muted-foreground mb-2 text-xs">{detailEx.shockEvent.description}</p>
                   <ul className="space-y-1 text-xs">
                     {detailEx.nodes.map((n) => (
@@ -822,7 +822,7 @@ function HistoryPageInner() {
                     <ul className="list-inside list-disc space-y-1 text-xs">
                       {detailEx.options.map((o) => (
                         <li key={o.id}>
-                          {o.title}: {detailEx.placements[o.id] ?? "—"}
+                          {o.title}: {detailEx.placements[o.id] ?? "-"}
                         </li>
                       ))}
                     </ul>
@@ -854,7 +854,7 @@ function HistoryPageInner() {
                       <li key={p.id}>
                         <span className="font-medium">{p.question}</span>
                         <p className="text-muted-foreground mt-1 line-clamp-3 whitespace-pre-wrap">
-                          {detailEx.answers[p.id]?.trim() || "—"}
+                          {detailEx.answers[p.id]?.trim() || "-"}
                         </p>
                       </li>
                     ))}
@@ -884,13 +884,13 @@ function HistoryPageInner() {
                     {detailEx.subExercises.map((sub, i) => (
                       <li key={`${sub.id}-${i}`}>
                         <span className="font-medium">{sub.type}</span>
-                        {sub.type === "analytical" ? <span> — {sub.userHighlights.length} highlight(s)</span> : null}
-                        {sub.type === "sequential" ? <span> — {sub.userOrderedStepIds.length} steps ordered</span> : null}
-                        {sub.type === "systems" ? <span> — {sub.userEdges.length} edge(s)</span> : null}
+                        {sub.type === "analytical" ? <span> - {sub.userHighlights.length} highlight(s)</span> : null}
+                        {sub.type === "sequential" ? <span> - {sub.userOrderedStepIds.length} steps ordered</span> : null}
+                        {sub.type === "systems" ? <span> - {sub.userEdges.length} edge(s)</span> : null}
                         {sub.type === "evaluative" && sub.variant === "matrix" ? (
-                          <span> — {Object.keys(sub.placements).length} placement(s)</span>
+                          <span> - {Object.keys(sub.placements).length} placement(s)</span>
                         ) : null}
-                        {sub.type === "generative" ? <span> — {Object.keys(sub.answers).length} answer field(s)</span> : null}
+                        {sub.type === "generative" ? <span> - {Object.keys(sub.answers).length} answer field(s)</span> : null}
                       </li>
                     ))}
                   </ol>
@@ -902,7 +902,7 @@ function HistoryPageInner() {
               <h3 className="mb-1 font-medium">AI perspective</h3>
               {isComboExercise(detailEx) ? (
                 <p className="text-muted-foreground leading-relaxed">
-                  Combined exercise — see sub-results above. No separate AI perspective for this entry.
+                  Combined exercise - see sub-results above. No separate AI perspective for this entry.
                 </p>
               ) : detailEx.aiPerspectiveStructured ? (
                 <div className="text-muted-foreground space-y-4 text-sm leading-relaxed">
@@ -915,7 +915,7 @@ function HistoryPageInner() {
                             {p.title ? (
                               <>
                                 <span className="text-foreground font-medium">{p.title}</span>
-                                {" — "}
+                                {" - "}
                               </>
                             ) : null}
                             {p.body}
@@ -927,7 +927,7 @@ function HistoryPageInner() {
                 </div>
               ) : (
                 <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {detailEx.aiPerspective ?? "—"}
+                  {detailEx.aiPerspective ?? "-"}
                 </p>
               )}
             </div>
@@ -940,7 +940,7 @@ function HistoryPageInner() {
                     <li key={d.id} className="rounded-md border p-2">
                       <p className="text-muted-foreground">
                         {d.section} · {d.pointId}
-                        {d.pointTitle ? ` — ${d.pointTitle}` : ""}
+                        {d.pointTitle ? ` - ${d.pointTitle}` : ""}
                       </p>
                       <p className="mt-1 font-medium">You</p>
                       <p className="text-muted-foreground whitespace-pre-wrap">{d.userReason}</p>
@@ -970,7 +970,7 @@ function HistoryPageInner() {
                     return (
                       <li key={pid}>
                         <p className="text-muted-foreground text-xs">{label}</p>
-                        <p className="whitespace-pre-wrap">{detailJournal.responses[pid] ?? "—"}</p>
+                        <p className="whitespace-pre-wrap">{detailJournal.responses[pid] ?? "-"}</p>
                       </li>
                     );
                   })}

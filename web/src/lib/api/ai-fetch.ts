@@ -7,7 +7,7 @@ export async function aiFetch(path: string, init?: RequestInit): Promise<Respons
   const auth = getFirebaseAuth();
   const user = auth.currentUser;
   if (!user) {
-    return Promise.reject(new Error("Not signed in — please refresh and sign in again."));
+    return Promise.reject(new Error("Not signed in - please refresh and sign in again."));
   }
   const headers = new Headers(init?.headers);
   let idToken: string;
@@ -15,7 +15,7 @@ export async function aiFetch(path: string, init?: RequestInit): Promise<Respons
     idToken = await user.getIdToken();
   } catch {
     return Promise.reject(
-      new Error("Session expired — please refresh the page to sign in again."),
+      new Error("Session expired - please refresh the page to sign in again."),
     );
   }
   headers.set("Authorization", `Bearer ${idToken}`);

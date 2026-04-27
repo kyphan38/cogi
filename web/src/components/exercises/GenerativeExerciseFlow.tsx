@@ -33,7 +33,7 @@ import type { GenerativeExercisePayload } from "@/lib/ai/validators/generative";
 import type { JournalEntry } from "@/lib/types/journal";
 import type { ActionBridge } from "@/lib/types/action";
 import { buildAdaptiveHintsForRequest } from "@/lib/adaptive/adaptive-hints";
-import { countCompletedByType, putExercise } from "@/lib/db/exercises";
+import { countCompletedByType, putExercise, getExercise } from "@/lib/db/exercises";
 import { getUserContext } from "@/lib/db/settings";
 import { completeExerciseFlow } from "@/lib/db/complete-exercise";
 import {
@@ -50,6 +50,7 @@ import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import type { DebateChatMessage } from "@/lib/ai/prompts/generative-debate";
 import { DomainInput } from "@/components/shared/DomainInput";
 import { listRecentDomains } from "@/lib/db/exercises";
+import { isGenerativeExercise } from "@/lib/types/exercise";
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
@@ -112,7 +113,7 @@ function allPromptsNonEmpty(row: GenerativeExerciseRow, minLen: number): boolean
   return row.prompts.every((p) => (row.answers[p.id] ?? "").trim().length >= minLen);
 }
 
-export function GenerativeExerciseFlow() {
+export function GenerativeExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
   const [step, setStep] = useState<FlowStep>(0);
   const [domain, setDomain] = useState("");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
@@ -154,6 +155,46 @@ export function GenerativeExerciseFlow() {
   useEffect(() => {
     void listRecentDomains(20).then(setDomainSuggestions);
   }, []);
+
+  const advance = useCallback(
+    (next: FlowStep, updatedRow?: GenerativeExerciseRow) => {
+      const row = updatedRow ?? exercise;
+      if (row) void putExercise({ ...row, currentStep: next });
+      setStep(next);
+    },
+    [exercise],
+  );
+
+  useEffect(() => {
+    if (!resumeId) return;
+    void (async () => {
+      const row = await getExercise(resumeId);
+      if (!row || row.completedAt || !isGenerativeExercise(row)) return;
+      setExercise(row);
+      setAnswers(row.answers ?? {});
+      setSteelmanText(row.steelmanText ?? "");
+      setConfidence(row.confidenceBefore ?? 50);
+      if (row.debateOpening) setDebateOpening(row.debateOpening);
+      if (row.debateTurns) setDebateTurns(row.debateTurns);
+      if (row.rubricScore != null) setRubricScore(row.rubricScore);
+      if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
+      if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
+      setStep((row.currentStep ?? 1) as FlowStep);
+    })();
+  }, [resumeId]);
+
+  useEffect(() => {
+    if (!exercise || step === 0 || step === 8) return;
+    const timer = setTimeout(() => {
+      void putExercise({
+        ...exercise,
+        answers,
+        steelmanText: steelmanText.trim() || null,
+        currentStep: step,
+      });
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [answers, steelmanText]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mergedExercise = useCallback((): GenerativeExerciseRow | null => {
     if (!exercise) return null;
@@ -199,7 +240,10 @@ export function GenerativeExerciseFlow() {
         return;
       }
       const id = crypto.randomUUID();
-      const row = buildRowFromPayload(id, d, generativeStage, json.data);
+      const row: GenerativeExerciseRow = {
+        ...buildRowFromPayload(id, d, generativeStage, json.data),
+        currentStep: 1,
+      };
       await putExercise(row);
       setExercise(row);
       setAnswers(row.answers);
@@ -348,7 +392,7 @@ export function GenerativeExerciseFlow() {
     const base = mergedExercise();
     if (!base || !debateOpening) return;
     if (perspectiveText != null) {
-      setStep(5);
+      advance(5);
       return;
     }
     setError(null);
@@ -392,6 +436,7 @@ export function GenerativeExerciseFlow() {
         confidenceBefore: confidence,
         aiPerspective: pj.text,
         aiPerspectiveStructured: pj.structured,
+        currentStep: 5,
       };
       await putExercise(partial);
       setExercise(partial);
@@ -593,7 +638,7 @@ export function GenerativeExerciseFlow() {
             <CardDescription className="leading-relaxed">{exercise.scenario}</CardDescription>
             {exercise.stageAtStart === "edit" ? (
               <p className="text-muted-foreground text-xs">
-                AI drafted answers — edit them to reflect your thinking. You must change at least{" "}
+                AI drafted answers - edit them to reflect your thinking. You must change at least{" "}
                 <strong>two</strong> of the four prompts from the original draft.
               </p>
             ) : exercise.stageAtStart === "hint" ? (
@@ -660,7 +705,7 @@ export function GenerativeExerciseFlow() {
               </Button>
               <Button
                 type="button"
-                onClick={() => setStep(2)}
+                onClick={() => advance(2)}
                 disabled={
                   !rowForWriteGate ||
                   !allPromptsNonEmpty(rowForWriteGate, 1) ||
@@ -692,7 +737,7 @@ export function GenerativeExerciseFlow() {
                   <div key={p.id} className="space-y-1">
                     <p className="font-medium">{p.question}</p>
                     <p className="text-muted-foreground whitespace-pre-wrap">
-                      {(answers[p.id] ?? "").trim() || "—"}
+                      {(answers[p.id] ?? "").trim() || "-"}
                     </p>
                   </div>
                 ))}
@@ -701,7 +746,7 @@ export function GenerativeExerciseFlow() {
             <div className="grid gap-2">
               <Label>
                 Write the strongest possible argument against your position. Assume a smart, well-informed
-                person disagrees — what would they say?
+                person disagrees - what would they say?
               </Label>
               <Textarea
                 rows={6}
@@ -719,7 +764,7 @@ export function GenerativeExerciseFlow() {
               </Button>
               <Button
                 type="button"
-                onClick={() => setStep(3)}
+                onClick={() => advance(3)}
                 disabled={steelmanText.trim().length < 50}
               >
                 Continue to confidence
@@ -757,8 +802,14 @@ export function GenerativeExerciseFlow() {
                 type="button"
                 disabled={loading}
                 onClick={() => {
-                  void putExercise({ ...exercise, answers, steelmanText: steelmanText.trim() || null });
-                  setExercise({ ...exercise, answers, steelmanText: steelmanText.trim() || null });
+                  const updated: GenerativeExerciseRow = {
+                    ...exercise,
+                    answers,
+                    steelmanText: steelmanText.trim() || null,
+                    currentStep: 4,
+                  };
+                  void putExercise(updated);
+                  setExercise(updated);
                   setStep(4);
                 }}
               >
@@ -866,7 +917,7 @@ export function GenerativeExerciseFlow() {
               exerciseTitle={exercise.title}
               domain={exercise.domain}
             />
-            <Button type="button" onClick={() => setStep(6)}>
+            <Button type="button" onClick={() => advance(6)}>
               Continue to journal
             </Button>
           </CardContent>
@@ -929,7 +980,7 @@ export function GenerativeExerciseFlow() {
             <Button type="button" variant="secondary" onClick={() => setStep(5)}>
               Back
             </Button>
-            <Button type="button" onClick={() => setStep(7)}>
+            <Button type="button" onClick={() => advance(7)}>
               Continue to action
             </Button>
           </CardContent>

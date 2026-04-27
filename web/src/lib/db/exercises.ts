@@ -193,6 +193,14 @@ export function subscribeRecentExercisesForPicker(
   );
 }
 
+/** In-progress exercises (generated but not yet completed), newest first. */
+export async function listIncompleteExercises(): Promise<Exercise[]> {
+  const all = await listCollectionRows<Exercise>(COGI_COLLECTIONS.exercises);
+  return all
+    .filter((e) => e.completedAt === null && (e.currentStep ?? 0) > 0)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
 export async function listRecentDomains(limit: number = 20): Promise<string[]> {
   const all = await listCollectionRows<Exercise>(COGI_COLLECTIONS.exercises);
   const freq = new Map<string, { count: number; latest: string }>();

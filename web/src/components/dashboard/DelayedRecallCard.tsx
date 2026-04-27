@@ -111,7 +111,7 @@ export function DelayedRecallCard({ recall }: DelayedRecallCardProps) {
         <div>
           <CardTitle className="text-sm">Quick recall</CardTitle>
           <CardDescription className="text-xs">
-            {recall.exerciseTitle} — What was the main insight?
+            {recall.exerciseTitle} - What was the main insight?
           </CardDescription>
         </div>
         <Button
