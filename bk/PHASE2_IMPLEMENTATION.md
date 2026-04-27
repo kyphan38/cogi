@@ -1,4 +1,4 @@
-# Phase 2 — Implementation plan (Sequential + History)
+# Phase 2 - Implementation plan (Sequential + History)
 
 **Status:** Core Phase 2 implemented in `web/` (sequential flow, APIs, history, calibration UI). Track checklist **here** only; do not use [`../ai_plan.txt`](../ai_plan.txt) as a live status board.
 
@@ -31,7 +31,7 @@ flowchart TB
 
 ---
 
-## P2-TYPES — Discriminated `Exercise`
+## P2-TYPES - Discriminated `Exercise`
 
 **Goal:** [`src/lib/types/exercise.ts`](src/lib/types/exercise.ts): `ThinkingType` includes `"sequential"`; `AnalyticalExerciseRow` and `SequentialExerciseRow` union into `Exercise`; sequential fields: `scenario`, `steps[]`, `criticalErrors[]`, `userOrderedStepIds`, shared `title`, `domain`, `confidenceBefore`, `aiPerspective`, timestamps.
 
@@ -39,7 +39,7 @@ flowchart TB
 
 ---
 
-## P2-ZOD — Sequential generation contract
+## P2-ZOD - Sequential generation contract
 
 **Goal:** [`src/lib/ai/validators/sequential.ts`](src/lib/ai/validators/sequential.ts) mirrors **2.3**: `steps` with `id`, `text`, `correctPosition`, `dependencies`, `isFlexible`, `explanation`; `criticalErrors` with `severity` enum; `parseSequentialExerciseJson` with fence stripping (reuse pattern from [`common.ts`](src/lib/ai/validators/common.ts)).
 
@@ -47,7 +47,7 @@ flowchart TB
 
 ---
 
-## P2-DB — Dexie
+## P2-DB - Dexie
 
 **Goal:** No new Dexie version required; `exercises` already indexes `type`, `completedAt` ([`schema.ts`](src/lib/db/schema.ts)). Helpers in [`exercises.ts`](src/lib/db/exercises.ts): `listCompletedExercises`, `getConfidenceRecordForExercise`, `listConfidenceRecords`.
 
@@ -55,7 +55,7 @@ flowchart TB
 
 ---
 
-## P2-CALIB-SEQ — `actualAccuracy` for sequential (**1.3b**)
+## P2-CALIB-SEQ - `actualAccuracy` for sequential (**1.3b**)
 
 **Goal:** [`src/lib/analytics/calibration-sequential.ts`](src/lib/analytics/calibration-sequential.ts): % of **dependency edges** satisfied in final order (`dep` appears before `step`); edges where **both** endpoints have `isFlexible: true` excluded from numerator and denominator (per spec: flexible group swaps do not affect score).
 
@@ -63,7 +63,7 @@ flowchart TB
 
 ---
 
-## P2-API-GEN — Sequential exercise generation
+## P2-API-GEN - Sequential exercise generation
 
 **Goal:** Extend [`src/app/api/ai/route.ts`](src/app/api/ai/route.ts): accept `exerciseType: "sequential"` (default `"analytical"` for back-compat); prompt [`src/lib/ai/prompts/sequential.ts`](src/lib/ai/prompts/sequential.ts); reuse JSON Gemini call from [`gemini.ts`](src/lib/ai/gemini.ts).
 
@@ -71,15 +71,15 @@ flowchart TB
 
 ---
 
-## P2-API-PERSPECTIVE — Sequential narrative
+## P2-API-PERSPECTIVE - Sequential narrative
 
-**Goal:** Extend [`src/app/api/ai/perspective/route.ts`](src/app/api/ai/perspective/route.ts) with `kind: "sequential"` body: scenario, steps, criticalErrors, `userOrderedStepIds`, `confidenceBefore`, domain, title; prompt [`src/lib/ai/prompts/sequential-perspective.ts`](src/lib/ai/prompts/sequential-perspective.ts) covering **2.2** (intended chain, divergence, critical path, wrong-position callouts — prose only, no numeric exercise score).
+**Goal:** Extend [`src/app/api/ai/perspective/route.ts`](src/app/api/ai/perspective/route.ts) with `kind: "sequential"` body: scenario, steps, criticalErrors, `userOrderedStepIds`, `confidenceBefore`, domain, title; prompt [`src/lib/ai/prompts/sequential-perspective.ts`](src/lib/ai/prompts/sequential-perspective.ts) covering **2.2** (intended chain, divergence, critical path, wrong-position callouts - prose only, no numeric exercise score).
 
 **Done when:** Non-empty markdown/text after a valid submission payload.
 
 ---
 
-## P2-MECHANIC — Drag and drop (**2.1**)
+## P2-MECHANIC - Drag and drop (**2.1**)
 
 **Goal:** [`src/components/exercises/SequentialExerciseFlow.tsx`](src/components/exercises/SequentialExerciseFlow.tsx): scrambled **source** pool + **target** timeline; drag pool → timeline; reorder within timeline; return to pool optional; `@dnd-kit` accessible patterns; then confidence → perspective (reuse [`ConfidenceSlider`](src/components/shared/ConfidenceSlider.tsx), [`AIPerspective`](src/components/shared/AIPerspective.tsx)).
 
@@ -87,7 +87,7 @@ flowchart TB
 
 ---
 
-## P2-SHELL — Labels for sequential
+## P2-SHELL - Labels for sequential
 
 **Goal:** [`ExerciseShell`](src/components/shared/ExerciseShell.tsx) accepts optional step labels; sequential uses “Order steps” instead of “Highlight & tag”.
 
@@ -95,7 +95,7 @@ flowchart TB
 
 ---
 
-## P2-JOURNAL-ACTION — Shared with Phase 1
+## P2-JOURNAL-ACTION - Shared with Phase 1
 
 **Goal:** Same journal pool rules, journal-ref route, action bridge, [`completeExerciseFlow`](src/lib/db/complete-exercise.ts) as analytical; on finish, `computeSequentialAccuracy` drives `ConfidenceRecord`.
 
@@ -103,7 +103,7 @@ flowchart TB
 
 ---
 
-## P2-HISTORY — Exercise history (**2.4**)
+## P2-HISTORY - Exercise history (**2.4**)
 
 **Goal:** [`src/app/exercise/history/page.tsx`](src/app/exercise/history/page.tsx): list completed exercises (newest first); filters by type, domain substring, optional date range on `completedAt`; each row: type, domain, date, **confidence gap** (join `confidenceRecords`); click opens read-only detail (passage + highlights **or** scenario + ordered steps + perspective + journal text); no edit.
 
@@ -111,15 +111,15 @@ flowchart TB
 
 ---
 
-## P2-CALIB-UI — Aggregates + chart (**2.5**)
+## P2-CALIB-UI - Aggregates + chart (**2.5**)
 
-**Goal:** On history page: across **all** completed exercises with a confidence row — average confidence, average accuracy (per-type formula already on `ConfidenceRecord`), average calibration gap; simple line chart of **gap over time** (global series; per-type chart optional stretch).
+**Goal:** On history page: across **all** completed exercises with a confidence row - average confidence, average accuracy (per-type formula already on `ConfidenceRecord`), average calibration gap; simple line chart of **gap over time** (global series; per-type chart optional stretch).
 
 **Done when:** Numbers match recomputation from Dexie exports.
 
 ---
 
-## P2-QA — Acceptance vs spec
+## P2-QA - Acceptance vs spec
 
 Checklist (track **here**, not `ai_plan.txt`):
 

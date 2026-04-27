@@ -1,4 +1,4 @@
-# Phase 4 — Implementation plan (Evaluative + Generative)
+# Phase 4 - Implementation plan (Evaluative + Generative)
 
 **Status:** Core Phase 4 implemented in `web/` (evaluative matrix/scoring, generative scaffold + debate + rubric, APIs, calibration, history). Track checklist **here** only; do not use [`../ai_plan.txt`](../ai_plan.txt) as a live status board.
 
@@ -6,7 +6,7 @@
 
 **Prereqs:** Phases 1–3 ([`PHASE1_IMPLEMENTATION.md`](PHASE1_IMPLEMENTATION.md) … [`PHASE3_IMPLEMENTATION.md`](PHASE3_IMPLEMENTATION.md)); union `Exercise`; `completeExerciseFlow`.
 
-**Stack:** `@dnd-kit/core` (already in `package.json`) for matrix drag; Gemini for generate / perspective / debate / rubric (ai_plan mentions Sonnet for some flows — we use Gemini; documented here).
+**Stack:** `@dnd-kit/core` (already in `package.json`) for matrix drag; Gemini for generate / perspective / debate / rubric (ai_plan mentions Sonnet for some flows - we use Gemini; documented here).
 
 **Scaffold tracking (4.3):** `generativeStage` for a new exercise is derived from **count of completed** `type === "generative"` rows in IndexedDB (`listCompletedExercises({ type: "generative" })`), not a separate counter (avoids drift).
 
@@ -45,7 +45,7 @@ flowchart TB
 
 ---
 
-## P4-TYPES — `evaluative` / `generative`
+## P4-TYPES - `evaluative` / `generative`
 
 **Goal:** [`src/lib/types/exercise.ts`](src/lib/types/exercise.ts): extend `ThinkingType`; `EvaluativeExerciseRow` as `EvaluativeMatrixRow | EvaluativeScoringRow`; `GenerativeExerciseRow` with `stageAtStart`, `prompts[]`, `answers`, `draftBaseline`, debate fields, `rubricScore`, shared timestamps and `confidenceBefore` / `aiPerspective`; `isEvaluativeExercise` / `isGenerativeExercise`.
 
@@ -53,7 +53,7 @@ flowchart TB
 
 ---
 
-## P4-ZOD + P4-SEM — Evaluative (**4.1c**)
+## P4-ZOD + P4-SEM - Evaluative (**4.1c**)
 
 **Goal:** [`src/lib/ai/validators/evaluative.ts`](src/lib/ai/validators/evaluative.ts): discriminated `variant`; matrix: 4–6 options, quadrant enum, axis labels; scoring: ≥3 criteria, options, `suggestedScores` keys per criterion, `hiddenCriteria` ≥1; `parseEvaluativeExerciseJson`; `validateEvaluativeSemantics`; `EVALUATIVE_RETRY_SUFFIX`.
 
@@ -61,7 +61,7 @@ flowchart TB
 
 ---
 
-## P4-ZOD + P4-SEM — Generative (**4.2**)
+## P4-ZOD + P4-SEM - Generative (**4.2**)
 
 **Goal:** [`src/lib/ai/validators/generative.ts`](src/lib/ai/validators/generative.ts): exactly **4** prompts; per requested `generativeStage` validate presence of `draftText` (edit), `hints` length 2–3 (hint), optional `spareHint` (independent); `parseGenerativeExerciseJson`; `GENERATIVE_RETRY_SUFFIX`.
 
@@ -69,7 +69,7 @@ flowchart TB
 
 ---
 
-## P4-API — `POST /api/ai`
+## P4-API - `POST /api/ai`
 
 **Goal:** [`src/app/api/ai/route.ts`](src/app/api/ai/route.ts): `exerciseType` `"evaluative"` | `"generative"`; prompts [`evaluative.ts`](src/lib/ai/prompts/evaluative.ts), [`generative.ts`](src/lib/ai/prompts/generative.ts); body for generative includes `generativeStage`.
 
@@ -77,7 +77,7 @@ flowchart TB
 
 ---
 
-## P4-API — Perspective
+## P4-API - Perspective
 
 **Goal:** [`src/app/api/ai/perspective/route.ts`](src/app/api/ai/perspective/route.ts): `kind` `"evaluative-matrix"` | `"evaluative-scoring"` | `"generative"`; prompts in [`evaluative-perspective.ts`](src/lib/ai/prompts/evaluative-perspective.ts), [`generative-perspective.ts`](src/lib/ai/prompts/generative-perspective.ts).
 
@@ -85,7 +85,7 @@ flowchart TB
 
 ---
 
-## P4-API — Debate + rubric
+## P4-API - Debate + rubric
 
 **Goal:** [`src/app/api/ai/debate/route.ts`](src/app/api/ai/debate/route.ts): `mode` `start` | `continue`, transcript limits, Gemini plain text.
 
@@ -95,7 +95,7 @@ flowchart TB
 
 ---
 
-## P4-CALIB — **1.3b**
+## P4-CALIB - **1.3b**
 
 **Goal:** [`src/lib/analytics/calibration-evaluative.ts`](src/lib/analytics/calibration-evaluative.ts): matrix = average over options of `100` if `placement === intendedQuadrant` else `0`; scoring = mean absolute error per cell (user score vs `suggestedScores`), `accuracy = clamp(0, 100, round(100 * (1 - meanAbsError / 4)))`.
 
@@ -103,7 +103,7 @@ flowchart TB
 
 ---
 
-## P4-UI — Evaluative
+## P4-UI - Evaluative
 
 **Goal:** [`EvaluativeExerciseFlow.tsx`](src/components/exercises/EvaluativeExerciseFlow.tsx): matrix (`@dnd-kit` 2×2 + palette) vs scoring table (weights + per-cell 1–5 sliders, weighted totals); then confidence → perspective → journal → action.
 
@@ -111,7 +111,7 @@ flowchart TB
 
 ---
 
-## P4-UI — Generative
+## P4-UI - Generative
 
 **Goal:** [`GenerativeExerciseFlow.tsx`](src/components/exercises/GenerativeExerciseFlow.tsx): stage UI (edit / hint / independent), **≥2 of 4** prompts must differ from `draftBaseline` (trim + strict string equality) in edit stage; debate UI; call rubric API before perspective; `GENERATIVE_EXERCISE_STEP_LABELS` (8 labels).
 

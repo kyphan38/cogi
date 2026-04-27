@@ -1,4 +1,4 @@
-# Phase 1 — Implementation plan (Analytical MVP)
+# Phase 1 - Implementation plan (Analytical MVP)
 
 **Status:** Core MVP implemented in `web/` (exercise flow, Dexie, APIs, home/settings/decisions). Use this file for future tweaks; do not use `ai_plan.txt` as a live checklist.
 
@@ -33,13 +33,13 @@ flowchart TB
 
 ---
 
-## P1-DB — Dexie schema and tables
+## P1-DB - Dexie schema and tables
 
 **Goal:** Persist exercises, journal entries, confidence records, action bridge, decision log per [ai_plan.txt](../ai_plan.txt) interfaces **1.8** (Exercise, UserHighlight, EmbeddedIssue shape from API, JournalEntry with `promptIds`, `aiReferenceLine`, `responses`, ActionBridge, RealDecisionLogEntry, ConfidenceRecord).
 
 **Tasks:**
 
-1. Define `ThinkingType`, `TagType` (include all tags from **1.2** including `valid_point`, `unclear` — align Zod/API `logical_fallacy` vs UI labels in a single mapping module).
+1. Define `ThinkingType`, `TagType` (include all tags from **1.2** including `valid_point`, `unclear` - align Zod/API `logical_fallacy` vs UI labels in a single mapping module).
 2. Implement [`src/lib/db/schema.ts`](src/lib/db/schema.ts): Dexie `Version(1)` with stores: `exercises`, `journalEntries`, `confidenceRecords`, `actions`, `decisions` (names stable for migrations later).
 3. Implement thin CRUD in [`exercises.ts`](src/lib/db/exercises.ts), [`journal.ts`](src/lib/db/journal.ts), [`actions.ts`](src/lib/db/actions.ts), [`decisions.ts`](src/lib/db/decisions.ts), [`analytics.ts`](src/lib/db/analytics.ts) (minimal queries for “last N journals by domain”, “open actions”).
 4. Export `getDb()` singleton; open DB on client only (guard SSR).
@@ -48,7 +48,7 @@ flowchart TB
 
 ---
 
-## P1-TYPES — Align TypeScript with spec
+## P1-TYPES - Align TypeScript with spec
 
 **Goal:** Single source of truth in [`src/lib/types/exercise.ts`](src/lib/types/exercise.ts) (and `journal.ts`) matching **1.8** + API `AnalyticalExercise` from [`validators/common.ts`](src/lib/ai/validators/common.ts).
 
@@ -56,21 +56,21 @@ flowchart TB
 
 ---
 
-## P1-API — Perspective generation route
+## P1-API - Perspective generation route
 
 **Goal:** After user submits highlights + confidence, server calls Gemini with **structured prompt** (sections from **1.4**) using exercise JSON + user highlights; returns narrative string (no numeric exercise score).
 
 **Tasks:**
 
-1. Add e.g. `POST /api/ai/perspective` or extend `POST /api/ai` with `mode: "perspective"` + body `{ exerciseId?, passage, embeddedIssues, userHighlights, confidenceBefore }` — pick one contract and document in code comment.
+1. Add e.g. `POST /api/ai/perspective` or extend `POST /api/ai` with `mode: "perspective"` + body `{ exerciseId?, passage, embeddedIssues, userHighlights, confidenceBefore }` - pick one contract and document in code comment.
 2. New prompt template file [`src/lib/ai/prompts/analytical-perspective.ts`](src/lib/ai/prompts/analytical-perspective.ts) (or section in `analytical.ts`) listing required sections: embedded recap, additional perspectives, debatable highlight callouts, acknowledgment of user-found unplanned issues.
-3. Store result on `Exercise.aiPerspective` and `completedAt` when journal+action flow finishes (or when perspective step completes — choose one lifecycle; document).
+3. Store result on `Exercise.aiPerspective` and `completedAt` when journal+action flow finishes (or when perspective step completes - choose one lifecycle; document).
 
 **Done when:** Smoke: complete mechanic with mock highlights → API returns non-empty markdown/text and saves to IndexedDB.
 
 ---
 
-## P1-SETUP — Exercise setup UI (**1.1**)
+## P1-SETUP - Exercise setup UI (**1.1**)
 
 **Goal:** Replace placeholder [`src/app/exercise/[type]/page.tsx`](src/app/exercise/[type]/page.tsx) for `type=analytical` only (404 or message for others).
 
@@ -78,28 +78,28 @@ flowchart TB
 
 1. Dashboard [`src/app/page.tsx`](src/app/page.tsx): “Start exercise” → `/exercise/analytical` (or query param).
 2. Domain dropdown: hardcode list from **Domain Configuration** in spec + “Custom” with text input.
-3. “Generate exercise” → `POST /api/ai` with domain + optional settings context (read from future settings; Phase 1 can use localStorage or minimal `/settings` save first — **recommend:** implement minimal `userContext` in Dexie `settings` table early).
+3. “Generate exercise” → `POST /api/ai` with domain + optional settings context (read from future settings; Phase 1 can use localStorage or minimal `/settings` save first - **recommend:** implement minimal `userContext` in Dexie `settings` table early).
 
 **Done when:** Full passage renders from `data.passage` + `data.title` on a dedicated exercise screen.
 
 ---
 
-## P1-MECHANIC — Highlight & Tag (**1.2**)
+## P1-MECHANIC - Highlight & Tag (**1.2**)
 
 **Goal:** Implement [`HighlightTag.tsx`](src/components/exercises/HighlightTag.tsx) + wiring.
 
 **Tasks:**
 
-1. Render passage as selectable text (offsets relative to raw `passage` string — normalize newlines once).
+1. Render passage as selectable text (offsets relative to raw `passage` string - normalize newlines once).
 2. Toolbar: 6 tag types with colors per spec; keyboard-accessible where feasible.
 3. State: `UserHighlight[]` with `startOffset`, `endOffset`, `text`, `tag`, `id`; edit/remove tag on existing highlight.
-4. Optional: validate selection overlaps (merge or split — MVP: disallow overlapping selections with simple toast).
+4. Optional: validate selection overlaps (merge or split - MVP: disallow overlapping selections with simple toast).
 
 **Done when:** User can create ≥1 highlight and change tag before submit.
 
 ---
 
-## P1-CONFIDENCE — Slider before perspective (**1.3**)
+## P1-CONFIDENCE - Slider before perspective (**1.3**)
 
 **Goal:** [`ConfidenceSlider.tsx`](src/components/shared/ConfidenceSlider.tsx) blocks “Submit” until 0–100 set; value stored in exercise state then `ConfidenceRecord` on completion pipeline.
 
@@ -107,7 +107,7 @@ flowchart TB
 
 ---
 
-## P1-CALIB — `actualAccuracy` (**1.3b** analytical row only)
+## P1-CALIB - `actualAccuracy` (**1.3b** analytical row only)
 
 **Goal:** Implement pure function e.g. [`src/lib/analytics/calibration-analytical.ts`](src/lib/analytics/calibration-analytical.ts): IoU + tag match per spec table (70/30 split, decoy rules).
 
@@ -120,7 +120,7 @@ flowchart TB
 
 ---
 
-## P1-PANEL — AI perspective UI (**1.4**)
+## P1-PANEL - AI perspective UI (**1.4**)
 
 **Goal:** [`AIPerspective.tsx`](src/components/shared/AIPerspective.tsx) renders sections (headings + prose); no “score /10”.
 
@@ -128,7 +128,7 @@ flowchart TB
 
 ---
 
-## P1-JOURNAL — Mandatory journal (**1.5**)
+## P1-JOURNAL - Mandatory journal (**1.5**)
 
 **Goal:** [`journal-pool.ts`](src/lib/ai/prompts/journal-pool.ts): ≥12 prompts with stable `id`; rotation excludes ids used in last **5** completed exercises (query Dexie).
 
@@ -143,20 +143,20 @@ flowchart TB
 
 ---
 
-## P1-ACTION — Action bridge (**1.6**)
+## P1-ACTION - Action bridge (**1.6**)
 
 **Goal:** Single required field ≥15 chars; save `ActionBridge` linked to `exerciseId`; dashboard lists open items.
 
 **Tasks:**
 
 1. [`src/app/page.tsx`](src/app/page.tsx) or new `src/app/dashboard/page.tsx`: list open actions (title + date + one line).
-2. Weekly follow-through: minimal “weekKey” (ISO week) + yes/no stored on `ActionBridge.weeklyFollowThrough` — UI can be a small card on home (non-blocking per spec tone).
+2. Weekly follow-through: minimal “weekKey” (ISO week) + yes/no stored on `ActionBridge.weeklyFollowThrough` - UI can be a small card on home (non-blocking per spec tone).
 
 **Done when:** One atomic Dexie transaction writes exercise completion + journal + action (use `db.transaction`).
 
 ---
 
-## P1-DECISIONS — Real decision log (**1.7**)
+## P1-DECISIONS - Real decision log (**1.7**)
 
 **Goal:** [`src/app/decisions/page.tsx`](src/app/decisions/page.tsx): form add/list/edit `followUpNote`; fields per **1.7**; optional `linkedExerciseId` picker (dropdown from recent exercises).
 
@@ -164,13 +164,13 @@ flowchart TB
 
 ---
 
-## P1-SHELL — Exercise wrapper (**1.x UX**)
+## P1-SHELL - Exercise wrapper (**1.x UX**)
 
 **Goal:** [`ExerciseShell.tsx`](src/components/shared/ExerciseShell.tsx): step progress (Setup → Read/tag → Confidence → Submit → Perspective → Journal → Action → Done), titles in English.
 
 ---
 
-## P1-QA — Acceptance vs spec
+## P1-QA - Acceptance vs spec
 
 Checklist (track **here** or in PR description, not in `ai_plan.txt`):
 

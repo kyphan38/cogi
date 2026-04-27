@@ -1,4 +1,4 @@
-# Thinking Training App — Phased Requirements
+# Thinking Training App - Phased Requirements
 
 ## Project Overview
 
@@ -86,17 +86,17 @@ What it trains: Producing original arguments, reframing problems, finding altern
 * This context is injected into every AI prompt
 * Example context: "I'm a DevOps engineer planning to study Master's in Germany by Winter 2027. Currently learning German B1. Budget: 800M VND."
 
-## Phase 0 — Implementation plan (làm theo thứ tự; ghi vào checklist khi xong từng bước)
+## Phase 0 - Implementation plan (làm theo thứ tự; ghi vào checklist khi xong từng bước)
 
 **Mục tiêu code:** Repo Next.js chạy local, `POST /api/ai` gọi **Gemini 2.5 Flash** (key server-only), response được **Zod** validate theo contract analytical tối thiểu, UI tại `/dev/ai-smoke` chứng minh end-to-end.
 
 **Không implement trong Phase 0:** Highlight & Tag, Dexie flows đầy đủ, journal / Action Bridge / Real Decision Log, Claude, Vercel, paste sanitization (**6.1b**). Các module đó chỉ cần **file stub** theo cây thư mục bên dưới.
 
-**Dependency npm (cài khi tới bước IMP-06):** `zod`, `@google/generative-ai` (hoặc SDK chính thức bạn chọn — ghi rõ trong `package.json` một lần).
+**Dependency npm (cài khi tới bước IMP-06):** `zod`, `@google/generative-ai` (hoặc SDK chính thức bạn chọn - ghi rõ trong `package.json` một lần).
 
 ---
 
-### IMP-00 — Chuẩn bị
+### IMP-00 - Chuẩn bị
 
 * [x] Node ≥ 20, git init, `.gitignore` có `.env.local`
 * [ ] Lấy `GEMINI_API_KEY` từ Google AI Studio (bạn tự thêm vào `web/.env.local`)
@@ -105,9 +105,9 @@ What it trains: Producing original arguments, reframing problems, finding altern
 
 ---
 
-### IMP-01 — Scaffold Next.js
+### IMP-01 - Scaffold Next.js
 
-* [x] Trong thư mục repo (trống hoặc chỉ có `ai_plan.txt` — di chuyển plan ra ngoài tạm thời nếu CNA từ chối folder không trống). **Đã scaffold vào `web/`** (giữ `ai_plan.txt` ở root):
+* [x] Trong thư mục repo (trống hoặc chỉ có `ai_plan.txt` - di chuyển plan ra ngoài tạm thời nếu CNA từ chối folder không trống). **Đã scaffold vào `web/`** (giữ `ai_plan.txt` ở root):
 
 ```bash
 npx create-next-app@latest web --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --use-npm --no-turbopack
@@ -120,7 +120,7 @@ npx create-next-app@latest web --typescript --tailwind --eslint --app --src-dir 
 
 ---
 
-### IMP-02 — Prettier (khuyến nghị ngay sau IMP-01)
+### IMP-02 - Prettier (khuyến nghị ngay sau IMP-01)
 
 * [x] `npm i -D prettier eslint-config-prettier`
 * [x] Thêm `.prettierrc` (hoặc JSON trong `package.json`) + script `"format": "prettier --write ."`
@@ -129,7 +129,7 @@ npx create-next-app@latest web --typescript --tailwind --eslint --app --src-dir 
 
 ---
 
-### IMP-03 — shadcn/ui
+### IMP-03 - shadcn/ui
 
 * [x] `npx shadcn@latest init`
 * [x] `npx shadcn@latest add button card input label alert` + `textarea` (smoke form dùng textarea cho context)
@@ -138,13 +138,13 @@ npx create-next-app@latest web --typescript --tailwind --eslint --app --src-dir 
 
 ---
 
-### IMP-04 — Cây thư mục + stub (một batch commit được)
+### IMP-04 - Cây thư mục + stub (một batch commit được)
 
 Tạo **đủ path** dưới đây. Quy ước stub:
 
 * `page.tsx` (placeholder): `export default function Page() { return <p>Phase N</p>; }`
 * `*.tsx` component (placeholder): `export function Placeholder() { return null; }` hoặc export rỗng tùy ESLint
-* `lib/**` không phải route: `export {}` hoặc `throw new Error('Not implemented — Phase N')` tùy file — **không** để file trống 0 byte nếu ESLint báo
+* `lib/**` không phải route: `export {}` hoặc `throw new Error('Not implemented - Phase N')` tùy file - **không** để file trống 0 byte nếu ESLint báo
 
 **Ghi chú triển khai:** toàn bộ path dưới đây nằm trong project **`web/`** (ví dụ `web/src/app/...`).
 
@@ -177,17 +177,17 @@ src/lib/hooks/*.ts
 
 ---
 
-### IMP-05 — Biến môi trường
+### IMP-05 - Biến môi trường
 
-* [ ] Tạo `web/.env.local` với `GEMINI_API_KEY=` (local, không commit — bạn tự tạo)
-* [x] `web/.env.example` với `GEMINI_API_KEY=` (placeholder) — **commit**
+* [ ] Tạo `web/.env.local` với `GEMINI_API_KEY=` (local, không commit - bạn tự tạo)
+* [x] `web/.env.example` với `GEMINI_API_KEY=` (placeholder) - **commit**
 * [x] Đảm bảo `.env.local` **không** commit (`web/.gitignore` cho phép `.env.example`)
 
 **Xong khi:** `git status` không show `.env.local` staged.
 
 ---
 
-### IMP-06 — Cài SDK + Zod
+### IMP-06 - Cài SDK + Zod
 
 * [x] `npm i zod @google/generative-ai` (trong `web/`)
 
@@ -195,16 +195,16 @@ src/lib/hooks/*.ts
 
 ---
 
-### IMP-07 — Zod schema analytical (`src/lib/ai/validators/common.ts`)
+### IMP-07 - Zod schema analytical (`src/lib/ai/validators/common.ts`)
 
 * [x] Export schema khớp field tối thiểu **Phase 1.9** / plan: `title`, `passage`, `embeddedIssues[]`, `validPoints[]` (shape như plan Phase 1)
 * [x] Export hàm `parseAnalyticalExerciseJson(text: string)` = strip fence (nếu có) → parse → `safeParse` → return `{ success, data?, error? }`
 
-**Xong khi:** unit test nhẹ **hoặc** chạy tạm trong `node` / storybook không bắt buộc — tối thiểu: import schema từ `route.ts` không lỗi TypeScript.
+**Xong khi:** unit test nhẹ **hoặc** chạy tạm trong `node` / storybook không bắt buộc - tối thiểu: import schema từ `route.ts` không lỗi TypeScript.
 
 ---
 
-### IMP-08 — Prompt builder (`src/lib/ai/prompts/analytical.ts`)
+### IMP-08 - Prompt builder (`src/lib/ai/prompts/analytical.ts`)
 
 * [x] Export `buildAnalyticalGenerationPrompt({ domain, userContext }: { domain: string; userContext?: string })` trả về string: system + user, yêu cầu **chỉ JSON**, mô tả đúng field mà Zod expect
 
@@ -212,16 +212,16 @@ src/lib/hooks/*.ts
 
 ---
 
-### IMP-09 — Gemini client (`src/lib/ai/gemini.ts`)
+### IMP-09 - Gemini client (`src/lib/ai/gemini.ts`)
 
 * [x] Hàm `generateAnalyticalExerciseRaw(input)` đọc `process.env.GEMINI_API_KEY`, gọi model Flash, trả **string** (raw model output)
-* [x] Model id đặt hằng hoặc env `GEMINI_MODEL` (default ví dụ `gemini-2.5-flash`) — ghi comment nếu Google đổi tên model
+* [x] Model id đặt hằng hoặc env `GEMINI_MODEL` (default ví dụ `gemini-2.5-flash`) - ghi comment nếu Google đổi tên model
 
-**Xong khi:** gọi được từ server (chỉ import từ `route` hoặc server action — không import vào `'use client'` page mà leak logic key).
+**Xong khi:** gọi được từ server (chỉ import từ `route` hoặc server action - không import vào `'use client'` page mà leak logic key).
 
 ---
 
-### IMP-10 — API Route (`src/app/api/ai/route.ts`)
+### IMP-10 - API Route (`src/app/api/ai/route.ts`)
 
 * [x] `export async function POST(req: Request)` đọc JSON body `{ domain?, userContext? }`, validate tối thiểu (domain string non-empty)
 * [x] Gọi `buildAnalyticalGenerationPrompt` → `generateAnalyticalExerciseRaw` → `parseAnalyticalExerciseJson`
@@ -232,7 +232,7 @@ src/lib/hooks/*.ts
 
 ---
 
-### IMP-11 — Trang `/dev/ai-smoke` (`src/app/dev/ai-smoke/page.tsx`)
+### IMP-11 - Trang `/dev/ai-smoke` (`src/app/dev/ai-smoke/page.tsx`)
 
 * [x] Client component: form domain + optional context, nút Generate
 * [x] `fetch('/api/ai', { method: 'POST', body: JSON.stringify(...) })`
@@ -243,16 +243,16 @@ src/lib/hooks/*.ts
 
 ---
 
-### IMP-12 — Gate chất lượng JSON (chặn Phase 1)
+### IMP-12 - Gate chất lượng JSON (chặn Phase 1)
 
-* [ ] Thủ công: **5** lần Generate (domain/context khác nhau), **≥ 4** lần `ok: true` và `data` pass Zod **không** sửa prompt giữa chừng — **cần `web/.env.local` + GEMINI_API_KEY`**, chạy từ `cd web && npm run dev`, mở `/dev/ai-smoke`
+* [ ] Thủ công: **5** lần Generate (domain/context khác nhau), **≥ 4** lần `ok: true` và `data` pass Zod **không** sửa prompt giữa chừng - **cần `web/.env.local` + GEMINI_API_KEY`**, chạy từ `cd web && npm run dev`, mở `/dev/ai-smoke`
 * [ ] Nếu fail: chỉnh **một** thứ (prompt / temperature / JSON mode SDK), ghi comment trong `route.ts` hoặc `gemini.ts`, lặp lại IMP-12
 
 **Xong khi:** đạt ≥ 4/5.
 
 ---
 
-### Phase 0 — Definition of Done (commit “Phase 0 complete”)
+### Phase 0 - Definition of Done (commit “Phase 0 complete”)
 
 | ID | Điều kiện |
 | :--- | :--- |
@@ -268,7 +268,7 @@ src/lib/hooks/*.ts
 **Trạng thái sau khi implement codebase (môi trường CI không có key):** D1, D4, D5, D6 coi như đạt trên branch hiện tại (`web/`: `npm run build`; client static không chứa `GEMINI`; cây file đủ; `.env.example` đã thêm). **D2 và D3** chỉ xác nhận được khi bạn có **GEMINI_API_KEY** thật và chạy IMP-12 thủ công như trên.
 
 ---
-## Phase 1: MVP — Analytical Thinking (Highlight & Tag)
+## Phase 1: MVP - Analytical Thinking (Highlight & Tag)
 
 **Duration:** 1 Cursor session (plan + implement) **Goal:** One fully working exercise type with metacognition built in
 
@@ -280,24 +280,24 @@ src/lib/hooks/*.ts
 
 **1.2 Highlight & Tag Mechanic**
 * [ ] Display AI-generated text passage (200-400 words)
-* [ ] Text is selectable — user highlights segments with mouse
+* [ ] Text is selectable - user highlights segments with mouse
 * [ ] Tag toolbar with color-coded tags:
     * **Logical Fallacy** (red)
     * **Hidden Assumption** (orange)
     * **Weak Evidence** (yellow)
     * **Bias / Motivated Reasoning** (purple)
-    * **Valid Point** (green) — important: not everything is wrong
+    * **Valid Point** (green) - important: not everything is wrong
     * **Unclear / Needs More Info** (gray)
 * [ ] User clicks highlighted text -> selects a tag -> tag appears as annotation
 * [ ] User can remove/change tags
 * [ ] Highlighted segments stored in state
 
-**1.3 Confidence Calibration (CRITICAL — do before AI response)**
+**1.3 Confidence Calibration (CRITICAL - do before AI response)**
 * [ ] Before submitting, slider appears: "How confident are you? (0-100%)"
 * [ ] User must set confidence before seeing AI perspective
 * [ ] Confidence score stored with exercise result
 
-**1.3b Calibration — how `actualAccuracy` is computed (per thinking type)**
+**1.3b Calibration - how `actualAccuracy` is computed (per thinking type)**
 
 Define **before** shipping each type so confidence vs accuracy is never vague. Store `actualAccuracy` as 0–100 on `ConfidenceRecord` (same shape for all types; formula differs).
 
@@ -307,29 +307,29 @@ Define **before** shipping each type so confidence vs accuracy is never vague. S
 | **Sequential** | User ordering vs dependency DAG | **% of dependency constraints satisfied** (edge A→B respected in final order). Steps marked `isFlexible`: no score impact if order swapped within flexible group. |
 | **Systems** | User edges vs `intendedConnections` | **% of intended edges** user drew with correct `(from, to, type)` triplet, capped by user’s edge budget (20). Shock event: optional +10% weighting if “affected” node set matches AI within defined tolerance (document exact rule in Phase 3 ticket). |
 | **Evaluative** | Matrix / scoring vs AI intended | **Matrix:** quadrant match per option (binary per option, average). **Scoring:** mean absolute error vs AI `suggestedScores` per criterion, inverted to 0–100 scale (define normalization in Phase 4 ticket). |
-| **Generative** | Not binary | **AI rubric score** 0–100 (Sonnet): clarity, counterargument strength, falsifiability — stored once per exercise; used only for calibration trend, not shown as “grade” to user in MVP unless in narrative form. |
+| **Generative** | Not binary | **AI rubric score** 0–100 (Sonnet): clarity, counterargument strength, falsifiability - stored once per exercise; used only for calibration trend, not shown as “grade” to user in MVP unless in narrative form. |
 
-Phase 1 implements **Analytical** row only in code; other rows are **spec locks** — when Phases 2–4 ship, implement exactly these definitions (adjust constants only if user-tested).
+Phase 1 implements **Analytical** row only in code; other rows are **spec locks** - when Phases 2–4 ship, implement exactly these definitions (adjust constants only if user-tested).
 
 **1.4 AI Perspective Panel (NOT "scoring")**
 * [ ] After submission, AI shows its analysis:
     * "Here's what I embedded in this text:" (list of intentional issues)
     * "Here's an additional perspective you might consider:" (things user may have missed)
-    * "Your highlight of [X] is interesting — here's why that's debatable:"
+    * "Your highlight of [X] is interesting - here's why that's debatable:"
 * [ ] AI acknowledges valid points user found that weren't pre-planned
 * [ ] No numerical score on the exercise itself
 * [ ] Tone: collaborative peer, not judge
 
-**1.5 Metacognition Journal (MANDATORY — cannot skip)**
+**1.5 Metacognition Journal (MANDATORY - cannot skip)**
 * [ ] After viewing AI perspective, **3 prompts** are drawn from a **rotating prompt pool** (not the same 3 every time):
     * Maintain a pool of **≥12** short prompts covering: hesitation, assumptions, emotion, evidence, stakes, alternatives, time horizon, stakeholder blind spots (exact list in `lib/prompts/journal-pool.ts`).
     * **Rotation rule:** each exercise picks 3 prompts uniformly at random from prompts **not** used in the user’s **last 5** completed exercises (tracked in IndexedDB). If pool exhausted, reset exclusion window.
-* [ ] **AI reference line (optional, one sentence):** before the three textareas, show a single gray line generated by the **same model as the exercise** (Haiku): e.g. “In your last journal about [domain], you noted [one paraphrased theme] — does that show up here?” Inputs: last **2–3** journal snippets for exercises in the **same domain** only (no cross-domain), max ~400 tokens. If no prior journals in domain, omit this line entirely (no API call).
+* [ ] **AI reference line (optional, one sentence):** before the three textareas, show a single gray line generated by the **same model as the exercise** (Haiku): e.g. “In your last journal about [domain], you noted [one paraphrased theme] - does that show up here?” Inputs: last **2–3** journal snippets for exercises in the **same domain** only (no cross-domain), max ~400 tokens. If no prior journals in domain, omit this line entirely (no API call).
 * [ ] Minimum **2** prompts must have text (>10 characters) each before "Finish" (raises bar vs single-question gaming)
 * [ ] Textarea input for each prompt
 * [ ] "Continue" -> **1.6 Action Bridge** (cannot skip without filling required journal fields)
 
-**1.6 Action Bridge (real-world transfer — MVP, not deferred)**
+**1.6 Action Bridge (real-world transfer - MVP, not deferred)**
 * [ ] After journal, one final required field (short text, ≥15 chars):
     * “Based on this exercise, what **ONE** concrete action will you take in real life?” (placeholder examples in UI)
 * [ ] Stored on the exercise record (or linked `actionId`) and listed on the **dashboard** as open actions with exercise title + date
@@ -338,10 +338,10 @@ Phase 1 implements **Analytical** row only in code; other rows are **spec locks*
 * [ ] Rationale: without this, practice stays inside the app; Action Bridge closes the loop immediately from the first exercise type
 
 **1.7 Real Decision Log (loop outside the app)**
-* [ ] Settings or dashboard: section **“Real decisions”** — user can add a row anytime: **decision text** (what they decided), **date**, **domain** (dropdown), optional **link** to a past exercise id
+* [ ] Settings or dashboard: section **“Real decisions”** - user can add a row anytime: **decision text** (what they decided), **date**, **domain** (dropdown), optional **link** to a past exercise id
 * [ ] Optional reminder: “Log the outcome in 7 days” (stored flag, not push notification)
 * [ ] IndexedDB table `decisionLog`: `{ id, text, decidedAt, domain, linkedExerciseId | null, followUpNote, createdAt }`
-* [ ] Weekly Review (Phase 5) may include **last 3** Real Decision Log entries as input for pattern surfacing (“You logged X but didn’t log outcomes — consider closing the loop”)
+* [ ] Weekly Review (Phase 5) may include **last 3** Real Decision Log entries as input for pattern surfacing (“You logged X but didn’t log outcomes - consider closing the loop”)
 * [ ] Distinct from Action Bridge: Action Bridge is **per exercise**; Real Decision Log is **user-initiated** real life decisions (may be unrelated to any exercise)
 
 **1.8 Data Schema (Dexie.js / IndexedDB)**
@@ -462,7 +462,7 @@ Return JSON:
 * Action Bridge (one action + dashboard list + weekly yes/no) works end-to-end
 * Real Decision Log CRUD works; entries optional but available from MVP
 * All data persists in IndexedDB across page refreshes
-* No scores shown on exercise UI — only AI perspective, self-reflection, and calibration aggregates on History/Dashboard
+* No scores shown on exercise UI - only AI perspective, self-reflection, and calibration aggregates on History/Dashboard
 
 Phase 2: Sequential Thinking (Drag & Drop) + History
 
@@ -479,7 +479,7 @@ Phase 2: Sequential Thinking (Drag & Drop) + History
 * [ ] After submission, AI shows:
     * The dependency chain it intended
     * Where user's sequence diverges and WHY both orders might be valid
-    * "Critical path" — which ordering mistakes would cause real problems vs which are just preference
+    * "Critical path" - which ordering mistakes would cause real problems vs which are just preference
 * [ ] Highlight items that are in wrong position relative to dependencies
 
 **2.3 Gemini Prompt Template (Sequential)**
@@ -530,7 +530,7 @@ Return JSON:
 
 * [ ] On history page, show running average (across **all** completed exercise types present in DB):
     * "Your average confidence: X%"
-    * "Your average accuracy: Y%" — each exercise contributes its `actualAccuracy` computed strictly per **Phase 1.3b** for that exercise’s `type` (no ad-hoc redefinition in Phase 2)
+    * "Your average accuracy: Y%" - each exercise contributes its `actualAccuracy` computed strictly per **Phase 1.3b** for that exercise’s `type` (no ad-hoc redefinition in Phase 2)
     * "Calibration gap: Z%" (positive = overconfident, negative = underconfident)
 * [ ] Simple line chart showing calibration gap over time (series per type optional stretch goal; if omitted, chart is global only)
 
@@ -545,11 +545,11 @@ Calibration gap is calculated and displayed
 Both exercise types share the same journal flow
 
 Phase 3: Systems Thinking (Node-Connection)
-Duration: 1 Cursor session Goal: Third exercise type — the most complex UI mechanic
+Duration: 1 Cursor session Goal: Third exercise type - the most complex UI mechanic
 
 3.1 Node-Connection Mechanic
 
-[ ] Library: React Flow (@xyflow/react) — locked decision, no custom SVG
+[ ] Library: React Flow (@xyflow/react) - locked decision, no custom SVG
 
 [ ] Canvas area with pre-placed nodes (AI-generated)
 
@@ -559,7 +559,7 @@ Duration: 1 Cursor session Goal: Third exercise type — the most complex UI mec
 
 React Flow config: nodesDraggable={false}, nodesConnectable={true}
 
-[ ] No zoom, no pan — canvas fits all nodes in viewport
+[ ] No zoom, no pan - canvas fits all nodes in viewport
 
 React Flow config: zoomOnScroll={false}, panOnDrag={false}, fitView={true}
 
@@ -583,7 +583,7 @@ Default: "depends on" (most common, reduces friction)
 
 Example: "What if you fail German B1 on first attempt?"
 
-[ ] Nodes become clickable — user clicks to toggle "affected" state
+[ ] Nodes become clickable - user clicks to toggle "affected" state
 
 Two colors: orange = directly affected, red = indirectly affected
 
@@ -666,12 +666,12 @@ Shock event node-clicking works with visual feedback
 
 JSON validation catches bad AI responses gracefully
 
-No zoom/pan/drag complexity — canvas is static and clean
+No zoom/pan/drag complexity - canvas is static and clean
 
 Phase 4: Evaluative Thinking (Matrix + Scoring) + Generative Thinking (Structured Write)
 Duration: 1-2 Cursor sessions Goal: Complete all 5 thinking types
 
-4.1 Evaluative Mechanic — Two Variants
+4.1 Evaluative Mechanic - Two Variants
 
 AI automatically selects variant based on number of evaluation criteria:
 
@@ -754,7 +754,7 @@ For SCORING variant, return:
   ]
 }
 
-4.2 Generative Mechanic — Structured Write with Scaffold Ramp-up
+4.2 Generative Mechanic - Structured Write with Scaffold Ramp-up
 
 UX Problem addressed: 4 previous mechanics are mouse-only. Generative suddenly requires typing. This creates a "UX cliff" that makes users avoid it.
 
@@ -764,7 +764,7 @@ Stage 1: Edit Mode (first 3 exercises)
 
 [ ] AI generates a DRAFT answer for each prompt
 
-[ ] User's job: read, edit, improve the draft — not write from scratch
+[ ] User's job: read, edit, improve the draft - not write from scratch
 
 [ ] Each prompt shows AI draft in editable textarea with note: "AI wrote this draft. Edit it to match YOUR thinking."
 
@@ -784,7 +784,7 @@ Stage 2: Hint Mode (exercises 4-7)
 
 Stage 3: Independent Mode (exercise 8+)
 
-[ ] Only the prompt questions remain — no drafts, no hints
+[ ] Only the prompt questions remain - no drafts, no hints
 
 [ ] Full structured prompts:
 
@@ -859,9 +859,9 @@ Example: "You tend to underestimate time costs in IT architecture decisions"
 
 5.2 Weekly Review (AI-Generated)
 
-[ ] Triggered every 7 completed exercises (not calendar-based — avoids generating empty reviews during inactive weeks)
+[ ] Triggered every 7 completed exercises (not calendar-based - avoids generating empty reviews during inactive weeks)
 
-[ ] Input to AI (Claude Sonnet 4): ONLY the last 7 exercises' summaries and journal entries — NOT full history (controls token usage)
+[ ] Input to AI (Claude Sonnet 4): ONLY the last 7 exercises' summaries and journal entries - NOT full history (controls token usage)
 
 [ ] Also include: **last 3** `RealDecisionLogEntry` rows (text + domain + whether `followUpNote` filled) and **open Action Bridge** items from the last 14 days (exercise title + one-line action + any recorded follow-through). Truncate each field to a strict char budget in code.
 
@@ -875,17 +875,17 @@ Example: "You tend to underestimate time costs in IT architecture decisions"
 
 "Suggested focus for next week: [thinking type + domain]"
 
-[ ] Each review stored in IndexedDB — viewable in history
+[ ] Each review stored in IndexedDB - viewable in history
 
 [ ] Token budget per review: ~2,800 input + ~800 output ≈ $0.014 (Sonnet 4)
 
-5.3 Delayed Recall — Optional Sidebar Widget (NOT blocking)
+5.3 Delayed Recall - Optional Sidebar Widget (NOT blocking)
 
 Design decision: Delayed Recall was originally a blocking banner. This is changed to a non-intrusive optional widget to prevent friction that causes users to avoid opening the app.
 
 [ ] Small card in dashboard sidebar (NOT popup, NOT banner):
 
-"Quick recall: [exercise title] — 1 question, 30 seconds"
+"Quick recall: [exercise title] - 1 question, 30 seconds"
 
 "What was the main insight from this exercise?"
 
@@ -931,7 +931,7 @@ Weekly review triggers after every 7 exercises, not on calendar
 * [ ] "Import from clipboard" quick action
 * [ ] Pasted content exercises marked with "Real Data" badge in history
 
-**6.1b Paste sanitization (security + model hygiene — before AI call)**
+**6.1b Paste sanitization (security + model hygiene - before AI call)**
 
 Apply **in the browser** immediately on paste / clipboard import, then again server-side on the received string in the API route (defense in depth):
 
@@ -951,7 +951,7 @@ Apply **in the browser** immediately on paste / clipboard import, then again ser
 * [ ] Dropdown with common emotions: anxious, excited, frustrated, confident, uncertain, defensive, neutral
 * [ ] Track emotional patterns across exercises
 
-**6.4 "I Disagree" — Ground Truth Mitigation**
+**6.4 "I Disagree" - Ground Truth Mitigation**
 
 Problem addressed: AI Perspective currently presents its analysis as implicit ground truth. User learns to "guess what AI wants" instead of thinking independently.
 
@@ -959,21 +959,21 @@ Problem addressed: AI Perspective currently presents its analysis as implicit gr
 * [ ] Clicking it opens a mini-textarea: "Why do you disagree?"
 * [ ] AI responds to the disagreement (1 round, using same model as exercise)
     * AI must genuinely consider the user's counter-argument
-    * Can concede: "You make a good point — I may have been wrong about this"
+    * Can concede: "You make a good point - I may have been wrong about this"
     * Can push back: "Here's why I still think this is an issue..."
 * [ ] Disagreements logged in exercise record for pattern analysis
-    * Weekly Review can surface: "You frequently disagree with AI on [topic]. This could be a genuine blind-spot in AI — or in your thinking."
+    * Weekly Review can surface: "You frequently disagree with AI on [topic]. This could be a genuine blind-spot in AI - or in your thinking."
 * [ ] AI Perspective panel now has explicit section ordering:
     1. "What I intentionally embedded:" (ground truth items)
     2. "Things you found that I didn't plan:" (AI evaluates user's novel findings)
     3. "Additional perspectives to consider:" (non-judgmental suggestions)
     4. "Open questions:" (things neither you nor AI can resolve definitively)
 
-**6.5 Combo Exercise — Breaking the Silo Effect**
+**6.5 Combo Exercise - Breaking the Silo Effect**
 
 Problem addressed: 5 thinking types trained in isolation. Real decisions require combining multiple types simultaneously.
 
-* [ ] New exercise mode: "Combo" — chains 2-3 mechanics on the same scenario
+* [ ] New exercise mode: "Combo" - chains 2-3 mechanics on the same scenario
 * [ ] Available combos (pre-defined, not user-selected):
     * "Full Analysis": Analytical (read & tag) -> Systems (connect impacts) -> Evaluative (weigh options)
     * "Decision Sprint": Evaluative (assess trade-offs) -> Generative (defend your choice)
@@ -1015,11 +1015,11 @@ Problem addressed: 5 thinking types trained in isolation. Real decisions require
 
 **7.2 Weakness Queue (replaces SM-2)**
 
-Design decision: SM-2 algorithm is designed for factual recall with clear right/wrong answers. Thinking skills don't have binary correctness — the same bias presented differently requires different recognition. SM-2's interval math doesn't apply here.
+Design decision: SM-2 algorithm is designed for factual recall with clear right/wrong answers. Thinking skills don't have binary correctness - the same bias presented differently requires different recognition. SM-2's interval math doesn't apply here.
 
 Weakness Queue is simpler and more appropriate:
 
-* [ ] Schema migration — add new table to Dexie.js:
+* [ ] Schema migration - add new table to Dexie.js:
 
 ```typescript
 interface WeaknessEntry {
@@ -1063,7 +1063,7 @@ Active weaknesses appear in subsequent exercises
 
 Resolved weaknesses can re-activate if missed again
 
-No SM-2 interval scheduling — just simple queue logic
+No SM-2 interval scheduling - just simple queue logic
 
 Cross-cutting Concerns (Apply to ALL phases)
 Error Handling
@@ -1084,7 +1084,7 @@ Performance
 
 AI calls should show loading state with skeleton UI
 
-Exercise data cached in IndexedDB — no re-fetch needed for review
+Exercise data cached in IndexedDB - no re-fetch needed for review
 
 Debounce text highlighting interactions
 
@@ -1149,13 +1149,13 @@ Ground Truth Mitigation (applies to all AI Perspectives)
 
 AI Perspective panels across ALL exercise types must follow this structure:
 
-"What I intentionally embedded:" — the known ground truth items
+"What I intentionally embedded:" - the known ground truth items
 
-"Things you found that I didn't plan:" — AI genuinely evaluates user's novel findings (can agree OR disagree with reasoning)
+"Things you found that I didn't plan:" - AI genuinely evaluates user's novel findings (can agree OR disagree with reasoning)
 
-"Additional perspectives:" — non-judgmental suggestions
+"Additional perspectives:" - non-judgmental suggestions
 
-"Open questions:" — things neither side can definitively resolve
+"Open questions:" - things neither side can definitively resolve
 
 Each point has an "I disagree" button -> mini-debate (1 round)
 
@@ -1200,10 +1200,10 @@ No unlimited paste length (hard cap at 2,000 words)
 13,Delayed Recall as optional widget,"Original blocking banner design causes retention cliff. Widget is non-intrusive, dismissable, max 1 at a time"
 14,Generative scaffold ramp-up,Prevents UX shock when transitioning from mouse-only to typing. 3 stages: edit draft -> hints -> independent
 15,Evaluative: Matrix + Scoring Table,2x2 matrix doesn't fit 3+ criteria decisions. AI auto-selects variant based on criteria count
-16,Combo Exercises (Phase 6),Breaks Silo Effect — real decisions need multiple thinking types simultaneously
-17,"""I disagree"" button on AI Perspective","Mitigates Ground Truth trap — user can challenge AI, AI must genuinely re-evaluate"
+16,Combo Exercises (Phase 6),Breaks Silo Effect - real decisions need multiple thinking types simultaneously
+17,"""I disagree"" button on AI Perspective","Mitigates Ground Truth trap - user can challenge AI, AI must genuinely re-evaluate"
 18,"Paste content 2,000-word limit + 6.1b sanitization",Prevents token/cost issues and blocks HTML/script paths into prompts
-19,Phase 3 JSON validation layer,"AI-generated node graphs are fragile — validate all ID references before rendering, never show corrupt data"
+19,Phase 3 JSON validation layer,"AI-generated node graphs are fragile - validate all ID references before rendering, never show corrupt data"
 20,Per-type accuracy in Phase 1.3b,Calibration stays defined and comparable as new exercise types ship
 21,Action Bridge in Phase 1,Real-world follow-through is part of MVP not a late add-on
 22,Journal prompt rotation + optional AI line,Harder to speed-run the same three prompts; prior same-domain context without heavy RAG
