@@ -58,6 +58,8 @@ export interface AnalyticalExerciseRow {
   id: string;
   type: "analytical";
   domain: string;
+  /** User-provided situation for custom-scenario generation (optional). */
+  customScenario?: string;
   title: string;
   /** Source of passage text (AI-generated vs user-provided real data). */
   source?: "ai" | "real_data";
@@ -98,6 +100,7 @@ export interface SequentialExerciseRow {
   id: string;
   type: "sequential";
   domain: string;
+  customScenario?: string;
   title: string;
   scenario: string;
   steps: SequentialStepSpec[];
@@ -126,6 +129,7 @@ export interface SystemsExerciseRow {
   id: string;
   type: "systems";
   domain: string;
+  customScenario?: string;
   title: string;
   scenario: string;
   nodes: SystemsNodeSpec[];
@@ -164,6 +168,7 @@ export interface EvaluativeMatrixRow {
   type: "evaluative";
   variant: "matrix";
   domain: string;
+  customScenario?: string;
   title: string;
   scenario: string;
   /** User's proposed criteria before seeing AI framework. */
@@ -207,6 +212,7 @@ export interface EvaluativeScoringRow {
   type: "evaluative";
   variant: "scoring";
   domain: string;
+  customScenario?: string;
   title: string;
   scenario: string;
   /** User's proposed criteria before seeing AI framework. */
@@ -239,6 +245,7 @@ export interface GenerativeExerciseRow {
   id: string;
   type: "generative";
   domain: string;
+  customScenario?: string;
   title: string;
   scenario: string;
   /** Scaffold stage locked when exercise was generated. */
@@ -272,6 +279,7 @@ export interface ComboExerciseRow {
   type: "combo";
   preset: ComboPresetId;
   domain: string;
+  customScenario?: string;
   title: string;
   scenario: string;
   subExercises: ComboSubExercise[];

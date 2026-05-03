@@ -7,17 +7,41 @@ import { validateSystemsExerciseSemantics } from "@/lib/ai/validators/systems";
 import { validateEvaluativeSemantics } from "@/lib/ai/validators/evaluative";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 import { getFirebaseAdminFirestore, getUserDocPath } from "@/lib/firebaseAdminFirestore";
+import {
+  CUSTOM_DOMAIN_PLACEHOLDER,
+  CUSTOM_SCENARIO_MAX_LEN,
+} from "@/lib/ai/prompts/scenario-steering";
 
 export const maxDuration = 60;
 
 const presetSchema = z.enum(["full_analysis", "decision_sprint", "root_cause"]);
 
-const bodySchema = z.object({
-  requestId: z.string().uuid(),
-  preset: presetSchema,
-  domain: z.string().trim().min(1),
-  userContext: z.string().trim().optional(),
-});
+const bodySchema = z
+  .object({
+    requestId: z.string().uuid(),
+    preset: presetSchema,
+    mode: z.enum(["generated", "custom_scenario"]).optional(),
+    domain: z.string().trim().optional(),
+    customScenario: z.string().trim().max(CUSTOM_SCENARIO_MAX_LEN).optional(),
+    userContext: z.string().trim().optional(),
+  })
+  .superRefine((data, ctx) => {
+    const hasDomain = !!(data.domain && data.domain.length > 0);
+    const hasScenario = !!(data.customScenario && data.customScenario.trim().length > 0);
+    if (!hasDomain && !hasScenario) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Provide domain and/or customScenario",
+      });
+    }
+    const mode = data.mode ?? "generated";
+    if (mode === "custom_scenario" && !hasScenario) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'customScenario is required when mode is "custom_scenario"',
+      });
+    }
+  });
 
 export async function POST(req: Request) {
   const auth = await requireAuthenticatedRouteUser(req);
@@ -45,7 +69,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const { requestId, preset, domain, userContext } = parsed.data;
+  const { requestId, preset, domain, customScenario, userContext } = parsed.data;
+  const domainTrimmed = domain?.trim() ?? "";
+  const scenarioTrimmed = customScenario?.trim();
+  const effectiveDomain = domainTrimmed || CUSTOM_DOMAIN_PLACEHOLDER;
+  const scenarioForPrompt =
+    (parsed.data.mode ?? "generated") === "custom_scenario" && scenarioTrimmed
+      ? scenarioTrimmed.slice(0, CUSTOM_SCENARIO_MAX_LEN)
+      : undefined;
 
   const docPath = getUserDocPath(auth.user.uid, "aiArtifacts", requestId);
   const docRef = getFirebaseAdminFirestore().doc(docPath);
@@ -70,7 +101,12 @@ export async function POST(req: Request) {
     }
   }
 
-  const prompt = buildComboGenerationPrompt({ preset, domain, userContext });
+  const prompt = buildComboGenerationPrompt({
+    preset,
+    domain: effectiveDomain,
+    userContext,
+    customScenario: scenarioForPrompt,
+  });
 
   try {
     const raw = await generateAnalyticalExerciseRaw(prompt);
@@ -105,7 +141,8 @@ export async function POST(req: Request) {
       id: requestId,
       route: "combo",
       preset,
-      domain,
+      domain: effectiveDomain,
+      customScenario: scenarioForPrompt ?? null,
       userContext: userContext ?? null,
       comboData: data,
       createdAt,

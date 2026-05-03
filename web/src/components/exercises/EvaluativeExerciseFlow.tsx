@@ -57,6 +57,7 @@ import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { DomainInput } from "@/components/shared/DomainInput";
 import { listRecentDomains } from "@/lib/db/exercises";
 import { isEvaluativeExercise } from "@/lib/types/exercise";
+import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
@@ -64,6 +65,7 @@ function payloadToRow(
   id: string,
   domain: string,
   data: EvaluativeExercisePayload,
+  customScenario?: string,
 ): EvaluativeExerciseRow {
   if (data.variant === "matrix") {
     const row: EvaluativeMatrixRow = {
@@ -71,6 +73,7 @@ function payloadToRow(
       type: "evaluative",
       variant: "matrix",
       domain,
+      customScenario,
       title: data.title,
       scenario: data.scenario,
       userProposedCriteria: null,
@@ -96,6 +99,7 @@ function payloadToRow(
     type: "evaluative",
     variant: "scoring",
     domain,
+    customScenario,
     title: data.title,
     scenario: data.scenario,
     userProposedCriteria: null,
@@ -115,6 +119,8 @@ function payloadToRow(
 export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
   const [step, setStep] = useState<FlowStep>(0);
   const [domain, setDomain] = useState("");
+  const [setupMode, setSetupMode] = useState<"generated" | "custom_scenario">("generated");
+  const [customScenarioText, setCustomScenarioText] = useState("");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -195,11 +201,16 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
 
   const startGenerate = useCallback(async () => {
     setError(null);
-    const d = domain.trim();
-    if (!d) {
-      setError("Enter a domain.");
+    const resolved = resolveDomainAndScenario({
+      mode: setupMode,
+      domain,
+      customScenario: customScenarioText,
+    });
+    if (!resolved.ok) {
+      setError(resolved.error);
       return;
     }
+    const { effectiveDomain: d, customScenarioOut } = resolved;
     setLoading(true);
     try {
       const userContext = await getUserContext();
@@ -211,6 +222,8 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
           domain: d,
           userContext: userContext || undefined,
           exerciseType: "evaluative",
+          mode: setupMode,
+          customScenario: customScenarioOut,
           adaptiveHints,
         }),
       });
@@ -222,7 +235,10 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
         return;
       }
       const id = crypto.randomUUID();
-      const row: EvaluativeExerciseRow = { ...payloadToRow(id, d, json.data), currentStep: 1 };
+      const row: EvaluativeExerciseRow = {
+        ...payloadToRow(id, d, json.data, customScenarioOut),
+        currentStep: 1,
+      };
       await putExercise(row);
       setExercise(row);
       if (row.variant === "matrix") {
@@ -250,7 +266,7 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
     } finally {
       setLoading(false);
     }
-  }, [domain]);
+  }, [domain, setupMode, customScenarioText]);
 
   const regenerate = () => {
     if (Object.keys(placements).length > 0) {
@@ -541,9 +557,48 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="grid gap-2">
-              <Label>Domain</Label>
-              <DomainInput value={domain} onChange={setDomain} suggestions={domainSuggestions} />
+              <Label>{setupMode === "custom_scenario" ? "Domain (optional)" : "Domain"}</Label>
+              <DomainInput
+                value={domain}
+                onChange={setDomain}
+                suggestions={domainSuggestions}
+                placeholder={
+                  setupMode === "custom_scenario"
+                    ? "e.g. DevOps — leave blank to let AI infer"
+                    : undefined
+                }
+              />
             </div>
+            <div className="grid gap-2">
+              <Label>Source</Label>
+              <Select
+                value={setupMode}
+                onValueChange={(v) =>
+                  setSetupMode((v as "generated" | "custom_scenario") ?? "generated")
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="generated">AI-generated from domain</SelectItem>
+                  <SelectItem value="custom_scenario">My scenario</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {setupMode === "custom_scenario" ? (
+              <div className="grid gap-2">
+                <Label htmlFor="ev-custom-scenario">Your scenario</Label>
+                <Textarea
+                  id="ev-custom-scenario"
+                  rows={5}
+                  value={customScenarioText}
+                  onChange={(e) => setCustomScenarioText(e.target.value)}
+                  placeholder="Describe the situation, trade-offs, and what you want to practice..."
+                  className="min-h-[5rem]"
+                />
+              </div>
+            ) : null}
             <p className="text-muted-foreground text-xs">
               Personal context for AI is read from{" "}
               <Link href="/settings" className="underline">

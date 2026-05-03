@@ -1,4 +1,5 @@
 import type { ComboPresetId } from "@/lib/types/exercise";
+import { CUSTOM_DOMAIN_PLACEHOLDER, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
 
 const JSON_RULES = `Return ONLY one JSON object (no markdown fences) with the exact keys requested for this preset.
 Use the SAME sharedScenario string for every sub-exercise that has a scenario or passage field.
@@ -12,10 +13,21 @@ export function buildComboGenerationPrompt(input: {
   preset: ComboPresetId;
   domain: string;
   userContext?: string;
+  customScenario?: string;
 }): string {
   const ctx = input.userContext?.trim() ? `User context:\n${input.userContext.trim()}\n\n` : "";
+  const scenarioBlock = formatUserScenarioBlock(input.customScenario);
+  const domainHint =
+    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
+      ? `Tone/register hint: ${input.domain.trim()}\n\n`
+      : "";
+
+  const intro = scenarioBlock
+    ? `${ctx}${scenarioBlock}\n\n${domainHint}You are designing a linked exercise bundle anchored to the user's scenario above (reuse the same stakes across sub-exercises).`
+    : `${ctx}You are designing a linked exercise bundle for domain: ${input.domain}.`;
+
   if (input.preset === "full_analysis") {
-    return `${ctx}You are designing a linked exercise bundle for domain: ${input.domain}.
+    return `${intro}
 
 Preset: full_analysis - same scenario, three mechanics in order:
 1) Analytical (passage = sharedScenario, embedded issues to highlight)
@@ -33,7 +45,10 @@ Required top-level keys:
 - evaluativeMatrix: { variant: "matrix", title, scenario (must equal sharedScenario), axisX, axisY, options }`;
   }
   if (input.preset === "decision_sprint") {
-    return `${ctx}Domain: ${input.domain}. Preset: decision_sprint - evaluative matrix then generative writing on the SAME scenario.
+    const presetIntro = scenarioBlock
+      ? `${intro}\n\nPreset: decision_sprint`
+      : `${ctx}Domain: ${input.domain}. Preset: decision_sprint`;
+    return `${presetIntro} - evaluative matrix then generative writing on the SAME scenario.
 
 ${JSON_RULES}
 
@@ -43,7 +58,10 @@ Required keys:
 - evaluativeMatrix: matrix variant as above
 - generative: { title, scenario (sharedScenario), prompts[4] }`;
   }
-  return `${ctx}Domain: ${input.domain}. Preset: root_cause - sequential ordering, then systems map, then analytical deep read on the SAME scenario.
+  const presetIntro = scenarioBlock
+    ? `${intro}\n\nPreset: root_cause`
+    : `${ctx}Domain: ${input.domain}. Preset: root_cause`;
+  return `${presetIntro} - sequential ordering, then systems map, then analytical deep read on the SAME scenario.
 
 ${JSON_RULES}
 

@@ -57,6 +57,7 @@ import { sanitizeUserPasteOrClipboard } from "@/lib/text/sanitizeRealDataBrowser
 import { DomainInput } from "@/components/shared/DomainInput";
 import { listRecentDomains } from "@/lib/db/exercises";
 import { isAnalyticalExercise } from "@/lib/types/exercise";
+import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -87,7 +88,8 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
 
   const [actionText, setActionText] = useState("");
 
-  const [mode, setMode] = useState<"generated" | "real_data">("generated");
+  const [mode, setMode] = useState<"generated" | "real_data" | "custom_scenario">("generated");
+  const [customScenarioText, setCustomScenarioText] = useState("");
   const [realText, setRealText] = useState("");
   const [realWordCount, setRealWordCount] = useState(0);
   const [pasteNotice, setPasteNotice] = useState<string | null>(null);
@@ -133,11 +135,31 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
   const startGenerate = useCallback(async () => {
     setError(null);
     setPasteNotice(null);
-    const d = domain.trim();
-    if (!d) {
-      setError("Enter a domain.");
-      return;
+
+    let effectiveDomain: string;
+    let customScenarioBody: string | undefined;
+
+    if (mode === "custom_scenario") {
+      const r = resolveDomainAndScenario({
+        mode: "custom_scenario",
+        domain,
+        customScenario: customScenarioText,
+      });
+      if (!r.ok) {
+        setError(r.error);
+        return;
+      }
+      effectiveDomain = r.effectiveDomain;
+      customScenarioBody = r.customScenarioOut;
+    } else {
+      const d = domain.trim();
+      if (!d) {
+        setError("Enter a domain.");
+        return;
+      }
+      effectiveDomain = d;
     }
+
     let sanitizedUserText: string | undefined;
     if (mode === "real_data") {
       const trimmed = realText.trim();
@@ -171,11 +193,12 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          domain: d,
+          domain: effectiveDomain,
           userContext: userContext || undefined,
           exerciseType: "analytical",
           mode,
           userText: mode === "real_data" ? userTextForReal : undefined,
+          customScenario: customScenarioBody,
           adaptiveHints,
         }),
       });
@@ -191,7 +214,8 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
       const row: AnalyticalExerciseRow = {
         id,
         type: "analytical",
-        domain: d,
+        domain: effectiveDomain,
+        customScenario: customScenarioBody,
         source: mode === "real_data" ? "real_data" : "ai",
         title: data.title,
         passage: data.passage,
@@ -222,7 +246,7 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
     } finally {
       setLoading(false);
     }
-  }, [domain, mode, realText]);
+  }, [domain, mode, realText, customScenarioText]);
 
   const regenerate = () => {
     if (highlights.length > 0) {
@@ -471,15 +495,24 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="grid gap-2">
-              <Label>Domain</Label>
-              <DomainInput value={domain} onChange={setDomain} suggestions={domainSuggestions} />
+              <Label>{mode === "custom_scenario" ? "Domain (optional)" : "Domain"}</Label>
+              <DomainInput
+                value={domain}
+                onChange={setDomain}
+                suggestions={domainSuggestions}
+                placeholder={
+                  mode === "custom_scenario"
+                    ? "e.g. DevOps — leave blank to let AI infer"
+                    : undefined
+                }
+              />
             </div>
             <div className="grid gap-2">
               <Label>Source</Label>
               <Select
                 value={mode}
                 onValueChange={(v) =>
-                  setMode((v as "generated" | "real_data") ?? "generated")
+                  setMode((v as "generated" | "real_data" | "custom_scenario") ?? "generated")
                 }
               >
                 <SelectTrigger>
@@ -488,9 +521,28 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
                 <SelectContent>
                   <SelectItem value="generated">AI-generated passage</SelectItem>
                   <SelectItem value="real_data">Use my own text</SelectItem>
+                  <SelectItem value="custom_scenario">My scenario</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {mode === "custom_scenario" ? (
+              <div className="grid gap-2">
+                <Label htmlFor="custom-scenario">
+                  Describe your situation — AI will design the passage around it
+                </Label>
+                <Textarea
+                  id="custom-scenario"
+                  rows={6}
+                  value={customScenarioText}
+                  onChange={(e) => setCustomScenarioText(e.target.value)}
+                  placeholder="Paste context, stakeholders, and the tension you want to practice..."
+                  className="min-h-[5rem]"
+                />
+                <p className="text-muted-foreground text-xs">
+                  Optional domain above steers tone/register; the scenario drives content.
+                </p>
+              </div>
+            ) : null}
             {mode === "real_data" ? (
               <div className="grid gap-2">
                 <Label htmlFor="real-text">

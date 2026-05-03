@@ -1,13 +1,25 @@
+import { CUSTOM_DOMAIN_PLACEHOLDER, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
+
 export function buildEvaluativeGenerationPrompt(input: {
   domain: string;
   userContext?: string;
   adaptationAppendix?: string;
+  customScenario?: string;
 }): string {
   const ctx = input.userContext?.trim()
     ? `\nUser context (optional): ${input.userContext.trim()}`
     : "";
   const adapt = input.adaptationAppendix?.trim();
-  return `You are generating a structured evaluative-thinking exercise about: ${input.domain}.${ctx}
+  const scenarioBlock = formatUserScenarioBlock(input.customScenario);
+  const domainHint =
+    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
+      ? `\nTone/register hint: ${input.domain.trim()}`
+      : "";
+  const aboutLine = scenarioBlock
+    ? `${scenarioBlock}${domainHint}\n\nYou are generating a structured evaluative-thinking exercise anchored to the user's scenario above.${ctx}`
+    : `You are generating a structured evaluative-thinking exercise about: ${input.domain}.${ctx}`;
+
+  return `${aboutLine}
 
 Decide variant:
 - MATRIX (variant "matrix") when the decision is naturally framed with exactly TWO evaluation criteria as axes (2x2 quadrants).

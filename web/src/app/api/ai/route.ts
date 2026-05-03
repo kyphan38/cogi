@@ -34,8 +34,22 @@ import {
 } from "@/lib/adaptive/adaptive-appendix";
 import type { AdaptiveExerciseType } from "@/lib/adaptive/types";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
+import {
+  CUSTOM_DOMAIN_PLACEHOLDER,
+  CUSTOM_SCENARIO_MAX_LEN,
+} from "@/lib/ai/prompts/scenario-steering";
 
 export const maxDuration = 60;
+
+function parseSetupMode(
+  raw: unknown,
+  exerciseType: "analytical" | "sequential" | "systems" | "evaluative" | "generative",
+): "generated" | "real_data" | "custom_scenario" {
+  const m =
+    raw === "real_data" || raw === "generated" || raw === "custom_scenario" ? raw : "generated";
+  if (exerciseType !== "analytical" && m === "real_data") return "generated";
+  return m;
+}
 
 export async function POST(req: Request) {
   const auth = await requireAuthenticatedRouteUser(req);
@@ -65,16 +79,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const domain = (body as { domain?: unknown }).domain;
-  if (typeof domain !== "string" || !domain.trim()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "domain is required and must be a non-empty string",
-      },
-      { status: 400 },
-    );
-  }
+  const rawDomain = (body as { domain?: unknown }).domain;
+  const domainTrimmed = typeof rawDomain === "string" ? rawDomain.trim() : "";
+
+  const rawScenario = (body as { customScenario?: unknown }).customScenario;
+  const customScenarioRaw =
+    typeof rawScenario === "string" && rawScenario.trim()
+      ? rawScenario.trim().slice(0, CUSTOM_SCENARIO_MAX_LEN)
+      : undefined;
 
   const rawContext = (body as { userContext?: unknown }).userContext;
   const userContext =
@@ -95,8 +107,30 @@ export async function POST(req: Request) {
             : "analytical";
 
   const rawMode = (body as { mode?: unknown }).mode;
-  const analyticalMode =
-    rawMode === "real_data" || rawMode === "generated" ? rawMode : "generated";
+  const mode = parseSetupMode(rawMode, exerciseType);
+
+  if (!domainTrimmed && !customScenarioRaw) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Provide domain and/or customScenario (non-empty).",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (mode === "custom_scenario" && !customScenarioRaw) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'customScenario is required when mode is "custom_scenario".',
+      },
+      { status: 400 },
+    );
+  }
+
+  const effectiveDomain = domainTrimmed || CUSTOM_DOMAIN_PLACEHOLDER;
+  const scenarioForPrompt = mode === "custom_scenario" ? customScenarioRaw : undefined;
 
   const rawHints = (body as { adaptiveHints?: unknown }).adaptiveHints;
   const adaptiveHints = normalizeAdaptiveHints(rawHints);
@@ -104,9 +138,10 @@ export async function POST(req: Request) {
   try {
     if (exerciseType === "evaluative") {
       const basePrompt = buildEvaluativeGenerationPrompt({
-        domain: domain.trim(),
+        domain: effectiveDomain,
         userContext,
         adaptationAppendix: buildAdaptationAppendix(adaptiveHints, "evaluative"),
+        customScenario: scenarioForPrompt,
       });
       const runEv = async (prompt: string) => {
         const raw = await generateAnalyticalExerciseRaw(prompt);
@@ -160,10 +195,11 @@ export async function POST(req: Request) {
         );
       }
       const basePrompt = buildGenerativeGenerationPrompt({
-        domain: domain.trim(),
+        domain: effectiveDomain,
         userContext,
         generativeStage,
         adaptationAppendix: buildAdaptationAppendix(adaptiveHints, "generative"),
+        customScenario: scenarioForPrompt,
       });
       const runGen = async (prompt: string) => {
         const raw = await generateAnalyticalExerciseRaw(prompt);
@@ -206,31 +242,36 @@ export async function POST(req: Request) {
     const basePrompt =
       exerciseType === "sequential"
         ? buildSequentialGenerationPrompt({
-            domain: domain.trim(),
+            domain: effectiveDomain,
             userContext,
             adaptationAppendix: appendixFor("sequential"),
+            customScenario: scenarioForPrompt,
           })
         : exerciseType === "systems"
           ? buildSystemsGenerationPrompt({
-              domain: domain.trim(),
+              domain: effectiveDomain,
               userContext,
               adaptationAppendix: appendixFor("systems"),
+              customScenario: scenarioForPrompt,
             })
           : (() => {
               const useSoundReasoning =
                 exerciseType === "analytical" &&
-                analyticalMode === "generated" &&
+                mode === "generated" &&
+                !scenarioForPrompt &&
                 Math.random() < 0.2;
               const base = useSoundReasoning
                 ? buildAnalyticalSoundReasoningPrompt({
-                    domain: domain.trim(),
+                    domain: effectiveDomain,
                     userContext,
                     adaptationAppendix: appendixFor("analytical"),
+                    customScenario: scenarioForPrompt,
                   })
                 : buildAnalyticalGenerationPrompt({
-                    domain: domain.trim(),
+                    domain: effectiveDomain,
                     userContext,
                     adaptationAppendix: appendixFor("analytical"),
+                    customScenario: scenarioForPrompt,
                   });
               return base;
             })();
@@ -291,8 +332,8 @@ export async function POST(req: Request) {
       }
       return NextResponse.json({ ok: true, data: parsed.data });
     }
-    // Analytical (generated or real_data based on analyticalMode).
-    if (analyticalMode === "real_data") {
+    // Analytical (generated, custom_scenario, or real_data based on mode).
+    if (mode === "real_data") {
       const rawUserText = (body as { userText?: unknown }).userText;
       if (typeof rawUserText !== "string" || !rawUserText.trim()) {
         return NextResponse.json(
@@ -317,7 +358,7 @@ export async function POST(req: Request) {
         );
       }
       const fromTextPrompt = buildAnalyticalFromUserTextPrompt({
-        domain: domain.trim(),
+        domain: effectiveDomain,
         userContext,
         userText: sanitized,
         adaptationAppendix: appendixFor("analytical"),

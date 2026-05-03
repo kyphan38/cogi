@@ -51,6 +51,7 @@ import type { DebateChatMessage } from "@/lib/ai/prompts/generative-debate";
 import { DomainInput } from "@/components/shared/DomainInput";
 import { listRecentDomains } from "@/lib/db/exercises";
 import { isGenerativeExercise } from "@/lib/types/exercise";
+import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
@@ -61,6 +62,7 @@ function buildRowFromPayload(
   domain: string,
   stage: GenerativeExerciseRow["stageAtStart"],
   data: GenerativeExercisePayload,
+  customScenario?: string,
 ): GenerativeExerciseRow {
   const answers: Record<string, string> = {};
   const draftBaseline: Record<string, string> = {};
@@ -76,6 +78,7 @@ function buildRowFromPayload(
     id,
     type: "generative",
     domain,
+    customScenario,
     title: data.title,
     scenario: data.scenario,
     stageAtStart: stage,
@@ -116,6 +119,8 @@ function allPromptsNonEmpty(row: GenerativeExerciseRow, minLen: number): boolean
 export function GenerativeExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
   const [step, setStep] = useState<FlowStep>(0);
   const [domain, setDomain] = useState("");
+  const [setupMode, setSetupMode] = useState<"generated" | "custom_scenario">("generated");
+  const [customScenarioText, setCustomScenarioText] = useState("");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -210,11 +215,16 @@ export function GenerativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
 
   const startGenerate = useCallback(async () => {
     setError(null);
-    const d = domain.trim();
-    if (!d) {
-      setError("Enter a domain.");
+    const resolved = resolveDomainAndScenario({
+      mode: setupMode,
+      domain,
+      customScenario: customScenarioText,
+    });
+    if (!resolved.ok) {
+      setError(resolved.error);
       return;
     }
+    const { effectiveDomain: d, customScenarioOut } = resolved;
     setLoading(true);
     try {
       const completed = await countCompletedByType("generative");
@@ -229,6 +239,8 @@ export function GenerativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
           userContext: userContext || undefined,
           exerciseType: "generative",
           generativeStage,
+          mode: setupMode,
+          customScenario: customScenarioOut,
           adaptiveHints,
         }),
       });
@@ -241,7 +253,7 @@ export function GenerativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
       }
       const id = crypto.randomUUID();
       const row: GenerativeExerciseRow = {
-        ...buildRowFromPayload(id, d, generativeStage, json.data),
+        ...buildRowFromPayload(id, d, generativeStage, json.data, customScenarioOut),
         currentStep: 1,
       };
       await putExercise(row);
@@ -265,7 +277,7 @@ export function GenerativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
     } finally {
       setLoading(false);
     }
-  }, [domain]);
+  }, [domain, setupMode, customScenarioText]);
 
   const regenerate = () => {
     const anyAnswer = Object.values(answers).some((t) => t.trim().length > 0);
@@ -607,9 +619,48 @@ export function GenerativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="grid gap-2">
-              <Label>Domain</Label>
-              <DomainInput value={domain} onChange={setDomain} suggestions={domainSuggestions} />
+              <Label>{setupMode === "custom_scenario" ? "Domain (optional)" : "Domain"}</Label>
+              <DomainInput
+                value={domain}
+                onChange={setDomain}
+                suggestions={domainSuggestions}
+                placeholder={
+                  setupMode === "custom_scenario"
+                    ? "e.g. DevOps — leave blank to let AI infer"
+                    : undefined
+                }
+              />
             </div>
+            <div className="grid gap-2">
+              <Label>Source</Label>
+              <Select
+                value={setupMode}
+                onValueChange={(v) =>
+                  setSetupMode((v as "generated" | "custom_scenario") ?? "generated")
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="generated">AI-generated from domain</SelectItem>
+                  <SelectItem value="custom_scenario">My scenario</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {setupMode === "custom_scenario" ? (
+              <div className="grid gap-2">
+                <Label htmlFor="gen-custom-scenario">Your scenario</Label>
+                <Textarea
+                  id="gen-custom-scenario"
+                  rows={5}
+                  value={customScenarioText}
+                  onChange={(e) => setCustomScenarioText(e.target.value)}
+                  placeholder="Describe the writing situation and what you want to think through..."
+                  className="min-h-[5rem]"
+                />
+              </div>
+            ) : null}
             <p className="text-muted-foreground text-xs">
               Personal context for AI is read from{" "}
               <Link href="/settings" className="underline">

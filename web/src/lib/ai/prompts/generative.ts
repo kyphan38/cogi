@@ -1,15 +1,22 @@
 import type { GenerativeStage } from "@/lib/ai/validators/generative";
+import { CUSTOM_DOMAIN_PLACEHOLDER, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
 
 export function buildGenerativeGenerationPrompt(input: {
   domain: string;
   userContext?: string;
   generativeStage: GenerativeStage;
   adaptationAppendix?: string;
+  customScenario?: string;
 }): string {
   const ctx = input.userContext?.trim()
     ? `\nUser context (optional): ${input.userContext.trim()}`
     : "";
   const adapt = input.adaptationAppendix?.trim();
+  const scenarioBlock = formatUserScenarioBlock(input.customScenario);
+  const domainHint =
+    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
+      ? `\nTone/register hint: ${input.domain.trim()}`
+      : "";
 
   const stageBlock =
     input.generativeStage === "edit"
@@ -18,7 +25,11 @@ export function buildGenerativeGenerationPrompt(input: {
         ? `Stage HINT: For each prompt, include "hints" as an array of exactly 2 or 3 short bullet strings (not full drafts).`
         : `Stage INDEPENDENT: Do NOT include draftText or hints. Optionally include "spareHint" per prompt (one sentence) for an optional "show hint" button - may be omitted.`;
 
-  return `You are generating a structured generative-thinking exercise about: ${input.domain}.${ctx}
+  const intro = scenarioBlock
+    ? `${scenarioBlock}${domainHint}\n\nYou are generating a structured generative-thinking exercise anchored to the user's scenario above.${ctx}`
+    : `You are generating a structured generative-thinking exercise about: ${input.domain}.${ctx}`;
+
+  return `${intro}
 
 Scaffold stage for this exercise: "${input.generativeStage}".
 ${stageBlock}

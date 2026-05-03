@@ -1,15 +1,27 @@
+import { CUSTOM_DOMAIN_PLACEHOLDER, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
+
 export function buildSequentialGenerationPrompt(input: {
   domain: string;
   userContext?: string;
   adaptationAppendix?: string;
+  customScenario?: string;
 }): string {
   const ctx = input.userContext?.trim() || "(none provided)";
   const adapt = input.adaptationAppendix?.trim();
+  const scenarioBlock = formatUserScenarioBlock(input.customScenario);
+  const domainHint =
+    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
+      ? `\nTone/register hint: ${input.domain.trim()}`
+      : "";
+  const topicLine = scenarioBlock
+    ? `${scenarioBlock}\n\nCreate a process-ordering exercise with **8 steps** directly about this situation.`
+    : `Generate a ${input.domain} process-ordering exercise with **8 steps**.`;
+
   return `You are generating a thinking exercise. Return ONLY valid JSON (no markdown, no prose).
 
-USER context: ${ctx}
+USER context: ${ctx}${domainHint}
 
-Generate a ${input.domain} process-ordering exercise with **8 steps**.
+${topicLine}
 
 Requirements:
 - Steps should have clear dependencies (A must happen before B)

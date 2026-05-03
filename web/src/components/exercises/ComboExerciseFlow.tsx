@@ -63,6 +63,7 @@ import { currentIsoWeekKey } from "@/lib/db/actions";
 import type { SystemsConnectionType } from "@/lib/ai/validators/systems";
 import { DomainInput } from "@/components/shared/DomainInput";
 import { listRecentDomains } from "@/lib/db/exercises";
+import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
 
 function shuffleIds(ids: string[]): string[] {
   const a = [...ids];
@@ -90,6 +91,12 @@ type Phase = "pick" | "work" | "journal" | "done";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string } = {}) {
   const [domain, setDomain] = useState("");
+  const [setupMode, setSetupMode] = useState<"generated" | "custom_scenario">("generated");
+  const [customScenarioText, setCustomScenarioText] = useState("");
+  const [persistedDomain, setPersistedDomain] = useState("");
+  const [persistedCustomScenario, setPersistedCustomScenario] = useState<string | undefined>(
+    undefined,
+  );
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [preset, setPreset] = useState<ComboPresetId>("full_analysis");
   const [bundle, setBundle] = useState<ComboBundle | null>(null);
@@ -145,11 +152,16 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
 
   const generateBundle = useCallback(async () => {
     setError(null);
-    const d = domain.trim();
-    if (!d) {
-      setError("Enter a domain.");
+    const resolved = resolveDomainAndScenario({
+      mode: setupMode,
+      domain,
+      customScenario: customScenarioText,
+    });
+    if (!resolved.ok) {
+      setError(resolved.error);
       return;
     }
+    const { effectiveDomain: d, customScenarioOut } = resolved;
     setLoading(true);
     try {
       const userContext = await getUserContext();
@@ -160,6 +172,8 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
           requestId: crypto.randomUUID(),
           preset,
           domain: d,
+          mode: setupMode,
+          customScenario: customScenarioOut,
           userContext: userContext || undefined,
         }),
       });
@@ -171,6 +185,8 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
       const id = crypto.randomUUID();
       setComboId(id);
       setBundle(json.data);
+      setPersistedDomain(d);
+      setPersistedCustomScenario(customScenarioOut);
       resetWorkState();
       if (json.data.preset === "root_cause") {
         setSeqOrder(shuffleIds(json.data.sequential.steps.map((s) => s.id)));
@@ -185,7 +201,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
     } finally {
       setLoading(false);
     }
-  }, [domain, preset]);
+  }, [domain, preset, setupMode, customScenarioText]);
 
   const regenerate = () => {
     const dirty =
@@ -214,7 +230,8 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
     return {
       id: `${comboId}-analytical`,
       type: "analytical",
-      domain: domain.trim(),
+      domain: persistedDomain,
+      customScenario: persistedCustomScenario,
       source: "ai",
       title: a.title,
       passage: bundle.sharedScenario,
@@ -226,7 +243,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
       createdAt: new Date().toISOString(),
       completedAt: null,
     };
-  }, [bundle, comboId, domain, highlights]);
+  }, [bundle, comboId, persistedDomain, persistedCustomScenario, highlights]);
 
   const systemsSource = useMemo((): SystemsExerciseRow | null => {
     if (!bundle || !comboId) return null;
@@ -235,7 +252,8 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
     return {
       id: `${comboId}-systems`,
       type: "systems",
-      domain: domain.trim(),
+      domain: persistedDomain,
+      customScenario: persistedCustomScenario,
       title: s.title,
       scenario: bundle.sharedScenario,
       nodes: s.nodes,
@@ -248,7 +266,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
       createdAt: new Date().toISOString(),
       completedAt: null,
     };
-  }, [bundle, comboId, domain, userEdges, nodeImpact]);
+  }, [bundle, comboId, persistedDomain, persistedCustomScenario, userEdges, nodeImpact]);
 
   const matrixSource = useMemo((): EvaluativeMatrixRow | null => {
     if (!bundle || !comboId) return null;
@@ -263,7 +281,8 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
       id: `${comboId}-matrix`,
       type: "evaluative",
       variant: "matrix",
-      domain: domain.trim(),
+      domain: persistedDomain,
+      customScenario: persistedCustomScenario,
       title: m.title,
       scenario: bundle.sharedScenario,
       axisX: m.axisX,
@@ -275,7 +294,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
       createdAt: new Date().toISOString(),
       completedAt: null,
     };
-  }, [bundle, comboId, domain, placements]);
+  }, [bundle, comboId, persistedDomain, persistedCustomScenario, placements]);
 
   const sequentialSource = useMemo((): SequentialExerciseRow | null => {
     if (!bundle || bundle.preset !== "root_cause" || !comboId) return null;
@@ -283,7 +302,8 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
     return {
       id: `${comboId}-sequential`,
       type: "sequential",
-      domain: domain.trim(),
+      domain: persistedDomain,
+      customScenario: persistedCustomScenario,
       title: s.title,
       scenario: bundle.sharedScenario,
       steps: s.steps,
@@ -294,7 +314,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
       createdAt: new Date().toISOString(),
       completedAt: null,
     };
-  }, [bundle, comboId, domain, seqOrder]);
+  }, [bundle, comboId, persistedDomain, persistedCustomScenario, seqOrder]);
 
   const generativeSource = useMemo((): GenerativeExerciseRow | null => {
     if (!bundle || bundle.preset !== "decision_sprint" || !comboId) return null;
@@ -309,7 +329,8 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
     return {
       id: `${comboId}-generative`,
       type: "generative",
-      domain: domain.trim(),
+      domain: persistedDomain,
+      customScenario: persistedCustomScenario,
       title: g.title,
       scenario: bundle.sharedScenario,
       stageAtStart: "independent",
@@ -324,7 +345,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
       createdAt: new Date().toISOString(),
       completedAt: null,
     };
-  }, [bundle, comboId, domain, genAnswers]);
+  }, [bundle, comboId, persistedDomain, persistedCustomScenario, genAnswers]);
 
   const moveSeq = (idx: number, dir: -1 | 1) => {
     setSeqOrder((prev) => {
@@ -405,7 +426,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
 
   useEffect(() => {
     if (phase !== "journal" || journalPrimed || !bundle || !comboId) return;
-    const d = domain.trim();
+    const d = persistedDomain || domain.trim();
     if (!d) return;
     const effectId = ++journalEffectIdRef.current;
     let cancelled = false;
@@ -516,7 +537,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
     return () => {
       cancelled = true;
     };
-  }, [phase, journalPrimed, bundle, comboId, domain]);
+  }, [phase, journalPrimed, bundle, comboId, persistedDomain, domain]);
 
   const journalValid = () => {
     const vals = Object.values(journalAnswers);
@@ -608,7 +629,8 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
       id: comboId,
       type: "combo",
       preset: bundle.preset,
-      domain: domain.trim(),
+      domain: persistedDomain || domain.trim(),
+      customScenario: persistedCustomScenario,
       title: bundle.sharedTitle,
       scenario: bundle.sharedScenario,
       subExercises: subs,
@@ -686,9 +708,48 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="grid gap-2">
-              <Label>Domain</Label>
-              <DomainInput value={domain} onChange={setDomain} suggestions={domainSuggestions} />
+              <Label>{setupMode === "custom_scenario" ? "Domain (optional)" : "Domain"}</Label>
+              <DomainInput
+                value={domain}
+                onChange={setDomain}
+                suggestions={domainSuggestions}
+                placeholder={
+                  setupMode === "custom_scenario"
+                    ? "e.g. DevOps — leave blank to let AI infer"
+                    : undefined
+                }
+              />
             </div>
+            <div className="grid gap-2">
+              <Label>Source</Label>
+              <Select
+                value={setupMode}
+                onValueChange={(v) =>
+                  setSetupMode((v as "generated" | "custom_scenario") ?? "generated")
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="generated">AI-generated from domain</SelectItem>
+                  <SelectItem value="custom_scenario">My scenario</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {setupMode === "custom_scenario" ? (
+              <div className="grid gap-2">
+                <Label htmlFor="combo-custom-scenario">Your scenario</Label>
+                <Textarea
+                  id="combo-custom-scenario"
+                  rows={5}
+                  value={customScenarioText}
+                  onChange={(e) => setCustomScenarioText(e.target.value)}
+                  placeholder="One situation for the whole combo (shared across sub-exercises)..."
+                  className="min-h-[5rem]"
+                />
+              </div>
+            ) : null}
             <div className="grid gap-2">
               <Label>Preset</Label>
               <Select

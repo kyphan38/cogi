@@ -1,15 +1,27 @@
+import { CUSTOM_DOMAIN_PLACEHOLDER, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
+
 export function buildSystemsGenerationPrompt(input: {
   domain: string;
   userContext?: string;
   adaptationAppendix?: string;
+  customScenario?: string;
 }): string {
   const ctx = input.userContext?.trim() || "(none provided)";
   const adapt = input.adaptationAppendix?.trim();
+  const scenarioBlock = formatUserScenarioBlock(input.customScenario);
+  const domainHint =
+    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
+      ? `\nTone/register hint: ${input.domain.trim()}`
+      : "";
+  const topicIntro = scenarioBlock
+    ? `${scenarioBlock}\n\nDesign a systems-thinking exercise whose scenario and node labels reflect THIS situation (teams, tools, stakeholders may be renamed for clarity but keep the same tensions).`
+    : `Generate a systems-thinking exercise about **${input.domain}**.`;
+
   return `You are generating a thinking exercise. Return ONLY valid JSON (no markdown, no prose).
 
-USER context: ${ctx}
+USER context: ${ctx}${domainHint}
 
-Generate a systems-thinking exercise about **${input.domain}**.
+${topicIntro}
 
 Requirements:
 - Exactly **6 nodes** (not more). Node IDs MUST be exactly: "node_1", "node_2", "node_3", "node_4", "node_5", "node_6"
