@@ -502,7 +502,7 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
                 suggestions={domainSuggestions}
                 placeholder={
                   mode === "custom_scenario"
-                    ? "e.g. DevOps — leave blank to let AI infer"
+                    ? "e.g. DevOps - leave blank to let AI infer"
                     : undefined
                 }
               />
@@ -528,7 +528,7 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
             {mode === "custom_scenario" ? (
               <div className="grid gap-2">
                 <Label htmlFor="custom-scenario">
-                  Describe your situation — AI will design the passage around it
+                  Describe your situation - AI will design the passage around it
                 </Label>
                 <Textarea
                   id="custom-scenario"

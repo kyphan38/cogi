@@ -474,7 +474,7 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
                 suggestions={domainSuggestions}
                 placeholder={
                   setupMode === "custom_scenario"
-                    ? "e.g. DevOps — leave blank to let AI infer"
+                    ? "e.g. DevOps - leave blank to let AI infer"
                     : undefined
                 }
               />

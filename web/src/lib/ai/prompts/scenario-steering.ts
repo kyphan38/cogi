@@ -40,7 +40,7 @@ export function resolveDomainAndScenario(input: {
 export function formatUserScenarioBlock(customScenario?: string): string | undefined {
   const t = customScenario?.trim();
   if (!t) return undefined;
-  return `The user has provided a specific real-world scenario. Anchor the entire exercise to it—preserve actors, stakes, and constraints.
+  return `The user has provided a specific real-world scenario. Anchor the entire exercise to it-preserve actors, stakes, and constraints.
 
 USER SCENARIO:
 """
