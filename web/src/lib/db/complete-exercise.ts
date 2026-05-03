@@ -2,6 +2,7 @@ import { recordWeaknessesAfterExercise } from "@/lib/adaptive/record-weaknesses"
 import { writeBatch } from "firebase/firestore";
 import { getFirebaseFirestore } from "@/lib/auth/firebase-client";
 import { COGI_COLLECTIONS, userDocRef } from "@/lib/db/firestore";
+import { stripUndefinedDeep } from "@/lib/db/strip-undefined-deep";
 import { getAppSettings } from "@/lib/db/settings";
 import type { Exercise } from "@/lib/types/exercise";
 import type { JournalEntry } from "@/lib/types/journal";
@@ -45,7 +46,10 @@ export async function completeExerciseFlow(input: {
     : null;
 
   const batch = writeBatch(getFirebaseFirestore());
-  batch.set(userDocRef<Exercise>(COGI_COLLECTIONS.exercises, input.exercise.id), input.exercise);
+  batch.set(
+    userDocRef<Exercise>(COGI_COLLECTIONS.exercises, input.exercise.id),
+    stripUndefinedDeep(input.exercise) as Exercise,
+  );
   batch.set(userDocRef<JournalEntry>(COGI_COLLECTIONS.journalEntries, input.journal.id), input.journal);
   batch.set(
     userDocRef<ConfidenceRecord>(COGI_COLLECTIONS.confidenceRecords, input.confidence.id),

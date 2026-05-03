@@ -7,9 +7,13 @@ import {
   userDocRef,
 } from "@/lib/db/firestore";
 import type { ConfidenceRecord, Exercise, ThinkingType } from "@/lib/types/exercise";
+import { stripUndefinedDeep } from "@/lib/db/strip-undefined-deep";
 
 export async function putExercise(ex: Exercise): Promise<void> {
-  await setDoc(userDocRef<Exercise>(COGI_COLLECTIONS.exercises, ex.id), ex);
+  await setDoc(
+    userDocRef<Exercise>(COGI_COLLECTIONS.exercises, ex.id),
+    stripUndefinedDeep(ex) as Exercise,
+  );
 }
 
 export async function getExercise(id: string): Promise<Exercise | undefined> {
