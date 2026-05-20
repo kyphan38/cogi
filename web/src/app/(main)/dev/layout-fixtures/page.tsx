@@ -36,6 +36,10 @@ export default function LayoutFixturesPage() {
     const sel = window.getSelection();
     sel?.removeAllRanges();
     sel?.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+    el.dispatchEvent(
+      new PointerEvent("pointerup", { bubbles: true, pointerType: "touch" }),
+    );
     el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
   }, []);
 

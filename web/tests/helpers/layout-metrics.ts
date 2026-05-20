@@ -138,6 +138,7 @@ export async function assertNoHorizontalOverflow(page: Page): Promise<void> {
   ).toBeLessThanOrEqual(2);
 }
 
+/** Programmatic passage selection + events that mirror desktop and mobile completion. */
 export async function selectTextInPassage(page: Page): Promise<void> {
   await page.getByTestId("text-passage").evaluate((el) => {
     const range = document.createRange();
@@ -156,6 +157,11 @@ export async function selectTextInPassage(page: Page): Promise<void> {
     const sel = window.getSelection();
     sel?.removeAllRanges();
     sel?.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+    el.dispatchEvent(
+      new PointerEvent("pointerup", { bubbles: true, cancelable: true, pointerType: "touch" }),
+    );
+    el.dispatchEvent(new TouchEvent("touchend", { bubbles: true, cancelable: true }));
     el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
   });
 }

@@ -39,6 +39,11 @@ function usesSemanticTagPicker(tagOptions: TagType[]): boolean {
   return tagOptions.length > 0 && tagOptions.every((t) => geoSet.has(t));
 }
 
+function isCoarsePointerDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(pointer: coarse)").matches;
+}
+
 function HighlightTagBadge({ tag }: { tag: TagType }) {
   if (isGeopoliticsSemanticTag(tag)) {
     const accent = GEOPOLITICS_SEMANTIC_ACCENTS[tag];
@@ -89,6 +94,8 @@ export function HighlightTag({
 }: HighlightTagProps) {
   const ref = useRef<HTMLDivElement>(null);
   const firstTagButtonRef = useRef<HTMLButtonElement>(null);
+  const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectionChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pending, setPending] = useState<{ start: number; end: number } | null>(
     null,
   );
@@ -100,24 +107,74 @@ export function HighlightTag({
     firstTagButtonRef.current?.focus();
   }, [pending, semanticPicker]);
 
-  const onMouseUp = useCallback(() => {
-    const el = ref.current;
-    if (!el) return;
-    const range = selectionOffsetsWithin(el);
-    window.getSelection()?.removeAllRanges();
-    if (!range || range.end - range.start < 1) {
-      setPending(null);
-      return;
-    }
-    for (const h of highlights) {
-      if (overlaps(range.start, range.end, h.startOffset, h.endOffset)) {
-        setPending(null);
-        onSelectionOverlap();
+  const commitSelectionFromDOM = useCallback(
+    (attempt = 0) => {
+      const el = ref.current;
+      if (!el) return;
+      const range = selectionOffsetsWithin(el);
+      if (!range || range.end - range.start < 1) {
+        if (attempt < 3 && isCoarsePointerDevice()) {
+          commitTimerRef.current = setTimeout(
+            () => commitSelectionFromDOM(attempt + 1),
+            80,
+          );
+        }
         return;
       }
+
+      window.getSelection()?.removeAllRanges();
+
+      for (const h of highlights) {
+        if (overlaps(range.start, range.end, h.startOffset, h.endOffset)) {
+          setPending(null);
+          onSelectionOverlap();
+          return;
+        }
+      }
+      setPending(range);
+    },
+    [highlights, onSelectionOverlap],
+  );
+
+  const scheduleCommitSelection = useCallback(() => {
+    if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
+    const run = () => commitSelectionFromDOM(0);
+    if (isCoarsePointerDevice()) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(run);
+      });
+    } else {
+      requestAnimationFrame(run);
     }
-    setPending(range);
-  }, [highlights, onSelectionOverlap]);
+  }, [commitSelectionFromDOM]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const onSelectionChange = () => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+      const anchor = sel.anchorNode;
+      if (!anchor || !el.contains(anchor)) return;
+
+      if (selectionChangeTimerRef.current) {
+        clearTimeout(selectionChangeTimerRef.current);
+      }
+      selectionChangeTimerRef.current = setTimeout(() => {
+        scheduleCommitSelection();
+      }, 120);
+    };
+
+    document.addEventListener("selectionchange", onSelectionChange);
+    return () => {
+      document.removeEventListener("selectionchange", onSelectionChange);
+      if (selectionChangeTimerRef.current) {
+        clearTimeout(selectionChangeTimerRef.current);
+      }
+      if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
+    };
+  }, [scheduleCommitSelection]);
 
   const applyTag = (tag: TagType) => {
     if (!pending) return;
@@ -134,6 +191,7 @@ export function HighlightTag({
       },
     ]);
     setPending(null);
+    window.getSelection()?.removeAllRanges();
   };
 
   const remove = (id: string) => {
@@ -145,9 +203,9 @@ export function HighlightTag({
       <div
         ref={ref}
         data-testid="text-passage"
-        className="select-text cursor-text rounded-2xl border border-zinc-200 bg-white p-4 text-base leading-relaxed text-zinc-900"
-        onMouseUp={onMouseUp}
-        onKeyUp={onMouseUp}
+        className="select-text cursor-text touch-manipulation rounded-2xl border border-zinc-200 bg-white p-4 text-base leading-relaxed text-zinc-900 [-webkit-user-select:text]"
+        onPointerUp={scheduleCommitSelection}
+        onKeyUp={scheduleCommitSelection}
         onKeyDown={(e) => {
           if (e.key === "Escape") setPending(null);
         }}
@@ -161,12 +219,11 @@ export function HighlightTag({
           data-testid="tag-picker-region"
           className="space-y-3 rounded-2xl border border-dashed border-zinc-200 p-4"
         >
-          <span className="text-sm text-zinc-500">Pick a tag:</span>
+          <span className="text-sm text-zinc-500" data-testid="pick-tag-prompt">
+            Pick a tag:
+          </span>
           {semanticPicker ? (
-            <SemanticTagPicker
-              options={tagOptions}
-              onSelect={applyTag}
-            />
+            <SemanticTagPicker options={tagOptions} onSelect={applyTag} />
           ) : (
             <div className="flex flex-wrap items-center gap-2">
               {tagOptions.map((tag) => (
