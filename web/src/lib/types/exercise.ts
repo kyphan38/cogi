@@ -32,6 +32,10 @@ export type TagType =
   | "hidden_assumption"
   | "weak_evidence"
   | "bias"
+  | "framing_bias"
+  | "missing_actor"
+  | "assumed_causation"
+  | "analogy_misuse"
   | "valid_point"
   | "unclear";
 
@@ -68,6 +72,13 @@ export interface AnalyticalExerciseRow {
   passage: string;
   /** True when the passage has no embedded issues (sound reasoning exercise). */
   isSoundReasoning?: boolean;
+  /** Geopolitics analytical generation (framing bias, missing actors, etc.). */
+  isGeopolitics?: boolean;
+  hiddenPerspective?: string;
+  missingActors?: string[];
+  userPerspectiveGuess?: string;
+  userMissingActorsGuess?: string[];
+  metaGuessScore?: number;
   embeddedIssues: EmbeddedIssue[];
   validPoints: ValidPoint[];
   userHighlights: UserHighlight[];
@@ -135,6 +146,17 @@ export interface SystemsExerciseRow {
   nodes: SystemsNodeSpec[];
   intendedConnections: SystemsIntendedConnection[];
   shockEvent: SystemsShockEvent;
+  /** Geopolitics: dual-perspective systems generation. */
+  isGeopolitics?: boolean;
+  perspectiveAName?: string;
+  perspectiveBName?: string;
+  intendedConnectionsB?: SystemsIntendedConnection[];
+  shockEventB?: {
+    directlyAffected: string[];
+    indirectlyAffected: string[];
+    explanation: string;
+  };
+  userPerspectiveBNotes?: string;
   /** User's proposed components before seeing AI nodes (diagnostic, not scored). */
   userProposedComponents?: string[] | null;
   userEdges: SystemsUserEdge[];
@@ -206,6 +228,11 @@ export interface EvaluativeHiddenCriterion {
   description: string;
 }
 
+export interface EvaluativeStakeholderMappingEntry {
+  name: string;
+  wants: string;
+}
+
 /** Weighted scoring table (3+ criteria). */
 export interface EvaluativeScoringRow {
   id: string;
@@ -215,6 +242,13 @@ export interface EvaluativeScoringRow {
   customScenario?: string;
   title: string;
   scenario: string;
+  /** True when exercise used geopolitics evaluative generation. */
+  isGeopolitics?: boolean;
+  /** AI ground truth for stakeholder compare step. */
+  stakeholderNote?: string;
+  /** User stakeholder mapping before scoring (geo only). */
+  userStakeholderMapping?: EvaluativeStakeholderMappingEntry[] | null;
+  stakeholderMappingRevealed?: boolean;
   /** User's proposed criteria before seeing AI framework. */
   userProposedCriteria?: { name: string; rationale: string }[] | null;
   criteria: EvaluativeCriterion[];
@@ -246,6 +280,8 @@ export interface GenerativeExerciseRow {
   type: "generative";
   domain: string;
   customScenario?: string;
+  /** True when exercise used geopolitics scenario-planning generation. */
+  isGeopolitics?: boolean;
   title: string;
   scenario: string;
   /** Scaffold stage locked when exercise was generated. */

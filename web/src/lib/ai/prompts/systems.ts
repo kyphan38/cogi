@@ -51,3 +51,62 @@ Return a single JSON object with this exact shape:
 
 nodes array must have exactly 6 entries with ids node_1 through node_6.${adapt ? `\n\n${adapt}` : ""}`;
 }
+
+export function buildGeopoliticsSystemsPrompt(input: {
+  domain: string;
+  userContext?: string;
+  adaptationAppendix?: string;
+  customScenario?: string;
+}): string {
+  const ctx = input.userContext?.trim() || "(none provided)";
+  const adapt = input.adaptationAppendix?.trim();
+  const scenarioBlock = formatUserScenarioBlock(input.customScenario);
+  const domainHint =
+    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
+      ? `\nTone/register hint: ${input.domain.trim()}`
+      : "";
+  const topicIntro = scenarioBlock
+    ? `${scenarioBlock}\n\nDesign a geopolitical systems exercise grounded in this scenario about: ${input.domain}.`
+    : `Generate a geopolitical systems exercise about: ${input.domain}.`;
+
+  return `You are generating a geopolitical systems-thinking exercise. Return ONLY valid JSON (no markdown, no prose).
+
+USER context: ${ctx}${domainHint}
+
+${topicIntro}
+
+Requirements:
+- Exactly 6 nodes representing key actors, institutions, or forces (ids MUST be "node_1" through "node_6")
+- Each node: label max 20 characters, description max 50 characters
+- x,y percentage positions (10-90), minimum 15 apart in Euclidean distance - layout nodes for **Perspective A's** structural centrality (hubs/outliers for Actor A). Perspective B uses the SAME node positions; only edges and shock ripples differ.
+- perspectiveAName and perspectiveBName: explicit state or major non-state actors (must differ)
+- intendedConnections: how Actor A (perspectiveAName) sees relationships - include at least one feedback loop
+- intendedConnectionsB: how Actor B (perspectiveBName) sees the SAME nodes differently - include at least one feedback loop
+- Each connection: type is "depends_on" | "conflicts_with" | "enables" | "risks", plus explanation
+- shockEvent: shared what-if description plus directlyAffected, indirectlyAffected, explanation from Actor A's view
+- shockEventB: same shock (do NOT repeat description) - only directlyAffected, indirectlyAffected, explanation from Actor B's view
+
+Return a single JSON object with this exact shape:
+{
+  "title": string,
+  "scenario": string,
+  "nodes": [ { "id": "node_1", "label": string, "description": string, "x": number, "y": number } ],
+  "perspectiveAName": string,
+  "perspectiveBName": string,
+  "intendedConnections": [ { "from": "node_1", "to": "node_2", "type": "depends_on", "explanation": string } ],
+  "intendedConnectionsB": [ { "from": "node_1", "to": "node_2", "type": "depends_on", "explanation": string } ],
+  "shockEvent": {
+    "description": string,
+    "directlyAffected": ["node_3"],
+    "indirectlyAffected": ["node_1"],
+    "explanation": string
+  },
+  "shockEventB": {
+    "directlyAffected": ["node_3"],
+    "indirectlyAffected": ["node_1"],
+    "explanation": string
+  }
+}
+
+nodes array must have exactly 6 entries with ids node_1 through node_6.${adapt ? `\n\n${adapt}` : ""}`;
+}

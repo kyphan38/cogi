@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ExerciseShell } from "@/components/shared/ExerciseShell";
+import {
+  ANALYTICAL_EXERCISE_STEP_LABELS,
+  ExerciseShell,
+  GEOPOLITICS_ANALYTICAL_STEP_LABELS,
+} from "@/components/shared/ExerciseShell";
 import { HighlightTag } from "@/components/exercises/HighlightTag";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
@@ -59,13 +63,29 @@ import { listRecentDomains } from "@/lib/db/exercises";
 import { isAnalyticalExercise } from "@/lib/types/exercise";
 import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
+import { isGeopoliticsAnalyticalDomain } from "@/lib/exercise/geopolitics-domains";
+import { GeopoliticsRealDataHints } from "@/components/exercises/GeopoliticsRealDataHints";
+import {
+  ExerciseStepCard,
+  EXERCISE_STEP_META_BADGE,
+} from "@/components/shared/ExerciseStepCard";
+import { GEOPOLITICS_TAG_OPTIONS } from "@/lib/exercise/tag-labels";
+import { computeMetaGuessScore } from "@/lib/analytics/geopolitics-meta-guess";
 
-type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
-export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
+function analyticalShellStep(step: FlowStep, isGeopolitics: boolean): number {
+  if (!isGeopolitics && step >= 2) return step - 1;
+  return step;
+}
+
+export function AnalyticalExerciseFlow({
+  resumeId,
+  initialDomain,
+}: { resumeId?: string; initialDomain?: string } = {}) {
   const { show: showToast } = useToast();
   const [step, setStep] = useState<FlowStep>(0);
-  const [domain, setDomain] = useState("");
+  const [domain, setDomain] = useState(initialDomain?.trim() ?? "");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -87,6 +107,9 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
   >("neutral");
 
   const [actionText, setActionText] = useState("");
+  const [userPerspectiveGuess, setUserPerspectiveGuess] = useState("");
+  const [missingActorGuess1, setMissingActorGuess1] = useState("");
+  const [missingActorGuess2, setMissingActorGuess2] = useState("");
 
   const [mode, setMode] = useState<"generated" | "real_data" | "custom_scenario">("generated");
   const [customScenarioText, setCustomScenarioText] = useState("");
@@ -120,12 +143,30 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
       setConfidence(row.confidenceBefore ?? 50);
       if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
       if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
+      setUserPerspectiveGuess(row.userPerspectiveGuess ?? "");
+      const actors = row.userMissingActorsGuess ?? [];
+      setMissingActorGuess1(actors[0] ?? "");
+      setMissingActorGuess2(actors[1] ?? "");
+      if (row.domain) setDomain(row.domain);
+      if (row.source === "real_data") {
+        setMode("real_data");
+        if (row.originalUserText) setRealText(row.originalUserText);
+      } else if (row.customScenario) {
+        setMode("custom_scenario");
+        setCustomScenarioText(row.customScenario);
+      }
       setStep((row.currentStep ?? 1) as FlowStep);
     })();
   }, [resumeId]);
 
   useEffect(() => {
-    if (!exercise || step === 0 || step === 6) return;
+    if (resumeId) return;
+    const d = initialDomain?.trim();
+    if (d) setDomain(d);
+  }, [initialDomain, resumeId]);
+
+  useEffect(() => {
+    if (!exercise || step === 0 || step === 7) return;
     const timer = setTimeout(() => {
       void putExercise({ ...exercise, userHighlights: highlights, currentStep: step });
     }, 2000);
@@ -210,6 +251,7 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
         return;
       }
       const data = json.data;
+      const isGeopolitics = isGeopoliticsAnalyticalDomain(effectiveDomain);
       const id = crypto.randomUUID();
       const row: AnalyticalExerciseRow = {
         id,
@@ -221,6 +263,9 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
         passage: data.passage,
         originalUserText: mode === "real_data" ? (sanitizedUserText ?? null) : null,
         isSoundReasoning: data.isSoundReasoning === true,
+        isGeopolitics,
+        hiddenPerspective: data.hiddenPerspective,
+        missingActors: data.missingActors,
         embeddedIssues: data.embeddedIssues,
         validPoints: data.validPoints,
         userHighlights: [],
@@ -240,6 +285,9 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
       setJournalPrimed(false);
       setEmotionLabel("neutral");
       setActionText("");
+      setUserPerspectiveGuess("");
+      setMissingActorGuess1("");
+      setMissingActorGuess2("");
       setStep(1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generate failed");
@@ -260,7 +308,7 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
   const submitHighlightsAndConfidence = async () => {
     if (!exercise) return;
     if (perspectiveText != null) {
-      advance(3);
+      advance(4);
       return;
     }
     if (highlights.length < 1) {
@@ -283,10 +331,15 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
           confidenceBefore: confidence,
           domain: exercise.domain,
           userContext: userContext || undefined,
+          hiddenPerspective: exercise.hiddenPerspective,
+          missingActors: exercise.missingActors,
+          userPerspectiveGuess: exercise.userPerspectiveGuess,
+          userMissingActorsGuess: exercise.userMissingActorsGuess,
+          metaGuessScore: exercise.metaGuessScore,
         }),
       });
       const json = await res.json();
-      const parsed = parsePerspectiveFetchJson(json);
+      const parsed = parsePerspectiveFetchJson(json, "analytical");
       if (!parsed.ok) {
         setError(parsed.error);
         return;
@@ -299,11 +352,11 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
         confidenceBefore: confidence,
         aiPerspective: parsed.text,
         aiPerspectiveStructured: parsed.structured,
-        currentStep: 3,
+        currentStep: 4,
       };
       await putExercise(partial);
       setExercise(partial);
-      setStep(3);
+      setStep(4);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Perspective failed");
     } finally {
@@ -312,7 +365,7 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
   };
 
   useEffect(() => {
-    if (step !== 4 || journalPrimed || !exercise) return;
+    if (step !== 5 || journalPrimed || !exercise) return;
     const effectId = ++journalEffectIdRef.current;
     let cancelled = false;
     (async () => {
@@ -441,29 +494,52 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
         action,
       });
       setExercise(finalEx);
-      setStep(6);
+      setStep(7);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     }
   };
 
-  const shellStep =
-    step === 0
-      ? 0
-      : step === 1
-        ? 1
-        : step === 2
-          ? 2
-          : step === 3
-            ? 3
-            : step === 4
-              ? 4
-              : step === 5
-                ? 5
-                : 6;
+  const submitMetaGuess = async () => {
+    if (!exercise?.isGeopolitics) return;
+    const perspective = userPerspectiveGuess.trim();
+    const actors = [missingActorGuess1, missingActorGuess2]
+      .map((a) => a.trim())
+      .filter(Boolean);
+    if (!perspective) {
+      setError("Describe whose perspective you think this passage reflects.");
+      return;
+    }
+    if (actors.length < 1) {
+      setError("Name at least one missing actor or perspective.");
+      return;
+    }
+    setError(null);
+    const score = computeMetaGuessScore(
+      exercise.hiddenPerspective ?? "",
+      exercise.missingActors ?? [],
+      perspective,
+      actors,
+    );
+    const partial: AnalyticalExerciseRow = {
+      ...exercise,
+      userPerspectiveGuess: perspective,
+      userMissingActorsGuess: actors,
+      metaGuessScore: score,
+      currentStep: 3,
+    };
+    await putExercise(partial);
+    setExercise(partial);
+    advance(3, partial);
+  };
+
+  const shellStep = analyticalShellStep(step, exercise?.isGeopolitics === true);
+  const stepLabels = exercise?.isGeopolitics
+    ? GEOPOLITICS_ANALYTICAL_STEP_LABELS
+    : ANALYTICAL_EXERCISE_STEP_LABELS;
 
   return (
-    <ExerciseShell stepIndex={shellStep}>
+    <ExerciseShell stepIndex={shellStep} stepLabels={stepLabels}>
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -486,14 +562,11 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
       ) : null}
 
       {step === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Analytical exercise</CardTitle>
-            <CardDescription>
-              Generate a passage, then highlight and tag issues before reflecting.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
+        <ExerciseStepCard
+          data-testid="analytical-exercise-card"
+          title="Analytical exercise"
+          description="Generate a passage, then highlight and tag issues before reflecting."
+        >
             <div className="grid gap-2">
               <Label>{mode === "custom_scenario" ? "Domain (optional)" : "Domain"}</Label>
               <DomainInput
@@ -525,6 +598,7 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
                 </SelectContent>
               </Select>
             </div>
+            <GeopoliticsRealDataHints domain={domain} mode={mode} />
             {mode === "custom_scenario" ? (
               <div className="grid gap-2">
                 <Label htmlFor="custom-scenario">
@@ -658,28 +732,30 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
                 "Generate exercise"
               )}
             </Button>
-          </CardContent>
-        </Card>
+        </ExerciseStepCard>
       ) : null}
 
       {step === 1 && exercise ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{exercise.title}</CardTitle>
-            <CardDescription>
+        <ExerciseStepCard
+          data-testid="analytical-exercise-card"
+          title={exercise.title}
+          description={
+            <>
               Domain: {exercise.domain}
               {exercise.isSoundReasoning === true ? (
-                <span className="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-normal uppercase tracking-wide text-sky-800 dark:bg-sky-950/50 dark:text-sky-200">
-                  Sound reasoning
-                </span>
+                <span className={EXERCISE_STEP_META_BADGE}>Sound reasoning</span>
               ) : null}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </>
+          }
+          bodyClassName="space-y-4"
+        >
             <HighlightTag
               passage={exercise.passage}
               highlights={highlights}
               onChange={setHighlights}
+              tagOptions={
+                exercise.isGeopolitics ? GEOPOLITICS_TAG_OPTIONS : undefined
+              }
               onSelectionOverlap={() =>
                 setError("Selection overlaps an existing highlight. Remove or adjust first.")
               }
@@ -699,9 +775,64 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
                     setError("Add at least one highlight.");
                     return;
                   }
-                  advance(2);
+                  advance(exercise.isGeopolitics ? 2 : 3);
                 }}
               >
+                {exercise.isGeopolitics
+                  ? "Continue to perspective guess"
+                  : "Continue to confidence"}
+              </Button>
+            </div>
+        </ExerciseStepCard>
+      ) : null}
+
+      {step === 2 && exercise?.isGeopolitics ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Perspective & missing actors</CardTitle>
+            <CardDescription>
+              Before seeing the debrief: whose viewpoint is this written from? Which
+              stakeholders or perspectives are absent?
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="perspective-guess">
+                Whose perspective is this written from?
+              </Label>
+              <Textarea
+                id="perspective-guess"
+                rows={3}
+                placeholder="e.g. US-aligned security think tank, ASEAN small-state pragmatist…"
+                value={userPerspectiveGuess}
+                onChange={(e) => setUserPerspectiveGuess(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="missing-actor-1">
+                Missing actor or perspective (at least one)
+              </Label>
+              <Input
+                id="missing-actor-1"
+                value={missingActorGuess1}
+                onChange={(e) => setMissingActorGuess1(e.target.value)}
+                placeholder="e.g. Vietnam / coastal ASEAN states"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="missing-actor-2">Second missing actor (optional)</Label>
+              <Input
+                id="missing-actor-2"
+                value={missingActorGuess2}
+                onChange={(e) => setMissingActorGuess2(e.target.value)}
+                placeholder="e.g. fishing communities / informal economy"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="secondary" onClick={() => setStep(1)}>
+                Back
+              </Button>
+              <Button type="button" onClick={() => void submitMetaGuess()}>
                 Continue to confidence
               </Button>
             </div>
@@ -709,7 +840,7 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
         </Card>
       ) : null}
 
-      {step === 2 && exercise ? (
+      {step === 3 && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Confidence</CardTitle>
@@ -725,7 +856,7 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
                 type="button"
                 variant="secondary"
                 disabled={loading}
-                onClick={() => setStep(1)}
+                onClick={() => setStep(exercise.isGeopolitics ? 2 : 1)}
               >
                 Back
               </Button>
@@ -747,8 +878,42 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
         </Card>
       ) : null}
 
-      {step === 3 && exercise && perspectiveText ? (
+      {step === 4 && exercise && perspectiveText ? (
         <div className="space-y-4">
+          {exercise.isGeopolitics && exercise.hiddenPerspective ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Ground truth reveal</CardTitle>
+                <CardDescription>
+                  Compare your guesses to what the passage embedded.
+                  {typeof exercise.metaGuessScore === "number"
+                    ? ` Meta-guess score: ${exercise.metaGuessScore}/100.`
+                    : null}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <p>
+                  <span className="font-medium">Hidden perspective: </span>
+                  {exercise.hiddenPerspective}
+                </p>
+                <p>
+                  <span className="font-medium">Missing actors: </span>
+                  {(exercise.missingActors ?? []).join("; ")}
+                </p>
+                {exercise.userPerspectiveGuess ? (
+                  <p className="text-muted-foreground">
+                    Your perspective guess: {exercise.userPerspectiveGuess}
+                  </p>
+                ) : null}
+                {(exercise.userMissingActorsGuess ?? []).length > 0 ? (
+                  <p className="text-muted-foreground">
+                    Your missing-actor guesses:{" "}
+                    {exercise.userMissingActorsGuess!.join("; ")}
+                  </p>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
           <AIPerspective
             text={perspectiveText}
             structured={perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null}
@@ -757,13 +922,13 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
             exerciseTitle={exercise.title}
             domain={exercise.domain}
           />
-          <Button type="button" onClick={() => advance(4)}>
+          <Button type="button" onClick={() => advance(5)}>
             Continue to journal
           </Button>
         </div>
       ) : null}
 
-      {step === 4 && exercise ? (
+      {step === 5 && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Metacognition journal</CardTitle>
@@ -829,7 +994,7 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
                   </div>
                 ))}
                 <div className="flex gap-2">
-                  <Button type="button" variant="secondary" onClick={() => setStep(3)}>
+                  <Button type="button" variant="secondary" onClick={() => setStep(4)}>
                     Back
                   </Button>
                   <Button
@@ -840,7 +1005,7 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
                         setError("Need two answers with more than 10 characters.");
                         return;
                       }
-                      advance(5);
+                      advance(6);
                     }}
                   >
                     Continue to action
@@ -852,7 +1017,7 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
         </Card>
       ) : null}
 
-      {step === 5 && exercise ? (
+      {step === 6 && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Action bridge</CardTitle>
@@ -868,7 +1033,7 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
               onChange={(e) => setActionText(e.target.value)}
             />
             <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(4)}>
+              <Button type="button" variant="secondary" onClick={() => setStep(5)}>
                 Back
               </Button>
               <Button type="button" onClick={() => void finishExercise()}>
@@ -879,7 +1044,7 @@ export function AnalyticalExerciseFlow({ resumeId }: { resumeId?: string } = {})
         </Card>
       ) : null}
 
-      {step === 6 ? (
+      {step === 7 ? (
         <Card>
           <CardHeader>
             <CardTitle>Exercise saved</CardTitle>

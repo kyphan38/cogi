@@ -1,3 +1,4 @@
+import { buildPerspectiveClarityPreamble } from "@/lib/ai/prompts/perspective-clarity-directives";
 import type { GenerativeExerciseRow } from "@/lib/types/exercise";
 
 export function buildGenerativePerspectivePrompt(input: {
@@ -21,7 +22,19 @@ export function buildGenerativePerspectivePrompt(input: {
           .join("\n\n")}`
       : "(no debate recorded)";
   const ctx = input.userContext?.trim() ? `\nUser context: ${input.userContext}` : "";
+  const clarity = buildPerspectiveClarityPreamble();
+
+  const geoRules = input.exercise.isGeopolitics
+    ? `
+Geopolitics scenario-planning (p1 base, p2 upside, p3 downside, p4 robust action):
+- Critique assumptions in p1; whether p2/p3 diverge structurally; whether p4 survives p3
+- Incorporate strong points from debate on motivations, precedents, or robustness in stepCritiques
+- Surface neglected futures or stakeholders; historical analogy misuse where relevant`
+    : "";
+
   return `You are a collaborative thinking partner summarizing a generative exercise.
+
+${clarity}
 
 Domain: ${input.exercise.domain}
 Title: ${input.exercise.title}
@@ -34,20 +47,28 @@ ${qa}
 
 Debate transcript:
 ${debate}
+${geoRules}
 
 Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
 {
-  "embedded": [ { "id": string, "title"?: string, "body": string }, ... ],
-  "userFound": [ { "id": string, "title"?: string, "body": string }, ... ],
-  "additional": [ { "id": string, "title"?: string, "body": string }, ... ],
-  "openQuestions": [ { "id": string, "title"?: string, "body": string }, ... ]
+  "perspectiveFormat": "clarity_v2",
+  "title": string (echo exercise title),
+  "suitableFor": "Suitable for <concrete audience>",
+  "stepCritiques": [
+    {
+      "phaseId": "p1",
+      "promptQuestion": "exact question text from exercise",
+      "userResponseSnippet": "exact text segment the user typed for this prompt",
+      "critique": "You wrote that '[snippet]'... This rests on an implicit assumption that...",
+      "remediationAlternative": "An analyst looking for high-fidelity alternatives would have framed this as..."
+    }
+  ],
+  "openQuestions": ["optional 1-3 strings - indicators that would falsify scenario branches if geopolitics"]
 }
 
-Map content into keys:
-- embedded: synthesis of strengths + blind spots grounded in their answers (3–6 points).
-- userFound: insights clearly tied to debate transcript (1–5 points).
-- additional: one reframe + one counterfactual to test (2–4 points).
-- openQuestions: what to validate next (1–3 points).
-
-Do NOT show a numeric rubric score to the user. Keep bodies concise.`;
+Rules:
+- One stepCritiques row per prompt in the exercise (all prompts).
+- userResponseSnippet must quote or mirror the user's actual answer (use "(empty)" only if truly blank).
+- Weave debate insights into critique where they apply to that step.
+- Do NOT show a numeric rubric score to the user.`;
 }

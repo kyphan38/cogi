@@ -8,6 +8,16 @@ import {
   verifyFirebaseJwt,
 } from "@/lib/auth/edge-auth";
 
+/** Playwright sets this cookie via bypassFirebaseAuth (non-production only). */
+export const E2E_BYPASS_COOKIE_NAME = "cogi_e2e";
+
+function isE2eBypassRequest(req: NextRequest): boolean {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    req.cookies.get(E2E_BYPASS_COOKIE_NAME)?.value === "1"
+  );
+}
+
 function isExcludedPath(pathname: string): boolean {
   if (pathname === "/login") return true;
   if (pathname === "/api/auth/verify") return true;
@@ -35,6 +45,9 @@ function redirectToLogin(req: NextRequest) {
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (isExcludedPath(pathname)) {
+    return NextResponse.next();
+  }
+  if (isE2eBypassRequest(req)) {
     return NextResponse.next();
   }
   if (!hasEdgeAllowlistConfig()) {

@@ -51,6 +51,7 @@ import type { WeeklyReviewRow } from "@/lib/types/insights";
 import type { DelayedRecallQueueRow } from "@/lib/types/insights";
 import { DelayedRecallCard } from "@/components/dashboard/DelayedRecallCard";
 import { DecisionRemindersCard } from "@/components/dashboard/DecisionRemindersCard";
+import { GeopoliticsProgressionCard } from "@/components/dashboard/GeopoliticsProgressionCard";
 import type { RealDecisionLogEntry } from "@/lib/types/decision";
 import { WeeklyInsights } from "@/components/dashboard/WeeklyInsights";
 import { countPerspectiveDisagreementsForExercises } from "@/lib/db/disagreements";
@@ -135,6 +136,7 @@ export function DashboardContent() {
   const [weeklyLoading, setWeeklyLoading] = useState(false);
   const [weeklyError, setWeeklyError] = useState<string | null>(null);
   const [adaptiveOn, setAdaptiveOn] = useState(false);
+  const [geoProgressionEpoch, setGeoProgressionEpoch] = useState<string | undefined>();
   const [perfByType, setPerfByType] = useState<Partial<Record<AdaptiveExerciseType, PerfSnap>>>({});
   const [topWeak, setTopWeak] = useState<WeaknessEntry[]>([]);
   const [completedSnapshotReady, setCompletedSnapshotReady] = useState(false);
@@ -167,6 +169,7 @@ export function DashboardContent() {
         recallEnabled = settings.delayedRecallEnabled !== false;
         setLastReviewCount(settings.weeklyReviewLastCompletedCount ?? 0);
         setAdaptiveOn(settings.adaptiveDifficultyEnabled === true);
+        setGeoProgressionEpoch(settings.geopoliticsProgressionEpoch);
         if (!recallEnabled) {
           setRecall(null);
         }
@@ -339,15 +342,6 @@ export function DashboardContent() {
           ? "Trending underconfident (confidence below measured accuracy on average)."
           : "Confidence and measured accuracy are fairly aligned on average.";
 
-  const stanceCardClass =
-    calibrationSummary.stance === "over"
-      ? "border-amber-300/60 bg-amber-50/90 dark:border-amber-800/50 dark:bg-amber-950/40"
-      : calibrationSummary.stance === "under"
-        ? "border-sky-300/60 bg-sky-50/90 dark:border-sky-800/50 dark:bg-sky-950/40"
-        : calibrationSummary.stance === "calibrated"
-          ? "border-emerald-300/60 bg-emerald-50/90 dark:border-emerald-900/50 dark:bg-emerald-950/35"
-          : "";
-
   return (
     <div className="mx-auto max-w-3xl p-4 sm:p-6 lg:max-w-5xl">
       <div className="mb-6">
@@ -366,17 +360,14 @@ export function DashboardContent() {
             <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{count}</p>
             <p className="text-muted-foreground mt-0.5 text-xs">Exercises with a completion record.</p>
           </div>
-          <div
-            className={cn(
-              "rounded-lg border px-3.5 py-3",
-              stanceCardClass || "border-border bg-card",
-            )}
-          >
-            <p className="text-muted-foreground text-[11px] tracking-wide uppercase">Calibration</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
+          <div className="rounded-lg border border-zinc-200 bg-white px-3.5 py-3">
+            <p className="font-tracker text-[11px] tracking-wide text-zinc-500 uppercase">
+              Calibration
+            </p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-zinc-900">
               {calibrationSummary.avgGap != null ? `${calibrationSummary.avgGap > 0 ? "+" : ""}${calibrationSummary.avgGap}%` : "-"}
             </p>
-            <p className="text-muted-foreground mt-0.5 text-xs leading-snug">{stanceLabel}</p>
+            <p className="mt-0.5 text-xs leading-snug text-zinc-600">{stanceLabel}</p>
           </div>
           <div className="rounded-lg border border-border bg-card px-3.5 py-3">
             <p className="text-muted-foreground text-[11px] tracking-wide uppercase">Measured accuracy</p>
@@ -571,6 +562,12 @@ export function DashboardContent() {
         </div>
 
         <aside className="flex flex-col gap-4">
+          {dashboardOverviewReady ? (
+            <GeopoliticsProgressionCard
+              completed={completed}
+              epochAfter={geoProgressionEpoch}
+            />
+          ) : null}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Decision reminders</CardTitle>

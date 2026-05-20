@@ -1,4 +1,5 @@
 import type { EmbeddedIssue, UserHighlight } from "@/lib/types/exercise";
+import { findSegmentRange } from "@/lib/text/segment-match";
 
 function spanIoU(
   a0: number,
@@ -12,12 +13,6 @@ function spanIoU(
   const inter = i1 - i0;
   const union = a1 - a0 + b1 - b0 - inter;
   return union > 0 ? inter / union : 0;
-}
-
-function findSegmentRange(passage: string, segment: string): [number, number] | null {
-  const idx = passage.indexOf(segment);
-  if (idx === -1) return null;
-  return [idx, idx + segment.length];
 }
 
 /**
@@ -38,7 +33,11 @@ export function computeAnalyticalAccuracy(
         h.tag === "logical_fallacy" ||
         h.tag === "hidden_assumption" ||
         h.tag === "weak_evidence" ||
-        h.tag === "bias"
+        h.tag === "bias" ||
+        h.tag === "framing_bias" ||
+        h.tag === "missing_actor" ||
+        h.tag === "assumed_causation" ||
+        h.tag === "analogy_misuse"
       ) {
         score -= 12;
       }

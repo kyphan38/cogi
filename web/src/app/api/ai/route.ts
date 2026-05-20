@@ -3,27 +3,53 @@ import {
   buildAnalyticalGenerationPrompt,
   buildAnalyticalFromUserTextPrompt,
   buildAnalyticalSoundReasoningPrompt,
+  buildGeopoliticsAnalyticalPrompt,
+  buildGeopoliticsFromUserTextPrompt,
 } from "@/lib/ai/prompts/analytical";
-import { buildEvaluativeGenerationPrompt } from "@/lib/ai/prompts/evaluative";
-import { buildGenerativeGenerationPrompt } from "@/lib/ai/prompts/generative";
+import { isGeopoliticsAnalyticalDomain } from "@/lib/exercise/geopolitics-domains";
+import {
+  buildEvaluativeGenerationPrompt,
+  buildGeopoliticsEvaluativePrompt,
+} from "@/lib/ai/prompts/evaluative";
+import {
+  buildGenerativeGenerationPrompt,
+  buildGeopoliticsGenerativePrompt,
+  GEOPOLITICS_GENERATIVE_RETRY_SUFFIX,
+} from "@/lib/ai/prompts/generative";
+import { getGeopoliticsRegionalAppendix } from "@/lib/exercise/geopolitics-regional-appendix";
 import { buildSequentialGenerationPrompt } from "@/lib/ai/prompts/sequential";
-import { buildSystemsGenerationPrompt } from "@/lib/ai/prompts/systems";
+import {
+  buildGeopoliticsSystemsPrompt,
+  buildSystemsGenerationPrompt,
+} from "@/lib/ai/prompts/systems";
 import { generateAnalyticalExerciseRaw } from "@/lib/ai/gemini";
-import { parseAnalyticalExerciseJson } from "@/lib/ai/validators/common";
+import {
+  GEOPOLITICS_ANALYTICAL_RETRY_SUFFIX,
+  parseAnalyticalExerciseJson,
+  validateGeopoliticsAnalyticalSemantics,
+} from "@/lib/ai/validators/common";
+import { repairAnalyticalSegments } from "@/lib/text/segment-match";
 import {
   parseEvaluativeExerciseJson,
   validateEvaluativeSemantics,
+  validateGeopoliticsEvaluativeSemantics,
   EVALUATIVE_RETRY_SUFFIX,
+  GEOPOLITICS_EVALUATIVE_RETRY_SUFFIX,
+  isGeopoliticsEvaluativePayload,
 } from "@/lib/ai/validators/evaluative";
 import {
   parseGenerativeExerciseJson,
   validateGenerativeSemantics,
+  validateGeopoliticsGenerativeSemantics,
   GENERATIVE_RETRY_SUFFIX,
   type GenerativeStage,
 } from "@/lib/ai/validators/generative";
 import { parseSequentialExerciseJson } from "@/lib/ai/validators/sequential";
 import {
+  GEOPOLITICS_SYSTEMS_RETRY_SUFFIX,
+  isGeopoliticsSystemsPayload,
   parseSystemsExerciseJson,
+  validateGeopoliticsSystemsSemantics,
   validateSystemsExerciseSemantics,
   SYSTEMS_RETRY_SUFFIX,
 } from "@/lib/ai/validators/systems";
@@ -137,19 +163,33 @@ export async function POST(req: Request) {
 
   try {
     if (exerciseType === "evaluative") {
-      const basePrompt = buildEvaluativeGenerationPrompt({
-        domain: effectiveDomain,
-        userContext,
-        adaptationAppendix: buildAdaptationAppendix(adaptiveHints, "evaluative"),
-        customScenario: scenarioForPrompt,
-      });
+      const isGeoEval = isGeopoliticsAnalyticalDomain(effectiveDomain);
+      const basePrompt = isGeoEval
+        ? buildGeopoliticsEvaluativePrompt({
+            domain: effectiveDomain,
+            userContext,
+            adaptationAppendix: buildAdaptationAppendix(adaptiveHints, "evaluative"),
+            customScenario: scenarioForPrompt,
+          })
+        : buildEvaluativeGenerationPrompt({
+            domain: effectiveDomain,
+            userContext,
+            adaptationAppendix: buildAdaptationAppendix(adaptiveHints, "evaluative"),
+            customScenario: scenarioForPrompt,
+          });
       const runEv = async (prompt: string) => {
         const raw = await generateAnalyticalExerciseRaw(prompt);
         const parsed = parseEvaluativeExerciseJson(raw);
         if (!parsed.success) {
           return { ok: false as const, raw, parsed, sem: [] as string[] };
         }
-        const sem = validateEvaluativeSemantics(parsed.data);
+        const baseSem = validateEvaluativeSemantics(parsed.data);
+        const geoSem = isGeopoliticsEvaluativePayload(parsed.data)
+          ? validateGeopoliticsEvaluativeSemantics(parsed.data)
+          : isGeoEval
+            ? ["Expected geopolitics scoring payload with stakeholderNote"]
+            : [];
+        const sem = [...baseSem, ...geoSem];
         return { ok: true as const, raw, parsed, sem };
       };
       let r = await runEv(basePrompt);
@@ -157,7 +197,10 @@ export async function POST(req: Request) {
         const reason = !r.ok
           ? `Invalid JSON from model: ${!r.parsed.success ? r.parsed.error : ""}`
           : `Semantic validation failed:\n${r.sem.join("\n")}`;
-        r = await runEv(`${basePrompt}\n${EVALUATIVE_RETRY_SUFFIX}\n${reason}`);
+        const suffix = isGeoEval
+          ? GEOPOLITICS_EVALUATIVE_RETRY_SUFFIX
+          : EVALUATIVE_RETRY_SUFFIX;
+        r = await runEv(`${basePrompt}\n${suffix}\n${reason}`);
       }
       if (!r.ok || !r.parsed.success) {
         return NextResponse.json(
@@ -169,8 +212,13 @@ export async function POST(req: Request) {
           { status: 422 },
         );
       }
-      const sem2 = validateEvaluativeSemantics(r.parsed.data);
-      if (sem2.length > 0) {
+      const baseSem2 = validateEvaluativeSemantics(r.parsed.data);
+      const geoSem2 = isGeopoliticsEvaluativePayload(r.parsed.data)
+        ? validateGeopoliticsEvaluativeSemantics(r.parsed.data)
+        : isGeoEval
+          ? ["Expected geopolitics scoring payload with stakeholderNote"]
+          : [];
+      if (baseSem2.length > 0 || geoSem2.length > 0) {
         return NextResponse.json(
           { ok: false, error: "AI generated an invalid exercise. Please try again." },
           { status: 422 },
@@ -194,20 +242,38 @@ export async function POST(req: Request) {
           { status: 400 },
         );
       }
-      const basePrompt = buildGenerativeGenerationPrompt({
-        domain: effectiveDomain,
-        userContext,
-        generativeStage,
-        adaptationAppendix: buildAdaptationAppendix(adaptiveHints, "generative"),
-        customScenario: scenarioForPrompt,
-      });
+      const isGeoGen = isGeopoliticsAnalyticalDomain(effectiveDomain);
+      const regional = getGeopoliticsRegionalAppendix(effectiveDomain);
+      const adaptParts = [
+        buildAdaptationAppendix(adaptiveHints, "generative"),
+        regional,
+      ].filter((s): s is string => Boolean(s?.trim()));
+      const adaptationAppendix = adaptParts.join("\n\n");
+      const basePrompt = isGeoGen
+        ? buildGeopoliticsGenerativePrompt({
+            domain: effectiveDomain,
+            userContext,
+            generativeStage,
+            adaptationAppendix,
+            customScenario: scenarioForPrompt,
+          })
+        : buildGenerativeGenerationPrompt({
+            domain: effectiveDomain,
+            userContext,
+            generativeStage,
+            adaptationAppendix,
+            customScenario: scenarioForPrompt,
+          });
       const runGen = async (prompt: string) => {
         const raw = await generateAnalyticalExerciseRaw(prompt);
         const parsed = parseGenerativeExerciseJson(raw);
         if (!parsed.success) {
           return { ok: false as const, raw, parsed, sem: [] as string[] };
         }
-        const sem = validateGenerativeSemantics(parsed.data, generativeStage);
+        const sem = [
+          ...validateGenerativeSemantics(parsed.data, generativeStage),
+          ...(isGeoGen ? validateGeopoliticsGenerativeSemantics(parsed.data) : []),
+        ];
         return { ok: true as const, raw, parsed, sem };
       };
       let r = await runGen(basePrompt);
@@ -215,7 +281,10 @@ export async function POST(req: Request) {
         const reason = !r.ok
           ? `Invalid JSON from model: ${!r.parsed.success ? r.parsed.error : ""}`
           : `Semantic validation failed:\n${r.sem.join("\n")}`;
-        r = await runGen(`${basePrompt}\n${GENERATIVE_RETRY_SUFFIX}\n${reason}`);
+        const suffix = isGeoGen
+          ? GEOPOLITICS_GENERATIVE_RETRY_SUFFIX
+          : GENERATIVE_RETRY_SUFFIX;
+        r = await runGen(`${basePrompt}\n${suffix}\n${reason}`);
       }
       if (!r.ok || !r.parsed.success) {
         return NextResponse.json(
@@ -227,7 +296,10 @@ export async function POST(req: Request) {
           { status: 422 },
         );
       }
-      const sem2 = validateGenerativeSemantics(r.parsed.data, generativeStage);
+      const sem2 = [
+        ...validateGenerativeSemantics(r.parsed.data, generativeStage),
+        ...(isGeoGen ? validateGeopoliticsGenerativeSemantics(r.parsed.data) : []),
+      ];
       if (sem2.length > 0) {
         return NextResponse.json(
           { ok: false, error: "AI generated an invalid exercise. Please try again." },
@@ -248,13 +320,32 @@ export async function POST(req: Request) {
             customScenario: scenarioForPrompt,
           })
         : exerciseType === "systems"
-          ? buildSystemsGenerationPrompt({
-              domain: effectiveDomain,
-              userContext,
-              adaptationAppendix: appendixFor("systems"),
-              customScenario: scenarioForPrompt,
-            })
+          ? isGeopoliticsAnalyticalDomain(effectiveDomain)
+            ? buildGeopoliticsSystemsPrompt({
+                domain: effectiveDomain,
+                userContext,
+                adaptationAppendix: appendixFor("systems"),
+                customScenario: scenarioForPrompt,
+              })
+            : buildSystemsGenerationPrompt({
+                domain: effectiveDomain,
+                userContext,
+                adaptationAppendix: appendixFor("systems"),
+                customScenario: scenarioForPrompt,
+              })
           : (() => {
+              const useGeopoliticsAnalytical =
+                exerciseType === "analytical" &&
+                (mode === "generated" || mode === "custom_scenario") &&
+                isGeopoliticsAnalyticalDomain(effectiveDomain);
+              if (useGeopoliticsAnalytical) {
+                return buildGeopoliticsAnalyticalPrompt({
+                  domain: effectiveDomain,
+                  userContext,
+                  adaptationAppendix: appendixFor("analytical"),
+                  customScenario: scenarioForPrompt,
+                });
+              }
               const useSoundReasoning =
                 exerciseType === "analytical" &&
                 mode === "generated" &&
@@ -283,7 +374,12 @@ export async function POST(req: Request) {
         if (!parsed.success) {
           return { ok: false as const, raw, parsed, sem: [] as string[] };
         }
-        const sem = validateSystemsExerciseSemantics(parsed.data);
+        const sem = [
+          ...validateSystemsExerciseSemantics(parsed.data),
+          ...(isGeopoliticsSystemsPayload(parsed.data)
+            ? validateGeopoliticsSystemsSemantics(parsed.data)
+            : []),
+        ];
         return { ok: true as const, raw, parsed, sem };
       };
 
@@ -292,7 +388,10 @@ export async function POST(req: Request) {
         const reason = !r.ok
           ? `Invalid JSON from model: ${!r.parsed.success ? r.parsed.error : ""}`
           : `Semantic validation failed:\n${r.sem.join("\n")}`;
-        r = await runSystems(`${basePrompt}\n${SYSTEMS_RETRY_SUFFIX}\n${reason}`);
+        const suffix = isGeopoliticsAnalyticalDomain(effectiveDomain)
+          ? GEOPOLITICS_SYSTEMS_RETRY_SUFFIX
+          : SYSTEMS_RETRY_SUFFIX;
+        r = await runSystems(`${basePrompt}\n${suffix}\n${reason}`);
       }
       if (!r.ok || !r.parsed.success) {
         return NextResponse.json(
@@ -304,7 +403,12 @@ export async function POST(req: Request) {
           { status: 422 },
         );
       }
-      const sem2 = validateSystemsExerciseSemantics(r.parsed.data);
+      const sem2 = [
+        ...validateSystemsExerciseSemantics(r.parsed.data),
+        ...(isGeopoliticsSystemsPayload(r.parsed.data)
+          ? validateGeopoliticsSystemsSemantics(r.parsed.data)
+          : []),
+      ];
       if (sem2.length > 0) {
         return NextResponse.json(
           {
@@ -317,8 +421,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, data: r.parsed.data });
     }
 
-    const raw = await generateAnalyticalExerciseRaw(basePrompt);
     if (exerciseType === "sequential") {
+      const raw = await generateAnalyticalExerciseRaw(basePrompt);
       const parsed = parseSequentialExerciseJson(raw);
       if (!parsed.success) {
         return NextResponse.json(
@@ -357,41 +461,106 @@ export async function POST(req: Request) {
           { status: 400 },
         );
       }
-      const fromTextPrompt = buildAnalyticalFromUserTextPrompt({
-        domain: effectiveDomain,
-        userContext,
-        userText: sanitized,
-        adaptationAppendix: appendixFor("analytical"),
-      });
-      const rawFromText = await generateAnalyticalExerciseRaw(fromTextPrompt);
-      const parsedFromText = parseAnalyticalExerciseJson(rawFromText);
-      if (!parsedFromText.success) {
+      const isGeoReal = isGeopoliticsAnalyticalDomain(effectiveDomain);
+      const runRealData = async (prompt: string) => {
+        const rawFromText = await generateAnalyticalExerciseRaw(prompt);
+        const parsedFromText = parseAnalyticalExerciseJson(rawFromText);
+        if (!parsedFromText.success) {
+          return { ok: false as const, raw: rawFromText, parsed: parsedFromText, sem: [] as string[] };
+        }
+        const repaired = repairAnalyticalSegments(parsedFromText.data);
+        const sem = isGeoReal ? validateGeopoliticsAnalyticalSemantics(repaired) : [];
+        return { ok: true as const, raw: rawFromText, parsed: { success: true as const, data: repaired }, sem };
+      };
+      const fromTextPrompt = isGeoReal
+        ? buildGeopoliticsFromUserTextPrompt({
+            domain: effectiveDomain,
+            userContext,
+            userText: sanitized,
+            adaptationAppendix: appendixFor("analytical"),
+          })
+        : buildAnalyticalFromUserTextPrompt({
+            domain: effectiveDomain,
+            userContext,
+            userText: sanitized,
+            adaptationAppendix: appendixFor("analytical"),
+          });
+      let rReal = await runRealData(fromTextPrompt);
+      if (!rReal.ok || rReal.sem.length > 0) {
+        const reason = !rReal.ok
+          ? `Invalid JSON from model: ${!rReal.parsed.success ? rReal.parsed.error : ""}`
+          : `Semantic validation failed:\n${rReal.sem.join("\n")}`;
+        const suffix = isGeoReal
+          ? GEOPOLITICS_ANALYTICAL_RETRY_SUFFIX
+          : "";
+        rReal = await runRealData(
+          suffix ? `${fromTextPrompt}\n${suffix}\n${reason}` : `${fromTextPrompt}\n${reason}`,
+        );
+      }
+      if (!rReal.ok || !rReal.parsed.success) {
         return NextResponse.json(
           {
             ok: false,
-            error: parsedFromText.error,
-            rawSnippet: rawFromText.slice(0, 500),
+            error: !rReal.parsed.success ? rReal.parsed.error : "Invalid JSON from model",
+            rawSnippet: rReal.raw.slice(0, 500),
           },
           { status: 422 },
         );
       }
-      // Echo back the sanitized user text as passage to keep highlights aligned with real data.
-      const data = { ...parsedFromText.data, passage: sanitized };
+      const semReal2 = isGeoReal
+        ? validateGeopoliticsAnalyticalSemantics(rReal.parsed.data)
+        : [];
+      if (semReal2.length > 0) {
+        return NextResponse.json(
+          { ok: false, error: "AI could not analyze the pasted text. Please try again." },
+          { status: 422 },
+        );
+      }
+      const data = { ...rReal.parsed.data, passage: sanitized };
       return NextResponse.json({ ok: true, data });
     }
 
-    const parsed = parseAnalyticalExerciseJson(raw);
-    if (!parsed.success) {
+    const runAnalyticalGenerated = async (prompt: string) => {
+      const rawOut = await generateAnalyticalExerciseRaw(prompt);
+      const parsedOut = parseAnalyticalExerciseJson(rawOut);
+      if (!parsedOut.success) {
+        return { ok: false as const, raw: rawOut, parsed: parsedOut, sem: [] as string[] };
+      }
+      const repaired = repairAnalyticalSegments(parsedOut.data);
+      const sem = validateGeopoliticsAnalyticalSemantics(repaired);
+      return { ok: true as const, raw: rawOut, parsed: { success: true as const, data: repaired }, sem };
+    };
+
+    let r = await runAnalyticalGenerated(basePrompt);
+    if (!r.ok || r.sem.length > 0) {
+      const reason = !r.ok
+        ? `Invalid JSON from model: ${!r.parsed.success ? r.parsed.error : ""}`
+        : `Semantic validation failed:\n${r.sem.join("\n")}`;
+      r = await runAnalyticalGenerated(
+        `${basePrompt}\n${GEOPOLITICS_ANALYTICAL_RETRY_SUFFIX}\n${reason}`,
+      );
+    }
+    if (!r.ok || !r.parsed.success) {
       return NextResponse.json(
         {
           ok: false,
-          error: parsed.error,
-          rawSnippet: raw.slice(0, 500),
+          error: !r.parsed.success ? r.parsed.error : "Invalid JSON from model",
+          rawSnippet: r.raw.slice(0, 500),
         },
         { status: 422 },
       );
     }
-    return NextResponse.json({ ok: true, data: parsed.data });
+    const sem2 = validateGeopoliticsAnalyticalSemantics(r.parsed.data);
+    if (sem2.length > 0) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "AI generated an invalid exercise. Please try again.",
+        },
+        { status: 422 },
+      );
+    }
+    return NextResponse.json({ ok: true, data: r.parsed.data });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });

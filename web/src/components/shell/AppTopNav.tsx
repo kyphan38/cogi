@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/", label: "Home" },
+  { href: "/guide", label: "Guide" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/exercise/history", label: "History" },
   { href: "/settings", label: "Settings" },
@@ -23,7 +24,7 @@ function navLinkClass(href: string, pathname: string | null) {
       : pathname === href || (pathname?.startsWith(href + "/") ?? false);
   return cn(
     "shrink-0 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground",
-    active && "bg-accent/80 font-medium text-accent-foreground",
+    active && "bg-zinc-100 font-medium text-zinc-900",
   );
 }
 

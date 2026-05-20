@@ -74,3 +74,38 @@ export function validateGenerativeSemantics(
   }
   return errors;
 }
+
+const GEO_PROMPT_IDS = ["p1", "p2", "p3", "p4"] as const;
+
+export function validateGeopoliticsGenerativeSemantics(
+  data: GenerativeExercisePayload,
+): string[] {
+  const errors: string[] = [];
+  const ids = data.prompts.map((p) => p.id);
+  if (ids.length !== 4) {
+    errors.push("Geopolitics generative requires exactly 4 prompts");
+  }
+  for (const expected of GEO_PROMPT_IDS) {
+    if (!ids.includes(expected)) {
+      errors.push(`Geopolitics generative missing prompt id ${expected}`);
+    }
+  }
+  if (data.scenario.trim().length < 400) {
+    errors.push("Geopolitics scenario should be at least ~400 characters (2-3 paragraphs)");
+  }
+  const p4 = data.prompts.find((p) => p.id === "p4");
+  if (p4) {
+    const q = p4.question.toLowerCase();
+    const hasRobustCue =
+      /robust|recommend|now|across|three|futures|decision/.test(q);
+    if (!hasRobustCue) {
+      errors.push("Prompt p4 should ask for a robust recommendation across scenarios");
+    }
+  }
+  const p2 = data.prompts.find((p) => p.id === "p2")?.question.trim() ?? "";
+  const p3 = data.prompts.find((p) => p.id === "p3")?.question.trim() ?? "";
+  if (p2 && p3 && p2 === p3) {
+    errors.push("Prompts p2 and p3 questions must differ (upside vs downside)");
+  }
+  return errors;
+}

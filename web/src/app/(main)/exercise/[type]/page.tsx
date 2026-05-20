@@ -5,7 +5,10 @@ import { SequentialExerciseFlow } from "@/components/exercises/SequentialExercis
 import { SystemsExerciseFlow } from "@/components/exercises/SystemsExerciseFlow";
 import { notFound } from "next/navigation";
 
-type FlowComponent = React.ComponentType<{ resumeId?: string }>;
+type FlowComponent = React.ComponentType<{
+  resumeId?: string;
+  initialDomain?: string;
+}>;
 
 const FLOW_BY_TYPE: Record<string, FlowComponent> = {
   analytical: AnalyticalExerciseFlow,
@@ -25,11 +28,16 @@ export default async function ExerciseTypePage({
   const { type } = await params;
   const sp = await searchParams;
   const resumeId = typeof sp.resumeId === "string" ? sp.resumeId : undefined;
+  const initialDomain =
+    typeof sp.domain === "string" ? decodeURIComponent(sp.domain).trim() : undefined;
   const Flow = FLOW_BY_TYPE[type];
   if (!Flow) notFound();
   return (
     <main>
-      <Flow resumeId={resumeId} />
+      <Flow
+        resumeId={resumeId}
+        initialDomain={resumeId ? undefined : initialDomain || undefined}
+      />
     </main>
   );
 }

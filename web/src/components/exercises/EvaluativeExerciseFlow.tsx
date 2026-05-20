@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AdaptiveSetupHint } from "@/components/adaptive/AdaptiveSetupHint";
-import { ExerciseShell, EVALUATIVE_EXERCISE_STEP_LABELS } from "@/components/shared/ExerciseShell";
+import {
+  ExerciseShell,
+  EVALUATIVE_EXERCISE_STEP_LABELS,
+  GEOPOLITICS_EVALUATIVE_STEP_LABELS,
+} from "@/components/shared/ExerciseShell";
+import { EvaluativeBlindSpotAlerts } from "@/components/exercises/EvaluativeBlindSpotAlerts";
+import { EvaluativeStakeholderMappingCard } from "@/components/exercises/EvaluativeStakeholderMappingCard";
+import { EvaluativeWeightAlignment } from "@/components/exercises/EvaluativeWeightAlignment";
 import { EvaluativeMatrixBoard } from "@/components/exercises/EvaluativeMatrixBoard";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
@@ -37,7 +44,10 @@ import type {
   EvaluativeQuadrant,
   EvaluativeScoringRow,
 } from "@/lib/types/exercise";
-import type { EvaluativeExercisePayload } from "@/lib/ai/validators/evaluative";
+import {
+  isGeopoliticsEvaluativePayload,
+  type EvaluativeExercisePayload,
+} from "@/lib/ai/validators/evaluative";
 import type { JournalEntry } from "@/lib/types/journal";
 import type { ActionBridge } from "@/lib/types/action";
 import { buildAdaptiveHintsForRequest } from "@/lib/adaptive/adaptive-hints";
@@ -60,6 +70,13 @@ import { isEvaluativeExercise } from "@/lib/types/exercise";
 import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+function isGeopoliticsEvaluativeExercise(ex: EvaluativeExerciseRow): boolean {
+  return (
+    ex.variant === "scoring" &&
+    (ex.isGeopolitics ?? Boolean(ex.stakeholderNote?.trim()))
+  );
+}
 
 function payloadToRow(
   id: string,
@@ -88,11 +105,18 @@ function payloadToRow(
     };
     return row;
   }
+  const geo = isGeopoliticsEvaluativePayload(data);
   const weights: Record<string, number> = {};
   const scores: Record<string, Record<string, number>> = {};
-  for (const c of data.criteria) weights[c.id] = c.suggestedWeight;
+  for (const c of data.criteria) {
+    weights[c.id] = geo ? 3 : c.suggestedWeight;
+  }
   for (const o of data.options) {
-    scores[o.id] = { ...o.suggestedScores };
+    if (geo) {
+      scores[o.id] = Object.fromEntries(data.criteria.map((c) => [c.id, 3]));
+    } else {
+      scores[o.id] = { ...o.suggestedScores };
+    }
   }
   const row: EvaluativeScoringRow = {
     id,
@@ -102,6 +126,10 @@ function payloadToRow(
     customScenario,
     title: data.title,
     scenario: data.scenario,
+    isGeopolitics: geo,
+    stakeholderNote: geo ? data.stakeholderNote : undefined,
+    userStakeholderMapping: geo ? null : undefined,
+    stakeholderMappingRevealed: false,
     userProposedCriteria: null,
     criteria: data.criteria,
     options: data.options,
@@ -116,9 +144,12 @@ function payloadToRow(
   return row;
 }
 
-export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
+export function EvaluativeExerciseFlow({
+  resumeId,
+  initialDomain,
+}: { resumeId?: string; initialDomain?: string } = {}) {
   const [step, setStep] = useState<FlowStep>(0);
-  const [domain, setDomain] = useState("");
+  const [domain, setDomain] = useState(initialDomain?.trim() ?? "");
   const [setupMode, setSetupMode] = useState<"generated" | "custom_scenario">("generated");
   const [customScenarioText, setCustomScenarioText] = useState("");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
@@ -133,6 +164,10 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
     { name: string; rationale: string }[]
   >(() => Array.from({ length: 4 }, () => ({ name: "", rationale: "" })));
   const [criteriaPhase, setCriteriaPhase] = useState<"input" | "compare">("input");
+  const [userStakeholderMapping, setUserStakeholderMapping] = useState<
+    { name: string; wants: string }[]
+  >(() => Array.from({ length: 4 }, () => ({ name: "", wants: "" })));
+  const [stakeholderMappingRevealed, setStakeholderMappingRevealed] = useState(false);
 
   const [confidence, setConfidence] = useState(50);
   const [perspectiveText, setPerspectiveText] = useState<string | null>(null);
@@ -180,6 +215,12 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
         setUserProposedCriteria(row.userProposedCriteria);
         setCriteriaPhase("compare");
       }
+      if (row.variant === "scoring" && isGeopoliticsEvaluativeExercise(row)) {
+        if (row.userStakeholderMapping && row.userStakeholderMapping.length > 0) {
+          setUserStakeholderMapping(row.userStakeholderMapping);
+        }
+        setStakeholderMappingRevealed(row.stakeholderMappingRevealed === true);
+      }
       setConfidence(row.confidenceBefore ?? 50);
       if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
       if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
@@ -188,16 +229,38 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
   }, [resumeId]);
 
   useEffect(() => {
+    if (resumeId) return;
+    const d = initialDomain?.trim();
+    if (d) setDomain(d);
+  }, [initialDomain, resumeId]);
+
+  useEffect(() => {
     if (!exercise || step === 0 || step === 7) return;
     const timer = setTimeout(() => {
+      const scoringEx = exercise.variant === "scoring" ? exercise : null;
       const updated: EvaluativeExerciseRow =
         exercise.variant === "matrix"
           ? { ...exercise, placements, currentStep: step }
-          : { ...exercise, criterionWeights, scores, currentStep: step };
+          : {
+              ...exercise,
+              criterionWeights,
+              scores,
+              userStakeholderMapping:
+                scoringEx && isGeopoliticsEvaluativeExercise(scoringEx)
+                  ? userStakeholderMapping
+                      .map((e) => ({ name: e.name.trim(), wants: e.wants.trim() }))
+                      .filter((e) => e.name || e.wants)
+                  : scoringEx?.userStakeholderMapping,
+              stakeholderMappingRevealed:
+                scoringEx && isGeopoliticsEvaluativeExercise(scoringEx)
+                  ? stakeholderMappingRevealed
+                  : scoringEx?.stakeholderMappingRevealed,
+              currentStep: step,
+            };
       void putExercise(updated);
     }, 2000);
     return () => clearTimeout(timer);
-  }, [placements, scores, criterionWeights]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [placements, scores, criterionWeights, userStakeholderMapping, stakeholderMappingRevealed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startGenerate = useCallback(async () => {
     setError(null);
@@ -244,10 +307,17 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
       if (row.variant === "matrix") {
         setPlacements({});
       } else {
+        const geo = isGeopoliticsEvaluativeExercise(row);
         const w: Record<string, number> = {};
         const s: Record<string, Record<string, number>> = {};
-        for (const c of row.criteria) w[c.id] = c.suggestedWeight;
-        for (const o of row.options) s[o.id] = { ...o.suggestedScores };
+        for (const c of row.criteria) w[c.id] = geo ? 3 : c.suggestedWeight;
+        for (const o of row.options) {
+          if (geo) {
+            s[o.id] = Object.fromEntries(row.criteria.map((c) => [c.id, 3]));
+          } else {
+            s[o.id] = { ...o.suggestedScores };
+          }
+        }
         setCriterionWeights(w);
         setScores(s);
       }
@@ -260,6 +330,8 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
       setEmotionLabel("neutral");
       setUserProposedCriteria(Array.from({ length: 4 }, () => ({ name: "", rationale: "" })));
       setCriteriaPhase("input");
+      setUserStakeholderMapping(Array.from({ length: 4 }, () => ({ name: "", wants: "" })));
+      setStakeholderMappingRevealed(false);
       setStep(1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generate failed");
@@ -284,7 +356,16 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
 
   const mergedScoringExercise = (): EvaluativeScoringRow | null => {
     if (!exercise || exercise.variant !== "scoring") return null;
-    return { ...exercise, criterionWeights, scores };
+    const cleaned = userStakeholderMapping
+      .map((e) => ({ name: e.name.trim(), wants: e.wants.trim() }))
+      .filter((e) => e.name && e.wants);
+    return {
+      ...exercise,
+      criterionWeights,
+      scores,
+      userStakeholderMapping: cleaned.length > 0 ? cleaned : exercise.userStakeholderMapping,
+      stakeholderMappingRevealed,
+    };
   };
 
   const matrixReady = () => {
@@ -334,7 +415,7 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
         body: JSON.stringify(body),
       });
       const raw = await res.json();
-      const parsed = parsePerspectiveFetchJson(raw);
+      const parsed = parsePerspectiveFetchJson(raw, kind);
       if (!parsed.ok) {
         setError(parsed.error);
         return;
@@ -355,6 +436,12 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
               ...ex,
               criterionWeights,
               scores,
+              userStakeholderMapping:
+                ex.variant === "scoring"
+                  ? (mergedScoringExercise()?.userStakeholderMapping ??
+                    ex.userStakeholderMapping)
+                  : undefined,
+              stakeholderMappingRevealed,
               confidenceBefore: confidence,
               aiPerspective: parsed.text,
               aiPerspectiveStructured: parsed.structured,
@@ -502,6 +589,10 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
             ...exercise,
             criterionWeights,
             scores,
+            userStakeholderMapping:
+              mergedScoringExercise()?.userStakeholderMapping ??
+              exercise.userStakeholderMapping,
+            stakeholderMappingRevealed,
             confidenceBefore: confidence,
             aiPerspective: perspectiveText,
             aiPerspectiveStructured: struct,
@@ -521,10 +612,13 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
     }
   };
 
-  const shellStep = step;
+  const isGeoExercise = exercise ? isGeopoliticsEvaluativeExercise(exercise) : false;
+  const stepLabels = isGeoExercise
+    ? GEOPOLITICS_EVALUATIVE_STEP_LABELS
+    : EVALUATIVE_EXERCISE_STEP_LABELS;
 
   return (
-    <ExerciseShell stepIndex={shellStep} stepLabels={EVALUATIVE_EXERCISE_STEP_LABELS}>
+    <ExerciseShell stepIndex={step} stepLabels={stepLabels}>
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -639,7 +733,28 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
               </ul>
             </div>
 
-            {criteriaPhase === "input" ? (
+            {isGeoExercise && exercise.variant === "scoring" ? (
+              <EvaluativeStakeholderMappingCard
+                exercise={exercise}
+                rows={userStakeholderMapping}
+                revealed={stakeholderMappingRevealed}
+                onRowsChange={setUserStakeholderMapping}
+                onRevealedChange={setStakeholderMappingRevealed}
+                onError={setError}
+                onBack={() => setStep(0)}
+                onContinue={(cleaned) => {
+                  const next: EvaluativeScoringRow = {
+                    ...exercise,
+                    userStakeholderMapping: cleaned,
+                    stakeholderMappingRevealed: true,
+                    currentStep: 2,
+                  };
+                  void putExercise(next);
+                  setExercise(next);
+                  setStep(2);
+                }}
+              />
+            ) : criteriaPhase === "input" ? (
               <div className="space-y-3">
                 <p className="text-muted-foreground text-sm">
                   What 2–4 criteria would you use to evaluate these options? For each, give a short
@@ -926,6 +1041,17 @@ export function EvaluativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
             <CardDescription>Collaborative comparison - not a numeric grade.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {exercise.variant === "scoring" && isGeoExercise ? (
+              <>
+                <EvaluativeBlindSpotAlerts hiddenCriteria={exercise.hiddenCriteria} />
+                <EvaluativeWeightAlignment
+                  criteria={exercise.criteria}
+                  userWeights={criterionWeights}
+                />
+              </>
+            ) : exercise.variant === "scoring" ? (
+              <EvaluativeBlindSpotAlerts hiddenCriteria={exercise.hiddenCriteria} />
+            ) : null}
             <AIPerspective
               text={perspectiveText}
               structured={perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null}

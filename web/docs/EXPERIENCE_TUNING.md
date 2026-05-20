@@ -83,7 +83,35 @@ Tài liệu này mô tả **cần gạt nào thay đổi cảm giác và hành v
 
 ---
 
-## 7. Theme Paper / editorial - không chỉ màu
+## 7. Nordic Mono layout (light)
+
+**Chức năng:** giao diện sáng, zinc hairlines, accent chủ yếu cho **chấm thẻ semantic** (địa chính trị), không dùng sky/amber cho trạng thái calibration.
+
+| Thành phần | Ghi chú |
+|------------|---------|
+| **Tokens** | `src/app/globals.css` - `:root` Nordic, `--radius-2xl`, semantic accent CSS vars, `.font-tracker` |
+| **Shell** | `MinimalContainer`, `ExerciseStepCard` (bước Analytical setup/highlight), `GeopoliticsProgressionCard` |
+| **Layout E2E** | `npm run test:layout` - xem `docs/LAYOUT_E2E.md` (không assert màu) |
+
+**Tinh chỉnh:** đổi hierarchy bằng copy và border zinc; tránh thêm palette mới cho metric cards trừ khi có lý do sản phẩm rõ.
+
+---
+
+## 7b. Geopolitics progression & domains
+
+**Catalog:** `src/lib/exercise/geopolitics-domains.ts` (`GEOPOLITICS_SUBDOMAINS`).
+
+**Lộ trình phase:** `src/lib/exercise/geopolitics-progression.ts` (`GEOPOLITICS_PROGRESSION`, `computeGeopoliticsProgressionState`).
+
+| Cần gạt | Ảnh hưởng |
+|---------|-----------|
+| Thêm subdomain | Cập nhật catalog **và** một phase trong `GEOPOLITICS_PROGRESSION` (script `npm run check:geopolitics-progression` sẽ fail nếu lệch). |
+| Deep link | `/exercise/{type}?domain=` - `exercise/[type]/page.tsx` truyền `initialDomain`. |
+| Reset progression | Settings → `geopoliticsProgressionEpoch` (ISO); dashboard chỉ đếm bài geo hoàn thành **sau** mốc đó. |
+
+---
+
+## 8. Theme Paper / editorial - không chỉ màu
 
 **Bạn đang chỉnh:** độ “đọc được lâu”, hierarchy (nav cố định, card vs nền), chữ nghiêng cho empty state - tất cả ảnh hưởng **cảm giác công cụ suy nghĩ** vs “dashboard SaaS”.
 
@@ -92,7 +120,7 @@ Tài liệu này mô tả **cần gạt nào thay đổi cảm giác và hành v
 
 ---
 
-## 8. Settings & ngữ cảnh cá nhân
+## 9. Settings & ngữ cảnh cá nhân
 
 **Personal context** được inject vào prompt - đây là **cần gạt “cá nhân hóa không code”**: đổi là đổi giọng toàn bộ luồng AI liên quan.
 
@@ -100,7 +128,7 @@ Tài liệu này mô tả **cần gạt nào thay đổi cảm giác và hành v
 
 ---
 
-## 9. Backup & dữ liệu - trải nghiệm “mất / giữ”
+## 10. Backup & dữ liệu - trải nghiệm “mất / giữ”
 
 Export JSON là **cam kết sở hữu dữ liệu**. Khi thêm bảng Dexie mới, luồng backup/import cần khớp - nếu không, người dùng có cảm giác “mất một phần lịch sử” sau khi đổi máy.
 
@@ -115,10 +143,12 @@ Export JSON là **cam kết sở hữu dữ liệu**. Khi thêm bảng Dexie m�
 | Model, JSON vs plain, nhiệt độ | `src/lib/ai/gemini.ts`, biến môi trường `GEMINI_*` |
 | Prompt theo loại bài | `src/lib/ai/prompts/` |
 | API route / body | `src/app/api/ai/**` |
-| Domain list | `src/components/exercises/*ExerciseFlow.tsx`, `ComboExerciseFlow.tsx` |
+| Domain catalog (all exercises) | `exercise-domain-catalog.ts` + `GEOPOLITICS_DOMAIN_GROUPS` in `geopolitics-domains.ts`, `DomainInput.tsx` |
 | Settings & cờ | `src/lib/db/settings.ts` (`AppSettingsRow`), `src/app/(main)/settings/page.tsx` |
 | Adaptive / tier / weakness | `src/lib/adaptive/`, `src/lib/db/weaknesses.ts` |
-| Theme & typography | `src/app/globals.css`, `src/app/layout.tsx`, `src/components/ui/card.tsx`, `src/components/shell/AppTopNav.tsx` |
+| Theme & typography (Nordic) | `src/app/globals.css`, `MinimalContainer.tsx`, `ExerciseStepCard.tsx`, `AppTopNav.tsx` |
+| Geopolitics domains / progression | `geopolitics-domains.ts`, `geopolitics-progression.ts`, `GeopoliticsProgressionCard.tsx` |
+| Layout E2E | `docs/LAYOUT_E2E.md`, `tests/ui-ux/layout-architecture.spec.ts` |
 | History / heatmap / copy | `src/app/exercise/history/page.tsx` |
 | Home layout & copy | `src/components/dashboard/HomeContent.tsx` |
 | Dashboard metric copy | `src/components/dashboard/DashboardContent.tsx` |

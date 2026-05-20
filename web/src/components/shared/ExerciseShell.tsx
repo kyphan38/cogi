@@ -11,6 +11,17 @@ export const ANALYTICAL_EXERCISE_STEP_LABELS = [
   "Done",
 ] as const;
 
+export const GEOPOLITICS_ANALYTICAL_STEP_LABELS = [
+  "Setup",
+  "Highlight & tag",
+  "Perspective guess",
+  "Confidence",
+  "AI perspective",
+  "Journal",
+  "Action",
+  "Done",
+] as const;
+
 export const SEQUENTIAL_EXERCISE_STEP_LABELS = [
   "Setup",
   "Order steps",
@@ -33,6 +44,19 @@ export const SYSTEMS_EXERCISE_STEP_LABELS = [
   "Done",
 ] as const;
 
+export const GEOPOLITICS_SYSTEMS_STEP_LABELS = [
+  "Setup",
+  "Decompose",
+  "Connect",
+  "Confidence",
+  "Shock",
+  "Perspective swap",
+  "AI reflection",
+  "Journal",
+  "Action",
+  "Done",
+] as const;
+
 export const EVALUATIVE_EXERCISE_STEP_LABELS = [
   "Setup",
   "Propose criteria",
@@ -44,9 +68,32 @@ export const EVALUATIVE_EXERCISE_STEP_LABELS = [
   "Done",
 ] as const;
 
+export const GEOPOLITICS_EVALUATIVE_STEP_LABELS = [
+  "Setup",
+  "Stakeholder mapping",
+  "Evaluate",
+  "Confidence",
+  "AI perspective",
+  "Journal",
+  "Action",
+  "Done",
+] as const;
+
 export const GENERATIVE_EXERCISE_STEP_LABELS = [
   "Setup",
   "Write",
+  "Steelman",
+  "Confidence",
+  "Debate",
+  "AI reflection",
+  "Journal",
+  "Action",
+  "Done",
+] as const;
+
+export const GEOPOLITICS_GENERATIVE_STEP_LABELS = [
+  "Setup",
+  "Scenario planning",
   "Steelman",
   "Confidence",
   "Debate",
@@ -71,18 +118,18 @@ export function ExerciseShell({
   stepLabels = ANALYTICAL_EXERCISE_STEP_LABELS,
 }: ExerciseShellProps) {
   return (
-    <div className="mx-auto flex min-h-full max-w-3xl flex-col gap-6 p-6">
+    <div className="mx-auto flex min-h-full max-w-3xl flex-col gap-8 px-4 py-6 sm:px-6">
       <nav aria-label="Exercise progress" className="flex flex-wrap gap-2 text-xs">
         {stepLabels.map((label, i) => (
           <span
             key={`${i}-${label}`}
             className={cn(
-              "rounded-full px-3 py-1",
+              "rounded-full border px-3 py-1 font-medium",
               i === stepIndex
-                ? "bg-primary text-primary-foreground"
+                ? "border-zinc-900 bg-zinc-900 text-white"
                 : i < stepIndex
-                  ? "bg-muted text-muted-foreground"
-                  : "border border-dashed text-muted-foreground",
+                  ? "border-zinc-200 bg-zinc-50 text-zinc-600"
+                  : "border-dashed border-zinc-200 text-zinc-500",
             )}
           >
             {i + 1}. {label}

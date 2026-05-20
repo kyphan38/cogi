@@ -25,6 +25,18 @@ Answers:
 ${qa}
 
 Debate context:
-${debate}
+${debate}${
+    exercise.isGeopolitics
+      ? `
+
+Geopolitics scenario-planning rubric emphasis:
+- p1: clarity and explicitness of assumptions behind the base-case forecast
+- p2 vs p3: whether upside and downside futures are genuinely distinct, not cosmetic variants
+- p4: whether the recommended action is robust under the downside crisis, not only the base/upside cases
+- Debate: did the user engage with motivation projection and precedent misuse challenges?
+
+Still return the same JSON shape; reflect these dimensions in "overall" and sub-scores.`
+      : ""
+  }
 `;
 }

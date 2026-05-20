@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { TagType, UserHighlight } from "@/lib/types/exercise";
-import { TAG_LABELS, TAG_ORDER } from "@/lib/exercise/tag-labels";
+import {
+  GEOPOLITICS_SEMANTIC_ACCENTS,
+  GEOPOLITICS_TAG_OPTIONS,
+  isGeopoliticsSemanticTag,
+  TAG_LABELS,
+  TAG_ORDER,
+} from "@/lib/exercise/tag-labels";
+import { SemanticTagPicker } from "@/components/exercises/SemanticTagPicker";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -27,25 +34,71 @@ function overlaps(a0: number, a1: number, b0: number, b1: number): boolean {
   return Math.max(a0, b0) < Math.min(a1, b1);
 }
 
+function usesSemanticTagPicker(tagOptions: TagType[]): boolean {
+  const geoSet = new Set<TagType>(GEOPOLITICS_TAG_OPTIONS);
+  return tagOptions.length > 0 && tagOptions.every((t) => geoSet.has(t));
+}
+
+function HighlightTagBadge({ tag }: { tag: TagType }) {
+  if (isGeopoliticsSemanticTag(tag)) {
+    const accent = GEOPOLITICS_SEMANTIC_ACCENTS[tag];
+    return (
+      <span
+        className={cn(
+          "mr-2 inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-xs font-medium",
+          accent.chipClass,
+        )}
+      >
+        <span
+          className={cn("size-2 shrink-0 rounded-full", accent.dotClass)}
+          aria-hidden
+        />
+        {accent.label}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={cn(
+        "mr-2 rounded px-2 py-0.5 text-xs font-medium",
+        TAG_LABELS[tag].colorClass,
+      )}
+    >
+      {TAG_LABELS[tag].label}
+    </span>
+  );
+}
+
 export interface HighlightTagProps {
   passage: string;
   highlights: UserHighlight[];
   onChange: (next: UserHighlight[]) => void;
   /** Called when the user selects text that overlaps an existing highlight (replaces window.alert). */
   onSelectionOverlap: () => void;
+  /** Subset of tags to show; defaults to TAG_ORDER. */
+  tagOptions?: TagType[];
 }
 
-export function HighlightTag({ passage, highlights, onChange, onSelectionOverlap }: HighlightTagProps) {
+export function HighlightTag({
+  passage,
+  highlights,
+  onChange,
+  onSelectionOverlap,
+  tagOptions = TAG_ORDER,
+}: HighlightTagProps) {
   const ref = useRef<HTMLDivElement>(null);
   const firstTagButtonRef = useRef<HTMLButtonElement>(null);
   const [pending, setPending] = useState<{ start: number; end: number } | null>(
     null,
   );
 
+  const semanticPicker = usesSemanticTagPicker(tagOptions);
+
   useEffect(() => {
-    if (!pending) return;
+    if (!pending || semanticPicker) return;
     firstTagButtonRef.current?.focus();
-  }, [pending]);
+  }, [pending, semanticPicker]);
 
   const onMouseUp = useCallback(() => {
     const el = ref.current;
@@ -91,7 +144,8 @@ export function HighlightTag({ passage, highlights, onChange, onSelectionOverlap
     <div className="space-y-4">
       <div
         ref={ref}
-        className="select-text cursor-text rounded-lg border bg-card p-4 font-serif text-base leading-relaxed"
+        data-testid="text-passage"
+        className="select-text cursor-text rounded-2xl border border-zinc-200 bg-white p-4 text-base leading-relaxed text-zinc-900"
         onMouseUp={onMouseUp}
         onKeyUp={onMouseUp}
         onKeyDown={(e) => {
@@ -104,24 +158,32 @@ export function HighlightTag({ passage, highlights, onChange, onSelectionOverlap
 
       {pending ? (
         <div
-          className="flex flex-wrap items-center gap-2 rounded-md border border-dashed p-3"
-          role="toolbar"
-          aria-label="Apply tag to selection"
+          data-testid="tag-picker-region"
+          className="space-y-3 rounded-2xl border border-dashed border-zinc-200 p-4"
         >
-          <span className="text-muted-foreground text-sm">Pick a tag:</span>
-          {TAG_ORDER.map((tag) => (
-            <Button
-              key={tag}
-              type="button"
-              size="sm"
-              variant="secondary"
-              className={cn("text-xs", TAG_LABELS[tag].colorClass)}
-              onClick={() => applyTag(tag)}
-              ref={tag === TAG_ORDER[0] ? firstTagButtonRef : undefined}
-            >
-              {TAG_LABELS[tag].label}
-            </Button>
-          ))}
+          <span className="text-sm text-zinc-500">Pick a tag:</span>
+          {semanticPicker ? (
+            <SemanticTagPicker
+              options={tagOptions}
+              onSelect={applyTag}
+            />
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              {tagOptions.map((tag) => (
+                <Button
+                  key={tag}
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  className={cn("text-xs", TAG_LABELS[tag].colorClass)}
+                  onClick={() => applyTag(tag)}
+                  ref={tag === tagOptions[0] ? firstTagButtonRef : undefined}
+                >
+                  {TAG_LABELS[tag].label}
+                </Button>
+              ))}
+            </div>
+          )}
           <Button type="button" size="sm" variant="ghost" onClick={() => setPending(null)}>
             Cancel
           </Button>
@@ -133,18 +195,11 @@ export function HighlightTag({ passage, highlights, onChange, onSelectionOverlap
           {highlights.map((h) => (
             <li
               key={h.id}
-              className="flex flex-wrap items-start justify-between gap-2 rounded border p-2"
+              className="flex flex-wrap items-start justify-between gap-2 rounded-2xl border border-zinc-200 p-3"
             >
               <div>
-                <span
-                  className={cn(
-                    "mr-2 rounded px-2 py-0.5 text-xs font-medium",
-                    TAG_LABELS[h.tag].colorClass,
-                  )}
-                >
-                  {TAG_LABELS[h.tag].label}
-                </span>
-                <q className="text-muted-foreground">{h.text}</q>
+                <HighlightTagBadge tag={h.tag} />
+                <q className="text-zinc-500">{h.text}</q>
               </div>
               <Button type="button" variant="ghost" size="sm" onClick={() => remove(h.id)}>
                 Remove

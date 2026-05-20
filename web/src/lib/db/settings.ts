@@ -7,6 +7,8 @@ export interface AppSettingsRow {
   delayedRecallEnabled?: boolean;
   weeklyReviewLastCompletedCount?: number;
   adaptiveDifficultyEnabled?: boolean;
+  /** ISO timestamp - geopolitics progression ignores completions before this. */
+  geopoliticsProgressionEpoch?: string;
 }
 
 const SETTINGS_ID = "app" as const;
@@ -25,6 +27,7 @@ export async function getAppSettings(): Promise<AppSettingsRow> {
     delayedRecallEnabled: row?.delayedRecallEnabled !== false,
     weeklyReviewLastCompletedCount: row?.weeklyReviewLastCompletedCount,
     adaptiveDifficultyEnabled: row?.adaptiveDifficultyEnabled === true,
+    geopoliticsProgressionEpoch: row?.geopoliticsProgressionEpoch,
   };
 }
 
@@ -41,8 +44,17 @@ export async function setUserContext(userContext: string): Promise<void> {
     delayedRecallEnabled: prev?.delayedRecallEnabled !== false,
     weeklyReviewLastCompletedCount: prev?.weeklyReviewLastCompletedCount,
     adaptiveDifficultyEnabled: prev?.adaptiveDifficultyEnabled === true,
+    geopoliticsProgressionEpoch: prev?.geopoliticsProgressionEpoch,
   };
   await setDoc(userDocRef<AppSettingsRow>(COGI_COLLECTIONS.settings, SETTINGS_ID), row);
+}
+
+export async function setGeopoliticsProgressionEpoch(epoch: string): Promise<void> {
+  const prev = await getAppSettings();
+  await setDoc(userDocRef<AppSettingsRow>(COGI_COLLECTIONS.settings, SETTINGS_ID), {
+    ...prev,
+    geopoliticsProgressionEpoch: epoch,
+  });
 }
 
 export async function setDelayedRecallEnabled(enabled: boolean): Promise<void> {
@@ -83,6 +95,7 @@ export function subscribeAppSettings(
         delayedRecallEnabled: row?.delayedRecallEnabled !== false,
         weeklyReviewLastCompletedCount: row?.weeklyReviewLastCompletedCount,
         adaptiveDifficultyEnabled: row?.adaptiveDifficultyEnabled === true,
+        geopoliticsProgressionEpoch: row?.geopoliticsProgressionEpoch,
       });
     },
     onError,

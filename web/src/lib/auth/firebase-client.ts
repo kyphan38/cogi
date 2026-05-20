@@ -71,6 +71,12 @@ export function getFirebaseFirestore(): Firestore {
 }
 
 export function getCurrentUidOrThrow(): string {
+  if (
+    typeof window !== "undefined" &&
+    (window as unknown as Record<string, unknown>).__E2E_AUTH_BYPASS__
+  ) {
+    return "e2e-test-user-uid";
+  }
   const uid = getFirebaseAuth().currentUser?.uid;
   if (!uid) {
     throw new Error("Authenticated Firebase user is required for data access.");

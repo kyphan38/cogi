@@ -1,3 +1,4 @@
+import { NO_INDEX_REFERENCE_RULE } from "@/lib/ai/prompts/perspective-clarity-directives";
 import type { PerspectiveKind, PerspectiveSectionKey } from "@/lib/types/disagreement";
 
 export function buildPerspectiveDisagreePrompt(input: {
@@ -28,8 +29,11 @@ User's reason for disagreeing:
 ${input.userReason}
 ---
 
+${NO_INDEX_REFERENCE_RULE}
+
 Instructions:
 - Respond in plain text (no JSON), 120–220 words.
+- Quote or mirror the user's stated reason before responding.
 - Genuinely engage: you may concede partially, or push back with reasoning - avoid dismissiveness.
 - Do not invent facts about the user; stay grounded in the text above.
 - Do not give a numeric score.`;

@@ -8,9 +8,11 @@ import { buildGenerativePerspectivePrompt } from "@/lib/ai/prompts/generative-pe
 import { buildSequentialPerspectivePrompt } from "@/lib/ai/prompts/sequential-perspective";
 import { buildSystemsShockPerspectivePrompt } from "@/lib/ai/prompts/systems-shock-perspective";
 import { generateAnalyticalExerciseRaw } from "@/lib/ai/gemini";
+import type { ClarityPerspectiveKind } from "@/lib/types/perspective";
 import {
+  parseLegacyPerspectiveJson,
   parseStructuredPerspectiveJson,
-  STRUCTURED_PERSPECTIVE_RETRY_SUFFIX,
+  structuredPerspectiveRetrySuffix,
 } from "@/lib/ai/validators/perspective-structured";
 import { structuredPerspectiveToMarkdown } from "@/lib/perspective/format-structured";
 import type { EmbeddedIssue } from "@/lib/types/exercise";
@@ -32,22 +34,39 @@ import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 
 export const maxDuration = 60;
 
-async function generateStructuredPerspective(prompt: string): Promise<{
+type PerspectiveRouteKind = ClarityPerspectiveKind | "sequential";
+
+async function generateStructuredPerspective(
+  prompt: string,
+  kind: PerspectiveRouteKind,
+): Promise<{
   structured: AIPerspectiveStructured;
   text: string;
 }> {
+  const parse =
+    kind === "sequential"
+      ? (raw: string) => parseLegacyPerspectiveJson(raw)
+      : (raw: string) => parseStructuredPerspectiveJson(raw, kind);
+
+  const retrySuffix =
+    kind === "sequential"
+      ? `Your previous answer was not valid JSON. Return ONLY a single JSON object with keys: embedded, userFound, additional, openQuestions.`
+      : structuredPerspectiveRetrySuffix(kind);
+
   const run = async (p: string) => {
     const raw = await generateAnalyticalExerciseRaw(p);
-    return parseStructuredPerspectiveJson(raw);
+    return parse(raw);
   };
   let parsed = await run(prompt);
   if (!parsed.success) {
-    parsed = await run(`${prompt}\n${STRUCTURED_PERSPECTIVE_RETRY_SUFFIX}\nReason: ${parsed.error}`);
+    parsed = await run(`${prompt}\n${retrySuffix}\nReason: ${parsed.error}`);
   }
   if (!parsed.success) {
     throw new Error(parsed.error);
   }
-  const text = structuredPerspectiveToMarkdown(parsed.data);
+  const clarityKind: ClarityPerspectiveKind =
+    kind === "sequential" ? "analytical" : kind;
+  const text = structuredPerspectiveToMarkdown(parsed.data, clarityKind);
   return { structured: parsed.data, text };
 }
 
@@ -121,7 +140,10 @@ export async function POST(req: Request) {
       userContext,
     });
     try {
-      const { structured, text } = await generateStructuredPerspective(prompt);
+      const { structured, text } = await generateStructuredPerspective(
+        prompt,
+        "evaluative-matrix",
+      );
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
       const message = e instanceof Error ? e.message : "Unknown error";
@@ -163,7 +185,10 @@ export async function POST(req: Request) {
       userContext,
     });
     try {
-      const { structured, text } = await generateStructuredPerspective(prompt);
+      const { structured, text } = await generateStructuredPerspective(
+        prompt,
+        "evaluative-scoring",
+      );
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
       const message = e instanceof Error ? e.message : "Unknown error";
@@ -194,7 +219,7 @@ export async function POST(req: Request) {
       userContext,
     });
     try {
-      const { structured, text } = await generateStructuredPerspective(prompt);
+      const { structured, text } = await generateStructuredPerspective(prompt, "generative");
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
       const message = e instanceof Error ? e.message : "Unknown error";
@@ -249,6 +274,25 @@ export async function POST(req: Request) {
       typeof b.userContext === "string" && b.userContext.trim()
         ? b.userContext.trim()
         : undefined;
+    const perspectiveAName =
+      typeof b.perspectiveAName === "string" ? b.perspectiveAName : undefined;
+    const perspectiveBName =
+      typeof b.perspectiveBName === "string" ? b.perspectiveBName : undefined;
+    const intendedConnectionsB = Array.isArray(b.intendedConnectionsB)
+      ? (b.intendedConnectionsB as SystemsIntendedConnection[])
+      : undefined;
+    const shockEventB =
+      b.shockEventB && typeof b.shockEventB === "object"
+        ? (b.shockEventB as {
+            directlyAffected: string[];
+            indirectlyAffected: string[];
+            explanation: string;
+          })
+        : undefined;
+    const userPerspectiveBNotes =
+      typeof b.userPerspectiveBNotes === "string"
+        ? b.userPerspectiveBNotes
+        : undefined;
     const prompt = buildSystemsShockPerspectivePrompt({
       title,
       domain,
@@ -261,9 +305,14 @@ export async function POST(req: Request) {
       userProposedComponents,
       confidenceBefore,
       userContext,
+      perspectiveAName,
+      perspectiveBName,
+      intendedConnectionsB,
+      shockEventB,
+      userPerspectiveBNotes,
     });
     try {
-      const { structured, text } = await generateStructuredPerspective(prompt);
+      const { structured, text } = await generateStructuredPerspective(prompt, "systems");
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
       const message = e instanceof Error ? e.message : "Unknown error";
@@ -316,7 +365,7 @@ export async function POST(req: Request) {
       userContext,
     });
     try {
-      const { structured, text } = await generateStructuredPerspective(prompt);
+      const { structured, text } = await generateStructuredPerspective(prompt, "sequential");
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
       const message = e instanceof Error ? e.message : "Unknown error";
@@ -349,6 +398,19 @@ export async function POST(req: Request) {
     ? (b.userHighlights as UserHighlight[])
     : [];
 
+  const hiddenPerspective =
+    typeof b.hiddenPerspective === "string" ? b.hiddenPerspective : undefined;
+  const missingActors = Array.isArray(b.missingActors)
+    ? (b.missingActors as string[])
+    : undefined;
+  const userPerspectiveGuess =
+    typeof b.userPerspectiveGuess === "string" ? b.userPerspectiveGuess : undefined;
+  const userMissingActorsGuess = Array.isArray(b.userMissingActorsGuess)
+    ? (b.userMissingActorsGuess as string[])
+    : undefined;
+  const metaGuessScore =
+    typeof b.metaGuessScore === "number" ? b.metaGuessScore : undefined;
+
   const prompt = buildAnalyticalPerspectivePrompt({
     title,
     passage,
@@ -358,10 +420,15 @@ export async function POST(req: Request) {
     confidenceBefore,
     domain,
     userContext,
+    hiddenPerspective,
+    missingActors,
+    userPerspectiveGuess,
+    userMissingActorsGuess,
+    metaGuessScore,
   });
 
   try {
-    const { structured, text } = await generateStructuredPerspective(prompt);
+    const { structured, text } = await generateStructuredPerspective(prompt, "analytical");
     return NextResponse.json({ ok: true, structured, text });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";

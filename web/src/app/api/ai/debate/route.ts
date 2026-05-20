@@ -61,12 +61,14 @@ export async function POST(req: Request) {
         const answer = typeof r.answer === "string" ? r.answer : "";
         if (id && question) qa.push({ id, question, answer });
       }
+      const isGeopolitics = b.isGeopolitics === true;
       const prompt = buildGenerativeDebateStartPrompt({
         domain: domain.trim(),
         title: title.trim(),
         scenario: scenario.trim() || title.trim(),
         qa,
         steelmanText: steelmanText.trim() || null,
+        isGeopolitics,
       });
       const text = await generatePlainTextRaw(prompt);
       return NextResponse.json({ ok: true, text });
@@ -90,11 +92,13 @@ export async function POST(req: Request) {
         if (role && content) history.push({ role, content });
       }
     }
+    const isGeopolitics = b.isGeopolitics === true;
     const prompt = buildGenerativeDebateContinuePrompt({
       domain: domain.trim(),
       title: title.trim(),
       history,
       userReply: userReply.trim(),
+      isGeopolitics,
     });
     const text = await generatePlainTextRaw(prompt);
     return NextResponse.json({ ok: true, text });

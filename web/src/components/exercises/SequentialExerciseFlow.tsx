@@ -388,7 +388,7 @@ export function SequentialExerciseFlow({ resumeId }: { resumeId?: string } = {})
         }),
       });
       const json = await res.json();
-      const parsed = parsePerspectiveFetchJson(json);
+      const parsed = parsePerspectiveFetchJson(json, "sequential");
       if (!parsed.ok) {
         setError(parsed.error);
         return;

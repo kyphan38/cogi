@@ -154,6 +154,17 @@ export function HomeContent() {
         </p>
       </div>
 
+      <Link
+        href="/guide"
+        className="block rounded-2xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm transition-colors hover:bg-zinc-100"
+      >
+        <span className="font-medium text-zinc-900">New to Cogi?</span>
+        <span className="text-zinc-600">
+          {" "}
+          Read the full guide - every exercise type, Dashboard, History, Settings, and more.
+        </span>
+      </Link>
+
       {incompleteExercises.length > 0 ? (
         <Card>
           <CardHeader className="pb-3">

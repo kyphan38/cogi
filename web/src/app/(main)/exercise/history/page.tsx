@@ -43,7 +43,13 @@ import {
   isSystemsExercise,
 } from "@/lib/types/exercise";
 import type { JournalEntry } from "@/lib/types/journal";
-import { getStructuredPerspectiveSections } from "@/lib/perspective/format-structured";
+import {
+  getPerspectiveViewModel,
+  getStructuredPerspectiveSections,
+} from "@/lib/perspective/format-structured";
+import { isLegacyPerspectiveStructured } from "@/lib/types/perspective";
+import type { ClarityPerspectiveKind } from "@/lib/types/perspective";
+import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { listPerspectiveDisagreementsForExercise } from "@/lib/db/disagreements";
 import type { PerspectiveDisagreementRow } from "@/lib/types/disagreement";
 import { Trash2 } from "lucide-react";
@@ -58,6 +64,92 @@ type ThinkingTypeFilter =
   | "evaluative"
   | "generative"
   | "combo";
+
+function perspectiveKindForExercise(ex: Exercise): ClarityPerspectiveKind | null {
+  if (isAnalyticalExercise(ex)) return "analytical";
+  if (isSystemsExercise(ex)) return "systems";
+  if (isEvaluativeExercise(ex)) {
+    return ex.variant === "matrix" ? "evaluative-matrix" : "evaluative-scoring";
+  }
+  if (isGenerativeExercise(ex)) return "generative";
+  return null;
+}
+
+function HistoryPerspectiveBody({
+  structured,
+  kind,
+}: {
+  structured: AIPerspectiveStructured;
+  kind: ClarityPerspectiveKind | null;
+}) {
+  if (kind && !isLegacyPerspectiveStructured(structured)) {
+    const vm = getPerspectiveViewModel(structured, kind);
+    if (vm.format === "clarity_v2") {
+      return (
+        <div className="text-muted-foreground space-y-4 text-sm leading-relaxed">
+          <p className="text-foreground text-sm font-medium">{vm.suitableFor}</p>
+          <ul className="list-none space-y-4 pl-0">
+            {vm.blocks.map((b) => (
+              <li key={b.id} className="space-y-2">
+                {b.title ? <p className="text-foreground font-medium">{b.title}</p> : null}
+                {b.userSnippet ? (
+                  <p className="bg-muted/40 rounded-md border px-2 py-1 text-xs">
+                    <span className="font-medium">You wrote / selected: </span>
+                    {b.userSnippet}
+                  </p>
+                ) : null}
+                <p className="whitespace-pre-wrap">{b.body}</p>
+                {b.remediation ? (
+                  <p className="whitespace-pre-wrap text-xs">
+                    <span className="font-medium">Stronger alternative: </span>
+                    {b.remediation}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          {vm.openQuestions.length > 0 ? (
+            <div>
+              <h4 className="text-foreground mb-2 font-medium">Open questions</h4>
+              <ul className="list-disc space-y-1 pl-5">
+                {vm.openQuestions.map((q, i) => (
+                  <li key={i} className="whitespace-pre-wrap">
+                    {q}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      );
+    }
+  }
+  if (isLegacyPerspectiveStructured(structured)) {
+    return (
+      <div className="text-muted-foreground space-y-4 text-sm leading-relaxed">
+        {getStructuredPerspectiveSections(structured).map((sec) => (
+          <div key={sec.key}>
+            <h4 className="text-foreground mb-2 font-medium">{sec.title}</h4>
+            <ul className="list-disc space-y-2 pl-5">
+              {sec.points.map((p) => (
+                <li key={p.id} className="whitespace-pre-wrap">
+                  {p.title ? (
+                    <>
+                      <span className="text-foreground font-medium">{p.title}</span>
+                      {" - "}
+                    </>
+                  ) : null}
+                  {p.body}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+}
 
 function formatDate(iso: string) {
   try {
@@ -102,21 +194,24 @@ function computeStreak(allDone: Exercise[]): number {
 function typeSwatchClass(t: Exercise["type"]): string {
   switch (t) {
     case "analytical":
-      return "bg-emerald-400";
+      return "bg-zinc-700";
     case "sequential":
-      return "bg-sky-400";
+      return "bg-zinc-600";
     case "systems":
-      return "bg-violet-400";
+      return "bg-zinc-500";
     case "evaluative":
-      return "bg-amber-400";
+      return "bg-zinc-800";
     case "generative":
-      return "bg-rose-400";
+      return "bg-zinc-400";
     case "combo":
-      return "bg-slate-400";
+      return "bg-zinc-300";
     default:
-      return "bg-muted-foreground/40";
+      return "bg-zinc-400";
   }
 }
+
+const EXERCISE_META_BADGE =
+  "ml-2 rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-normal uppercase tracking-wide text-zinc-600";
 
 function HistoryActivityHeatmap({ rows }: { rows: Exercise[] }) {
   const today = new Date();
@@ -650,19 +745,15 @@ function HistoryPageInner() {
                       <span className="font-medium">
                         {ex.title}
                         {isAnalyticalExercise(ex) && ex.source === "real_data" ? (
-                          <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-normal uppercase tracking-wide text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
-                            Real data
-                          </span>
+                          <span className={EXERCISE_META_BADGE}>Real data</span>
                         ) : isAnalyticalExercise(ex) && ex.isSoundReasoning === true ? (
-                          <span className="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-normal uppercase tracking-wide text-sky-800 dark:bg-sky-950/50 dark:text-sky-200">
-                            Sound reasoning
-                          </span>
+                          <span className={EXERCISE_META_BADGE}>Sound reasoning</span>
                         ) : null}
                       </span>
                       <span className="text-muted-foreground text-xs">{formatDate(ex.completedAt!)}</span>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                      <span className="font-tracker rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
                         {ex.type}
                       </span>
                       <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
@@ -905,26 +996,10 @@ function HistoryPageInner() {
                   Combined exercise - see sub-results above. No separate AI perspective for this entry.
                 </p>
               ) : detailEx.aiPerspectiveStructured ? (
-                <div className="text-muted-foreground space-y-4 text-sm leading-relaxed">
-                  {getStructuredPerspectiveSections(detailEx.aiPerspectiveStructured).map((sec) => (
-                    <div key={sec.key}>
-                      <h4 className="text-foreground mb-2 font-medium">{sec.title}</h4>
-                      <ul className="list-disc space-y-2 pl-5">
-                        {sec.points.map((p) => (
-                          <li key={p.id} className="whitespace-pre-wrap">
-                            {p.title ? (
-                              <>
-                                <span className="text-foreground font-medium">{p.title}</span>
-                                {" - "}
-                              </>
-                            ) : null}
-                            {p.body}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
+                <HistoryPerspectiveBody
+                  structured={detailEx.aiPerspectiveStructured}
+                  kind={perspectiveKindForExercise(detailEx)}
+                />
               ) : (
                 <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
                   {detailEx.aiPerspective ?? "-"}

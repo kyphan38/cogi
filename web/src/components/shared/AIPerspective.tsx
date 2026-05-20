@@ -6,9 +6,14 @@ import { Button } from "@/components/ui/button";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { AIPerspectiveStructured, PerspectivePoint } from "@/lib/types/perspective";
+import type { AIPerspectiveStructured } from "@/lib/types/perspective";
+import type { ClarityPerspectiveKind } from "@/lib/types/perspective";
+import { isLegacyPerspectiveStructured } from "@/lib/types/perspective";
 import type { PerspectiveDisagreementRow, PerspectiveKind, PerspectiveSectionKey } from "@/lib/types/disagreement";
-import { getStructuredPerspectiveSections } from "@/lib/perspective/format-structured";
+import {
+  getPerspectiveViewModel,
+  getStructuredPerspectiveSections,
+} from "@/lib/perspective/format-structured";
 import { aiFetch } from "@/lib/api/ai-fetch";
 import {
   listPerspectiveDisagreementsForExercise,
@@ -28,18 +33,32 @@ function disagreeKey(section: PerspectiveSectionKey, pointId: string) {
   return `${section}:${pointId}`;
 }
 
-function PerspectivePointRow(props: {
+function PerspectiveDisagreeRow(props: {
   section: PerspectiveSectionKey;
-  point: PerspectivePoint;
+  pointId: string;
+  pointTitle: string | null;
+  pointBody: string;
   exerciseId: string;
   perspectiveKind: PerspectiveKind;
   exerciseTitle: string;
   domain?: string;
   existing: PerspectiveDisagreementRow | undefined;
   onSaved?: () => void;
+  children: React.ReactNode;
 }) {
-  const { section, point, exerciseId, perspectiveKind, exerciseTitle, domain, existing, onSaved } =
-    props;
+  const {
+    section,
+    pointId,
+    pointTitle,
+    pointBody,
+    exerciseId,
+    perspectiveKind,
+    exerciseTitle,
+    domain,
+    existing,
+    onSaved,
+    children,
+  } = props;
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -70,9 +89,9 @@ function PerspectivePointRow(props: {
           section,
           exerciseTitle,
           domain: domain ?? "",
-          pointId: point.id,
-          pointTitle: point.title?.trim() ? point.title.trim() : null,
-          pointBody: point.body,
+          pointId,
+          pointTitle,
+          pointBody,
           userReason: trimmed,
         }),
       });
@@ -93,9 +112,9 @@ function PerspectivePointRow(props: {
           exerciseId,
           kind: perspectiveKind,
           section,
-          pointId: point.id,
-          pointTitle: point.title?.trim() ? point.title.trim() : null,
-          pointBody: point.body,
+          pointId,
+          pointTitle,
+          pointBody,
           userReason: trimmed,
           aiReply: data.text,
           createdAt: new Date().toISOString(),
@@ -117,34 +136,23 @@ function PerspectivePointRow(props: {
     section,
     exerciseTitle,
     domain,
-    point.id,
-    point.title,
-    point.body,
+    pointId,
+    pointTitle,
+    pointBody,
     exerciseId,
     onSaved,
   ]);
 
   return (
     <li className="border-muted space-y-2 border-b py-3 last:border-0">
-      <div className="whitespace-pre-wrap">
-        {point.title ? (
-          <>
-            <span className="text-foreground font-medium">{point.title}</span>
-            {" - "}
-          </>
-        ) : null}
-        {point.body}
-      </div>
+      {children}
       {localReply ? (
-        <div className="bg-muted/50 rounded-md p-3 text-xs leading-relaxed">
-          <p className="text-foreground mb-1 font-medium">AI reply to your disagreement</p>
-          <p className="text-muted-foreground whitespace-pre-wrap">{localReply}</p>
-        </div>
+        <DisagreeReply text={localReply} />
       ) : open ? (
         <div className="grid max-w-xl gap-2">
-          <Label htmlFor={`dis-${section}-${point.id}`}>Why do you disagree?</Label>
+          <Label htmlFor={`dis-${section}-${pointId}`}>Why do you disagree?</Label>
           <Textarea
-            id={`dis-${section}-${point.id}`}
+            id={`dis-${section}-${pointId}`}
             rows={3}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
@@ -181,6 +189,15 @@ function PerspectivePointRow(props: {
         </Button>
       )}
     </li>
+  );
+}
+
+function DisagreeReply({ text }: { text: string }) {
+  return (
+    <div className="bg-muted/50 rounded-md p-3 text-xs leading-relaxed">
+      <p className="text-foreground mb-1 font-medium">AI reply to your disagreement</p>
+      <p className="text-muted-foreground whitespace-pre-wrap">{text}</p>
+    </div>
   );
 }
 
@@ -231,32 +248,137 @@ export function AIPerspective({
     }
   }, [exerciseId]);
 
-  const sections = structured ? getStructuredPerspectiveSections(structured) : null;
+  const clarityKind: ClarityPerspectiveKind | null =
+    perspectiveKind === "analytical" ||
+    perspectiveKind === "systems" ||
+    perspectiveKind === "evaluative-matrix" ||
+    perspectiveKind === "evaluative-scoring" ||
+    perspectiveKind === "generative"
+      ? perspectiveKind
+      : null;
+
+  const viewModel =
+    structured && clarityKind ? getPerspectiveViewModel(structured, clarityKind) : null;
+
+  const legacySections =
+    structured && isLegacyPerspectiveStructured(structured)
+      ? getStructuredPerspectiveSections(structured)
+      : viewModel?.format === "legacy"
+        ? viewModel.sections
+        : null;
+
+  const suitableFor = viewModel?.format === "clarity_v2" ? viewModel.suitableFor : null;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">AI perspective</CardTitle>
+        {suitableFor ? (
+          <p className="text-muted-foreground text-sm font-normal">{suitableFor}</p>
+        ) : null}
       </CardHeader>
       <CardContent className="max-h-[min(70vh,720px)] overflow-y-auto pr-1">
-        {sections ? (
+        {viewModel?.format === "clarity_v2" ? (
           <div className="text-muted-foreground space-y-6 text-sm leading-relaxed">
-            {sections.map((sec) => (
+            <ul className="list-none space-y-0 pl-0">
+              {viewModel.blocks.map((b) => {
+                const dp = viewModel.disagreePoints.find(
+                  (d) => d.pointId === b.id && d.section !== "openQuestionsList",
+                );
+                if (!dp) return null;
+                return (
+                  <PerspectiveDisagreeRow
+                    key={b.id}
+                    section={dp.section}
+                    pointId={dp.pointId}
+                    pointTitle={dp.pointTitle}
+                    pointBody={dp.pointBody}
+                    exerciseId={exerciseId}
+                    perspectiveKind={perspectiveKind}
+                    exerciseTitle={exerciseTitle}
+                    domain={domain}
+                    existing={byKey.get(disagreeKey(dp.section, dp.pointId))}
+                    onSaved={() => void refreshDisagreements()}
+                  >
+                    <div className="space-y-2">
+                      {b.title ? <p className="text-foreground font-medium">{b.title}</p> : null}
+                      {b.userSnippet ? (
+                        <div className="bg-muted/40 border-muted rounded-md border px-3 py-2 text-xs">
+                          <span className="text-foreground font-medium">You wrote / selected: </span>
+                          <span className="whitespace-pre-wrap">{b.userSnippet}</span>
+                        </div>
+                      ) : null}
+                      <p className="whitespace-pre-wrap">{b.body}</p>
+                      {b.remediation ? (
+                        <p className="whitespace-pre-wrap">
+                          <span className="text-foreground font-medium">Stronger alternative: </span>
+                          {b.remediation}
+                        </p>
+                      ) : null}
+                    </div>
+                  </PerspectiveDisagreeRow>
+                );
+              })}
+            </ul>
+            {viewModel.openQuestions.length > 0 ? (
+              <div>
+                <h3 className="text-foreground mb-3 font-semibold">Open questions</h3>
+                <ul className="list-none space-y-0 pl-0">
+                  {viewModel.openQuestions.map((q, i) => {
+                    const pointId = `open_${i + 1}`;
+                    const section: PerspectiveSectionKey = "openQuestionsList";
+                    return (
+                      <PerspectiveDisagreeRow
+                        key={pointId}
+                        section={section}
+                        pointId={pointId}
+                        pointTitle={null}
+                        pointBody={q}
+                        exerciseId={exerciseId}
+                        perspectiveKind={perspectiveKind}
+                        exerciseTitle={exerciseTitle}
+                        domain={domain}
+                        existing={byKey.get(disagreeKey(section, pointId))}
+                        onSaved={() => void refreshDisagreements()}
+                      >
+                        <p className="whitespace-pre-wrap">{q}</p>
+                      </PerspectiveDisagreeRow>
+                    );
+                  })}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        ) : legacySections ? (
+          <div className="text-muted-foreground space-y-6 text-sm leading-relaxed">
+            {legacySections.map((sec) => (
               <div key={sec.key}>
                 <h3 className="text-foreground mb-3 font-semibold">{sec.title}</h3>
                 <ul className="list-none space-y-0 pl-0">
                   {sec.points.map((p) => (
-                    <PerspectivePointRow
+                    <PerspectiveDisagreeRow
                       key={p.id}
                       section={sec.key}
-                      point={p}
+                      pointId={p.id}
+                      pointTitle={p.title?.trim() ? p.title.trim() : null}
+                      pointBody={p.body}
                       exerciseId={exerciseId}
                       perspectiveKind={perspectiveKind}
                       exerciseTitle={exerciseTitle}
                       domain={domain}
                       existing={byKey.get(disagreeKey(sec.key, p.id))}
                       onSaved={() => void refreshDisagreements()}
-                    />
+                    >
+                      <div className="whitespace-pre-wrap">
+                        {p.title ? (
+                          <>
+                            <span className="text-foreground font-medium">{p.title}</span>
+                            {" - "}
+                          </>
+                        ) : null}
+                        {p.body}
+                      </div>
+                    </PerspectiveDisagreeRow>
                   ))}
                 </ul>
               </div>

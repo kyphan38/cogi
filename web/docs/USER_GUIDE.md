@@ -1,5 +1,7 @@
 # Hướng dẫn sử dụng Thinking Training (cho người mới hoàn toàn)
 
+> **Bản trong app (tiếng Anh, luôn khớp menu hiện tại):** sau khi đăng nhập, mở **Guide** trên thanh điều hướng hoặc vào `/guide`.
+
 Ứng dụng giúp bạn **luyện các kiểu tư duy** (phân tích, thứ tự, hệ thống, đánh giá, sáng tạo) qua bài tập ngắn, có **phản hồi từ AI**, **ghi nhật ký**, và **cam kết một hành động** ở cuối mỗi bài.
 
 **Quan trọng:** bạn **đăng nhập Google (Firebase)**; dữ liệu bài đã làm, nhật ký, cài đặt… được lưu vào **đám mây (Firestore)** theo tài khoản của bạn (cùng project Firebase mà người triển khai cấu hình). Đăng nhập trên máy khác vẫn thấy dữ liệu. Nên dùng **Settings → Download JSON backup** để giữ bản sao ngoài app hoặc phòng khi cần khôi phục/ghép dữ liệu.
@@ -10,7 +12,7 @@
 
 1. Mở app trong trình duyệt (Chrome, Safari, Firefox, …).
 2. **Đăng nhập Google** khi app yêu cầu (tài khoản phải nằm trong allowlist nếu người triển khai bật giới hạn).
-3. Phía trên cùng có **thanh điều hướng** cố định khi cuộn: **Home**, **Dashboard**, **History**, **Journal**, **Settings**, **Decisions**.
+3. Phía trên cùng có **thanh điều hướng** cố định khi cuộn: **Home**, **Guide**, **Dashboard**, **History**, **Settings**, **Decisions**.
 4. **Home** là điểm vào: chọn một **thẻ bài tập** (hoặc Combo) để bắt đầu.
 
 ---
@@ -29,7 +31,7 @@ Hầu hết bài đi theo **cùng một khung** (thanh tiến trình phía trên
 
 | Bước (tên gần đúng) | Bạn làm gì |
 |---------------------|------------|
-| **Setup** | Chọn **lĩnh vực (domain)** (hoặc gõ Custom), có thể bấm tạo bài (**Generate**). Với Analytical còn có chế độ **dán văn thật (real data)**. |
+| **Setup** | Chọn **lĩnh vực (domain)** từ danh mục gợi ý (DevOps, MLOps, Financial planning, Life strategy, **Geopolitics** theo vùng/chủ đề/khung phân tích, …) hoặc gõ tùy ý; có thể bấm tạo bài (**Generate**). Với Analytical còn có chế độ **dán văn thật (real data)**. |
 | **Bước chính của bài** | Tùy loại: bôi đoạn văn, kéo thả, vẽ sơ đồ, chấm điểm, … (chi tiết từng loại ở mục 4). |
 | **Confidence** | Kéo thanh **mức tự tin** (0–100%) *trước khi* xem góc nhìn AI - để sau này app so sánh với độ chính xác đo được. |
 | **AI perspective / reflection** | Đọc phản hồi của model (văn bản có cấu trúc). Không phải “điểm số thi” mà là so sánh cách nhìn. |
@@ -113,9 +115,23 @@ Cuối cùng: journal + action + lưu **một** bản ghi combo.
 
 ---
 
+### 4.7 Geopolitics (địa chính trị)
+
+**Mục tiêu:** luyện tư duy trên **tình huống địa chính trị** - chọn domain gợi ý (hoặc custom), dùng chế độ **real data** với gợi ý nguồn phù hợp, và các bước/bộ thẻ dành riêng cho geo (ví dụ perspective guess, stakeholder mapping trên một số luồng).
+
+- Có thể bắt đầu từ **Dashboard → Geopolitics progression** (thẻ lộ trình) hoặc deep link `?domain=<subdomain>` khi mở bài Analytical / Systems / Evaluative / Generative (ví dụ `/exercise/analytical?domain=US-China%20strategic%20competition`).
+- Thẻ lộ trình gợi ý **phase**, subdomain tiếp theo, và loại bài - bấm **Start suggested exercise** để mở đúng URL với domain đã điền sẵn.
+- Danh sách subdomain nằm trong `GEOPOLITICS_SUBDOMAINS` / `GEOPOLITICS_PROGRESSION` (repo); người chỉnh sản phẩm xem `docs/EXPERIENCE_TUNING.md`.
+- **Settings → Reset progression counter** chỉ đặt lại mốc đếm phase (không xóa bài trong History).
+- Thẻ semantic trên Analytical geo gồm framing bias, missing actor, assumed causation, analogy misuse, v.v.
+- Chi tiết đầy đủ: xem **Guide** trong app (mục Geopolitics).
+
+---
+
 ## 5. Dashboard
 
-- **Ba ô số đầu:** tóm tắt nhanh - số bài đã hoàn thành, **gap calibration** (tự tin − độ chính xác đo được), và **độ chính xác trung bình**. Ô giữa đổi màu nhẹ theo xu hướng (lệch tự tin quá mức / khá khớp / …) - đọc dòng chữ nhỏ dưới số để hiểu.
+- **Ba ô số đầu:** tóm tắt nhanh - số bài đã hoàn thành, **gap calibration** (tự tin − độ chính xác đo được), và **độ chính xác trung bình**. Ô giữa giải thích xu hướng bằng **dòng chữ** (overconfident / underconfident / aligned), không dựa vào màu nền.
+- **Geopolitics progression** (cột phụ): thẻ lộ trình khi bạn đã hoàn thành ít nhất một bài geo; gợi ý subdomain + loại bài kế tiếp.
 - **Adaptive difficulty:** nếu tắt trong Settings, bạn chỉ thấy **một dòng** nhắc bật trong Settings; nếu bật, sẽ có thêm chi tiết tier và “điểm mù” (blind spots) để bài generate gợi ý phù hợp hơn.
 - **Calibration gap (biểu đồ):** xu hướng gap theo thời gian (cần đủ số điểm mới có đường nét rõ).
 - **Weekly insight:** khi đủ điều kiện (số bài đã hoàn thành theo quy tắc trên màn hình), bấm tạo **bản tóm tắt tuần** (markdown) từ các bài gần đây.
@@ -149,10 +165,10 @@ Trang riêng để **ghi lại quyết định ngoài đời** (text, domain, ng
 
 ---
 
-## 9. Journal (trong menu)
+## 9. Journal (trong bài, không có menu riêng)
 
-- Trong luồng **mỗi bài tập**, journal là bước **bắt buộc** (câu hỏi ngắn sau bài).
-- Mục menu **Journal** hiện có thể chỉ là **trang placeholder** tùy phiên bản - nếu trên màn hình bạn chỉ thấy dòng chữ tối giản, hãy coi **nhật ký sau bài** là phần journal chính.
+- Trong luồng **mỗi bài tập**, journal là bước **bắt buộc** (câu hỏi ngắn sau phần AI perspective).
+- **Không** có mục **Journal** trên thanh điều hướng; đọc lại nhật ký đã lưu qua **History → Review** trên từng bài.
 
 ---
 

@@ -3,8 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AdaptiveSetupHint } from "@/components/adaptive/AdaptiveSetupHint";
-import { ExerciseShell, SYSTEMS_EXERCISE_STEP_LABELS } from "@/components/shared/ExerciseShell";
+import {
+  ExerciseShell,
+  GEOPOLITICS_SYSTEMS_STEP_LABELS,
+  SYSTEMS_EXERCISE_STEP_LABELS,
+} from "@/components/shared/ExerciseShell";
 import { SystemsFlowCanvas } from "@/components/exercises/SystemsFlowCanvas";
+import { SystemsPerspectiveCompare } from "@/components/exercises/SystemsPerspectiveCompare";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
@@ -38,7 +43,12 @@ import type {
 import type { SystemsConnectionType } from "@/lib/ai/validators/systems";
 import type { JournalEntry } from "@/lib/types/journal";
 import type { ActionBridge } from "@/lib/types/action";
-import type { SystemsExercisePayload } from "@/lib/ai/validators/systems";
+import {
+  isGeopoliticsSystemsPayload,
+  type GeopoliticsSystemsExercisePayload,
+  type SystemsExercisePayload,
+} from "@/lib/ai/validators/systems";
+import { isGeopoliticsAnalyticalDomain } from "@/lib/exercise/geopolitics-domains";
 import { buildAdaptiveHintsForRequest } from "@/lib/adaptive/adaptive-hints";
 import { getUserContext } from "@/lib/db/settings";
 import { completeExerciseFlow } from "@/lib/db/complete-exercise";
@@ -64,7 +74,24 @@ const EDGE_TYPES: SystemsConnectionType[] = [
   "risks",
 ];
 
-type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+
+function isGeopoliticsSystemsExercise(ex: SystemsExerciseRow): boolean {
+  return (
+    ex.isGeopolitics ??
+    Boolean(
+      ex.perspectiveBName?.trim() &&
+        ex.intendedConnectionsB?.length &&
+        ex.shockEventB,
+    )
+  );
+}
+
+function systemsShellStep(step: FlowStep, isGeo: boolean): number {
+  if (isGeo) return step;
+  if (step <= 4) return step;
+  return step - 1;
+}
 
 function emptyImpact(nodeIds: string[]): Record<string, SystemsNodeImpact> {
   const o: Record<string, SystemsNodeImpact> = {};
@@ -78,9 +105,12 @@ function cycleImpact(v: SystemsNodeImpact): SystemsNodeImpact {
   return "none";
 }
 
-export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
+export function SystemsExerciseFlow({
+  resumeId,
+  initialDomain,
+}: { resumeId?: string; initialDomain?: string } = {}) {
   const [step, setStep] = useState<FlowStep>(0);
-  const [domain, setDomain] = useState("");
+  const [domain, setDomain] = useState(initialDomain?.trim() ?? "");
   const [setupMode, setSetupMode] = useState<"generated" | "custom_scenario">("generated");
   const [customScenarioText, setCustomScenarioText] = useState("");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
@@ -107,6 +137,7 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
   const journalEffectIdRef = useRef(0);
 
   const [actionText, setActionText] = useState("");
+  const [userPerspectiveBNotes, setUserPerspectiveBNotes] = useState("");
 
   const [emotionLabel, setEmotionLabel] = useState<
     "anxious" | "excited" | "frustrated" | "confident" | "uncertain" | "defensive" | "neutral"
@@ -144,12 +175,20 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
       setConfidence(row.confidenceBefore ?? 50);
       if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
       if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
+      setUserPerspectiveBNotes(row.userPerspectiveBNotes ?? "");
       setStep((row.currentStep ?? 1) as FlowStep);
     })();
   }, [resumeId]);
 
   useEffect(() => {
-    if (!exercise || step === 0 || step === 8) return;
+    if (resumeId) return;
+    const d = initialDomain?.trim();
+    if (d) setDomain(d);
+  }, [initialDomain, resumeId]);
+
+  useEffect(() => {
+    const isGeo = exercise ? isGeopoliticsSystemsExercise(exercise) : false;
+    if (!exercise || step === 0 || (isGeo ? step === 9 : step === 8)) return;
     const timer = setTimeout(() => {
       void putExercise({ ...exercise, userEdges, nodeImpact, currentStep: step });
     }, 2000);
@@ -185,13 +224,18 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
         }),
       });
       const json = (await res.json()) as
-        | { ok: true; data: SystemsExercisePayload }
+        | { ok: true; data: SystemsExercisePayload | GeopoliticsSystemsExercisePayload }
         | { ok: false; error: string };
       if (!json.ok) {
         setError(json.error);
         return;
       }
       const data = json.data;
+      const isGeo =
+        isGeopoliticsSystemsPayload(data) || isGeopoliticsAnalyticalDomain(d);
+      const geoData = isGeopoliticsSystemsPayload(data)
+        ? (data as GeopoliticsSystemsExercisePayload)
+        : null;
       const id = crypto.randomUUID();
       const ids = data.nodes.map((n) => n.id);
       const row: SystemsExerciseRow = {
@@ -204,6 +248,11 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
         nodes: data.nodes,
         intendedConnections: data.intendedConnections,
         shockEvent: data.shockEvent,
+        isGeopolitics: isGeo,
+        perspectiveAName: geoData?.perspectiveAName,
+        perspectiveBName: geoData?.perspectiveBName,
+        intendedConnectionsB: geoData?.intendedConnectionsB,
+        shockEventB: geoData?.shockEventB,
         userProposedComponents: null,
         userEdges: [],
         nodeImpact: emptyImpact(ids),
@@ -225,6 +274,7 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
       setAiRefLine(null);
       setJournalPrimed(false);
       setActionText("");
+      setUserPerspectiveBNotes("");
       setEmotionLabel("neutral");
       setStep(1);
     } catch (e) {
@@ -249,54 +299,109 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
     );
   };
 
-  const submitShockPerspective = async () => {
+  const fetchSystemsPerspective = async (
+    notes?: string,
+  ): Promise<boolean> => {
+    if (!exercise) return false;
+    const userContext = await getUserContext();
+    const isGeo = isGeopoliticsSystemsExercise(exercise);
+    const res = await aiFetch("/api/ai/perspective", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind: "systems",
+        title: exercise.title,
+        domain: exercise.domain,
+        scenario: exercise.scenario,
+        nodes: exercise.nodes,
+        intendedConnections: exercise.intendedConnections,
+        shockEvent: exercise.shockEvent,
+        userEdges,
+        nodeImpact,
+        userProposedComponents: exercise.userProposedComponents ?? null,
+        confidenceBefore: confidence,
+        userContext: userContext || undefined,
+        perspectiveAName: exercise.perspectiveAName,
+        perspectiveBName: exercise.perspectiveBName,
+        intendedConnectionsB: exercise.intendedConnectionsB,
+        shockEventB: exercise.shockEventB,
+        userPerspectiveBNotes: notes ?? exercise.userPerspectiveBNotes,
+      }),
+    });
+    const json = await res.json();
+    const parsed = parsePerspectiveFetchJson(json, "systems");
+    if (!parsed.ok) {
+      setError(parsed.error);
+      return false;
+    }
+    setPerspectiveText(parsed.text);
+    setPerspectiveStructured(parsed.structured);
+    const partial: SystemsExerciseRow = {
+      ...exercise,
+      userEdges,
+      nodeImpact,
+      confidenceBefore: confidence,
+      userPerspectiveBNotes: notes ?? exercise.userPerspectiveBNotes,
+      aiPerspective: parsed.text,
+      aiPerspectiveStructured: parsed.structured,
+      currentStep: isGeo ? 6 : 5,
+    };
+    await putExercise(partial);
+    setExercise(partial);
+    setStep(isGeo ? 6 : 5);
+    return true;
+  };
+
+  const finishShockStep = async () => {
     if (!exercise) return;
+    setError(null);
+    const partial: SystemsExerciseRow = {
+      ...exercise,
+      userEdges,
+      nodeImpact,
+      confidenceBefore: confidence,
+    };
+    if (isGeopoliticsSystemsExercise(exercise)) {
+      await putExercise({ ...partial, currentStep: 5 });
+      setExercise({ ...partial, currentStep: 5 });
+      advance(5, { ...partial, currentStep: 5 });
+      return;
+    }
+    setLoading(true);
+    try {
+      const ok = await fetchSystemsPerspective();
+      if (!ok) return;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Perspective failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitSwapAndPerspective = async () => {
+    if (!exercise) return;
+    const notes = userPerspectiveBNotes.trim();
+    if (notes.length < 40) {
+      setError(
+        "Describe how the second perspective differs (at least 40 characters).",
+      );
+      return;
+    }
     if (perspectiveText != null) {
-      advance(5);
+      advance(6);
       return;
     }
     setError(null);
     setLoading(true);
     try {
-      const userContext = await getUserContext();
-      const res = await aiFetch("/api/ai/perspective", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: "systems",
-          title: exercise.title,
-          domain: exercise.domain,
-          scenario: exercise.scenario,
-          nodes: exercise.nodes,
-          intendedConnections: exercise.intendedConnections,
-          shockEvent: exercise.shockEvent,
-          userEdges,
-          nodeImpact,
-          userProposedComponents: exercise.userProposedComponents ?? null,
-          confidenceBefore: confidence,
-          userContext: userContext || undefined,
-        }),
-      });
-      const json = await res.json();
-      const parsed = parsePerspectiveFetchJson(json);
-      if (!parsed.ok) {
-        setError(parsed.error);
-        return;
-      }
-      setPerspectiveText(parsed.text);
-      setPerspectiveStructured(parsed.structured);
       const partial: SystemsExerciseRow = {
         ...exercise,
         userEdges,
         nodeImpact,
-        confidenceBefore: confidence,
-        aiPerspective: parsed.text,
-        aiPerspectiveStructured: parsed.structured,
-        currentStep: 5,
+        userPerspectiveBNotes: notes,
       };
-      await putExercise(partial);
       setExercise(partial);
-      setStep(5);
+      await fetchSystemsPerspective(notes);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Perspective failed");
     } finally {
@@ -305,7 +410,9 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
   };
 
   useEffect(() => {
-    if (step !== 6 || journalPrimed || !exercise) return;
+    if (!exercise || journalPrimed) return;
+    const isGeo = isGeopoliticsSystemsExercise(exercise);
+    if (isGeo ? step !== 7 : step !== 6) return;
     const effectId = ++journalEffectIdRef.current;
     let cancelled = false;
     (async () => {
@@ -428,14 +535,23 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
         action,
       });
       setExercise(finalEx);
-      setStep(8);
+      setStep(exercise && isGeopoliticsSystemsExercise(exercise) ? 9 : 8);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     }
   };
 
+  const isGeoExercise = exercise ? isGeopoliticsSystemsExercise(exercise) : false;
+  const shellStep = systemsShellStep(step, isGeoExercise);
+  const stepLabels = isGeoExercise
+    ? GEOPOLITICS_SYSTEMS_STEP_LABELS
+    : SYSTEMS_EXERCISE_STEP_LABELS;
+  const perspectiveStep: FlowStep = isGeoExercise ? 6 : 5;
+  const journalStep: FlowStep = isGeoExercise ? 7 : 6;
+  const actionStep: FlowStep = isGeoExercise ? 8 : 7;
+
   return (
-    <ExerciseShell stepIndex={step} stepLabels={SYSTEMS_EXERCISE_STEP_LABELS}>
+    <ExerciseShell stepIndex={shellStep} stepLabels={stepLabels}>
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -766,11 +882,13 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
               <Button type="button" variant="secondary" onClick={() => setStep(3)}>
                 Back
               </Button>
-              <Button type="button" disabled={loading} onClick={() => void submitShockPerspective()}>
+              <Button type="button" disabled={loading} onClick={() => void finishShockStep()}>
                 {loading ? (
                   <>
                     <InlineSpinner /> Loading…
                   </>
+                ) : isGeoExercise ? (
+                  "Continue to perspective comparison"
                 ) : (
                   "Submit impact and get AI reflection"
                 )}
@@ -780,7 +898,66 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
         </Card>
       ) : null}
 
-      {step === 5 && exercise && perspectiveText ? (
+      {step === 5 && exercise && isGeoExercise ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Perspective comparison</CardTitle>
+            <CardDescription>
+              You mapped this system from {exercise.perspectiveAName ?? "Actor A"}&apos;s
+              view. How would {exercise.perspectiveBName ?? "Actor B"} see it differently?
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {exercise.intendedConnectionsB && exercise.shockEventB ? (
+              <SystemsPerspectiveCompare
+                nodes={exercise.nodes}
+                userEdges={userEdges}
+                nodeImpact={nodeImpact}
+                perspectiveAName={exercise.perspectiveAName ?? "Perspective A"}
+                perspectiveBName={exercise.perspectiveBName ?? "Perspective B"}
+                intendedConnectionsA={exercise.intendedConnections}
+                intendedConnectionsB={exercise.intendedConnectionsB}
+                shockEvent={exercise.shockEvent}
+                shockEventB={exercise.shockEventB}
+              />
+            ) : null}
+            <div className="grid gap-2">
+              <Label htmlFor="perspective-b-notes">
+                What structural differences matter most for{" "}
+                {exercise.perspectiveBName ?? "the other actor"}?
+              </Label>
+              <Textarea
+                id="perspective-b-notes"
+                rows={4}
+                value={userPerspectiveBNotes}
+                onChange={(e) => setUserPerspectiveBNotes(e.target.value)}
+                placeholder="e.g. Different central hubs, reversed dependencies, who bears shock risk…"
+              />
+            </div>
+            {loading ? <PerspectiveLoadingCard /> : null}
+            <div className="flex gap-2">
+              <Button type="button" variant="secondary" disabled={loading} onClick={() => setStep(4)}>
+                Back
+              </Button>
+              <Button
+                type="button"
+                disabled={loading}
+                onClick={() => void submitSwapAndPerspective()}
+              >
+                {loading ? (
+                  <>
+                    <InlineSpinner /> Loading reflection…
+                  </>
+                ) : (
+                  "Submit and get AI reflection"
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {step === perspectiveStep && exercise && perspectiveText ? (
         <div className="space-y-4">
           <AIPerspective
             text={perspectiveText}
@@ -790,13 +967,13 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
             exerciseTitle={exercise.title}
             domain={exercise.domain}
           />
-          <Button type="button" onClick={() => advance(6)}>
+          <Button type="button" onClick={() => advance(journalStep)}>
             Continue to journal
           </Button>
         </div>
       ) : null}
 
-      {step === 6 && exercise ? (
+      {step === journalStep && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Metacognition journal</CardTitle>
@@ -860,7 +1037,11 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
                   </div>
                 ))}
                 <div className="flex gap-2">
-                  <Button type="button" variant="secondary" onClick={() => setStep(5)}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setStep(perspectiveStep)}
+                  >
                     Back
                   </Button>
                   <Button
@@ -871,7 +1052,7 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
                         setError("Need two answers with more than 10 characters.");
                         return;
                       }
-                      advance(7);
+                      advance(actionStep);
                     }}
                   >
                     Continue to action
@@ -883,7 +1064,7 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
         </Card>
       ) : null}
 
-      {step === 7 && exercise ? (
+      {step === actionStep && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Action bridge</CardTitle>
@@ -899,7 +1080,7 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
               onChange={(e) => setActionText(e.target.value)}
             />
             <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(6)}>
+              <Button type="button" variant="secondary" onClick={() => setStep(journalStep)}>
                 Back
               </Button>
               <Button type="button" onClick={() => void finishExercise()}>
@@ -910,7 +1091,7 @@ export function SystemsExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
         </Card>
       ) : null}
 
-      {step === 8 ? (
+      {step === (isGeoExercise ? 9 : 8) ? (
         <Card>
           <CardHeader>
             <CardTitle>Exercise saved</CardTitle>

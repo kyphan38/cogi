@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AdaptiveSetupHint } from "@/components/adaptive/AdaptiveSetupHint";
-import { ExerciseShell, GENERATIVE_EXERCISE_STEP_LABELS } from "@/components/shared/ExerciseShell";
+import {
+  ExerciseShell,
+  GENERATIVE_EXERCISE_STEP_LABELS,
+  GEOPOLITICS_GENERATIVE_STEP_LABELS,
+} from "@/components/shared/ExerciseShell";
+import { isGeopoliticsAnalyticalDomain } from "@/lib/exercise/geopolitics-domains";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
@@ -57,12 +62,20 @@ type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 const MAX_DEBATE_USER_TURNS = 3;
 
+const GEO_SCENARIO_PROMPT_LABELS: Record<string, string> = {
+  p1: "Base case",
+  p2: "Upside",
+  p3: "Downside",
+  p4: "Robust action",
+};
+
 function buildRowFromPayload(
   id: string,
   domain: string,
   stage: GenerativeExerciseRow["stageAtStart"],
   data: GenerativeExercisePayload,
   customScenario?: string,
+  isGeopolitics?: boolean,
 ): GenerativeExerciseRow {
   const answers: Record<string, string> = {};
   const draftBaseline: Record<string, string> = {};
@@ -79,6 +92,7 @@ function buildRowFromPayload(
     type: "generative",
     domain,
     customScenario,
+    isGeopolitics: isGeopolitics ?? isGeopoliticsAnalyticalDomain(domain),
     title: data.title,
     scenario: data.scenario,
     stageAtStart: stage,
@@ -116,9 +130,12 @@ function allPromptsNonEmpty(row: GenerativeExerciseRow, minLen: number): boolean
   return row.prompts.every((p) => (row.answers[p.id] ?? "").trim().length >= minLen);
 }
 
-export function GenerativeExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
+export function GenerativeExerciseFlow({
+  resumeId,
+  initialDomain,
+}: { resumeId?: string; initialDomain?: string } = {}) {
   const [step, setStep] = useState<FlowStep>(0);
-  const [domain, setDomain] = useState("");
+  const [domain, setDomain] = useState(initialDomain?.trim() ?? "");
   const [setupMode, setSetupMode] = useState<"generated" | "custom_scenario">("generated");
   const [customScenarioText, setCustomScenarioText] = useState("");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
@@ -189,6 +206,12 @@ export function GenerativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
   }, [resumeId]);
 
   useEffect(() => {
+    if (resumeId) return;
+    const d = initialDomain?.trim();
+    if (d) setDomain(d);
+  }, [initialDomain, resumeId]);
+
+  useEffect(() => {
     if (!exercise || step === 0 || step === 8) return;
     const timer = setTimeout(() => {
       void putExercise({
@@ -252,8 +275,9 @@ export function GenerativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
         return;
       }
       const id = crypto.randomUUID();
+      const isGeo = isGeopoliticsAnalyticalDomain(d);
       const row: GenerativeExerciseRow = {
-        ...buildRowFromPayload(id, d, generativeStage, json.data, customScenarioOut),
+        ...buildRowFromPayload(id, d, generativeStage, json.data, customScenarioOut, isGeo),
         currentStep: 1,
       };
       await putExercise(row);
@@ -312,6 +336,7 @@ export function GenerativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
             scenario: exercise.scenario,
             qa,
             steelmanText,
+            isGeopolitics: exercise.isGeopolitics === true,
           }),
         });
         const json = (await res.json()) as { ok: true; text: string } | { ok: false; error: string };
@@ -374,6 +399,7 @@ export function GenerativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
           title: exercise.title,
           history: debateHistoryMessages(),
           userReply: reply,
+          isGeopolitics: exercise.isGeopolitics === true,
         }),
       });
       const json = (await res.json()) as { ok: true; text: string } | { ok: false; error: string };
@@ -436,7 +462,7 @@ export function GenerativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
         }),
       });
       const pjRaw = await res.json();
-      const pj = parsePerspectiveFetchJson(pjRaw);
+      const pj = parsePerspectiveFetchJson(pjRaw, "generative");
       if (!pj.ok) {
         setError(pj.error);
         return;
@@ -579,14 +605,18 @@ export function GenerativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
     }
   };
 
-  const shellStep = step;
+  const isGeoExercise =
+    exercise?.isGeopolitics ?? (exercise ? isGeopoliticsAnalyticalDomain(exercise.domain) : false);
+  const stepLabels = isGeoExercise
+    ? GEOPOLITICS_GENERATIVE_STEP_LABELS
+    : GENERATIVE_EXERCISE_STEP_LABELS;
 
   const rowForWriteGate = exercise
     ? { ...exercise, answers }
     : null;
 
   return (
-    <ExerciseShell stepIndex={shellStep} stepLabels={GENERATIVE_EXERCISE_STEP_LABELS}>
+    <ExerciseShell stepIndex={step} stepLabels={stepLabels}>
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -705,7 +735,14 @@ export function GenerativeExerciseFlow({ resumeId }: { resumeId?: string } = {})
           <CardContent className="space-y-6">
             {exercise.prompts.map((p) => (
               <div key={p.id} className="grid gap-2">
-                <Label>{p.question}</Label>
+                <div className="flex flex-wrap items-center gap-2">
+                  {isGeoExercise && GEO_SCENARIO_PROMPT_LABELS[p.id] ? (
+                    <span className="bg-muted text-muted-foreground rounded px-2 py-0.5 text-xs font-medium uppercase">
+                      {GEO_SCENARIO_PROMPT_LABELS[p.id]}
+                    </span>
+                  ) : null}
+                  <Label className="flex-1">{p.question}</Label>
+                </div>
                 {exercise.stageAtStart === "hint" && p.hints?.length ? (
                   <ul className="text-muted-foreground list-inside list-disc text-sm">
                     {p.hints.map((h, i) => (

@@ -1,3 +1,4 @@
+import { buildPerspectiveClarityPreamble } from "@/lib/ai/prompts/perspective-clarity-directives";
 import type { EvaluativeMatrixRow, EvaluativeScoringRow } from "@/lib/types/exercise";
 
 export function buildEvaluativeMatrixPerspectivePrompt(input: {
@@ -17,7 +18,11 @@ export function buildEvaluativeMatrixPerspectivePrompt(input: {
     .join("\n");
   const ctx = input.userContext?.trim() ? `\nUser context: ${input.userContext}` : "";
   const proposed = input.exercise.userProposedCriteria ?? null;
+  const clarity = buildPerspectiveClarityPreamble();
+
   return `You are a collaborative thinking coach (not a harsh grader).
+
+${clarity}
 
 Domain: ${input.domain}
 Title: ${input.title}
@@ -40,21 +45,26 @@ ${placements}
 
 Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
 {
-  "embedded": [ { "id": string, "title"?: string, "body": string }, ... ],
-  "userFound": [ { "id": string, "title"?: string, "body": string }, ... ],
-  "additional": [ { "id": string, "title"?: string, "body": string }, ... ],
-  "openQuestions": [ { "id": string, "title"?: string, "body": string }, ... ]
+  "perspectiveFormat": "clarity_v2",
+  "title": string (echo exercise title),
+  "suitableFor": "Suitable for <concrete audience>",
+  "placementCritiques": [
+    {
+      "optionId": "unique_id",
+      "optionTitle": "option title from exercise",
+      "userQuadrant": "top-left" | "top-right" | "bottom-left" | "bottom-right",
+      "userValueContext": "You placed 'Option Title' in top-left because ... (state actual placement; infer brief rationale if user gave none)",
+      "aiEvaluationText": "You placed '...' in top-left... However, from an alternative framing..."
+    }
+  ],
+  "openQuestions": ["optional 1-3 strings"]
 }
 
-Map content into keys:
-- embedded: compare user placements vs intended reasoning; call out key mismatches without harsh judgment (3–6 points).
-- userFound: acknowledge strong intuitive placements / surprising-but-defensible placements (0–4 points).
-- additional: one alternative framing + one trade-off lens (2–4 points).
-- openQuestions: what information would change the map (1–3 points).
-
-Also, briefly note which criteria the user identified vs missed, and whether their framing reveals a different but defensible evaluation approach.
-
-Do not give a numeric grade. Keep bodies concise.`;
+Rules:
+- One placementCritiques row per option in the exercise.
+- aiEvaluationText must follow the Clarity Blueprint (quote placement, issue, alternative).
+- Note which user-proposed criteria they identified vs missed in relevant rows.
+- Do not give a numeric grade.`;
 }
 
 export function buildEvaluativeScoringPerspectivePrompt(input: {
@@ -90,7 +100,25 @@ export function buildEvaluativeScoringPerspectivePrompt(input: {
     .join("\n");
   const ctx = input.userContext?.trim() ? `\nUser context: ${input.userContext}` : "";
   const proposed = input.exercise.userProposedCriteria ?? null;
+  const geoBlock =
+    input.exercise.isGeopolitics || input.exercise.stakeholderNote
+      ? `
+
+Geopolitics stakeholder context:
+AI stakeholder ground truth:
+${input.exercise.stakeholderNote ?? "(none)"}
+
+User stakeholder mapping (before scoring):
+${JSON.stringify(input.exercise.userStakeholderMapping ?? [], null, 2)}
+
+Acknowledge stakeholders the user named vs missed; relate weight divergence to whose interests are overweighted or neglected. Surface hiddenCriteria as blind spots gently in relevant critiqueMatrix rows.`
+      : "";
+
+  const clarity = buildPerspectiveClarityPreamble();
+
   return `You are a collaborative thinking coach.
+
+${clarity}
 
 Domain: ${input.domain}
 Title: ${input.title}
@@ -113,19 +141,26 @@ ${hidden}
 
 Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
 {
-  "embedded": [ { "id": string, "title"?: string, "body": string }, ... ],
-  "userFound": [ { "id": string, "title"?: string, "body": string }, ... ],
-  "additional": [ { "id": string, "title"?: string, "body": string }, ... ],
-  "openQuestions": [ { "id": string, "title"?: string, "body": string }, ... ]
+  "perspectiveFormat": "clarity_v2",
+  "title": string (echo exercise title),
+  "suitableFor": "Suitable for <concrete audience>",
+  "critiqueMatrix": [
+    {
+      "criterionId": "c1",
+      "criterionLabel": "human label",
+      "userAssignedWeight": 4,
+      "userValueContext": "You weighted 'Alliance Credibility' at 4/5 and scored Option A as 3, Option B as 5 on this criterion (summarize all user weights/scores for this row)",
+      "aiEvaluationText": "You weighted 'Alliance Credibility' as 4 because you noted that '...'. However, from an oppositional stakeholder standpoint..."
+    }
+  ],
+  "openQuestions": ["optional 1-3 strings"]
 }
 
-Map content into keys:
-- embedded: weight divergence vs suggestedWeight; scoring surprises vs suggestedScores (3–6 points).
-- userFound: places the user's scoring looks coherent even if different from AI (0–4 points).
-- additional: hiddenCriteria themes worth reconsidering (2–4 points).
-- openQuestions: what would change the weighting model (1–3 points).
+Rules:
+- One critiqueMatrix row per criterion in the exercise.
+- userValueContext must summarize the user's weight AND per-option scores for that criterion (even if only numeric).
+- Compare to suggestedWeight and suggestedScores in aiEvaluationText.
+- Note which criteria the user identified vs missed.${geoBlock}
 
-Also, briefly note which criteria the user identified vs missed, and whether their framing reveals a different but defensible evaluation approach.
-
-No numeric grade for the user. Keep bodies concise.`;
+No numeric grade for the user.`;
 }

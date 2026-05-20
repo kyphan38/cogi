@@ -75,3 +75,56 @@ Rules for scoring:
 - At least one hiddenCriteria entry.
 ${adapt ? `\n${adapt}` : ""}`;
 }
+
+export function buildGeopoliticsEvaluativePrompt(input: {
+  domain: string;
+  userContext?: string;
+  adaptationAppendix?: string;
+  customScenario?: string;
+}): string {
+  const ctx = input.userContext?.trim() || "(none provided)";
+  const adapt = input.adaptationAppendix?.trim();
+  const scenarioBlock = formatUserScenarioBlock(input.customScenario);
+  const domainHint =
+    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
+      ? `\nTone/register hint: ${input.domain.trim()}`
+      : "";
+  const topicLine = scenarioBlock
+    ? `${scenarioBlock}${domainHint}`
+    : `Topic: ${input.domain}`;
+
+  return `You are generating a geopolitical evaluative exercise. Return ONLY valid JSON (no markdown fences).
+
+User context: ${ctx}
+
+${topicLine}
+
+Generate a policy decision scenario where a country or organization must choose between 3–4 strategic options.
+
+Use the SCORING variant ONLY (variant must be "scoring" - do not return matrix).
+
+Requirements:
+- criteria must represent DIFFERENT STAKEHOLDER INTERESTS (not abstract qualities like "feasibility")
+  Examples: "Domestic political support", "Alliance credibility", "Economic cost", "Rival's likely response", "Regional stability impact", "Precedent setting"
+- Each criterion's description must name whose interest it primarily serves
+- suggestedWeight reflects the GENERATING ACTOR's priorities (name that actor in scenario and stakeholderNote)
+- hiddenCriteria: include 2–3 stakeholder perspectives the user likely will not weight (e.g. domestic opposition in Country X, precedent for smaller states watching)
+
+Criterion and score ID rule (critical):
+- Assign criterion id values first (e.g. crit_domestic, crit_alliance). Use stable snake_case ids.
+- Every key in each option's suggestedScores MUST exactly match one of those criterion id strings - no labels, no typos, no extra keys.
+
+Return scoring variant JSON:
+{
+  "variant": "scoring",
+  "title": string,
+  "scenario": string (include the deciding actor explicitly: "You are advising [Country/Org]..."),
+  "stakeholderNote": string (primary decision-maker and 2–3 other affected stakeholders),
+  "criteria": [ { "id", "label", "description", "suggestedWeight": 1-5 } ],
+  "options": [ { "id", "title", "description", "suggestedScores": { "<criterion id>": 1-5, ... }, "explanation" } ],
+  "hiddenCriteria": [ { "label", "description" } ]
+}
+
+Minimums: at least 4 criteria, at least 3 options, at least 2 hiddenCriteria.
+Every option.suggestedScores must include every criterion id with integer 1–5.${adapt ? `\n\n${adapt}` : ""}`;
+}

@@ -18,6 +18,7 @@ import {
   getUserContext,
   setAdaptiveDifficultyEnabled,
   setDelayedRecallEnabled,
+  setGeopoliticsProgressionEpoch,
   setUserContext,
 } from "@/lib/db/settings";
 import {
@@ -30,6 +31,7 @@ export default function SettingsPage() {
   const [ctx, setCtx] = useState("");
   const [recallOn, setRecallOn] = useState(true);
   const [adaptiveOn, setAdaptiveOn] = useState(false);
+  const [geoEpoch, setGeoEpoch] = useState<string | undefined>();
   const [saved, setSaved] = useState(false);
   const [backupMsg, setBackupMsg] = useState<string | null>(null);
   const [backupErr, setBackupErr] = useState<string | null>(null);
@@ -40,8 +42,23 @@ export default function SettingsPage() {
       setCtx(text);
       setRecallOn(s.delayedRecallEnabled !== false);
       setAdaptiveOn(s.adaptiveDifficultyEnabled === true);
+      setGeoEpoch(s.geopoliticsProgressionEpoch);
     })();
   }, []);
+
+  const resetGeoProgression = async () => {
+    if (
+      !window.confirm(
+        "Reset geopolitics learning progression? Completed geo exercises before now will no longer count toward phase progress on the dashboard.",
+      )
+    ) {
+      return;
+    }
+    const epoch = new Date().toISOString();
+    await setGeopoliticsProgressionEpoch(epoch);
+    setGeoEpoch(epoch);
+    setBackupMsg("Geopolitics progression reset. Dashboard will use exercises completed from now on.");
+  };
 
   const save = async () => {
     await setUserContext(ctx);
@@ -202,6 +219,35 @@ export default function SettingsPage() {
           {saved ? (
             <p className="text-muted-foreground text-sm">Saved to your account (Firestore).</p>
           ) : null}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Geopolitics progression</CardTitle>
+          <CardDescription>
+            The dashboard progression card tracks completed geopolitics exercises by phase. Reset
+            if you want a fresh learning path without deleting exercise history.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button type="button" variant="secondary" onClick={() => void resetGeoProgression()}>
+            Reset progression counter
+          </Button>
+          {geoEpoch ? (
+            <p className="text-muted-foreground text-xs">
+              Counting exercises completed after{" "}
+              {new Date(geoEpoch).toLocaleString(undefined, {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+              .
+            </p>
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              No reset applied - all geopolitics completions count toward progression.
+            </p>
+          )}
         </CardContent>
       </Card>
 

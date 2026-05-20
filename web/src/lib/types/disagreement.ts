@@ -10,7 +10,13 @@ export type PerspectiveSectionKey =
   | "embedded"
   | "userFound"
   | "additional"
-  | "openQuestions";
+  | "openQuestions"
+  | "highlightCritiques"
+  | "nodeCritiques"
+  | "placementCritiques"
+  | "critiqueMatrix"
+  | "stepCritiques"
+  | "openQuestionsList";
 
 export interface PerspectiveDisagreementRow {
   id: string;

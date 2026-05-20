@@ -23,7 +23,12 @@ function isAbortError(e: unknown): boolean {
 export function FirebaseAuthGate({ children }: FirebaseAuthGateProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [status, setStatus] = useState<"loading" | "ready">("loading");
+  const [status, setStatus] = useState<"loading" | "ready">(
+    typeof window !== "undefined" &&
+      (window as unknown as Record<string, unknown>).__E2E_AUTH_BYPASS__
+      ? "ready"
+      : "loading",
+  );
   const authListenerEpoch = useRef(0);
 
   const targetNext = useMemo(() => {
@@ -47,6 +52,13 @@ export function FirebaseAuthGate({ children }: FirebaseAuthGateProps) {
   }, []);
 
   useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      (window as unknown as Record<string, unknown>).__E2E_AUTH_BYPASS__
+    ) {
+      setStatus("ready");
+      return;
+    }
     const epoch = ++authListenerEpoch.current;
     const auth = getFirebaseAuth();
     const unsub = onIdTokenChanged(auth, (user) => {

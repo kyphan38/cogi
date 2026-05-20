@@ -21,7 +21,11 @@ import {
 import "@xyflow/react/dist/style.css";
 import { cn } from "@/lib/utils";
 import type { SystemsConnectionType } from "@/lib/ai/validators/systems";
-import type { SystemsNodeSpec, SystemsUserEdge } from "@/lib/types/exercise";
+import type {
+  SystemsIntendedConnection,
+  SystemsNodeSpec,
+  SystemsUserEdge,
+} from "@/lib/types/exercise";
 import type { SystemsNodeImpact } from "@/lib/types/exercise";
 
 const CANVAS_W = 560;
@@ -82,10 +86,20 @@ function SystemFlowEdge({
 
   const onDelete = (data as { onDelete?: (id: string) => void } | undefined)
     ?.onDelete;
+  const isReference = Boolean(
+    (data as { isReference?: boolean } | undefined)?.isReference,
+  );
 
   return (
     <>
-      <BaseEdge path={edgePath} />
+      <BaseEdge
+        path={edgePath}
+        style={
+          isReference
+            ? { strokeDasharray: "6 4", stroke: "hsl(var(--muted-foreground))" }
+            : undefined
+        }
+      />
       <EdgeLabelRenderer>
         <div
           className="nodrag nopan flex items-center gap-1 rounded border bg-background px-1.5 py-0.5 text-[10px] shadow-sm"
@@ -139,6 +153,7 @@ function toRfNodes(
 function toRfEdges(
   edges: SystemsUserEdge[],
   onDelete: ((id: string) => void) | undefined,
+  isReference = false,
 ): Edge[] {
   return edges.map((e) => ({
     id: e.id,
@@ -146,7 +161,18 @@ function toRfEdges(
     source: e.source,
     target: e.target,
     label: e.type.replace(/_/g, " "),
-    data: { type: e.type, onDelete },
+    data: { type: e.type, onDelete, isReference },
+  }));
+}
+
+export function intendedConnectionsToEdges(
+  connections: SystemsIntendedConnection[],
+): SystemsUserEdge[] {
+  return connections.map((c, i) => ({
+    id: `ref-${c.from}-${c.to}-${i}`,
+    source: c.from,
+    target: c.to,
+    type: c.type,
   }));
 }
 
@@ -158,6 +184,10 @@ export interface SystemsFlowCanvasProps {
   nodeImpact: Record<string, SystemsNodeImpact>;
   onToggleNodeImpact?: (nodeId: string) => void;
   maxEdges?: number;
+  /** When set with showReferenceOnly, renders these instead of userEdges. */
+  referenceEdges?: SystemsIntendedConnection[];
+  showReferenceOnly?: boolean;
+  className?: string;
 }
 
 export function SystemsFlowCanvas({
@@ -168,7 +198,17 @@ export function SystemsFlowCanvas({
   nodeImpact,
   onToggleNodeImpact,
   maxEdges = 20,
+  referenceEdges,
+  showReferenceOnly = false,
+  className,
 }: SystemsFlowCanvasProps) {
+  const displayEdges = useMemo(() => {
+    if (showReferenceOnly && referenceEdges?.length) {
+      return intendedConnectionsToEdges(referenceEdges);
+    }
+    return userEdges;
+  }, [showReferenceOnly, referenceEdges, userEdges]);
+
   const handleDeleteEdge = useCallback(
     (edgeId: string) => {
       onUserEdgesChange(userEdges.filter((e) => e.id !== edgeId));
@@ -177,8 +217,13 @@ export function SystemsFlowCanvas({
   );
 
   const rfEdges = useMemo(
-    () => toRfEdges(userEdges, mode === "connect" ? handleDeleteEdge : undefined),
-    [userEdges, mode, handleDeleteEdge],
+    () =>
+      toRfEdges(
+        displayEdges,
+        mode === "connect" && !showReferenceOnly ? handleDeleteEdge : undefined,
+        showReferenceOnly,
+      ),
+    [displayEdges, mode, showReferenceOnly, handleDeleteEdge],
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
@@ -244,7 +289,12 @@ export function SystemsFlowCanvas({
   );
 
   return (
-    <div className="h-[min(380px,60svh)] w-full rounded-md border bg-muted/20">
+    <div
+      className={cn(
+        "h-[min(380px,60svh)] w-full rounded-md border bg-muted/20",
+        className,
+      )}
+    >
       <ReactFlow
         className="h-full w-full"
         nodes={nodes}
