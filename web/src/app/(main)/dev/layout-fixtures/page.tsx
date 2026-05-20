@@ -19,7 +19,7 @@ import {
 export default function LayoutFixturesPage() {
   const [highlights, setHighlights] = useState<UserHighlight[]>([]);
 
-  const selectSampleText = useCallback(() => {
+  const stageSampleText = useCallback(() => {
     const el = document.querySelector<HTMLElement>('[data-testid="text-passage"]');
     if (!el) return;
     const range = document.createRange();
@@ -37,10 +37,14 @@ export default function LayoutFixturesPage() {
     sel?.removeAllRanges();
     sel?.addRange(range);
     document.dispatchEvent(new Event("selectionchange"));
+  }, []);
+
+  const confirmSampleSelection = useCallback(() => {
+    const el = document.querySelector<HTMLElement>('[data-testid="text-passage"]');
+    if (!el) return;
     el.dispatchEvent(
       new PointerEvent("pointerup", { bubbles: true, pointerType: "touch" }),
     );
-    el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
   }, []);
 
   if (process.env.NODE_ENV === "production") {
@@ -71,9 +75,14 @@ export default function LayoutFixturesPage() {
         <h2 id="highlight-heading" className="font-tracker">
           Highlight and semantic tags
         </h2>
-        <Button type="button" variant="secondary" onClick={selectSampleText}>
-          Select sample passage text
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="secondary" onClick={stageSampleText}>
+            Stage sample selection
+          </Button>
+          <Button type="button" variant="outline" onClick={confirmSampleSelection}>
+            Tap to open tag picker
+          </Button>
+        </div>
         <div>
           <HighlightTag
             passage={LAYOUT_FIXTURE_PASSAGE}

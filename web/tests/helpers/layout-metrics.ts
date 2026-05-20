@@ -138,8 +138,8 @@ export async function assertNoHorizontalOverflow(page: Page): Promise<void> {
   ).toBeLessThanOrEqual(2);
 }
 
-/** Programmatic passage selection + events that mirror desktop and mobile completion. */
-export async function selectTextInPassage(page: Page): Promise<void> {
+/** Stage a passage selection only (picker stays closed). */
+export async function stageTextInPassage(page: Page): Promise<void> {
   await page.getByTestId("text-passage").evaluate((el) => {
     const range = document.createRange();
     const textNode = el.firstChild;
@@ -158,10 +158,19 @@ export async function selectTextInPassage(page: Page): Promise<void> {
     sel?.removeAllRanges();
     sel?.addRange(range);
     document.dispatchEvent(new Event("selectionchange"));
-    el.dispatchEvent(
-      new PointerEvent("pointerup", { bubbles: true, cancelable: true, pointerType: "touch" }),
-    );
-    el.dispatchEvent(new TouchEvent("touchend", { bubbles: true, cancelable: true }));
-    el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
   });
+  await page.waitForTimeout(200);
+}
+
+/** Second tap on staged selection — opens floating tag picker. */
+export async function confirmPassageSelection(page: Page): Promise<void> {
+  await page.waitForTimeout(400);
+  await page.getByTestId("text-passage").dispatchEvent("pointerup");
+  await page.waitForTimeout(100);
+}
+
+/** Stage + confirm (two-tap flow). */
+export async function selectTextInPassage(page: Page): Promise<void> {
+  await stageTextInPassage(page);
+  await confirmPassageSelection(page);
 }

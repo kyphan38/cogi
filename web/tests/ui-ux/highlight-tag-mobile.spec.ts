@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { bypassFirebaseAuth, gotoLayoutFixtures } from "../helpers/auth-setup";
-import { MOBILE, selectTextInPassage } from "../helpers/layout-metrics";
+import {
+  MOBILE,
+  confirmPassageSelection,
+  stageTextInPassage,
+  selectTextInPassage,
+} from "../helpers/layout-metrics";
 
 test.describe("HighlightTag — mobile text selection", () => {
   test.beforeEach(async ({ page }) => {
@@ -9,38 +14,35 @@ test.describe("HighlightTag — mobile text selection", () => {
     await gotoLayoutFixtures(page);
   });
 
-  test("selecting passage text shows Pick a tag on mobile", async ({ page }) => {
-    await selectTextInPassage(page);
+  test("staging alone does not show tag picker", async ({ page }) => {
+    await stageTextInPassage(page);
 
-    await expect(page.getByTestId("tag-picker-region")).toBeVisible({
+    await expect(page.getByTestId("tag-picker-region")).not.toBeVisible();
+    await expect(page.getByTestId("tag-selection-hint")).toBeVisible({
       timeout: 5000,
     });
+  });
+
+  test("confirm tap opens floating Pick a tag on mobile", async ({ page }) => {
+    await selectTextInPassage(page);
+
+    const picker = page.getByTestId("tag-picker-region");
+    await expect(picker).toBeVisible({ timeout: 5000 });
     await expect(page.getByTestId("pick-tag-prompt")).toHaveText(/Pick a tag/i);
     await expect(
       page.getByRole("toolbar", { name: "Apply tag to selection" }),
     ).toBeVisible();
+
+    const position = await picker.evaluate((el) => getComputedStyle(el).position);
+    expect(position).toBe("fixed");
   });
 
-  test("touch pointerup on passage shows tag picker after programmatic selection", async ({
-    page,
-  }) => {
+  test("two-step pointer flow opens picker", async ({ page }) => {
     const passage = page.getByTestId("text-passage");
-    await passage.evaluate((el) => {
-      const range = document.createRange();
-      const textNode = el.firstChild;
-      if (textNode?.nodeType === Node.TEXT_NODE) {
-        const end = Math.min(32, (textNode.textContent ?? "").length);
-        range.setStart(textNode, 0);
-        range.setEnd(textNode, end);
-      } else {
-        range.selectNodeContents(el);
-      }
-      const sel = window.getSelection();
-      sel?.removeAllRanges();
-      sel?.addRange(range);
-    });
+    await stageTextInPassage(page);
+    await expect(page.getByTestId("tag-picker-region")).not.toBeVisible();
 
-    await passage.dispatchEvent("pointerup");
+    await confirmPassageSelection(page);
 
     await expect(page.getByTestId("tag-picker-region")).toBeVisible({
       timeout: 5000,

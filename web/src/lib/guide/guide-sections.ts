@@ -93,7 +93,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       "AI-generated - model writes a passage with embedded issues and optional sound-reasoning decoys.",
       "Real data - paste your own text (sanitized, word limit); useful for emails, notes, or articles.",
       "Custom scenario - describe a situation; AI shapes the passage around it.",
-      "Highlight & tag - select text in the passage, pick a tag; overlaps with existing highlights are blocked.",
+      "Highlight & tag - select text in the passage, tap the selection again to open the tag menu beside your highlight (no scrolling to the bottom); overlaps with existing highlights are blocked.",
       "Geopolitics domains add a perspective-guess step and specialized tag set with dot indicators.",
     ],
     links: [{ label: "Try Analytical", href: "/exercise/analytical" }],
