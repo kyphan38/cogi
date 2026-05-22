@@ -10,6 +10,8 @@
     "lint": "eslint",
     "format": "prettier --write .",
     "gate:phase0": "node ./scripts/phase0-gate.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:perspective": "npx tsx src/lib/ai/validators/perspective-structured.spec.ts",
     "test:e2e": "npx playwright test",
     "test:e2e:features": "npx playwright test --reporter=list",
@@ -51,6 +53,7 @@
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.7"
   }
 }
