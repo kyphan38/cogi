@@ -23,12 +23,9 @@ function isAbortError(e: unknown): boolean {
 export function FirebaseAuthGate({ children }: FirebaseAuthGateProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [status, setStatus] = useState<"loading" | "ready">(
-    typeof window !== "undefined" &&
-      (window as unknown as Record<string, unknown>).__E2E_AUTH_BYPASS__
-      ? "ready"
-      : "loading",
-  );
+  // Always start "loading" so SSR and the first client render match (avoids hydration
+  // mismatch when E2E sets __E2E_AUTH_BYPASS__ via init script).
+  const [status, setStatus] = useState<"loading" | "ready">("loading");
   const authListenerEpoch = useRef(0);
 
   const targetNext = useMemo(() => {

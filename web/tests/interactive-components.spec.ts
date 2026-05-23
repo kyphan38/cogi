@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { bypassFirebaseAuth, gotoAuthenticated, stubFirestoreReads } from "./helpers/auth-setup";
+import { fillExerciseDomain, selectComboPreset } from "./helpers/exercise-flow";
 
 test.describe("EvaluativeMatrixBoard - drag and drop interactions", () => {
   test.beforeEach(async ({ page }) => {
@@ -12,14 +13,9 @@ test.describe("EvaluativeMatrixBoard - drag and drop interactions", () => {
   }) => {
     // Navigate to combo with decision_sprint to get the matrix board
     await gotoAuthenticated(page, "/exercise/combo");
-    await page.getByLabel("Domain").fill("Testing");
+    await fillExerciseDomain(page, "Testing");
 
-    const presetTrigger = page
-      .getByLabel("Preset")
-      .locator("..")
-      .getByRole("combobox");
-    await presetTrigger.click();
-    await page.getByRole("option", { name: /Decision sprint/ }).click();
+    await selectComboPreset(page, /Decision sprint/);
     await page.getByRole("button", { name: "Generate combo" }).click();
 
     await expect(page.getByText("Step 1 of 2")).toBeVisible({
@@ -42,14 +38,9 @@ test.describe("EvaluativeMatrixBoard - drag and drop interactions", () => {
     page,
   }) => {
     await gotoAuthenticated(page, "/exercise/combo");
-    await page.getByLabel("Domain").fill("Testing");
+    await fillExerciseDomain(page, "Testing");
 
-    const presetTrigger = page
-      .getByLabel("Preset")
-      .locator("..")
-      .getByRole("combobox");
-    await presetTrigger.click();
-    await page.getByRole("option", { name: /Decision sprint/ }).click();
+    await selectComboPreset(page, /Decision sprint/);
     await page.getByRole("button", { name: "Generate combo" }).click();
 
     await expect(page.getByText("Step 1 of 2")).toBeVisible({
@@ -59,24 +50,19 @@ test.describe("EvaluativeMatrixBoard - drag and drop interactions", () => {
     // Axis labels from our mock data
     await expect(page.getByText("Implementation Risk")).toBeVisible();
     await expect(page.getByText("Business Impact")).toBeVisible();
-    await expect(page.getByText("Low Risk")).toBeVisible();
-    await expect(page.getByText("High Risk")).toBeVisible();
-    await expect(page.getByText("Low Impact")).toBeVisible();
-    await expect(page.getByText("High Impact")).toBeVisible();
+    await expect(page.getByText("High Impact / Low Risk")).toBeVisible();
+    await expect(page.getByText("High Impact / High Risk")).toBeVisible();
+    await expect(page.getByText("Low Impact / Low Risk")).toBeVisible();
+    await expect(page.getByText("Low Impact / High Risk")).toBeVisible();
   });
 
   test("dragging an option card from palette to a quadrant moves it", async ({
     page,
   }) => {
     await gotoAuthenticated(page, "/exercise/combo");
-    await page.getByLabel("Domain").fill("Testing");
+    await fillExerciseDomain(page, "Testing");
 
-    const presetTrigger = page
-      .getByLabel("Preset")
-      .locator("..")
-      .getByRole("combobox");
-    await presetTrigger.click();
-    await page.getByRole("option", { name: /Decision sprint/ }).click();
+    await selectComboPreset(page, /Decision sprint/);
     await page.getByRole("button", { name: "Generate combo" }).click();
 
     await expect(page.getByText("Step 1 of 2")).toBeVisible({
@@ -142,7 +128,7 @@ test.describe("SystemsFlowCanvas - connect and shock modes", () => {
     page,
   }) => {
     await gotoAuthenticated(page, "/exercise/combo");
-    await page.getByLabel("Domain").fill("Architecture");
+    await fillExerciseDomain(page, "Architecture");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
     await expect(page.getByText("Step 1 of 3")).toBeVisible({
@@ -208,14 +194,9 @@ test.describe("SystemsFlowCanvas - connect and shock modes", () => {
   }) => {
     // Test the canvas structure via root_cause preset which has systems at step 2
     await gotoAuthenticated(page, "/exercise/combo");
-    await page.getByLabel("Domain").fill("Architecture");
+    await fillExerciseDomain(page, "Architecture");
 
-    const presetTrigger = page
-      .getByLabel("Preset")
-      .locator("..")
-      .getByRole("combobox");
-    await presetTrigger.click();
-    await page.getByRole("option", { name: /Root cause/ }).click();
+    await selectComboPreset(page, /Root cause/);
     await page.getByRole("button", { name: "Generate combo" }).click();
 
     await expect(page.getByText("Step 1 of 3")).toBeVisible({
@@ -235,14 +216,9 @@ test.describe("SystemsFlowCanvas - connect and shock modes", () => {
 
   test("connect mode shows edge type instructions", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/combo");
-    await page.getByLabel("Domain").fill("Architecture");
+    await fillExerciseDomain(page, "Architecture");
 
-    const presetTrigger = page
-      .getByLabel("Preset")
-      .locator("..")
-      .getByRole("combobox");
-    await presetTrigger.click();
-    await page.getByRole("option", { name: /Root cause/ }).click();
+    await selectComboPreset(page, /Root cause/);
     await page.getByRole("button", { name: "Generate combo" }).click();
 
     await expect(page.getByText("Step 1 of 3")).toBeVisible({
@@ -277,14 +253,9 @@ test.describe("SystemsFlowCanvas - node interaction via pointer", () => {
     page,
   }) => {
     await gotoAuthenticated(page, "/exercise/combo");
-    await page.getByLabel("Domain").fill("Architecture");
+    await fillExerciseDomain(page, "Architecture");
 
-    const presetTrigger = page
-      .getByLabel("Preset")
-      .locator("..")
-      .getByRole("combobox");
-    await presetTrigger.click();
-    await page.getByRole("option", { name: /Root cause/ }).click();
+    await selectComboPreset(page, /Root cause/);
     await page.getByRole("button", { name: "Generate combo" }).click();
 
     await expect(page.getByText("Step 1 of 3")).toBeVisible({
@@ -303,14 +274,9 @@ test.describe("SystemsFlowCanvas - node interaction via pointer", () => {
     page,
   }) => {
     await gotoAuthenticated(page, "/exercise/combo");
-    await page.getByLabel("Domain").fill("Architecture");
+    await fillExerciseDomain(page, "Architecture");
 
-    const presetTrigger = page
-      .getByLabel("Preset")
-      .locator("..")
-      .getByRole("combobox");
-    await presetTrigger.click();
-    await page.getByRole("option", { name: /Root cause/ }).click();
+    await selectComboPreset(page, /Root cause/);
     await page.getByRole("button", { name: "Generate combo" }).click();
 
     await expect(page.getByText("Step 1 of 3")).toBeVisible({
@@ -374,7 +340,7 @@ test.describe("HighlightTag - text selection and tagging", () => {
     page,
   }) => {
     await gotoAuthenticated(page, "/exercise/combo");
-    await page.getByLabel("Domain").fill("Testing");
+    await fillExerciseDomain(page, "Testing");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
     await expect(page.getByText("Step 1 of 3")).toBeVisible({
@@ -389,7 +355,7 @@ test.describe("HighlightTag - text selection and tagging", () => {
 
   test("selecting text in passage shows tag toolbar", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/combo");
-    await page.getByLabel("Domain").fill("Testing");
+    await fillExerciseDomain(page, "Testing");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
     await expect(page.getByText("Step 1 of 3")).toBeVisible({
@@ -426,7 +392,7 @@ test.describe("HighlightTag - text selection and tagging", () => {
 
   test("applying a tag creates a highlight in the list", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/combo");
-    await page.getByLabel("Domain").fill("Testing");
+    await fillExerciseDomain(page, "Testing");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
     await expect(page.getByText("Step 1 of 3")).toBeVisible({
@@ -463,7 +429,7 @@ test.describe("HighlightTag - text selection and tagging", () => {
 
   test("removing a highlight removes it from the list", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/combo");
-    await page.getByLabel("Domain").fill("Testing");
+    await fillExerciseDomain(page, "Testing");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
     await expect(page.getByText("Step 1 of 3")).toBeVisible({
@@ -503,7 +469,7 @@ test.describe("HighlightTag - text selection and tagging", () => {
 
   test("cancelling tag selection dismisses the toolbar", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/combo");
-    await page.getByLabel("Domain").fill("Testing");
+    await fillExerciseDomain(page, "Testing");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
     await expect(page.getByText("Step 1 of 3")).toBeVisible({

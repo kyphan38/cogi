@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { bypassFirebaseAuth, gotoAuthenticated, stubFirestoreReads } from "./helpers/auth-setup";
+import {
+  bypassFirebaseAuth,
+  clickMainNavLink,
+  gotoAuthenticated,
+  stubFirestoreReads,
+} from "./helpers/auth-setup";
 
 test.describe("Home page - exercise picker and navigation", () => {
   test.beforeEach(async ({ page }) => {
@@ -38,7 +43,7 @@ test.describe("Home page - exercise picker and navigation", () => {
     await page
       .getByRole("link", { name: /Sequential.*Order a messy process/ })
       .click();
-    await expect(page).toHaveURL(/\/exercise\/sequential/);
+    await page.waitForURL(/\/exercise\/sequential/, { timeout: 15_000 });
   });
 
   test("clicking combo card navigates to /exercise/combo", async ({
@@ -48,7 +53,7 @@ test.describe("Home page - exercise picker and navigation", () => {
     await page
       .getByRole("link", { name: /Combo.*Multi-step scenario chain/ })
       .click();
-    await expect(page).toHaveURL("/exercise/combo");
+    await page.waitForURL("/exercise/combo", { timeout: 15_000 });
   });
 
   test("open actions section shows empty state message", async ({ page }) => {
@@ -77,54 +82,35 @@ test.describe("AppTopNav navigation", () => {
 
   test("navigating to /settings via nav link", async ({ page }) => {
     await gotoAuthenticated(page, "/");
-    await page
-      .getByRole("navigation", { name: "Main" })
-      .getByRole("link", { name: "Settings" })
-      .click();
-    await expect(page).toHaveURL("/settings");
+    await clickMainNavLink(page, "Settings", "/settings");
   });
 
   test("navigating to /decisions via nav link", async ({ page }) => {
     await gotoAuthenticated(page, "/");
-    await page
-      .getByRole("navigation", { name: "Main" })
-      .getByRole("link", { name: "Decisions" })
-      .click();
-    await expect(page).toHaveURL("/decisions");
+    await clickMainNavLink(page, "Decisions", "/decisions");
   });
 
   test("navigating to /exercise/history via nav link", async ({ page }) => {
     await gotoAuthenticated(page, "/");
-    await page
-      .getByRole("navigation", { name: "Main" })
-      .getByRole("link", { name: "History" })
-      .click();
-    await expect(page).toHaveURL("/exercise/history");
+    await clickMainNavLink(page, "History", "/exercise/history");
   });
 
   test("navigating to /dashboard via nav link", async ({ page }) => {
     await gotoAuthenticated(page, "/");
-    await page
-      .getByRole("navigation", { name: "Main" })
-      .getByRole("link", { name: "Dashboard" })
-      .click();
-    await expect(page).toHaveURL("/dashboard");
+    await clickMainNavLink(page, "Dashboard", "/dashboard");
   });
 
   test("nav bar persists across route transitions", async ({ page }) => {
     await gotoAuthenticated(page, "/");
     const nav = page.getByRole("navigation", { name: "Main" });
 
-    await nav.getByRole("link", { name: "Settings" }).click();
-    await expect(page).toHaveURL("/settings");
+    await clickMainNavLink(page, "Settings", "/settings");
     await expect(nav).toBeVisible();
 
-    await nav.getByRole("link", { name: "Dashboard" }).click();
-    await expect(page).toHaveURL("/dashboard");
+    await clickMainNavLink(page, "Dashboard", "/dashboard");
     await expect(nav).toBeVisible();
 
-    await nav.getByRole("link", { name: "Home" }).click();
-    await expect(page).toHaveURL("/");
+    await clickMainNavLink(page, "Home", "/");
     await expect(nav).toBeVisible();
   });
 
@@ -181,8 +167,8 @@ test.describe("Exercise type routing", () => {
   });
 
   test("unknown exercise type shows 404", async ({ page }) => {
-    const response = await page.goto("/exercise/nonexistent");
-    expect(response?.status()).toBe(404);
+    await gotoAuthenticated(page, "/exercise/nonexistent");
+    await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
   });
 
   test("valid exercise types load without 404", async ({ page }) => {

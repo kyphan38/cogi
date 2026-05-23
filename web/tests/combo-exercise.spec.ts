@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { bypassFirebaseAuth, gotoAuthenticated, stubFirestoreReads } from "./helpers/auth-setup";
+import {
+  exercisePresetCombobox,
+  exerciseSourceCombobox,
+  selectComboPreset,
+} from "./helpers/exercise-flow";
 
 test.describe("Combo exercise - setup phase (pick)", () => {
   test.beforeEach(async ({ page }) => {
@@ -27,12 +32,7 @@ test.describe("Combo exercise - setup phase (pick)", () => {
 
   test("preset selector contains all three presets", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/combo");
-    // Open the preset Select
-    const presetTrigger = page
-      .getByLabel("Preset")
-      .locator("..")
-      .getByRole("combobox");
-    await presetTrigger.click();
+    await exercisePresetCombobox(page).click();
 
     await expect(page.getByRole("option", { name: /Full analysis/ })).toBeVisible();
     await expect(
@@ -48,11 +48,7 @@ test.describe("Combo exercise - setup phase (pick)", () => {
   }) => {
     await gotoAuthenticated(page, "/exercise/combo");
 
-    const sourceTrigger = page
-      .getByLabel("Source")
-      .locator("..")
-      .getByRole("combobox");
-    await sourceTrigger.click();
+    await exerciseSourceCombobox(page).click();
     await page.getByRole("option", { name: "My scenario" }).click();
 
     await expect(page.getByLabel("Your scenario")).toBeVisible();
@@ -60,7 +56,9 @@ test.describe("Combo exercise - setup phase (pick)", () => {
 
   test("setup has a home link to navigate back", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/combo");
-    await expect(page.getByRole("link", { name: /Home/ })).toBeVisible();
+    await expect(
+      page.getByRole("main").getByRole("link", { name: "← Home" }),
+    ).toBeVisible();
   });
 
   test("exercise shell shows step progress nav starting at Setup", async ({
@@ -107,9 +105,9 @@ test.describe("Combo exercise - full_analysis flow", () => {
     await expect(page.getByText("Step 1 of 3")).toBeVisible({
       timeout: 15_000,
     });
-    await expect(
-      page.getByText(/mid-size e-commerce company/),
-    ).toBeVisible();
+    await expect(page.getByTestId("text-passage")).toContainText(
+      /mid-size e-commerce company/,
+    );
   });
 
   test("step 1 (analytical) shows the passage for highlighting", async ({
@@ -124,9 +122,9 @@ test.describe("Combo exercise - full_analysis flow", () => {
     });
 
     // The HighlightTag component renders the passage in a selectable div
-    await expect(
-      page.getByText(/migrate their monolithic application/),
-    ).toBeVisible();
+    await expect(page.getByTestId("text-passage")).toContainText(
+      /migrate their monolithic application/,
+    );
   });
 
   test("clicking next step without highlights shows validation error", async ({
@@ -193,13 +191,7 @@ test.describe("Combo exercise - decision_sprint flow", () => {
     await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Product Management");
 
-    // Select decision_sprint preset
-    const presetTrigger = page
-      .getByLabel("Preset")
-      .locator("..")
-      .getByRole("combobox");
-    await presetTrigger.click();
-    await page.getByRole("option", { name: /Decision sprint/ }).click();
+    await selectComboPreset(page, /Decision sprint/);
 
     await page.getByRole("button", { name: "Generate combo" }).click();
 
@@ -219,12 +211,7 @@ test.describe("Combo exercise - decision_sprint flow", () => {
     await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Product Management");
 
-    const presetTrigger = page
-      .getByLabel("Preset")
-      .locator("..")
-      .getByRole("combobox");
-    await presetTrigger.click();
-    await page.getByRole("option", { name: /Decision sprint/ }).click();
+    await selectComboPreset(page, /Decision sprint/);
     await page.getByRole("button", { name: "Generate combo" }).click();
 
     await expect(page.getByText("Step 1 of 2")).toBeVisible({
@@ -299,12 +286,7 @@ test.describe("Combo exercise - root_cause flow", () => {
     await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("DevOps");
 
-    const presetTrigger = page
-      .getByLabel("Preset")
-      .locator("..")
-      .getByRole("combobox");
-    await presetTrigger.click();
-    await page.getByRole("option", { name: /Root cause/ }).click();
+    await selectComboPreset(page, /Root cause/);
 
     await page.getByRole("button", { name: "Generate combo" }).click();
 
@@ -332,12 +314,7 @@ test.describe("Combo exercise - root_cause flow", () => {
     await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("DevOps");
 
-    const presetTrigger = page
-      .getByLabel("Preset")
-      .locator("..")
-      .getByRole("combobox");
-    await presetTrigger.click();
-    await page.getByRole("option", { name: /Root cause/ }).click();
+    await selectComboPreset(page, /Root cause/);
     await page.getByRole("button", { name: "Generate combo" }).click();
 
     await expect(page.getByText("Step 1 of 3")).toBeVisible({
@@ -361,12 +338,7 @@ test.describe("Combo exercise - root_cause flow", () => {
     await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("DevOps");
 
-    const presetTrigger = page
-      .getByLabel("Preset")
-      .locator("..")
-      .getByRole("combobox");
-    await presetTrigger.click();
-    await page.getByRole("option", { name: /Root cause/ }).click();
+    await selectComboPreset(page, /Root cause/);
     await page.getByRole("button", { name: "Generate combo" }).click();
 
     await expect(page.getByText("Step 1 of 3")).toBeVisible({

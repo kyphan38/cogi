@@ -1,6 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { bypassFirebaseAuth, gotoAuthenticated, stubFirestoreReads } from "./helpers/auth-setup";
-import { exerciseSourceCombobox, generateExercise } from "./helpers/exercise-flow";
+import {
+  addPassageHighlight,
+  exerciseSourceCombobox,
+  generateExercise,
+} from "./helpers/exercise-flow";
 
 test.describe("Analytical exercise - setup phase", () => {
   test.beforeEach(async ({ page }) => {
@@ -93,26 +97,30 @@ test.describe("Analytical exercise - generate and highlight phase", () => {
       page.getByText("Structural reasoning passage"),
     ).toBeVisible({ timeout: 15_000 });
 
-    await expect(
-      page.getByText(/Highlight text.*tag/i),
-    ).toBeVisible();
+    const passage = page.getByTestId("text-passage");
+    await expect(passage).toBeVisible();
+    await passage.selectText(/Regional powers/);
+    await expect(page.getByTestId("tag-selection-hint")).toContainText(
+      "Tap selection to tag",
+    );
   });
 
   test("can advance past highlight step and reach confidence slider", async ({
     page,
   }) => {
     await gotoAuthenticated(page, "/exercise/analytical");
-    await generateExercise(page, "Technology");
+    // DevOps avoids geopolitics-only perspective step ("Technology" matches geo keywords).
+    await generateExercise(page, "DevOps");
 
     await expect(
       page.getByText("Structural reasoning passage"),
     ).toBeVisible({ timeout: 15_000 });
 
-    const nextButton = page.getByRole("main").getByRole("button", { name: "Next", exact: true });
-    if (await nextButton.isVisible()) {
-      await nextButton.click();
-      await expect(page.getByText(/Confidence/i)).toBeVisible({ timeout: 5_000 });
-    }
+    await addPassageHighlight(page);
+    await page.getByRole("button", { name: "Continue to confidence" }).click();
+    await expect(page.getByRole("heading", { name: "Confidence" })).toBeVisible({
+      timeout: 10_000,
+    });
   });
 });
 

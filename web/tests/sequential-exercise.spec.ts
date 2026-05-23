@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { bypassFirebaseAuth, gotoAuthenticated, stubFirestoreReads } from "./helpers/auth-setup";
-import { generateExercise } from "./helpers/exercise-flow";
+import { exerciseSourceCombobox, generateExercise } from "./helpers/exercise-flow";
 
 test.describe("Sequential exercise - setup phase", () => {
   test.beforeEach(async ({ page }) => {
@@ -25,8 +25,7 @@ test.describe("Sequential exercise - setup phase", () => {
     page,
   }) => {
     await gotoAuthenticated(page, "/exercise/sequential");
-    const sourceTrigger = page.getByLabel("Source").locator("..").getByRole("combobox");
-    await sourceTrigger.click();
+    await exerciseSourceCombobox(page).click();
     await expect(
       page.getByRole("option", { name: "AI-generated from domain" }),
     ).toBeVisible();
@@ -39,8 +38,7 @@ test.describe("Sequential exercise - setup phase", () => {
     page,
   }) => {
     await gotoAuthenticated(page, "/exercise/sequential");
-    const sourceTrigger = page.getByLabel("Source").locator("..").getByRole("combobox");
-    await sourceTrigger.click();
+    await exerciseSourceCombobox(page).click();
     await page.getByRole("option", { name: "My scenario" }).click();
     await expect(page.getByLabel("Your scenario")).toBeVisible();
   });

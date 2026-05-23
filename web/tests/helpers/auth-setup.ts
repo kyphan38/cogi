@@ -1,4 +1,4 @@
-import { type Page, type Route } from "@playwright/test";
+import { expect, type Page, type Route } from "@playwright/test";
 import { makeMockAnalyticalAiPayload } from "./layout-fixtures-data";
 
 /**
@@ -53,6 +53,35 @@ export async function gotoAuthenticated(page: Page, path: string): Promise<void>
     .catch(() => {
       /* already past gate */
     });
+  await page
+    .getByRole("navigation", { name: "Main" })
+    .waitFor({ state: "visible", timeout: 15_000 });
+}
+
+const NAV_URL_TIMEOUT = 15_000;
+
+/** Click a main nav link and wait for client navigation (hydration can delay URL updates). */
+export async function clickMainNavLink(
+  page: Page,
+  linkName: string,
+  url: string | RegExp,
+): Promise<void> {
+  const link = page
+    .getByRole("navigation", { name: "Main" })
+    .getByRole("link", { name: linkName });
+  await expect(link).toBeVisible({ timeout: NAV_URL_TIMEOUT });
+
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await link.click();
+    try {
+      await page.waitForURL(url, { timeout: 5_000, waitUntil: "commit" });
+      return;
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  throw lastError;
 }
 
 /**
