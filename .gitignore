@@ -1,3 +1,7 @@
 .next/
 node_modules/
+.cursor/
+web/.cursor/
 .cursor/debug-*.log
+web/playwright-report/
+web/test-results/
