@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { bypassFirebaseAuth, stubFirestoreReads } from "./helpers/auth-setup";
+import { bypassFirebaseAuth, gotoAuthenticated, stubFirestoreReads } from "./helpers/auth-setup";
 
 test.describe("Combo exercise - setup phase (pick)", () => {
   test.beforeEach(async ({ page }) => {
@@ -10,7 +10,7 @@ test.describe("Combo exercise - setup phase (pick)", () => {
   test("renders the setup card with domain input and preset selector", async ({
     page,
   }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await expect(
       page.getByRole("heading", { name: "Combo exercise" }),
     ).toBeVisible();
@@ -26,7 +26,7 @@ test.describe("Combo exercise - setup phase (pick)", () => {
   });
 
   test("preset selector contains all three presets", async ({ page }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     // Open the preset Select
     const presetTrigger = page
       .getByLabel("Preset")
@@ -46,7 +46,7 @@ test.describe("Combo exercise - setup phase (pick)", () => {
   test("switching source to 'My scenario' shows the custom scenario textarea", async ({
     page,
   }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
 
     const sourceTrigger = page
       .getByLabel("Source")
@@ -59,14 +59,14 @@ test.describe("Combo exercise - setup phase (pick)", () => {
   });
 
   test("setup has a home link to navigate back", async ({ page }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await expect(page.getByRole("link", { name: /Home/ })).toBeVisible();
   });
 
   test("exercise shell shows step progress nav starting at Setup", async ({
     page,
   }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     const progressNav = page.getByRole("navigation", {
       name: "Exercise progress",
     });
@@ -84,7 +84,7 @@ test.describe("Combo exercise - full_analysis flow", () => {
   test("generating a combo transitions to the work phase with step 1 of 3", async ({
     page,
   }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
 
     await page.getByLabel("Domain").fill("Software Engineering");
 
@@ -100,7 +100,7 @@ test.describe("Combo exercise - full_analysis flow", () => {
   });
 
   test("work phase shows the shared scenario text", async ({ page }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Software Engineering");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
@@ -115,7 +115,7 @@ test.describe("Combo exercise - full_analysis flow", () => {
   test("step 1 (analytical) shows the passage for highlighting", async ({
     page,
   }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Software Engineering");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
@@ -132,7 +132,7 @@ test.describe("Combo exercise - full_analysis flow", () => {
   test("clicking next step without highlights shows validation error", async ({
     page,
   }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Software Engineering");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
@@ -148,7 +148,7 @@ test.describe("Combo exercise - full_analysis flow", () => {
   });
 
   test("abandon combo returns to setup phase", async ({ page }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Software Engineering");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
@@ -167,7 +167,7 @@ test.describe("Combo exercise - full_analysis flow", () => {
   });
 
   test("regenerate button is present during work phase", async ({ page }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Software Engineering");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
@@ -190,7 +190,7 @@ test.describe("Combo exercise - decision_sprint flow", () => {
   test("decision sprint generates with 2 steps and shows matrix board", async ({
     page,
   }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Product Management");
 
     // Select decision_sprint preset
@@ -216,7 +216,7 @@ test.describe("Combo exercise - decision_sprint flow", () => {
   test("decision sprint step 2 shows generative prompts with textareas", async ({
     page,
   }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Product Management");
 
     const presetTrigger = page
@@ -254,7 +254,7 @@ test.describe("Combo exercise - journal phase", () => {
     // We can't easily complete all mechanic steps in E2E, so we test the
     // journal phase by verifying its structure when it would appear.
     // This test navigates to combo and verifies the components exist in the DOM.
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
 
     // Verify the ConfidenceSlider component label pattern exists in the app
     // (it uses "How confident are you in your overall work?" in journal phase)
@@ -274,7 +274,7 @@ test.describe("Combo exercise - done phase", () => {
 
   test("done phase layout has correct navigation links", async ({ page }) => {
     // We verify the link targets that the done phase would show
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
 
     // Verify the exercise shell renders correctly
     const progressNav = page.getByRole("navigation", {
@@ -296,7 +296,7 @@ test.describe("Combo exercise - root_cause flow", () => {
   test("root_cause preset generates with 3 steps and shows sequential ordering", async ({
     page,
   }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("DevOps");
 
     const presetTrigger = page
@@ -329,7 +329,7 @@ test.describe("Combo exercise - root_cause flow", () => {
   test("root_cause step 1 has reorder controls for each step", async ({
     page,
   }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("DevOps");
 
     const presetTrigger = page
@@ -358,7 +358,7 @@ test.describe("Combo exercise - root_cause flow", () => {
   });
 
   test("clicking Up/Down reorders sequential steps", async ({ page }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("DevOps");
 
     const presetTrigger = page

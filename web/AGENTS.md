@@ -1,3 +1,7 @@
+## Git commits
+
+Follow `.cursor/rules/git-commits.mdc`. Git root is `../` — run `git` from `cogi/`, not `web/`. Commit only; do not push unless asked.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

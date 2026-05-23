@@ -44,6 +44,17 @@ export async function bypassFirebaseAuth(page: Page): Promise<void> {
   });
 }
 
+/** Navigate past FirebaseAuthGate before asserting on protected UI. */
+export async function gotoAuthenticated(page: Page, path: string): Promise<void> {
+  await page.goto(path, { waitUntil: "domcontentloaded" });
+  await page
+    .getByText("Checking access...")
+    .waitFor({ state: "hidden", timeout: 30_000 })
+    .catch(() => {
+      /* already past gate */
+    });
+}
+
 /**
  * Stub AI and backend API endpoints so pages render without a live server.
  */
@@ -73,22 +84,37 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
       await route.continue();
       return;
     }
-    let domain = "Testing";
+    let body: Record<string, unknown> = {};
     try {
-      const body = JSON.parse((await route.request().postData()) ?? "{}") as {
-        domain?: string;
-      };
-      domain = body.domain ?? domain;
+      body = JSON.parse((await route.request().postData()) ?? "{}") as Record<string, unknown>;
     } catch {
-      // use default domain
+      // use defaults
     }
+    const domain = typeof body.domain === "string" ? body.domain : "Testing";
+    const exerciseType = body.exerciseType as string | undefined;
+
+    let data: unknown;
+    switch (exerciseType) {
+      case "evaluative":
+        data = makeMockEvaluativeAiPayload();
+        break;
+      case "systems":
+        data = makeMockStandaloneSystemsPayload();
+        break;
+      case "generative":
+        data = makeMockGenerativeAiPayload();
+        break;
+      case "sequential":
+        data = makeMockSequentialAiPayload();
+        break;
+      default:
+        data = makeMockAnalyticalAiPayload(domain);
+    }
+
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({
-        ok: true,
-        data: makeMockAnalyticalAiPayload(domain),
-      }),
+      body: JSON.stringify({ ok: true, data }),
     });
   });
 
@@ -332,6 +358,93 @@ function makeMatrixPayload(title: string) {
       { id: "opt-2", title: "Strangler fig migration", description: "Incremental extraction.", intendedQuadrant: "top-left", explanation: "High value, controlled risk." },
       { id: "opt-3", title: "Database-only fix", description: "Sharding and read replicas.", intendedQuadrant: "bottom-left", explanation: "Low risk, low value." },
       { id: "opt-4", title: "Modular monolith", description: "Internal modularisation.", intendedQuadrant: "bottom-right", explanation: "Moderate all around." },
+    ],
+  };
+}
+
+function makeMockEvaluativeAiPayload() {
+  return {
+    variant: "matrix",
+    title: "Technology Stack Decision",
+    scenario:
+      "Your team needs to choose a frontend framework for a new customer-facing " +
+      "application. The existing backend is in Python/FastAPI. Key constraints include " +
+      "team expertise, hiring pipeline, and a 6-month deadline for the MVP.",
+    axisX: { label: "Team Ramp-up Time", lowLabel: "Quick", highLabel: "Slow" },
+    axisY: { label: "Long-term Scalability", lowLabel: "Limited", highLabel: "Highly Scalable" },
+    options: [
+      { id: "o1", title: "React + Next.js", description: "Industry standard with SSR.", intendedQuadrant: "top-left", explanation: "Fast ramp-up, proven at scale." },
+      { id: "o2", title: "Svelte + SvelteKit", description: "Modern with smaller ecosystem.", intendedQuadrant: "top-right", explanation: "Scalable but fewer devs know it." },
+      { id: "o3", title: "Vue + Nuxt", description: "Gentle learning curve.", intendedQuadrant: "bottom-left", explanation: "Quick start, moderate scale." },
+      { id: "o4", title: "HTMX + Jinja", description: "Server-rendered with Python.", intendedQuadrant: "bottom-right", explanation: "Slow for complex UIs." },
+    ],
+  };
+}
+
+function makeMockStandaloneSystemsPayload() {
+  return {
+    title: "Cloud Infrastructure Dependencies",
+    scenario:
+      "A SaaS company's infrastructure spans multiple cloud providers. " +
+      "Recent latency spikes have revealed hidden dependencies between services " +
+      "that the team didn't fully map during the initial architecture review.",
+    nodes: [
+      { id: "node_1", label: "API Gateway", description: "Routes all client requests", x: 50, y: 15 },
+      { id: "node_2", label: "Auth Service", description: "Handles authentication", x: 20, y: 35 },
+      { id: "node_3", label: "Data Store", description: "Primary database cluster", x: 80, y: 35 },
+      { id: "node_4", label: "Cache Layer", description: "Redis for hot data", x: 20, y: 65 },
+      { id: "node_5", label: "Message Queue", description: "Async job processing", x: 80, y: 65 },
+      { id: "node_6", label: "CDN", description: "Edge content delivery", x: 50, y: 85 },
+    ],
+    intendedConnections: [
+      { from: "node_1", to: "node_2", type: "depends_on", explanation: "Auth required for API calls." },
+      { from: "node_1", to: "node_3", type: "depends_on", explanation: "Reads from primary store." },
+      { from: "node_4", to: "node_3", type: "enables", explanation: "Cache reduces DB load." },
+      { from: "node_5", to: "node_3", type: "depends_on", explanation: "Jobs write to DB." },
+    ],
+    shockEvent: {
+      description: "The primary database cluster experiences a cascading failover during peak traffic",
+      directlyAffected: ["node_3", "node_5"],
+      indirectlyAffected: ["node_1", "node_4"],
+      explanation: "DB failure breaks writes and cache invalidation cascades upstream.",
+    },
+  };
+}
+
+function makeMockGenerativeAiPayload() {
+  return {
+    title: "AI Ethics Policy Framework",
+    scenario:
+      "Your organization is deploying an AI-powered hiring tool. Early testing " +
+      "shows strong accuracy gains but potential demographic bias in resume screening. " +
+      "Leadership wants to ship within 60 days, but your ethics board recommends a " +
+      "longer review period.",
+    prompts: [
+      { id: "p1", question: "What is the core tension in this scenario, and what assumptions drive each side?", draftText: "The core tension is between speed-to-market and responsible deployment. Leadership assumes accuracy gains outweigh fairness risks." },
+      { id: "p2", question: "What alternative approaches could reduce bias without delaying the launch significantly?", draftText: "One approach is a phased rollout: deploy the tool in shadow mode alongside human reviewers." },
+      { id: "p3", question: "What is the strongest argument against your preferred approach?", draftText: "Critics would argue that any deployment of a known-biased system, even in shadow mode, normalizes its use." },
+      { id: "p4", question: "If the tool is deployed and bias is later discovered, what is your contingency plan?", draftText: "The contingency plan should include immediate suspension of automated decisions and a manual review of all affected candidates." },
+    ],
+  };
+}
+
+function makeMockSequentialAiPayload() {
+  return {
+    title: "Incident Response Sequence",
+    scenario:
+      "A production outage has been detected in the payment processing service. " +
+      "Multiple teams are scrambling to restore service while customers are unable to " +
+      "complete transactions. The monitoring system shows cascading failures across " +
+      "three microservices.",
+    steps: [
+      { id: "s1", text: "Acknowledge the incident and notify stakeholders", correctPosition: 1, dependencies: [], isFlexible: false, explanation: "First response protocol." },
+      { id: "s2", text: "Isolate the failing payment service from the load balancer", correctPosition: 2, dependencies: ["s1"], isFlexible: false, explanation: "Stop the bleeding before diagnosis." },
+      { id: "s3", text: "Analyze error logs to identify root cause", correctPosition: 3, dependencies: ["s2"], isFlexible: false, explanation: "Need isolation before safe log analysis." },
+      { id: "s4", text: "Deploy hotfix and verify in staging", correctPosition: 4, dependencies: ["s3"], isFlexible: true, explanation: "Depends on knowing root cause." },
+      { id: "s5", text: "Gradually restore traffic and monitor metrics", correctPosition: 5, dependencies: ["s4"], isFlexible: true, explanation: "Only after fix is verified." },
+    ],
+    criticalErrors: [
+      { description: "Deploying a fix before identifying root cause", severity: "catastrophic" },
     ],
   };
 }

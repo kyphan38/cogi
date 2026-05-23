@@ -1,5 +1,6 @@
 import { Unsubscribe, getDoc, setDoc } from "firebase/firestore";
 import { COGI_COLLECTIONS, subscribeCollectionRows, userDocRef } from "@/lib/db/firestore";
+import { e2eGetDoc, e2eSetDoc, isE2EAuthBypass } from "@/lib/db/e2e-firestore-memory";
 
 export interface AppSettingsRow {
   id: "app";
@@ -14,8 +15,19 @@ export interface AppSettingsRow {
 const SETTINGS_ID = "app" as const;
 
 async function getRow(): Promise<AppSettingsRow | undefined> {
+  if (isE2EAuthBypass()) {
+    return e2eGetDoc<AppSettingsRow>(COGI_COLLECTIONS.settings, SETTINGS_ID);
+  }
   const snapshot = await getDoc(userDocRef<AppSettingsRow>(COGI_COLLECTIONS.settings, SETTINGS_ID));
   return snapshot.exists() ? (snapshot.data() as AppSettingsRow) : undefined;
+}
+
+async function saveRow(row: AppSettingsRow): Promise<void> {
+  if (isE2EAuthBypass()) {
+    await e2eSetDoc(COGI_COLLECTIONS.settings, SETTINGS_ID, row as Record<string, unknown>);
+    return;
+  }
+  await setDoc(userDocRef<AppSettingsRow>(COGI_COLLECTIONS.settings, SETTINGS_ID), row);
 }
 
 /** Defaults when fields missing (Dexie v1 rows). */
@@ -46,12 +58,12 @@ export async function setUserContext(userContext: string): Promise<void> {
     adaptiveDifficultyEnabled: prev?.adaptiveDifficultyEnabled === true,
     geopoliticsProgressionEpoch: prev?.geopoliticsProgressionEpoch,
   };
-  await setDoc(userDocRef<AppSettingsRow>(COGI_COLLECTIONS.settings, SETTINGS_ID), row);
+  await saveRow(row);
 }
 
 export async function setGeopoliticsProgressionEpoch(epoch: string): Promise<void> {
   const prev = await getAppSettings();
-  await setDoc(userDocRef<AppSettingsRow>(COGI_COLLECTIONS.settings, SETTINGS_ID), {
+  await saveRow({
     ...prev,
     geopoliticsProgressionEpoch: epoch,
   });
@@ -59,7 +71,7 @@ export async function setGeopoliticsProgressionEpoch(epoch: string): Promise<voi
 
 export async function setDelayedRecallEnabled(enabled: boolean): Promise<void> {
   const prev = await getAppSettings();
-  await setDoc(userDocRef<AppSettingsRow>(COGI_COLLECTIONS.settings, SETTINGS_ID), {
+  await saveRow({
     ...prev,
     delayedRecallEnabled: enabled,
   });
@@ -67,7 +79,7 @@ export async function setDelayedRecallEnabled(enabled: boolean): Promise<void> {
 
 export async function setWeeklyReviewLastCompletedCount(count: number): Promise<void> {
   const prev = await getAppSettings();
-  await setDoc(userDocRef<AppSettingsRow>(COGI_COLLECTIONS.settings, SETTINGS_ID), {
+  await saveRow({
     ...prev,
     weeklyReviewLastCompletedCount: count,
   });
@@ -75,7 +87,7 @@ export async function setWeeklyReviewLastCompletedCount(count: number): Promise<
 
 export async function setAdaptiveDifficultyEnabled(enabled: boolean): Promise<void> {
   const prev = await getAppSettings();
-  await setDoc(userDocRef<AppSettingsRow>(COGI_COLLECTIONS.settings, SETTINGS_ID), {
+  await saveRow({
     ...prev,
     adaptiveDifficultyEnabled: enabled,
   });

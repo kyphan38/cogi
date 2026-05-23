@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { bypassFirebaseAuth, stubFirestoreReads } from "./helpers/auth-setup";
+import { bypassFirebaseAuth, gotoAuthenticated, stubFirestoreReads } from "./helpers/auth-setup";
 
 test.describe("Home page - exercise picker and navigation", () => {
   test.beforeEach(async ({ page }) => {
@@ -10,7 +10,7 @@ test.describe("Home page - exercise picker and navigation", () => {
   test("renders the home heading and exercise picker cards", async ({
     page,
   }) => {
-    await page.goto("/");
+    await gotoAuthenticated(page, "/");
     await expect(
       page.getByRole("heading", { name: "Good moment to practice" }),
     ).toBeVisible();
@@ -27,14 +27,14 @@ test.describe("Home page - exercise picker and navigation", () => {
   });
 
   test("analytical card shows 'suggested today' badge", async ({ page }) => {
-    await page.goto("/");
+    await gotoAuthenticated(page, "/");
     await expect(page.getByText("suggested today")).toBeVisible();
   });
 
   test("clicking an exercise picker card navigates to that exercise", async ({
     page,
   }) => {
-    await page.goto("/");
+    await gotoAuthenticated(page, "/");
     await page
       .getByRole("link", { name: /Sequential.*Order a messy process/ })
       .click();
@@ -44,7 +44,7 @@ test.describe("Home page - exercise picker and navigation", () => {
   test("clicking combo card navigates to /exercise/combo", async ({
     page,
   }) => {
-    await page.goto("/");
+    await gotoAuthenticated(page, "/");
     await page
       .getByRole("link", { name: /Combo.*Multi-step scenario chain/ })
       .click();
@@ -52,7 +52,7 @@ test.describe("Home page - exercise picker and navigation", () => {
   });
 
   test("open actions section shows empty state message", async ({ page }) => {
-    await page.goto("/");
+    await gotoAuthenticated(page, "/");
     await expect(
       page.getByText(/Nothing here yet.*finish an exercise/),
     ).toBeVisible();
@@ -66,7 +66,7 @@ test.describe("AppTopNav navigation", () => {
   });
 
   test("nav bar renders all primary links", async ({ page }) => {
-    await page.goto("/");
+    await gotoAuthenticated(page, "/");
     const nav = page.getByRole("navigation", { name: "Main" });
     await expect(nav.getByRole("link", { name: "Home" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Dashboard" })).toBeVisible();
@@ -76,7 +76,7 @@ test.describe("AppTopNav navigation", () => {
   });
 
   test("navigating to /settings via nav link", async ({ page }) => {
-    await page.goto("/");
+    await gotoAuthenticated(page, "/");
     await page
       .getByRole("navigation", { name: "Main" })
       .getByRole("link", { name: "Settings" })
@@ -85,7 +85,7 @@ test.describe("AppTopNav navigation", () => {
   });
 
   test("navigating to /decisions via nav link", async ({ page }) => {
-    await page.goto("/");
+    await gotoAuthenticated(page, "/");
     await page
       .getByRole("navigation", { name: "Main" })
       .getByRole("link", { name: "Decisions" })
@@ -94,7 +94,7 @@ test.describe("AppTopNav navigation", () => {
   });
 
   test("navigating to /exercise/history via nav link", async ({ page }) => {
-    await page.goto("/");
+    await gotoAuthenticated(page, "/");
     await page
       .getByRole("navigation", { name: "Main" })
       .getByRole("link", { name: "History" })
@@ -103,7 +103,7 @@ test.describe("AppTopNav navigation", () => {
   });
 
   test("navigating to /dashboard via nav link", async ({ page }) => {
-    await page.goto("/");
+    await gotoAuthenticated(page, "/");
     await page
       .getByRole("navigation", { name: "Main" })
       .getByRole("link", { name: "Dashboard" })
@@ -112,7 +112,7 @@ test.describe("AppTopNav navigation", () => {
   });
 
   test("nav bar persists across route transitions", async ({ page }) => {
-    await page.goto("/");
+    await gotoAuthenticated(page, "/");
     const nav = page.getByRole("navigation", { name: "Main" });
 
     await nav.getByRole("link", { name: "Settings" }).click();
@@ -129,7 +129,7 @@ test.describe("AppTopNav navigation", () => {
   });
 
   test("sign out button is present in the nav", async ({ page }) => {
-    await page.goto("/");
+    await gotoAuthenticated(page, "/");
     await expect(
       page.getByRole("button", { name: "Sign out" }),
     ).toBeVisible();
@@ -145,7 +145,7 @@ test.describe("Dashboard page content", () => {
   test("dashboard page renders heading and summary section", async ({
     page,
   }) => {
-    await page.goto("/dashboard");
+    await gotoAuthenticated(page, "/dashboard");
     await expect(
       page.getByRole("heading", { name: "Dashboard" }),
     ).toBeVisible();
@@ -157,7 +157,7 @@ test.describe("Dashboard page content", () => {
   test("dashboard shows WeeklyInsights card with patterns heading", async ({
     page,
   }) => {
-    await page.goto("/dashboard");
+    await gotoAuthenticated(page, "/dashboard");
     await expect(
       page.getByRole("heading", { name: "Patterns (local)" }),
     ).toBeVisible();
@@ -167,7 +167,7 @@ test.describe("Dashboard page content", () => {
   });
 
   test("dashboard shows calibration gap card", async ({ page }) => {
-    await page.goto("/dashboard");
+    await gotoAuthenticated(page, "/dashboard");
     await expect(
       page.getByRole("heading", { name: "Calibration gap" }),
     ).toBeVisible();

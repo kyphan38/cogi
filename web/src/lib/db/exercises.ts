@@ -7,16 +7,22 @@ import {
   userDocRef,
 } from "@/lib/db/firestore";
 import type { ConfidenceRecord, Exercise, ThinkingType } from "@/lib/types/exercise";
+import { e2eGetDoc, e2eSetDoc, isE2EAuthBypass } from "@/lib/db/e2e-firestore-memory";
 import { stripUndefinedDeep } from "@/lib/db/strip-undefined-deep";
 
 export async function putExercise(ex: Exercise): Promise<void> {
-  await setDoc(
-    userDocRef<Exercise>(COGI_COLLECTIONS.exercises, ex.id),
-    stripUndefinedDeep(ex) as Exercise,
-  );
+  const data = stripUndefinedDeep(ex) as Exercise;
+  if (isE2EAuthBypass()) {
+    await e2eSetDoc(COGI_COLLECTIONS.exercises, ex.id, data as Record<string, unknown>);
+    return;
+  }
+  await setDoc(userDocRef<Exercise>(COGI_COLLECTIONS.exercises, ex.id), data);
 }
 
 export async function getExercise(id: string): Promise<Exercise | undefined> {
+  if (isE2EAuthBypass()) {
+    return e2eGetDoc<Exercise>(COGI_COLLECTIONS.exercises, id);
+  }
   const snapshot = await getDoc(userDocRef<Exercise>(COGI_COLLECTIONS.exercises, id));
   return snapshot.exists() ? (snapshot.data() as Exercise) : undefined;
 }

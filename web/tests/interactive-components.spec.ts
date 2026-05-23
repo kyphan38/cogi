@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { bypassFirebaseAuth, stubFirestoreReads } from "./helpers/auth-setup";
+import { bypassFirebaseAuth, gotoAuthenticated, stubFirestoreReads } from "./helpers/auth-setup";
 
 test.describe("EvaluativeMatrixBoard - drag and drop interactions", () => {
   test.beforeEach(async ({ page }) => {
@@ -11,7 +11,7 @@ test.describe("EvaluativeMatrixBoard - drag and drop interactions", () => {
     page,
   }) => {
     // Navigate to combo with decision_sprint to get the matrix board
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Testing");
 
     const presetTrigger = page
@@ -41,7 +41,7 @@ test.describe("EvaluativeMatrixBoard - drag and drop interactions", () => {
   test("matrix board renders four quadrants with axis labels", async ({
     page,
   }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Testing");
 
     const presetTrigger = page
@@ -68,7 +68,7 @@ test.describe("EvaluativeMatrixBoard - drag and drop interactions", () => {
   test("dragging an option card from palette to a quadrant moves it", async ({
     page,
   }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Testing");
 
     const presetTrigger = page
@@ -141,7 +141,7 @@ test.describe("SystemsFlowCanvas - connect and shock modes", () => {
   test("systems canvas renders nodes for full_analysis step 2", async ({
     page,
   }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Architecture");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
@@ -207,7 +207,7 @@ test.describe("SystemsFlowCanvas - connect and shock modes", () => {
     page,
   }) => {
     // Test the canvas structure via root_cause preset which has systems at step 2
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Architecture");
 
     const presetTrigger = page
@@ -234,7 +234,7 @@ test.describe("SystemsFlowCanvas - connect and shock modes", () => {
   });
 
   test("connect mode shows edge type instructions", async ({ page }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Architecture");
 
     const presetTrigger = page
@@ -276,7 +276,7 @@ test.describe("SystemsFlowCanvas - node interaction via pointer", () => {
   test("ReactFlow canvas renders with Background grid pattern", async ({
     page,
   }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Architecture");
 
     const presetTrigger = page
@@ -302,7 +302,7 @@ test.describe("SystemsFlowCanvas - node interaction via pointer", () => {
   test("connecting two nodes creates an edge with type selector", async ({
     page,
   }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Architecture");
 
     const presetTrigger = page
@@ -373,7 +373,7 @@ test.describe("HighlightTag - text selection and tagging", () => {
   test("passage text is rendered and selectable in full_analysis step 1", async ({
     page,
   }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Testing");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
@@ -388,7 +388,7 @@ test.describe("HighlightTag - text selection and tagging", () => {
   });
 
   test("selecting text in passage shows tag toolbar", async ({ page }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Testing");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
@@ -425,7 +425,7 @@ test.describe("HighlightTag - text selection and tagging", () => {
   });
 
   test("applying a tag creates a highlight in the list", async ({ page }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Testing");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
@@ -462,7 +462,7 @@ test.describe("HighlightTag - text selection and tagging", () => {
   });
 
   test("removing a highlight removes it from the list", async ({ page }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Testing");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
@@ -502,7 +502,7 @@ test.describe("HighlightTag - text selection and tagging", () => {
   });
 
   test("cancelling tag selection dismisses the toolbar", async ({ page }) => {
-    await page.goto("/exercise/combo");
+    await gotoAuthenticated(page, "/exercise/combo");
     await page.getByLabel("Domain").fill("Testing");
     await page.getByRole("button", { name: "Generate combo" }).click();
 
@@ -549,7 +549,7 @@ test.describe("ConfidenceSlider interaction", () => {
     // structure exists in a simpler context.
 
     // Navigate to an analytical exercise which will show the exercise shell
-    await page.goto("/exercise/analytical");
+    await gotoAuthenticated(page, "/exercise/analytical");
 
     // The ExerciseShell renders step labels including "Confidence"
     const progressNav = page.getByRole("navigation", {

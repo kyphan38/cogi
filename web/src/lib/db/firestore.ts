@@ -10,6 +10,11 @@ import {
   query,
 } from "firebase/firestore";
 import { getCurrentUidOrThrow, getFirebaseFirestore } from "@/lib/auth/firebase-client";
+import {
+  e2eListCollectionRows,
+  e2eSubscribeCollectionRows,
+  isE2EAuthBypass,
+} from "@/lib/db/e2e-firestore-memory";
 
 export const COGI_COLLECTIONS = {
   actions: "actions",
@@ -47,6 +52,9 @@ export function subscribeCollectionRows<T extends { id: string }>(
   onData: (rows: T[]) => void,
   onError?: (error: unknown) => void,
 ): Unsubscribe {
+  if (isE2EAuthBypass()) {
+    return e2eSubscribeCollectionRows<T>(collectionName, onData);
+  }
   return onSnapshot(
     query(userCollectionRef<T>(collectionName)),
     (snapshot) => {
@@ -60,6 +68,9 @@ export function subscribeCollectionRows<T extends { id: string }>(
 export async function listCollectionRows<T extends { id: string }>(
   collectionName: CogiCollectionName,
 ): Promise<T[]> {
+  if (isE2EAuthBypass()) {
+    return e2eListCollectionRows<T>(collectionName);
+  }
   const snapshot = await getDocs(query(userCollectionRef<T>(collectionName)));
   return snapshot.docs.map((row) => ({ id: row.id, ...(row.data() as Omit<T, "id">) })) as T[];
 }

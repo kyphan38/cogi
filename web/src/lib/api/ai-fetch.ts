@@ -1,9 +1,24 @@
 import { getFirebaseAuth } from "@/lib/auth/firebase-client";
 
+function isE2EAuthBypass(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    !!(window as unknown as Record<string, unknown>).__E2E_AUTH_BYPASS__
+  );
+}
+
 /**
  * POST (or other) to `/api/ai/...` with Firebase ID token when available.
  */
 export async function aiFetch(path: string, init?: RequestInit): Promise<Response> {
+  if (isE2EAuthBypass()) {
+    const headers = new Headers(init?.headers);
+    if (init?.body != null && !headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
+    return fetch(path, { ...init, headers });
+  }
+
   const auth = getFirebaseAuth();
   const user = auth.currentUser;
   if (!user) {

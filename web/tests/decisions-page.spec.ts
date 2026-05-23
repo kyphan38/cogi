@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { bypassFirebaseAuth, stubFirestoreReads } from "./helpers/auth-setup";
+import { bypassFirebaseAuth, gotoAuthenticated, stubFirestoreReads } from "./helpers/auth-setup";
 
 test.describe("Decisions page - layout and add form", () => {
   test.beforeEach(async ({ page }) => {
@@ -8,7 +8,7 @@ test.describe("Decisions page - layout and add form", () => {
   });
 
   test("renders page heading and home link", async ({ page }) => {
-    await page.goto("/decisions");
+    await gotoAuthenticated(page, "/decisions");
     await expect(
       page.getByRole("heading", { name: "Real decisions" }),
     ).toBeVisible();
@@ -16,7 +16,7 @@ test.describe("Decisions page - layout and add form", () => {
   });
 
   test("renders Add decision form with all fields", async ({ page }) => {
-    await page.goto("/decisions");
+    await gotoAuthenticated(page, "/decisions");
 
     await expect(
       page.getByRole("heading", { name: "Add decision" }),
@@ -32,14 +32,14 @@ test.describe("Decisions page - layout and add form", () => {
   });
 
   test("renders the decision log card", async ({ page }) => {
-    await page.goto("/decisions");
+    await gotoAuthenticated(page, "/decisions");
     await expect(
       page.getByRole("heading", { name: "Log" }),
     ).toBeVisible();
   });
 
   test("date field defaults to today", async ({ page }) => {
-    await page.goto("/decisions");
+    await gotoAuthenticated(page, "/decisions");
     const dateInput = page.getByLabel("Date decided");
     const value = await dateInput.inputValue();
     const today = new Date().toISOString().slice(0, 10);
@@ -47,21 +47,21 @@ test.describe("Decisions page - layout and add form", () => {
   });
 
   test("outcome reminder defaults to on", async ({ page }) => {
-    await page.goto("/decisions");
+    await gotoAuthenticated(page, "/decisions");
     await expect(
       page.getByText("Set reminder 7 days after decided date"),
     ).toBeVisible();
   });
 
   test("can fill in decision text", async ({ page }) => {
-    await page.goto("/decisions");
+    await gotoAuthenticated(page, "/decisions");
     const textarea = page.getByLabel("Decision");
     await textarea.fill("Decided to migrate database to PostgreSQL");
     await expect(textarea).toHaveValue("Decided to migrate database to PostgreSQL");
   });
 
   test("can turn off outcome reminder", async ({ page }) => {
-    await page.goto("/decisions");
+    await gotoAuthenticated(page, "/decisions");
     const reminderTrigger = page
       .getByLabel("Outcome reminder")
       .locator("..")
@@ -72,12 +72,12 @@ test.describe("Decisions page - layout and add form", () => {
   });
 
   test("link exercise defaults to None", async ({ page }) => {
-    await page.goto("/decisions");
+    await gotoAuthenticated(page, "/decisions");
     await expect(page.getByText("None")).toBeVisible();
   });
 
   test("home link navigates back to /", async ({ page }) => {
-    await page.goto("/decisions");
+    await gotoAuthenticated(page, "/decisions");
     await page.getByRole("link", { name: "Home" }).click();
     await expect(page).toHaveURL("/");
   });
