@@ -8,7 +8,7 @@ export function isE2EAuthBypass(): boolean {
   );
 }
 
-type DocData = Record<string, unknown>;
+type DocData = any;
 type Listener = () => void;
 
 /** uid -> collection -> docId -> data */

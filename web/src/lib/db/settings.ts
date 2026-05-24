@@ -24,7 +24,7 @@ async function getRow(): Promise<AppSettingsRow | undefined> {
 
 async function saveRow(row: AppSettingsRow): Promise<void> {
   if (isE2EAuthBypass()) {
-    await e2eSetDoc(COGI_COLLECTIONS.settings, SETTINGS_ID, row as Record<string, unknown>);
+    await e2eSetDoc(COGI_COLLECTIONS.settings, SETTINGS_ID, row as unknown as Record<string, unknown>);
     return;
   }
   await setDoc(userDocRef<AppSettingsRow>(COGI_COLLECTIONS.settings, SETTINGS_ID), row);

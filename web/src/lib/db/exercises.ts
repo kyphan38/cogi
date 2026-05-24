@@ -13,7 +13,7 @@ import { stripUndefinedDeep } from "@/lib/db/strip-undefined-deep";
 export async function putExercise(ex: Exercise): Promise<void> {
   const data = stripUndefinedDeep(ex) as Exercise;
   if (isE2EAuthBypass()) {
-    await e2eSetDoc(COGI_COLLECTIONS.exercises, ex.id, data as Record<string, unknown>);
+    await e2eSetDoc(COGI_COLLECTIONS.exercises, ex.id, data as unknown as Record<string, unknown>);
     return;
   }
   await setDoc(userDocRef<Exercise>(COGI_COLLECTIONS.exercises, ex.id), data);
