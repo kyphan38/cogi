@@ -70,7 +70,7 @@ export async function POST(req: Request) {
         steelmanText: steelmanText.trim() || null,
         isGeopolitics,
       });
-      const text = await generatePlainTextRaw(prompt);
+      const text = await generatePlainTextRaw(prompt, "thinking");
       return NextResponse.json({ ok: true, text });
     }
 
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
       userReply: userReply.trim(),
       isGeopolitics,
     });
-    const text = await generatePlainTextRaw(prompt);
+    const text = await generatePlainTextRaw(prompt, "thinking");
     return NextResponse.json({ ok: true, text });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";

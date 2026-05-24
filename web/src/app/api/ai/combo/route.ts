@@ -109,7 +109,7 @@ export async function POST(req: Request) {
   });
 
   try {
-    const raw = await generateAnalyticalExerciseRaw(prompt);
+    const raw = await generateAnalyticalExerciseRaw(prompt, "thinking");
     const bundleParsed = parseComboBundleJson(raw, preset);
     if (!bundleParsed.success) {
       return NextResponse.json({ ok: false, error: bundleParsed.error }, { status: 422 });

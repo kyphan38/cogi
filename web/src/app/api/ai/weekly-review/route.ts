@@ -86,7 +86,7 @@ export async function POST(req: Request) {
 
   const prompt = buildWeeklyReviewPrompt(promptPayload);
   try {
-    const markdown = await generatePlainTextRaw(prompt);
+    const markdown = await generatePlainTextRaw(prompt, "thinking");
     const row: WeeklyReviewRow = {
       id: requestId,
       createdAt: new Date().toISOString(),

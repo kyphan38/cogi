@@ -1,5 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+export type GeminiModel = "fast" | "thinking";
+
+const MODEL_IDS: Record<GeminiModel, string> = {
+  fast: process.env.GEMINI_MODEL_FAST ?? process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
+  thinking: process.env.GEMINI_MODEL_THINKING ?? "gemini-3.5-flash",
+};
+
 function getGeminiApiKey(): string {
   const trimmed = (process.env.GEMINI_API_KEY ?? "").trim();
   if (!trimmed) {
@@ -14,9 +21,10 @@ function getGeminiApiKey(): string {
  */
 export async function generateAnalyticalExerciseRaw(
   fullPrompt: string,
+  modelName: GeminiModel = "fast",
 ): Promise<string> {
   const apiKey = getGeminiApiKey();
-  const modelId = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+  const modelId = MODEL_IDS[modelName];
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
     model: modelId,
@@ -34,9 +42,12 @@ export async function generateAnalyticalExerciseRaw(
 }
 
 /** Narrative / markdown - no JSON mode. */
-export async function generatePlainTextRaw(fullPrompt: string): Promise<string> {
+export async function generatePlainTextRaw(
+  fullPrompt: string,
+  modelName: GeminiModel = "fast",
+): Promise<string> {
   const apiKey = getGeminiApiKey();
-  const modelId = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+  const modelId = MODEL_IDS[modelName];
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
     model: modelId,
@@ -51,3 +62,4 @@ export async function generatePlainTextRaw(fullPrompt: string): Promise<string> 
   }
   return text;
 }
+

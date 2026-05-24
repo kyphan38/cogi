@@ -54,7 +54,7 @@ async function generateStructuredPerspective(
       : structuredPerspectiveRetrySuffix(kind);
 
   const run = async (p: string) => {
-    const raw = await generateAnalyticalExerciseRaw(p);
+    const raw = await generateAnalyticalExerciseRaw(p, "thinking");
     return parse(raw);
   };
   let parsed = await run(prompt);

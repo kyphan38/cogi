@@ -48,7 +48,7 @@ export async function POST(req: Request) {
 
   const prompt = buildGenerativeRubricPrompt(exercise);
   try {
-    const raw = await generateAnalyticalExerciseRaw(prompt);
+    const raw = await generateAnalyticalExerciseRaw(prompt, "thinking");
     const parsed = parseRubric(raw);
     if (!parsed) {
       return NextResponse.json(

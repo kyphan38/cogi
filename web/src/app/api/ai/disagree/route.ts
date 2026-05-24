@@ -104,7 +104,7 @@ export async function POST(req: Request) {
   });
 
   try {
-    const text = await generatePlainTextRaw(prompt);
+    const text = await generatePlainTextRaw(prompt, "thinking");
     const row: PerspectiveDisagreementRow = {
       id: requestId,
       exerciseId,

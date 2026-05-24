@@ -178,7 +178,7 @@ export async function POST(req: Request) {
             customScenario: scenarioForPrompt,
           });
       const runEv = async (prompt: string) => {
-        const raw = await generateAnalyticalExerciseRaw(prompt);
+        const raw = await generateAnalyticalExerciseRaw(prompt, "thinking");
         const parsed = parseEvaluativeExerciseJson(raw);
         if (!parsed.success) {
           return { ok: false as const, raw, parsed, sem: [] as string[] };
@@ -265,7 +265,7 @@ export async function POST(req: Request) {
             customScenario: scenarioForPrompt,
           });
       const runGen = async (prompt: string) => {
-        const raw = await generateAnalyticalExerciseRaw(prompt);
+        const raw = await generateAnalyticalExerciseRaw(prompt, "thinking");
         const parsed = parseGenerativeExerciseJson(raw);
         if (!parsed.success) {
           return { ok: false as const, raw, parsed, sem: [] as string[] };
@@ -369,7 +369,7 @@ export async function POST(req: Request) {
 
     if (exerciseType === "systems") {
       const runSystems = async (prompt: string) => {
-        const raw = await generateAnalyticalExerciseRaw(prompt);
+        const raw = await generateAnalyticalExerciseRaw(prompt, "thinking");
         const parsed = parseSystemsExerciseJson(raw);
         if (!parsed.success) {
           return { ok: false as const, raw, parsed, sem: [] as string[] };
@@ -422,7 +422,7 @@ export async function POST(req: Request) {
     }
 
     if (exerciseType === "sequential") {
-      const raw = await generateAnalyticalExerciseRaw(basePrompt);
+      const raw = await generateAnalyticalExerciseRaw(basePrompt, "thinking");
       const parsed = parseSequentialExerciseJson(raw);
       if (!parsed.success) {
         return NextResponse.json(
@@ -463,7 +463,7 @@ export async function POST(req: Request) {
       }
       const isGeoReal = isGeopoliticsAnalyticalDomain(effectiveDomain);
       const runRealData = async (prompt: string) => {
-        const rawFromText = await generateAnalyticalExerciseRaw(prompt);
+        const rawFromText = await generateAnalyticalExerciseRaw(prompt, "thinking");
         const parsedFromText = parseAnalyticalExerciseJson(rawFromText);
         if (!parsedFromText.success) {
           return { ok: false as const, raw: rawFromText, parsed: parsedFromText, sem: [] as string[] };
@@ -521,7 +521,7 @@ export async function POST(req: Request) {
     }
 
     const runAnalyticalGenerated = async (prompt: string) => {
-      const rawOut = await generateAnalyticalExerciseRaw(prompt);
+      const rawOut = await generateAnalyticalExerciseRaw(prompt, "thinking");
       const parsedOut = parseAnalyticalExerciseJson(rawOut);
       if (!parsedOut.success) {
         return { ok: false as const, raw: rawOut, parsed: parsedOut, sem: [] as string[] };
