@@ -127,37 +127,44 @@ export function HomeContent() {
   const weekKey = currentIsoWeekKey();
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
       try {
         const rows = await listActionsWithExerciseMeta();
-        setActions(rows);
+        if (!cancelled) setActions(rows);
       } catch (e) {
-        logFirestoreQueryError("HomeContent", "listActionsWithExerciseMeta", e);
-        setActions([]);
+        if (!cancelled) {
+          logFirestoreQueryError("HomeContent", "listActionsWithExerciseMeta", e);
+          setActions([]);
+        }
       }
     })();
     const unsubscribe = subscribeActionsWithExerciseMeta(
-      setActions,
+      (rows) => { if (!cancelled) setActions(rows); },
       (error) => {
-        logFirestoreQueryError("HomeContent", "subscribeActionsWithExerciseMeta", error);
+        if (!cancelled) logFirestoreQueryError("HomeContent", "subscribeActionsWithExerciseMeta", error);
       },
     );
-    return () => unsubscribe();
+    return () => { cancelled = true; unsubscribe(); };
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
       try {
         const rows = await listIncompleteExercises();
-        setIncompleteExercises(rows.slice(0, 5));
+        if (!cancelled) setIncompleteExercises(rows.slice(0, 5));
       } catch {
-        setIncompleteExercises([]);
+        if (!cancelled) setIncompleteExercises([]);
       }
     })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
-    void listRecentDomains(20).then(setDomainSuggestions);
+    let cancelled = false;
+    void listRecentDomains(20).then((d) => { if (!cancelled) setDomainSuggestions(d); }).catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   const recMap = useMemo(() => {
