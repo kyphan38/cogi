@@ -31,9 +31,10 @@ test.describe("Home page - exercise picker and navigation", () => {
     await expect(comboCard).toBeVisible();
   });
 
-  test("analytical card shows 'suggested today' badge", async ({ page }) => {
+  test("home page shows domain input and find-best-mode button", async ({ page }) => {
     await gotoAuthenticated(page, "/");
-    await expect(page.getByText("suggested today")).toBeVisible();
+    await expect(page.getByLabel("Domain")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Find best mode" })).toBeVisible();
   });
 
   test("clicking an exercise picker card navigates to that exercise", async ({

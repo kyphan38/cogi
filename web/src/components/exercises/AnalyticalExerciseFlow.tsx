@@ -82,7 +82,9 @@ function analyticalShellStep(step: FlowStep, isGeopolitics: boolean): number {
 export function AnalyticalExerciseFlow({
   resumeId,
   initialDomain,
-}: { resumeId?: string; initialDomain?: string } = {}) {
+  initialSource,
+  autoGenerate,
+}: { resumeId?: string; initialDomain?: string; initialSource?: "generated" | "real_data" | "custom_scenario"; autoGenerate?: boolean } = {}) {
   const { show: showToast } = useToast();
   const [step, setStep] = useState<FlowStep>(0);
   const [domain, setDomain] = useState(initialDomain?.trim() ?? "");
@@ -111,7 +113,7 @@ export function AnalyticalExerciseFlow({
   const [missingActorGuess1, setMissingActorGuess1] = useState("");
   const [missingActorGuess2, setMissingActorGuess2] = useState("");
 
-  const [mode, setMode] = useState<"generated" | "real_data" | "custom_scenario">("generated");
+  const [mode, setMode] = useState<"generated" | "real_data" | "custom_scenario">(initialSource ?? "generated");
   const [customScenarioText, setCustomScenarioText] = useState("");
   const [realText, setRealText] = useState("");
   const [realWordCount, setRealWordCount] = useState(0);
@@ -295,6 +297,39 @@ export function AnalyticalExerciseFlow({
       setLoading(false);
     }
   }, [domain, mode, realText, customScenarioText]);
+
+  const autoGenerateTriggered = useRef(false);
+  const [autoGenerateReady, setAutoGenerateReady] = useState(false);
+  useEffect(() => {
+    if (autoGenerateReady || !autoGenerate || resumeId) return;
+    try {
+      const raw = sessionStorage.getItem("cogi:home-source-text");
+      if (raw) {
+        sessionStorage.removeItem("cogi:home-source-text");
+        const data = JSON.parse(raw) as {
+          source?: string;
+          customScenarioText?: string;
+          realDataText?: string;
+        };
+        if (data.source === "custom_scenario" && data.customScenarioText) {
+          setMode("custom_scenario");
+          setCustomScenarioText(data.customScenarioText);
+        } else if (data.source === "real_data" && data.realDataText) {
+          setMode("real_data");
+          setRealText(data.realDataText);
+        }
+      }
+    } catch { /* ignore */ }
+    setAutoGenerateReady(true);
+  }, [autoGenerate, autoGenerateReady, resumeId]);
+
+  useEffect(() => {
+    if (autoGenerateTriggered.current || !autoGenerateReady || resumeId) return;
+    const d = initialDomain?.trim();
+    if (!d) return;
+    autoGenerateTriggered.current = true;
+    void startGenerate();
+  }, [autoGenerateReady, initialDomain, resumeId, startGenerate]);
 
   const regenerate = () => {
     if (highlights.length > 0) {

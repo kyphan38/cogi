@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+
 import {
   Card,
   CardContent,
@@ -10,6 +11,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { InlineSpinner } from "@/components/ui/inline-spinner";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   listActionsWithExerciseMeta,
   subscribeActionsWithExerciseMeta,
@@ -20,7 +31,9 @@ import { currentIsoWeekKey } from "@/lib/db/actions";
 import { ChevronRight, Trash2 } from "lucide-react";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
 import { ExercisePickerCard } from "@/components/dashboard/ExercisePickerCard";
-import { listIncompleteExercises, deleteCompletedExerciseAndRelatedRecords } from "@/lib/db/exercises";
+import { DomainInput } from "@/components/shared/DomainInput";
+import { listIncompleteExercises, listRecentDomains, deleteCompletedExerciseAndRelatedRecords } from "@/lib/db/exercises";
+import { aiFetch } from "@/lib/api/ai-fetch";
 import type { Exercise } from "@/lib/types/exercise";
 
 type ActionRow = ActionBridge & {
@@ -29,46 +42,51 @@ type ActionRow = ActionBridge & {
 };
 
 const ALL_EXERCISE_CARDS: {
+  type: string;
   href: string;
   label: string;
   title: string;
   desc?: string;
-  primary?: boolean;
   trailingIcon?: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   className?: string;
 }[] = [
   {
+    type: "analytical",
     href: "/exercise/analytical",
     label: "Analytical",
     title: "Spot flawed reasoning",
     desc: "Find embedded issues and decoys in a short passage.",
-    primary: true,
   },
   {
+    type: "sequential",
     href: "/exercise/sequential",
     label: "Sequential",
     title: "Order a messy process",
     desc: "Drag steps into a defensible sequence with traps.",
   },
   {
+    type: "systems",
     href: "/exercise/systems",
     label: "Systems",
     title: "Map feedback loops",
     desc: "Draw nodes and edges, then trace a shock ripple.",
   },
   {
+    type: "evaluative",
     href: "/exercise/evaluative",
     label: "Evaluative",
     title: "Compare options fairly",
     desc: "Matrix or weighted scoring against hidden tradeoffs.",
   },
   {
+    type: "generative",
     href: "/exercise/generative",
     label: "Generative",
     title: "Write, then stress-test your thinking",
     desc: "Scaffolded prompts, short debate with the model, and a rubric snapshot.",
   },
   {
+    type: "combo",
     href: "/exercise/combo",
     label: "Combo",
     title: "Multi-step scenario chain",
@@ -91,9 +109,21 @@ function resumeHref(ex: Exercise): string {
   return `/exercise/${ex.type}?resumeId=${ex.id}`;
 }
 
+type ModeRecommendation = { mode: string; reason: string };
+
+/** SessionStorage key for passing source text from Home → exercise flow. */
+export const HOME_SOURCE_TEXT_KEY = "cogi:home-source-text";
+
 export function HomeContent() {
   const [actions, setActions] = useState<ActionRow[]>([]);
   const [incompleteExercises, setIncompleteExercises] = useState<Exercise[]>([]);
+  const [topic, setTopic] = useState("");
+  const [source, setSource] = useState<"generated" | "real_data" | "custom_scenario">("generated");
+  const [customScenarioText, setCustomScenarioText] = useState("");
+  const [realDataText, setRealDataText] = useState("");
+  const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
+  const [recommendations, setRecommendations] = useState<ModeRecommendation[] | null>(null);
+  const [recLoading, setRecLoading] = useState(false);
   const weekKey = currentIsoWeekKey();
 
   useEffect(() => {
@@ -126,6 +156,51 @@ export function HomeContent() {
     })();
   }, []);
 
+  useEffect(() => {
+    void listRecentDomains(20).then(setDomainSuggestions);
+  }, []);
+
+  const recMap = useMemo(() => {
+    if (!recommendations) return null;
+    const map = new Map<string, string>();
+    for (const r of recommendations) map.set(r.mode, r.reason);
+    return map;
+  }, [recommendations]);
+
+  const orderedCards = useMemo(() => {
+    if (!recMap) return ALL_EXERCISE_CARDS;
+    const ranked = ALL_EXERCISE_CARDS
+      .filter((c) => c.type !== "combo")
+      .sort((a, b) => {
+        const idxA = recommendations!.findIndex((r) => r.mode === a.type);
+        const idxB = recommendations!.findIndex((r) => r.mode === b.type);
+        return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+      });
+    const combo = ALL_EXERCISE_CARDS.find((c) => c.type === "combo");
+    return combo ? [...ranked, combo] : ranked;
+  }, [recMap, recommendations]);
+
+  const fetchRecommendation = useCallback(async () => {
+    const trimmed = topic.trim();
+    if (!trimmed) return;
+    setRecLoading(true);
+    try {
+      const res = await aiFetch("/api/ai/recommend-mode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic: trimmed }),
+      });
+      const json = (await res.json()) as { ok: boolean; recommendations?: ModeRecommendation[] };
+      if (json.ok && json.recommendations) {
+        setRecommendations(json.recommendations);
+      }
+    } catch {
+      // silently fall back to default order
+    } finally {
+      setRecLoading(false);
+    }
+  }, [topic]);
+
   const toggleWeek = async (row: ActionBridge) => {
     await toggleActionFollowThroughWeek(row, weekKey);
   };
@@ -149,8 +224,8 @@ export function HomeContent() {
         <p className="text-muted-foreground text-sm">cogi</p>
         <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Good moment to practice</h1>
         <p className="text-muted-foreground max-w-xl text-sm leading-relaxed">
-          Pick a mode below. Completed work is saved to your signed-in account (Firebase). Use Settings
-          for a JSON backup copy anytime.
+          Enter a topic to find the best mode, or pick one directly below. Completed work is saved
+          to your signed-in account (Firebase). Use Settings for a JSON backup copy anytime.
         </p>
       </div>
 
@@ -203,19 +278,135 @@ export function HomeContent() {
         </Card>
       ) : null}
 
+      <div className="space-y-3">
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+          <div className="min-w-0">
+            <Label className="mb-1.5 block text-sm font-medium">Domain</Label>
+            <DomainInput
+              value={topic}
+              onChange={(v) => {
+                setTopic(v);
+                if (!v.trim()) setRecommendations(null);
+              }}
+              suggestions={domainSuggestions}
+              placeholder="e.g. Information Warfare, DevOps / SRE"
+            />
+          </div>
+          <div className="min-w-0">
+            <Label className="mb-1.5 block text-sm font-medium">Source</Label>
+            <Select
+              value={source}
+              onValueChange={(v) =>
+                setSource((v as "generated" | "real_data" | "custom_scenario") ?? "generated")
+              }
+            >
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="generated">AI-generated</SelectItem>
+                <SelectItem value="real_data">Use my own text</SelectItem>
+                <SelectItem value="custom_scenario">My scenario</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            type="button"
+            disabled={recLoading || !topic.trim()}
+            onClick={() => void fetchRecommendation()}
+          >
+            {recLoading ? (
+              <>
+                <InlineSpinner /> Finding…
+              </>
+            ) : (
+              "Find best mode"
+            )}
+          </Button>
+        </div>
+        {source === "custom_scenario" ? (
+          <div>
+            <Label className="mb-1.5 block text-sm font-medium" htmlFor="home-custom-scenario">
+              Describe your situation - AI will design the exercise around it
+            </Label>
+            <Textarea
+              id="home-custom-scenario"
+              rows={4}
+              value={customScenarioText}
+              onChange={(e) => setCustomScenarioText(e.target.value)}
+              placeholder="Paste context, stakeholders, and the tension you want to practice..."
+              className="min-h-[4rem]"
+            />
+          </div>
+        ) : null}
+        {source === "real_data" ? (
+          <div>
+            <Label className="mb-1.5 block text-sm font-medium" htmlFor="home-real-data">
+              Paste your own content (up to 2,000 words)
+            </Label>
+            <Textarea
+              id="home-real-data"
+              rows={4}
+              value={realDataText}
+              onChange={(e) => setRealDataText(e.target.value)}
+              placeholder="Paste an email, plan, or article you want to analyze..."
+              className="min-h-[4rem]"
+            />
+          </div>
+        ) : null}
+        {recommendations && topic.trim() ? (
+          <p className="text-muted-foreground text-xs">
+            Recommended order for <span className="font-medium text-zinc-700">{topic.trim()}</span> — pick any mode, or{" "}
+            <button
+              type="button"
+              className="underline hover:text-zinc-900"
+              onClick={() => {
+                setRecommendations(null);
+                setTopic("");
+              }}
+            >
+              clear
+            </button>
+          </p>
+        ) : null}
+      </div>
+
       <div className="grid gap-2.5 sm:grid-cols-2">
-        {ALL_EXERCISE_CARDS.map((c) => (
-          <ExercisePickerCard
-            key={c.href}
-            href={c.href}
-            label={c.label}
-            title={c.title}
-            desc={c.desc}
-            primary={c.primary}
-            trailingIcon={c.trailingIcon}
-            className={c.className}
-          />
-        ))}
+        {orderedCards.map((c, i) => {
+          const isTopRec = recMap !== null && i === 0 && c.type !== "combo";
+          const domainParam = topic.trim() ? `?domain=${encodeURIComponent(topic.trim())}` : "";
+          const sourceParam = domainParam && source !== "generated" ? `&source=${source}` : "";
+          const autoParam = isTopRec && domainParam ? "&autoGenerate=1" : "";
+          const href = c.type === "combo" ? c.href : `${c.href}${domainParam}${sourceParam}${autoParam}`;
+          const needsSessionData = isTopRec && domainParam && source !== "generated";
+          return (
+            <ExercisePickerCard
+              key={c.type}
+              href={href}
+              label={c.label}
+              title={c.title}
+              desc={c.desc}
+              recommended={isTopRec}
+              reason={isTopRec ? recMap?.get(c.type) : undefined}
+              trailingIcon={c.trailingIcon}
+              className={c.className}
+              onClick={needsSessionData ? () => {
+                try {
+                  sessionStorage.setItem(
+                    HOME_SOURCE_TEXT_KEY,
+                    JSON.stringify({
+                      source,
+                      customScenarioText: source === "custom_scenario" ? customScenarioText : undefined,
+                      realDataText: source === "real_data" ? realDataText : undefined,
+                    }),
+                  );
+                } catch {
+                  // sessionStorage unavailable -- exercise flow will fall back to step 0
+                }
+              } : undefined}
+            />
+          );
+        })}
       </div>
 
       <Card>

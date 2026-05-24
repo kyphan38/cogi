@@ -8,24 +8,29 @@ export function ExercisePickerCard({
   label,
   title,
   desc,
-  primary,
+  recommended,
+  reason,
   trailingIcon: TrailingIcon,
   className,
+  onClick,
 }: {
   href: string;
   label: string;
   title: string;
   desc?: string;
-  primary?: boolean;
+  recommended?: boolean;
+  reason?: string;
   trailingIcon?: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   className?: string;
+  onClick?: (e: React.MouseEvent) => void;
 }) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       className={cn(
         "rounded-xl border border-zinc-200 bg-white p-4 transition-colors hover:border-zinc-300 hover:bg-zinc-50/80",
-        primary && "border-zinc-400 bg-zinc-50 hover:border-zinc-500 hover:bg-zinc-100/80",
+        recommended && "border-zinc-400 bg-zinc-50 hover:border-zinc-500 hover:bg-zinc-100/80",
         TrailingIcon && "flex items-center justify-between gap-3 px-4 py-3.5",
         className,
       )}
@@ -34,17 +39,20 @@ export function ExercisePickerCard({
         <p
           className={cn(
             "font-tracker mb-1 text-[11px] font-medium tracking-wide text-zinc-500 uppercase",
-            primary && "text-zinc-800",
+            recommended && "text-zinc-800",
           )}
         >
           {label}
-          {primary ? " · suggested today" : null}
+          {recommended ? " · best fit" : null}
         </p>
-        <p className={cn("text-sm font-medium text-zinc-900", primary && "text-zinc-950")}>
+        <p className={cn("text-sm font-medium text-zinc-900", recommended && "text-zinc-950")}>
           {title}
         </p>
         {desc ? (
           <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{desc}</p>
+        ) : null}
+        {recommended && reason ? (
+          <p className="mt-1 text-xs leading-relaxed text-zinc-600 italic">{reason}</p>
         ) : null}
       </div>
       {TrailingIcon ? (

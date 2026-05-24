@@ -157,10 +157,17 @@ function DroppableZone({
   );
 }
 
-export function SequentialExerciseFlow({ resumeId }: { resumeId?: string } = {}) {
+export function SequentialExerciseFlow({
+  resumeId,
+  initialDomain,
+  initialSource,
+  autoGenerate,
+}: { resumeId?: string; initialDomain?: string; initialSource?: "generated" | "real_data" | "custom_scenario"; autoGenerate?: boolean } = {}) {
   const [step, setStep] = useState<FlowStep>(0);
-  const [domain, setDomain] = useState("");
-  const [setupMode, setSetupMode] = useState<"generated" | "custom_scenario">("generated");
+  const [domain, setDomain] = useState(initialDomain?.trim() ?? "");
+  const [setupMode, setSetupMode] = useState<"generated" | "custom_scenario">(
+    initialSource === "custom_scenario" ? "custom_scenario" : "generated",
+  );
   const [customScenarioText, setCustomScenarioText] = useState("");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -223,6 +230,12 @@ export function SequentialExerciseFlow({ resumeId }: { resumeId?: string } = {})
       setStep((row.currentStep ?? 1) as FlowStep);
     })();
   }, [resumeId]);
+
+  useEffect(() => {
+    if (resumeId) return;
+    const d = initialDomain?.trim();
+    if (d) setDomain(d);
+  }, [initialDomain, resumeId]);
 
   useEffect(() => {
     if (!exercise || step === 0 || step === 6) return;
@@ -309,6 +322,32 @@ export function SequentialExerciseFlow({ resumeId }: { resumeId?: string } = {})
       setLoading(false);
     }
   }, [domain, setupMode, customScenarioText]);
+
+  const autoGenerateTriggered = useRef(false);
+  const [autoGenerateReady, setAutoGenerateReady] = useState(false);
+  useEffect(() => {
+    if (autoGenerateReady || !autoGenerate || resumeId) return;
+    try {
+      const raw = sessionStorage.getItem("cogi:home-source-text");
+      if (raw) {
+        sessionStorage.removeItem("cogi:home-source-text");
+        const data = JSON.parse(raw) as { source?: string; customScenarioText?: string };
+        if (data.source === "custom_scenario" && data.customScenarioText) {
+          setSetupMode("custom_scenario");
+          setCustomScenarioText(data.customScenarioText);
+        }
+      }
+    } catch { /* ignore */ }
+    setAutoGenerateReady(true);
+  }, [autoGenerate, autoGenerateReady, resumeId]);
+
+  useEffect(() => {
+    if (autoGenerateTriggered.current || !autoGenerateReady || resumeId) return;
+    const d = initialDomain?.trim();
+    if (!d) return;
+    autoGenerateTriggered.current = true;
+    void startGenerate();
+  }, [autoGenerateReady, initialDomain, resumeId, startGenerate]);
 
   const regenerate = () => {
     if (timeline.length > 0) {
