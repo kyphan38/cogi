@@ -33,7 +33,7 @@ import { logFirestoreQueryError } from "@/lib/db/firestore";
 import { ExercisePickerCard } from "@/components/dashboard/ExercisePickerCard";
 import { DomainInput } from "@/components/shared/DomainInput";
 import { listIncompleteExercises, listRecentDomains, deleteCompletedExerciseAndRelatedRecords } from "@/lib/db/exercises";
-import { aiFetch } from "@/lib/api/ai-fetch";
+import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import type { Exercise } from "@/lib/types/exercise";
 
 type ActionRow = ActionBridge & {
@@ -197,7 +197,7 @@ export function HomeContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic: trimmed }),
       });
-      const json = (await res.json()) as { ok: boolean; recommendations?: ModeRecommendation[] };
+      const json = await safeAiJson<{ ok: boolean; recommendations?: ModeRecommendation[] }>(res);
       if (json.ok && json.recommendations) {
         setRecommendations(json.recommendations);
       }

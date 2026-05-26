@@ -61,7 +61,7 @@ import {
 import { pickJournalPrompts, type JournalPromptItem } from "@/lib/ai/prompts/journal-pool";
 import { computeEvaluativeAccuracy } from "@/lib/analytics/calibration-evaluative";
 import { currentIsoWeekKey } from "@/lib/db/actions";
-import { aiFetch } from "@/lib/api/ai-fetch";
+import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { DomainInput } from "@/components/shared/DomainInput";
@@ -264,7 +264,7 @@ export function EvaluativeExerciseFlow({
       void putExercise(updated);
     }, 2000);
     return () => clearTimeout(timer);
-  }, [placements, scores, criterionWeights, userStakeholderMapping, stakeholderMappingRevealed]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [placements, scores, criterionWeights, userStakeholderMapping, stakeholderMappingRevealed, step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startGenerate = useCallback(async () => {
     setError(null);
@@ -294,9 +294,10 @@ export function EvaluativeExerciseFlow({
           adaptiveHints,
         }),
       });
-      const json = (await res.json()) as
+      const json = await safeAiJson<
         | { ok: true; data: EvaluativeExercisePayload }
-        | { ok: false; error: string };
+        | { ok: false; error: string }
+      >(res);
       if (!json.ok) {
         setError(json.error);
         return;
@@ -444,7 +445,7 @@ export function EvaluativeExerciseFlow({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const raw = await res.json();
+      const raw = await safeAiJson<unknown>(res);
       const parsed = parsePerspectiveFetchJson(raw, kind);
       if (!parsed.ok) {
         setError(parsed.error);
@@ -530,7 +531,7 @@ export function EvaluativeExerciseFlow({
             snippets,
           }),
         });
-        const j = (await res.json()) as { ok: true; line: string | null };
+        const j = await safeAiJson<{ ok: true; line: string | null }>(res);
         if (cancelled || effectId !== journalEffectIdRef.current) return;
         if (j.ok && j.line) setAiRefLine(j.line);
       } catch {
@@ -731,15 +732,22 @@ export function EvaluativeExerciseFlow({
               .
             </p>
             <AdaptiveSetupHint exerciseType="evaluative" />
-            <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
-              {loading ? (
-                <>
-                  <InlineSpinner /> Generating…
-                </>
-              ) : (
-                "Generate exercise"
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
+                {loading ? (
+                  <>
+                    <InlineSpinner /> Generating…
+                  </>
+                ) : (
+                  "Generate exercise"
+                )}
+              </Button>
+              {exercise ? (
+                <Button type="button" variant="secondary" onClick={() => setStep((exercise.currentStep ?? 1) as FlowStep)}>
+                  Continue existing exercise
+                </Button>
+              ) : null}
+            </div>
           </CardContent>
         </Card>
       ) : null}
@@ -771,7 +779,12 @@ export function EvaluativeExerciseFlow({
                 onRowsChange={setUserStakeholderMapping}
                 onRevealedChange={setStakeholderMappingRevealed}
                 onError={setError}
-                onBack={() => setStep(0)}
+                onBack={() => {
+                  const updated = { ...exercise, currentStep: 1 as const };
+                  setExercise(updated);
+                  void putExercise(updated);
+                  setStep(0);
+                }}
                 onContinue={(cleaned) => {
                   const next: EvaluativeScoringRow = {
                     ...exercise,
@@ -821,7 +834,12 @@ export function EvaluativeExerciseFlow({
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="secondary" onClick={() => setStep(0)}>
+                  <Button type="button" variant="secondary" onClick={() => {
+                    const updated = { ...exercise, currentStep: 1 as const };
+                    setExercise(updated);
+                    void putExercise(updated);
+                    setStep(0);
+                  }}>
                     Back
                   </Button>
                   <Button
@@ -1007,7 +1025,12 @@ export function EvaluativeExerciseFlow({
               </div>
             )}
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(0)}>
+              <Button type="button" variant="secondary" onClick={() => {
+                const updated = exercise.variant === "matrix" ? { ...exercise, placements, currentStep: 1 as const } : { ...exercise, currentStep: 1 as const };
+                setExercise(updated);
+                void putExercise(updated);
+                setStep(0);
+              }}>
                 Back
               </Button>
               <Button type="button" variant="secondary" onClick={regenerate}>
@@ -1015,7 +1038,14 @@ export function EvaluativeExerciseFlow({
               </Button>
               <Button
                 type="button"
-                onClick={() => advance(3)}
+                onClick={() => {
+                  const updated: EvaluativeExerciseRow =
+                    exercise.variant === "matrix"
+                      ? { ...exercise, placements }
+                      : { ...exercise, criterionWeights, scores };
+                  setExercise(updated);
+                  advance(3, updated);
+                }}
                 disabled={exercise.variant === "matrix" && !matrixReady()}
               >
                 Continue to confidence
@@ -1046,7 +1076,10 @@ export function EvaluativeExerciseFlow({
                 type="button"
                 variant="secondary"
                 disabled={loading}
-                onClick={() => setStep(2)}
+                onClick={() => {
+                  void putExercise({ ...exercise, currentStep: 2 as const });
+                  setStep(2);
+                }}
               >
                 Back
               </Button>

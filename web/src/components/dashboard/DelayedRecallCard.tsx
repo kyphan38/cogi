@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import type { DelayedRecallQueueRow } from "@/lib/types/insights";
-import { aiFetch } from "@/lib/api/ai-fetch";
+import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { getExercise } from "@/lib/db/exercises";
 import { exerciseSummaryForReview } from "@/lib/insights/build-weekly-review-payload";
 import { updateRecallRow } from "@/lib/db/delayed-recall";
@@ -61,13 +61,14 @@ export function DelayedRecallCard({ recall }: DelayedRecallCardProps) {
           userRecall: t,
         }),
       });
-      const json = (await res.json()) as
+      const json = await safeAiJson<
         | {
             ok: true;
             text: string;
             saved?: { saved: true; id: string; path: string; savedAt: string };
           }
-        | { ok: false; error: string };
+        | { ok: false; error: string }
+      >(res);
       if (!json.ok) {
         setError(json.error);
         return;

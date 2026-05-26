@@ -54,7 +54,7 @@ import {
 } from "@/lib/db/journal";
 import { pickJournalPrompts, type JournalPromptItem } from "@/lib/ai/prompts/journal-pool";
 import { computeAnalyticalAccuracy } from "@/lib/analytics/calibration-analytical";
-import { aiFetch } from "@/lib/api/ai-fetch";
+import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { computeSequentialAccuracy } from "@/lib/analytics/calibration-sequential";
 import { computeSystemsAccuracy } from "@/lib/analytics/calibration-systems";
 import { computeEvaluativeMatrixAccuracy } from "@/lib/analytics/calibration-evaluative";
@@ -177,7 +177,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
           userContext: userContext || undefined,
         }),
       });
-      const json = (await res.json()) as { ok: true; data: ComboBundle } | { ok: false; error: string };
+      const json = await safeAiJson<{ ok: true; data: ComboBundle } | { ok: false; error: string }>(res);
       if (!json.ok) {
         setError(json.error);
         return;
@@ -527,7 +527,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
             snippets,
           }),
         });
-        const j = (await res.json()) as { ok: true; line: string | null };
+        const j = await safeAiJson<{ ok: true; line: string | null }>(res);
         if (cancelled || effectId !== journalEffectIdRef.current) return;
         if (j.ok && j.line) setAiRefLine(j.line);
       } catch {

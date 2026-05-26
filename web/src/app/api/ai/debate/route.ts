@@ -103,6 +103,15 @@ export async function POST(req: Request) {
     const text = await generatePlainTextRaw(prompt, "thinking");
     return NextResponse.json({ ok: true, text });
   } catch (e) {
+    const isTimeout =
+      e instanceof Error &&
+      (e.name === "AbortError" || e.message.includes("timed out") || e.message.includes("timeout"));
+    if (isTimeout) {
+      return NextResponse.json(
+        { ok: false, error: "Exercise generation timed out. Please try again." },
+        { status: 504 },
+      );
+    }
     const message = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }

@@ -42,7 +42,15 @@ export default function AiSmokePage() {
           userContext: userContext.trim() || undefined,
         }),
       });
-      const json = (await res.json()) as ApiResponse;
+      let json: ApiResponse;
+      try {
+        json = (await res.json()) as ApiResponse;
+      } catch {
+        json = {
+          ok: false,
+          error: `Server returned non-JSON response (${res.status})`,
+        };
+      }
       setResult(json);
     } catch (e) {
       setResult({

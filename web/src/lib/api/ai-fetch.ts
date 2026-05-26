@@ -39,3 +39,25 @@ export async function aiFetch(path: string, init?: RequestInit): Promise<Respons
   }
   return fetch(path, { ...init, headers });
 }
+
+/**
+ * Parse an AI fetch response with proper HTTP status checking.
+ * Throws a user-friendly Error when the response is not OK,
+ * instead of letting JSON.parse fail on HTML error pages.
+ */
+export async function safeAiJson<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    let msg: string;
+    try {
+      const body = (await res.json()) as { error?: string };
+      msg = body.error || `Server error (${res.status})`;
+    } catch {
+      msg =
+        res.status === 504
+          ? "Exercise generation timed out. Please try again."
+          : `Server error (${res.status}). Please try again.`;
+    }
+    throw new Error(msg);
+  }
+  return res.json() as Promise<T>;
+}

@@ -120,7 +120,7 @@ describe("POST /api/ai/combo", () => {
 
   it("returns 500 on AI generation failure", async () => {
     authOk();
-    mockGenerateRaw.mockRejectedValue(new Error("timeout"));
+    mockGenerateRaw.mockRejectedValue(new Error("model overloaded"));
     const res = await POST(makeRequest(validBody));
     expect(res.status).toBe(500);
   });

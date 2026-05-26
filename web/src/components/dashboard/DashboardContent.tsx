@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { aiFetch } from "@/lib/api/ai-fetch";
+import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -305,13 +305,14 @@ export function DashboardContent() {
           triggeredAtCompletedExerciseCount: count,
         }),
       });
-      const json = (await res.json()) as
+      const json = await safeAiJson<
         | {
             ok: true;
             markdown: string;
             saved?: { saved: true; id: string; path: string; savedAt: string };
           }
-        | { ok: false; error: string };
+        | { ok: false; error: string }
+      >(res);
       if (!json.ok) {
         setWeeklyError(json.error);
         return;

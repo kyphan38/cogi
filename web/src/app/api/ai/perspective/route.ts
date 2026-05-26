@@ -146,6 +146,15 @@ export async function POST(req: Request) {
       );
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
+      const isTimeout =
+        e instanceof Error &&
+        (e.name === "AbortError" || e.message.includes("timed out") || e.message.includes("timeout"));
+      if (isTimeout) {
+        return NextResponse.json(
+          { ok: false, error: "Exercise generation timed out. Please try again." },
+          { status: 504 },
+        );
+      }
       const message = e instanceof Error ? e.message : "Unknown error";
       return NextResponse.json({ ok: false, error: message }, { status: 500 });
     }
@@ -191,6 +200,15 @@ export async function POST(req: Request) {
       );
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
+      const isTimeout =
+        e instanceof Error &&
+        (e.name === "AbortError" || e.message.includes("timed out") || e.message.includes("timeout"));
+      if (isTimeout) {
+        return NextResponse.json(
+          { ok: false, error: "Exercise generation timed out. Please try again." },
+          { status: 504 },
+        );
+      }
       const message = e instanceof Error ? e.message : "Unknown error";
       return NextResponse.json({ ok: false, error: message }, { status: 500 });
     }
@@ -222,6 +240,15 @@ export async function POST(req: Request) {
       const { structured, text } = await generateStructuredPerspective(prompt, "generative");
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
+      const isTimeout =
+        e instanceof Error &&
+        (e.name === "AbortError" || e.message.includes("timed out") || e.message.includes("timeout"));
+      if (isTimeout) {
+        return NextResponse.json(
+          { ok: false, error: "Exercise generation timed out. Please try again." },
+          { status: 504 },
+        );
+      }
       const message = e instanceof Error ? e.message : "Unknown error";
       return NextResponse.json({ ok: false, error: message }, { status: 500 });
     }
@@ -315,6 +342,15 @@ export async function POST(req: Request) {
       const { structured, text } = await generateStructuredPerspective(prompt, "systems");
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
+      const isTimeout =
+        e instanceof Error &&
+        (e.name === "AbortError" || e.message.includes("timed out") || e.message.includes("timeout"));
+      if (isTimeout) {
+        return NextResponse.json(
+          { ok: false, error: "Exercise generation timed out. Please try again." },
+          { status: 504 },
+        );
+      }
       const message = e instanceof Error ? e.message : "Unknown error";
       return NextResponse.json({ ok: false, error: message }, { status: 500 });
     }
@@ -368,6 +404,15 @@ export async function POST(req: Request) {
       const { structured, text } = await generateStructuredPerspective(prompt, "sequential");
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
+      const isTimeout =
+        e instanceof Error &&
+        (e.name === "AbortError" || e.message.includes("timed out") || e.message.includes("timeout"));
+      if (isTimeout) {
+        return NextResponse.json(
+          { ok: false, error: "Exercise generation timed out. Please try again." },
+          { status: 504 },
+        );
+      }
       const message = e instanceof Error ? e.message : "Unknown error";
       return NextResponse.json({ ok: false, error: message }, { status: 500 });
     }
@@ -431,6 +476,15 @@ export async function POST(req: Request) {
     const { structured, text } = await generateStructuredPerspective(prompt, "analytical");
     return NextResponse.json({ ok: true, structured, text });
   } catch (e) {
+    const isTimeout =
+      e instanceof Error &&
+      (e.name === "AbortError" || e.message.includes("timed out") || e.message.includes("timeout"));
+    if (isTimeout) {
+      return NextResponse.json(
+        { ok: false, error: "Exercise generation timed out. Please try again." },
+        { status: 504 },
+      );
+    }
     const message = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }

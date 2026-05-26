@@ -66,7 +66,7 @@ import {
 import { pickJournalPrompts, type JournalPromptItem } from "@/lib/ai/prompts/journal-pool";
 import { computeSequentialAccuracy } from "@/lib/analytics/calibration-sequential";
 import { currentIsoWeekKey } from "@/lib/db/actions";
-import { aiFetch } from "@/lib/api/ai-fetch";
+import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { DomainInput } from "@/components/shared/DomainInput";
@@ -243,7 +243,7 @@ export function SequentialExerciseFlow({
       void putExercise({ ...exercise, userOrderedStepIds: timeline, currentStep: step });
     }, 2000);
     return () => clearTimeout(timer);
-  }, [timeline]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [timeline, step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stepById = useMemo(() => {
     if (!exercise) return new Map<string, string>();
@@ -278,9 +278,10 @@ export function SequentialExerciseFlow({
           adaptiveHints,
         }),
       });
-      const json = (await res.json()) as
+      const json = await safeAiJson<
         | { ok: true; data: SequentialExercisePayload }
-        | { ok: false; error: string };
+        | { ok: false; error: string }
+      >(res);
       if (!json.ok) {
         setError(json.error);
         return;
@@ -426,7 +427,7 @@ export function SequentialExerciseFlow({
           userContext: userContext || undefined,
         }),
       });
-      const json = await res.json();
+      const json = await safeAiJson<unknown>(res);
       const parsed = parsePerspectiveFetchJson(json, "sequential");
       if (!parsed.ok) {
         setError(parsed.error);
@@ -494,7 +495,7 @@ export function SequentialExerciseFlow({
             snippets,
           }),
         });
-        const j = (await res.json()) as { ok: true; line: string | null };
+        const j = await safeAiJson<{ ok: true; line: string | null }>(res);
         if (cancelled || effectId !== journalEffectIdRef.current) return;
         if (j.ok && j.line) setAiRefLine(j.line);
       } catch {
@@ -671,15 +672,22 @@ export function SequentialExerciseFlow({
               .
             </p>
             <AdaptiveSetupHint exerciseType="sequential" />
-            <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
-              {loading ? (
-                <>
-                  <InlineSpinner /> Generating…
-                </>
-              ) : (
-                "Generate exercise"
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
+                {loading ? (
+                  <>
+                    <InlineSpinner /> Generating…
+                  </>
+                ) : (
+                  "Generate exercise"
+                )}
+              </Button>
+              {exercise ? (
+                <Button type="button" variant="secondary" onClick={() => setStep((exercise.currentStep ?? 1) as FlowStep)}>
+                  Continue existing exercise
+                </Button>
+              ) : null}
+            </div>
           </CardContent>
         </Card>
       ) : null}
@@ -761,7 +769,12 @@ export function SequentialExerciseFlow({
               </DragOverlay>
             </DndContext>
             <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(0)}>
+              <Button type="button" variant="secondary" onClick={() => {
+                const updated = { ...exercise, userOrderedStepIds: timeline, currentStep: 1 as const };
+                setExercise(updated);
+                void putExercise(updated);
+                setStep(0);
+              }}>
                 Back
               </Button>
               <Button type="button" variant="secondary" onClick={regenerate}>
@@ -775,7 +788,9 @@ export function SequentialExerciseFlow({
                     setError("Place every step in the timeline before continuing.");
                     return;
                   }
-                  advance(2);
+                  const updated = { ...exercise, userOrderedStepIds: timeline };
+                  setExercise(updated);
+                  advance(2, updated);
                 }}
               >
                 Continue to confidence
@@ -805,7 +820,10 @@ export function SequentialExerciseFlow({
                 type="button"
                 variant="secondary"
                 disabled={loading}
-                onClick={() => setStep(1)}
+                onClick={() => {
+                  void putExercise({ ...exercise, userOrderedStepIds: timeline, currentStep: 1 });
+                  setStep(1);
+                }}
               >
                 Back
               </Button>

@@ -59,7 +59,7 @@ import {
 import { pickJournalPrompts, type JournalPromptItem } from "@/lib/ai/prompts/journal-pool";
 import { computeSystemsAccuracy } from "@/lib/analytics/calibration-systems";
 import { currentIsoWeekKey } from "@/lib/db/actions";
-import { aiFetch } from "@/lib/api/ai-fetch";
+import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { DomainInput } from "@/components/shared/DomainInput";
@@ -197,7 +197,7 @@ export function SystemsExerciseFlow({
       void putExercise({ ...exercise, userEdges, nodeImpact, currentStep: step });
     }, 2000);
     return () => clearTimeout(timer);
-  }, [userEdges, nodeImpact]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userEdges, nodeImpact, step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startGenerate = useCallback(async () => {
     setError(null);
@@ -227,9 +227,10 @@ export function SystemsExerciseFlow({
           adaptiveHints,
         }),
       });
-      const json = (await res.json()) as
+      const json = await safeAiJson<
         | { ok: true; data: SystemsExercisePayload | GeopoliticsSystemsExercisePayload }
-        | { ok: false; error: string };
+        | { ok: false; error: string }
+      >(res);
       if (!json.ok) {
         setError(json.error);
         return;
@@ -358,7 +359,7 @@ export function SystemsExerciseFlow({
         userPerspectiveBNotes: notes ?? exercise.userPerspectiveBNotes,
       }),
     });
-    const json = await res.json();
+    const json = await safeAiJson<unknown>(res);
     const parsed = parsePerspectiveFetchJson(json, "systems");
     if (!parsed.ok) {
       setError(parsed.error);
@@ -488,7 +489,7 @@ export function SystemsExerciseFlow({
             snippets,
           }),
         });
-        const j = (await res.json()) as { ok: true; line: string | null };
+        const j = await safeAiJson<{ ok: true; line: string | null }>(res);
         if (cancelled || effectId !== journalEffectIdRef.current) return;
         if (j.ok && j.line) setAiRefLine(j.line);
       } catch {
@@ -663,15 +664,22 @@ export function SystemsExerciseFlow({
               .
             </p>
             <AdaptiveSetupHint exerciseType="systems" />
-            <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
-              {loading ? (
-                <>
-                  <InlineSpinner /> Generating…
-                </>
-              ) : (
-                "Generate exercise"
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
+                {loading ? (
+                  <>
+                    <InlineSpinner /> Generating…
+                  </>
+                ) : (
+                  "Generate exercise"
+                )}
+              </Button>
+              {exercise ? (
+                <Button type="button" variant="secondary" onClick={() => setStep((exercise.currentStep ?? 1) as FlowStep)}>
+                  Continue existing exercise
+                </Button>
+              ) : null}
+            </div>
           </CardContent>
         </Card>
       ) : null}
@@ -708,7 +716,12 @@ export function SystemsExerciseFlow({
                   ))}
                 </div>
                 <div className="flex gap-2">
-                  <Button type="button" variant="secondary" onClick={() => setStep(0)}>
+                  <Button type="button" variant="secondary" onClick={() => {
+                    const updated = { ...exercise, userEdges, nodeImpact, currentStep: 1 as const };
+                    setExercise(updated);
+                    void putExercise(updated);
+                    setStep(0);
+                  }}>
                     Back
                   </Button>
                   <Button
@@ -826,7 +839,10 @@ export function SystemsExerciseFlow({
               </ul>
             ) : null}
             <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(1)}>
+              <Button type="button" variant="secondary" onClick={() => {
+                void putExercise({ ...exercise, userEdges, nodeImpact, currentStep: 1 });
+                setStep(1);
+              }}>
                 Back
               </Button>
               <Button type="button" variant="secondary" onClick={regenerate}>
@@ -872,11 +888,18 @@ export function SystemsExerciseFlow({
                 type="button"
                 variant="secondary"
                 disabled={loading}
-                onClick={() => setStep(2)}
+                onClick={() => {
+                  void putExercise({ ...exercise, userEdges, nodeImpact, currentStep: 2 });
+                  setStep(2);
+                }}
               >
                 Back
               </Button>
-              <Button type="button" onClick={() => advance(4)}>
+              <Button type="button" onClick={() => {
+                const updated = { ...exercise, userEdges, nodeImpact };
+                setExercise(updated);
+                advance(4, updated);
+              }}>
                 Continue to shock
               </Button>
             </div>
@@ -909,7 +932,10 @@ export function SystemsExerciseFlow({
               }}
             />
             <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(3)}>
+              <Button type="button" variant="secondary" onClick={() => {
+                void putExercise({ ...exercise, userEdges, nodeImpact, currentStep: 3 });
+                setStep(3);
+              }}>
                 Back
               </Button>
               <Button type="button" disabled={loading} onClick={() => void finishShockStep()}>

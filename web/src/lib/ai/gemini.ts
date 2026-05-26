@@ -22,6 +22,7 @@ function getGeminiApiKey(): string {
 export async function generateAnalyticalExerciseRaw(
   fullPrompt: string,
   modelName: GeminiModel = "fast",
+  timeoutMs: number = 25_000,
 ): Promise<string> {
   const apiKey = getGeminiApiKey();
   const modelId = MODEL_IDS[modelName];
@@ -33,7 +34,7 @@ export async function generateAnalyticalExerciseRaw(
       responseMimeType: "application/json",
     },
   });
-  const result = await model.generateContent(fullPrompt);
+  const result = await model.generateContent(fullPrompt, { timeout: timeoutMs });
   const text = result.response.text();
   if (!text) {
     throw new Error("Empty response from Gemini");
@@ -45,6 +46,7 @@ export async function generateAnalyticalExerciseRaw(
 export async function generatePlainTextRaw(
   fullPrompt: string,
   modelName: GeminiModel = "fast",
+  timeoutMs: number = 25_000,
 ): Promise<string> {
   const apiKey = getGeminiApiKey();
   const modelId = MODEL_IDS[modelName];
@@ -55,7 +57,7 @@ export async function generatePlainTextRaw(
       temperature: 0.45,
     },
   });
-  const result = await model.generateContent(fullPrompt);
+  const result = await model.generateContent(fullPrompt, { timeout: timeoutMs });
   const text = result.response.text();
   if (!text) {
     throw new Error("Empty response from Gemini");

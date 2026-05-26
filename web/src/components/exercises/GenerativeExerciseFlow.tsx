@@ -49,7 +49,7 @@ import { pickJournalPrompts, type JournalPromptItem } from "@/lib/ai/prompts/jou
 import { generativeRubricToAccuracy } from "@/lib/analytics/calibration-generative";
 import { currentIsoWeekKey } from "@/lib/db/actions";
 import { getGenerativeStageFromCompletedCount } from "@/lib/generative-scaffold";
-import { aiFetch } from "@/lib/api/ai-fetch";
+import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import type { DebateChatMessage } from "@/lib/ai/prompts/generative-debate";
@@ -226,7 +226,7 @@ export function GenerativeExerciseFlow({
       });
     }, 2000);
     return () => clearTimeout(timer);
-  }, [answers, steelmanText]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [answers, steelmanText, step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mergedExercise = useCallback((): GenerativeExerciseRow | null => {
     if (!exercise) return null;
@@ -271,9 +271,10 @@ export function GenerativeExerciseFlow({
           adaptiveHints,
         }),
       });
-      const json = (await res.json()) as
+      const json = await safeAiJson<
         | { ok: true; data: GenerativeExercisePayload }
-        | { ok: false; error: string };
+        | { ok: false; error: string }
+      >(res);
       if (!json.ok) {
         setError(json.error);
         return;
@@ -369,7 +370,7 @@ export function GenerativeExerciseFlow({
             isGeopolitics: exercise.isGeopolitics === true,
           }),
         });
-        const json = (await res.json()) as { ok: true; text: string } | { ok: false; error: string };
+        const json = await safeAiJson<{ ok: true; text: string } | { ok: false; error: string }>(res);
         if (cancelled || effectId !== debateEffectIdRef.current) return;
         if (!json.ok) {
           setError(json.error);
@@ -432,7 +433,7 @@ export function GenerativeExerciseFlow({
           isGeopolitics: exercise.isGeopolitics === true,
         }),
       });
-      const json = (await res.json()) as { ok: true; text: string } | { ok: false; error: string };
+      const json = await safeAiJson<{ ok: true; text: string } | { ok: false; error: string }>(res);
       if (!json.ok) {
         setError(json.error);
         return;
@@ -491,7 +492,7 @@ export function GenerativeExerciseFlow({
           userContext: userContext || undefined,
         }),
       });
-      const pjRaw = await res.json();
+      const pjRaw = await safeAiJson<unknown>(res);
       const pj = parsePerspectiveFetchJson(pjRaw, "generative");
       if (!pj.ok) {
         setError(pj.error);
@@ -555,7 +556,7 @@ export function GenerativeExerciseFlow({
             snippets,
           }),
         });
-        const j = (await res.json()) as { ok: true; line: string | null };
+        const j = await safeAiJson<{ ok: true; line: string | null }>(res);
         if (cancelled || effectId !== journalEffectIdRef.current) return;
         if (j.ok && j.line) setAiRefLine(j.line);
       } catch {
@@ -729,15 +730,22 @@ export function GenerativeExerciseFlow({
               .
             </p>
             <AdaptiveSetupHint exerciseType="generative" />
-            <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
-              {loading ? (
-                <>
-                  <InlineSpinner /> Generating…
-                </>
-              ) : (
-                "Generate exercise"
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
+                {loading ? (
+                  <>
+                    <InlineSpinner /> Generating…
+                  </>
+                ) : (
+                  "Generate exercise"
+                )}
+              </Button>
+              {exercise ? (
+                <Button type="button" variant="secondary" onClick={() => setStep((exercise.currentStep ?? 1) as FlowStep)}>
+                  Continue existing exercise
+                </Button>
+              ) : null}
+            </div>
           </CardContent>
         </Card>
       ) : null}
@@ -815,7 +823,12 @@ export function GenerativeExerciseFlow({
               </div>
             ))}
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(0)}>
+              <Button type="button" variant="secondary" onClick={() => {
+                const updated = { ...exercise, answers, steelmanText: steelmanText.trim() || null, currentStep: 1 as const };
+                setExercise(updated);
+                void putExercise(updated);
+                setStep(0);
+              }}>
                 Back
               </Button>
               <Button type="button" variant="secondary" onClick={regenerate}>
@@ -823,7 +836,11 @@ export function GenerativeExerciseFlow({
               </Button>
               <Button
                 type="button"
-                onClick={() => advance(2)}
+                onClick={() => {
+                  const updated = { ...exercise, answers, steelmanText: steelmanText.trim() || null };
+                  setExercise(updated);
+                  advance(2, updated);
+                }}
                 disabled={
                   !rowForWriteGate ||
                   !allPromptsNonEmpty(rowForWriteGate, 1) ||
@@ -877,12 +894,19 @@ export function GenerativeExerciseFlow({
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(1)}>
+              <Button type="button" variant="secondary" onClick={() => {
+                void putExercise({ ...exercise, answers, steelmanText: steelmanText.trim() || null, currentStep: 1 as const });
+                setStep(1);
+              }}>
                 Back
               </Button>
               <Button
                 type="button"
-                onClick={() => advance(3)}
+                onClick={() => {
+                  const updated = { ...exercise, answers, steelmanText: steelmanText.trim() || null };
+                  setExercise(updated);
+                  advance(3, updated);
+                }}
                 disabled={steelmanText.trim().length < 50}
               >
                 Continue to confidence
@@ -912,7 +936,10 @@ export function GenerativeExerciseFlow({
                 type="button"
                 variant="secondary"
                 disabled={loading}
-                onClick={() => setStep(2)}
+                onClick={() => {
+                  void putExercise({ ...exercise, answers, steelmanText: steelmanText.trim() || null, currentStep: 2 as const });
+                  setStep(2);
+                }}
               >
                 Back
               </Button>

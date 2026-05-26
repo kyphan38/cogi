@@ -121,7 +121,7 @@ describe("POST /api/ai/generative-rubric", () => {
 
   it("returns 500 on AI generation failure", async () => {
     authOk();
-    mockGenerateRaw.mockRejectedValue(new Error("timeout"));
+    mockGenerateRaw.mockRejectedValue(new Error("model overloaded"));
     const res = await POST(makeRequest({ exercise: validExercise }));
     expect(res.status).toBe(500);
   });

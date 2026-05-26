@@ -14,7 +14,7 @@ import {
   getPerspectiveViewModel,
   getStructuredPerspectiveSections,
 } from "@/lib/perspective/format-structured";
-import { aiFetch } from "@/lib/api/ai-fetch";
+import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import {
   listPerspectiveDisagreementsForExercise,
   putPerspectiveDisagreement,
@@ -95,13 +95,14 @@ function PerspectiveDisagreeRow(props: {
           userReason: trimmed,
         }),
       });
-      const data = (await res.json()) as
+      const data = await safeAiJson<
         | {
             ok: true;
             text: string;
             saved?: { saved: true; id: string; path: string; savedAt: string };
           }
-        | { ok: false; error: string };
+        | { ok: false; error: string }
+      >(res);
       if (!data.ok) {
         setError(data.error);
         return;
