@@ -59,6 +59,7 @@ import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { sanitizeRealDataText } from "@/lib/text/sanitizeRealData";
 import { sanitizeUserPasteOrClipboard } from "@/lib/text/sanitizeRealDataBrowser";
 import { DomainInput } from "@/components/shared/DomainInput";
+import { TopicSuggestionPicker } from "@/components/shared/TopicSuggestionPicker";
 import { listRecentDomains } from "@/lib/db/exercises";
 import { isAnalyticalExercise } from "@/lib/types/exercise";
 import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
@@ -114,6 +115,7 @@ export function AnalyticalExerciseFlow({
   const [missingActorGuess2, setMissingActorGuess2] = useState("");
 
   const [mode, setMode] = useState<"generated" | "real_data" | "custom_scenario">(initialSource ?? "generated");
+  const [entryMode, setEntryMode] = useState<"suggested" | "manual">(initialDomain ? "manual" : "suggested");
   const [customScenarioText, setCustomScenarioText] = useState("");
   const [realText, setRealText] = useState("");
   const [realWordCount, setRealWordCount] = useState(0);
@@ -175,17 +177,22 @@ export function AnalyticalExerciseFlow({
     return () => clearTimeout(timer);
   }, [highlights, step]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const startGenerate = useCallback(async () => {
+  const startGenerate = useCallback(async (
+    domainOverride?: string,
+    modeOverride?: "generated" | "real_data" | "custom_scenario",
+  ) => {
     setError(null);
     setPasteNotice(null);
+    const domainInput = domainOverride ?? domain;
+    const effectiveMode = modeOverride ?? mode;
 
     let effectiveDomain: string;
     let customScenarioBody: string | undefined;
 
-    if (mode === "custom_scenario") {
+    if (effectiveMode === "custom_scenario") {
       const r = resolveDomainAndScenario({
         mode: "custom_scenario",
-        domain,
+        domain: domainInput,
         customScenario: customScenarioText,
       });
       if (!r.ok) {
@@ -195,7 +202,7 @@ export function AnalyticalExerciseFlow({
       effectiveDomain = r.effectiveDomain;
       customScenarioBody = r.customScenarioOut;
     } else {
-      const d = domain.trim();
+      const d = domainInput.trim();
       if (!d) {
         setError("Enter a domain.");
         return;
@@ -204,7 +211,7 @@ export function AnalyticalExerciseFlow({
     }
 
     let sanitizedUserText: string | undefined;
-    if (mode === "real_data") {
+    if (effectiveMode === "real_data") {
       const trimmed = realText.trim();
       if (!trimmed) {
         setError("Paste your text before generating an exercise.");
@@ -230,7 +237,7 @@ export function AnalyticalExerciseFlow({
     setLoading(true);
     try {
       const userContext = await getUserContext();
-      const userTextForReal = mode === "real_data" ? sanitizedUserText : undefined;
+      const userTextForReal = effectiveMode === "real_data" ? sanitizedUserText : undefined;
       const adaptiveHints = await buildAdaptiveHintsForRequest("analytical");
       const res = await aiFetch("/api/ai", {
         method: "POST",
@@ -239,8 +246,8 @@ export function AnalyticalExerciseFlow({
           domain: effectiveDomain,
           userContext: userContext || undefined,
           exerciseType: "analytical",
-          mode,
-          userText: mode === "real_data" ? userTextForReal : undefined,
+          mode: effectiveMode,
+          userText: effectiveMode === "real_data" ? userTextForReal : undefined,
           customScenario: customScenarioBody,
           adaptiveHints,
         }),
@@ -261,10 +268,10 @@ export function AnalyticalExerciseFlow({
         type: "analytical",
         domain: effectiveDomain,
         customScenario: customScenarioBody,
-        source: mode === "real_data" ? "real_data" : "ai",
+        source: effectiveMode === "real_data" ? "real_data" : "ai",
         title: data.title,
         passage: data.passage,
-        originalUserText: mode === "real_data" ? (sanitizedUserText ?? null) : null,
+        originalUserText: effectiveMode === "real_data" ? (sanitizedUserText ?? null) : null,
         isSoundReasoning: data.isSoundReasoning === true,
         isGeopolitics,
         hiddenPerspective: data.hiddenPerspective,
@@ -603,6 +610,37 @@ export function AnalyticalExerciseFlow({
           title="Analytical exercise"
           description="Generate a passage, then highlight and tag issues before reflecting."
         >
+            <div className="flex gap-1.5">
+              <Button
+                type="button"
+                size="sm"
+                variant={entryMode === "suggested" ? "default" : "outline"}
+                onClick={() => setEntryMode("suggested")}
+              >
+                Suggested topics
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={entryMode === "manual" ? "default" : "outline"}
+                onClick={() => setEntryMode("manual")}
+              >
+                Type your own
+              </Button>
+            </div>
+
+            {entryMode === "suggested" ? (
+              <TopicSuggestionPicker
+                area="analytical"
+                kind="exercise"
+                onPick={({ title }) => {
+                  setMode("generated");
+                  setDomain(title);
+                  void startGenerate(title, "generated");
+                }}
+              />
+            ) : (
+              <>
             <div className="grid gap-2">
               <Label>{mode === "custom_scenario" ? "Domain (optional)" : "Domain"}</Label>
               <DomainInput
@@ -760,7 +798,7 @@ export function AnalyticalExerciseFlow({
             </p>
             <AdaptiveSetupHint exerciseType="analytical" />
             <div className="flex gap-2">
-              <Button type="button" disabled={loading} onClick={startGenerate}>
+              <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
                 {loading ? (
                   <>
                     <InlineSpinner /> Generating…
@@ -775,6 +813,8 @@ export function AnalyticalExerciseFlow({
                 </Button>
               ) : null}
             </div>
+              </>
+            )}
         </ExerciseStepCard>
       ) : null}
 

@@ -70,6 +70,7 @@ import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { DomainInput } from "@/components/shared/DomainInput";
+import { TopicSuggestionPicker } from "@/components/shared/TopicSuggestionPicker";
 import { listRecentDomains } from "@/lib/db/exercises";
 import { isSequentialExercise } from "@/lib/types/exercise";
 import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
@@ -168,6 +169,7 @@ export function SequentialExerciseFlow({
   const [setupMode, setSetupMode] = useState<"generated" | "custom_scenario">(
     initialSource === "custom_scenario" ? "custom_scenario" : "generated",
   );
+  const [entryMode, setEntryMode] = useState<"suggested" | "manual">(initialDomain ? "manual" : "suggested");
   const [customScenarioText, setCustomScenarioText] = useState("");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -250,11 +252,15 @@ export function SequentialExerciseFlow({
     return new Map(exercise.steps.map((s) => [s.id, s.text]));
   }, [exercise]);
 
-  const startGenerate = useCallback(async () => {
+  const startGenerate = useCallback(async (
+    domainOverride?: string,
+    modeOverride?: "generated" | "custom_scenario",
+  ) => {
     setError(null);
+    const effectiveSetupMode = modeOverride ?? setupMode;
     const resolved = resolveDomainAndScenario({
-      mode: setupMode,
-      domain,
+      mode: effectiveSetupMode,
+      domain: domainOverride ?? domain,
       customScenario: customScenarioText,
     });
     if (!resolved.ok) {
@@ -273,7 +279,7 @@ export function SequentialExerciseFlow({
           domain: d,
           userContext: userContext || undefined,
           exerciseType: "sequential",
-          mode: setupMode,
+          mode: effectiveSetupMode,
           customScenario: customScenarioOut,
           adaptiveHints,
         }),
@@ -621,6 +627,37 @@ export function SequentialExerciseFlow({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+            <div className="flex gap-1.5">
+              <Button
+                type="button"
+                size="sm"
+                variant={entryMode === "suggested" ? "default" : "outline"}
+                onClick={() => setEntryMode("suggested")}
+              >
+                Suggested topics
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={entryMode === "manual" ? "default" : "outline"}
+                onClick={() => setEntryMode("manual")}
+              >
+                Type your own
+              </Button>
+            </div>
+
+            {entryMode === "suggested" ? (
+              <TopicSuggestionPicker
+                area="sequential"
+                kind="exercise"
+                onPick={({ title }) => {
+                  setSetupMode("generated");
+                  setDomain(title);
+                  void startGenerate(title, "generated");
+                }}
+              />
+            ) : (
+              <>
             <div className="grid gap-2">
               <Label>{setupMode === "custom_scenario" ? "Domain (optional)" : "Domain"}</Label>
               <DomainInput
@@ -688,6 +725,8 @@ export function SequentialExerciseFlow({
                 </Button>
               ) : null}
             </div>
+              </>
+            )}
           </CardContent>
         </Card>
       ) : null}

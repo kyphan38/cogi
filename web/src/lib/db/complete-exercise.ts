@@ -4,6 +4,8 @@ import { getFirebaseFirestore } from "@/lib/auth/firebase-client";
 import { COGI_COLLECTIONS, userDocRef } from "@/lib/db/firestore";
 import { stripUndefinedDeep } from "@/lib/db/strip-undefined-deep";
 import { getAppSettings } from "@/lib/db/settings";
+import { recordPracticedTopic } from "@/lib/db/practiced-topics";
+import type { PracticedTopicArea } from "@/lib/types/practiced-topic";
 import type { Exercise } from "@/lib/types/exercise";
 import type { JournalEntry } from "@/lib/types/journal";
 import type { ActionBridge } from "@/lib/types/action";
@@ -70,5 +72,19 @@ export async function completeExerciseFlow(input: {
       "[completeExerciseFlow] weakness recording failed (exercise saved ok):",
       e,
     );
+  }
+  if (input.exercise.type !== "combo" && input.exercise.domain?.trim()) {
+    try {
+      await recordPracticedTopic({
+        area: input.exercise.type as PracticedTopicArea,
+        title: input.exercise.domain,
+        origin: "manual",
+      });
+    } catch (e) {
+      console.error(
+        "[completeExerciseFlow] practiced-topic recording failed (exercise saved ok):",
+        e,
+      );
+    }
   }
 }

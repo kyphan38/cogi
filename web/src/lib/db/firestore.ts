@@ -25,6 +25,7 @@ export const COGI_COLLECTIONS = {
   exercises: "exercises",
   journalEntries: "journalEntries",
   perspectiveDisagreements: "perspectiveDisagreements",
+  practicedTopics: "practicedTopics",
   settings: "settings",
   weaknesses: "weaknesses",
   weeklyReviews: "weeklyReviews",
