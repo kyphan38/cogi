@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 export type GeminiModel = "fast" | "thinking";
 
 const MODEL_IDS: Record<GeminiModel, string> = {
-  fast: process.env.GEMINI_MODEL_FAST ?? process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
+  fast: process.env.GEMINI_MODEL_FAST ?? process.env.GEMINI_MODEL ?? "gemini-3.5-flash",
   thinking: process.env.GEMINI_MODEL_THINKING ?? "gemini-3.5-flash",
 };
 
