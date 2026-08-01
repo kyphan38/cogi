@@ -39,12 +39,15 @@ export default function MathModuleDashboard() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <main className="mx-auto max-w-3xl p-4 sm:p-6 lg:max-w-5xl">
       <div className="mb-6">
         <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Math & Scenarios</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Applied reasoning, expected value, and calibration practice.
+        </p>
       </div>
 
-      <section className="space-y-3">
+      <section className="mb-8 space-y-3">
         <p className="font-tracker text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
           Topic Areas
         </p>
@@ -64,7 +67,7 @@ export default function MathModuleDashboard() {
         </div>
       </section>
 
-      <section className="space-y-2">
+      <section className="mb-8 space-y-3">
         <p className="font-tracker text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
           Calibration Subsystem
         </p>
@@ -75,7 +78,7 @@ export default function MathModuleDashboard() {
         )}
       </section>
 
-      <section className="space-y-3 pt-2">
+      <section className="space-y-3">
         <div className="flex items-center justify-between">
           <p className="font-tracker text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
             Expected Value Scenarios
@@ -126,6 +129,6 @@ export default function MathModuleDashboard() {
           ))}
         </div>
       </section>
-    </div>
+    </main>
   );
 }
