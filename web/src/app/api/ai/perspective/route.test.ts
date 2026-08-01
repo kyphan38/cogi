@@ -52,7 +52,7 @@ beforeEach(() => {
   vi.stubEnv("GEMINI_API_KEY", "test-key");
 });
 
-describe("POST /api/ai/perspective — common", () => {
+describe("POST /api/ai/perspective - common", () => {
   it("returns 401 when auth fails", async () => {
     authFail();
     const res = await POST(makeRequest({}));
@@ -74,7 +74,7 @@ describe("POST /api/ai/perspective — common", () => {
   });
 });
 
-describe("POST /api/ai/perspective — analytical", () => {
+describe("POST /api/ai/perspective - analytical", () => {
   it("returns 400 when required fields are missing", async () => {
     authOk();
     const res = await POST(makeRequest({ kind: "analytical" }));
@@ -120,7 +120,7 @@ describe("POST /api/ai/perspective — analytical", () => {
   });
 });
 
-describe("POST /api/ai/perspective — sequential", () => {
+describe("POST /api/ai/perspective - sequential", () => {
   it("returns 400 when required fields are missing", async () => {
     authOk();
     const res = await POST(makeRequest({ kind: "sequential", title: "", scenario: "" }));
@@ -146,7 +146,7 @@ describe("POST /api/ai/perspective — sequential", () => {
   });
 });
 
-describe("POST /api/ai/perspective — systems", () => {
+describe("POST /api/ai/perspective - systems", () => {
   it("returns 400 when required fields are missing", async () => {
     authOk();
     const res = await POST(makeRequest({ kind: "systems", title: "T" }));
@@ -180,7 +180,7 @@ describe("POST /api/ai/perspective — systems", () => {
   });
 });
 
-describe("POST /api/ai/perspective — evaluative-matrix", () => {
+describe("POST /api/ai/perspective - evaluative-matrix", () => {
   it("returns 400 when exercise variant is wrong", async () => {
     authOk();
     const res = await POST(
@@ -222,7 +222,7 @@ describe("POST /api/ai/perspective — evaluative-matrix", () => {
   });
 });
 
-describe("POST /api/ai/perspective — generative", () => {
+describe("POST /api/ai/perspective - generative", () => {
   it("returns 400 when exercise type is wrong", async () => {
     authOk();
     const res = await POST(

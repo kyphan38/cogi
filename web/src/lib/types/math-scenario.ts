@@ -45,17 +45,17 @@ export interface Scenario {
   topic: Topic;
   title: string;
 
-  // STEP 1 — DROP
+  // STEP 1 - DROP
   situation: string;
 
-  // STEP 2 — COMMIT (Machine-checkable)
+  // STEP 2 - COMMIT (Machine-checkable)
   commitSpec: MachineCheckableCommitSpec;
 
-  // STEP 3 — STRUGGLE (Tutor-safe guidance)
+  // STEP 3 - STRUGGLE (Tutor-safe guidance)
   keyTraps: string[];
   hintLadder: string[];
 
-  // STEP 4 — REVEAL
+  // STEP 4 - REVEAL
   canonicalAnswer: string;
   explanation: string;
   toolName: string;

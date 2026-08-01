@@ -10,7 +10,7 @@ const PROBABILITY_SUM_EPSILON = 1e-9;
  * which is only ever handed this result to discuss, never asked to compute it).
  *
  * Refuses to compute a number from an incoherent branch distribution (missing branches,
- * an out-of-range probability, or probabilities that don't sum to 100%) — see `validity`.
+ * an out-of-range probability, or probabilities that don't sum to 100%) - see `validity`.
  * A silently-clamped or silently-wrong EV would defeat the point of a rigor-teaching tool.
  */
 export function computeSandboxEv(input: SandboxDecisionInput): SandboxEvResult {
@@ -33,7 +33,7 @@ export function computeSandboxEv(input: SandboxDecisionInput): SandboxEvResult {
 
   const ruinFlag = input.oneShot && worstLoss > input.reserves;
   const ruinReason = ruinFlag
-    ? `This is marked one-shot, and the worst branch loses ${formatUsd(worstLoss)}, which exceeds your stated reserves of ${formatUsd(input.reserves)}. A positive average does not protect you from an outcome you can't survive — expected value alone is not sufficient here.`
+    ? `This is marked one-shot, and the worst branch loses ${formatUsd(worstLoss)}, which exceeds your stated reserves of ${formatUsd(input.reserves)}. A positive average does not protect you from an outcome you can't survive - expected value alone is not sufficient here.`
     : null;
 
   return { ev, ruinFlag, ruinReason, validity };
@@ -48,7 +48,7 @@ function validateBranches(branches: SandboxBranch[]): SandboxValidity {
     if (b.probability < 0 || b.probability > 1) {
       return {
         ok: false,
-        reason: `"${b.label}" has an invalid probability (${formatPct(b.probability)}) — each branch's probability must be between 0% and 100%.`,
+        reason: `"${b.label}" has an invalid probability (${formatPct(b.probability)}) - each branch's probability must be between 0% and 100%.`,
       };
     }
   }
@@ -57,7 +57,7 @@ function validateBranches(branches: SandboxBranch[]): SandboxValidity {
   if (Math.abs(sum - 1) > PROBABILITY_SUM_EPSILON) {
     return {
       ok: false,
-      reason: `Branch probabilities sum to ${formatPct(sum)}, not 100% — the branches must fully partition the outcome space.`,
+      reason: `Branch probabilities sum to ${formatPct(sum)}, not 100% - the branches must fully partition the outcome space.`,
     };
   }
 

@@ -13,16 +13,16 @@ export interface ExistingReasoningMove {
  */
 export function buildScenarioAuthoringPrompt(existingMoves: ExistingReasoningMove[]): string {
   const existingList = existingMoves
-    .map((m, i) => `${i + 1}. [${m.topic}] "${m.toolName}" — ${m.reasoningMove}`)
+    .map((m, i) => `${i + 1}. [${m.topic}] "${m.toolName}" - ${m.reasoningMove}`)
     .join("\n");
 
-  return `SYSTEM PROMPT — SCENARIO DRAFT AUTHOR (UNVERIFIED DRAFT, NOT LIVE CONTENT)
+  return `SYSTEM PROMPT - SCENARIO DRAFT AUTHOR (UNVERIFIED DRAFT, NOT LIVE CONTENT)
 
 You are drafting ONE new scenario for an applied-reasoning training module. This is a DRAFT
 that a human will review, verify with an independent calculation, and only then may promote
 to the live catalog. Nothing you produce here is shown to a learner automatically.
 
-[REASONING MOVES ALREADY IN THE LIVE CATALOG — DO NOT REPEAT ANY OF THESE]
+[REASONING MOVES ALREADY IN THE LIVE CATALOG - DO NOT REPEAT ANY OF THESE]
 ${existingList || "(none yet)"}
 
 CRITICAL OPERATIONAL RULES (violating any of these voids the draft):
@@ -31,20 +31,20 @@ CRITICAL OPERATIONAL RULES (violating any of these voids the draft):
    distinct from every entry listed above. A scenario that is just another
    probability-times-payoff calculation dressed in a new cover story is a clone and will be
    rejected, even if the toolName string is different. In your "notes" field (see JSON shape
-   below — this field is stripped before promotion and exists only for the human reviewer),
+   below - this field is stripped before promotion and exists only for the human reviewer),
    explicitly state: (a) which reasoning move this is, and (b) one sentence on how it differs
    structurally from every scenario listed above.
 
 2. NEUTRAL OPTION LABELS: An option label must never contain the insight the user is
    supposed to reach. If someone who does not understand the concept could pick the correct
    option from the labels alone, the draft is void. Labels state bare choices only (e.g.
-   "Accept the contract" / "Decline the contract") — never include words like "optimal",
+   "Accept the contract" / "Decline the contract") - never include words like "optimal",
    "correct", the computed answer, or the reasoning frame in a label. A label MAY include a
    dollar figure or percentage ONLY when that number is part of describing the action itself
    (e.g. "Pay $60,000 for a study"), never a hint about the result.
 
 3. ANSWER MUST BE DERIVED, NOT ASSERTED: "explanation" must show the actual arithmetic that
-   produces "canonicalAnswer" and the commitSpec's correct target — numbers, an operator, an
+   produces "canonicalAnswer" and the commitSpec's correct target - numbers, an operator, an
    "=", step by step. A one-line assertion with no visible calculation is void.
 
 4. SELF-CONTAINED: "situation" must contain every number the user needs to reach the
@@ -52,7 +52,7 @@ CRITICAL OPERATIONAL RULES (violating any of these voids the draft):
    one narrow exception: if the scenario's lesson is specifically about a hidden/comparative
    base rate the user should not have (an "inside view vs. reference class" trap), it is
    acceptable to withhold only that specific correcting number from "situation" and reveal it
-   in "explanation" — but say so explicitly in "notes" if you do this.
+   in "explanation" - but say so explicitly in "notes" if you do this.
 
 5. commitSpec CORRECTNESS GATE: correctOptionId (or targetValue/tolerance or
    acceptableRange for numeric) must resolve to the SAME choice as canonicalAnswer. Do not

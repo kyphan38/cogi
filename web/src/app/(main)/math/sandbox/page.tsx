@@ -153,11 +153,11 @@ export default function MathSandboxPage() {
         </Link>
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Sandbox</h1>
-          <Badge variant="secondary">Personal practice — not scored</Badge>
+          <Badge variant="secondary">Personal practice - not scored</Badge>
         </div>
         <p className="text-muted-foreground max-w-2xl text-sm">
           Bring a real decision from your own life or work and practice the expected-value
-          frame on it. This is not saved and does not feed your calibration history —
+          frame on it. This is not saved and does not feed your calibration history -
           it&apos;s a space to think, not to be assessed.
         </p>
       </div>
@@ -166,7 +166,7 @@ export default function MathSandboxPage() {
         <CardHeader>
           <CardTitle className="text-base">Describe the decision</CardTitle>
           <CardDescription>
-            Plain language is fine — e.g. &ldquo;should I pay $8k/mo for a second k8s cluster
+            Plain language is fine - e.g. &ldquo;should I pay $8k/mo for a second k8s cluster
             given our outage history.&rdquo;
           </CardDescription>
         </CardHeader>
@@ -196,7 +196,7 @@ export default function MathSandboxPage() {
         <Card>
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <CardTitle className="text-base">Draft structure — edit every number</CardTitle>
+              <CardTitle className="text-base">Draft structure - edit every number</CardTitle>
               <Badge variant="attention">AI draft, unverified</Badge>
             </div>
             {proposal.summary ? <CardDescription>{proposal.summary}</CardDescription> : null}
@@ -209,7 +209,7 @@ export default function MathSandboxPage() {
             ) : null}
             <p className="text-muted-foreground text-xs">
               These probabilities and payoffs are the AI&apos;s best guess, not a fact. You own
-              every number below — challenge and correct them before computing anything.
+              every number below - challenge and correct them before computing anything.
             </p>
 
             <div className="space-y-3">
@@ -325,7 +325,7 @@ export default function MathSandboxPage() {
                 <AlertTitle>Can&apos;t compute an expected value yet</AlertTitle>
                 <AlertDescription>
                   {result.validity.reason}{" "}
-                  Fix the branch probabilities above and compute again — a number computed
+                  Fix the branch probabilities above and compute again - a number computed
                   from an incoherent distribution isn&apos;t a real answer, so none is shown.
                 </AlertDescription>
               </Alert>
@@ -350,7 +350,7 @@ export default function MathSandboxPage() {
 
                 <div className="space-y-3">
                   <p className="text-muted-foreground text-xs">
-                    Discuss the result below — the AI will question and connect concepts, but it
+                    Discuss the result below - the AI will question and connect concepts, but it
                     cannot change the number above.
                   </p>
                   <div className="border-border bg-muted/30 max-h-72 min-h-32 space-y-3 overflow-y-auto rounded-lg border p-3">

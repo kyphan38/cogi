@@ -347,7 +347,7 @@ export function HomeContent() {
         ) : null}
         {recommendations && topic.trim() ? (
           <p className="text-muted-foreground text-xs">
-            Recommended order for <span className="font-medium text-zinc-700">{topic.trim()}</span> — pick any mode, or{" "}
+            Recommended order for <span className="font-medium text-zinc-700">{topic.trim()}</span> - pick any mode, or{" "}
             <button
               type="button"
               className="underline hover:text-zinc-900"

@@ -162,7 +162,7 @@ export async function stageTextInPassage(page: Page): Promise<void> {
   await page.waitForTimeout(200);
 }
 
-/** Second tap on staged selection — opens floating tag picker. */
+/** Second tap on staged selection - opens floating tag picker. */
 export async function confirmPassageSelection(page: Page): Promise<void> {
   await page.waitForTimeout(400);
   await page.getByTestId("text-passage").dispatchEvent("pointerup");

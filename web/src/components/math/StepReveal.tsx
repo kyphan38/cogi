@@ -28,7 +28,7 @@ export function StepReveal({ scenario, isCorrect, onProceedToTeachBack }: StepRe
         <CardContent className="space-y-5">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-              Step 4 — Reveal &amp; name the tool
+              Step 4 - Reveal &amp; name the tool
             </span>
             <Badge variant={isCorrect ? "positive" : "attention"}>
               {isCorrect ? "Prediction aligned ✓" : "Intuition trap identified"}

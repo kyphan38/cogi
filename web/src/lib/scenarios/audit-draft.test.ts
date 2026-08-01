@@ -31,7 +31,7 @@ function validBaselineScenario(overrides: Partial<Scenario> = {}): Scenario {
   };
 }
 
-describe("auditScenarioDraft — regression against the 4 live scenarios", () => {
+describe("auditScenarioDraft - regression against the 4 live scenarios", () => {
   it.each(expectedValueScenarios)("$id passes the automated audit against its siblings", (scenario) => {
     const siblings = expectedValueScenarios.filter((s) => s.id !== scenario.id);
     const result = auditScenarioDraft(scenario, siblings);
@@ -40,7 +40,7 @@ describe("auditScenarioDraft — regression against the 4 live scenarios", () =>
   });
 });
 
-describe("auditScenarioDraft — synthetic failures", () => {
+describe("auditScenarioDraft - synthetic failures", () => {
   it("passes a well-formed, distinct draft", () => {
     const result = auditScenarioDraft(validBaselineScenario(), expectedValueScenarios);
     expect(result.pass).toBe(true);

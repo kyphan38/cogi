@@ -1,6 +1,6 @@
 /**
  * Drafts ONE new scenario via the model and writes it, UNVERIFIED, to
- * src/lib/scenarios/drafts/ — never into the live registry.
+ * src/lib/scenarios/drafts/ - never into the live registry.
  *
  * Run: npm run scenarios:author
  *
@@ -101,7 +101,7 @@ async function main(): Promise<void> {
   const draftFile = `import type { Scenario } from "@/lib/types/math-scenario";
 
 /**
- * UNVERIFIED AI DRAFT — never imported by the app. See ../drafts/README.md.
+ * UNVERIFIED AI DRAFT - never imported by the app. See ../drafts/README.md.
  * This scenario is invisible to learners until a human runs:
  *   npm run scenarios:promote -- ${scenario.id} --confirm
  * and that script's gate (verifier + audit + explicit confirmation) passes.
@@ -122,14 +122,14 @@ export const draft: Scenario = ${JSON.stringify(scenario, null, 2)};
 // TODO(human): write a Monte Carlo (or independently-derived closed-form) verification that
 // drafts/${scenario.id}.ts's canonicalAnswer / commitSpec target is actually correct, by
 // simulating the situation and comparing an empirical result to the drafted answer within a
-// stated tolerance — mirroring src/lib/scenarios/expected-value.test.ts's VoI simulation.
+// stated tolerance - mirroring src/lib/scenarios/expected-value.test.ts's VoI simulation.
 //
 // This verifier must NOT be written by the same model that drafted the scenario: an AI
 // grading its own drafted answer proves nothing. A human writes or reviews this file.
 //
 // Delete this placeholder once a real assertion exists. Until then, promotion stays
 // blocked (scripts/promote-scenario.ts refuses while the sentinel below is present).
-describe("${scenario.id} verifier (STUB — not yet implemented)", () => {
+describe("${scenario.id} verifier (STUB - not yet implemented)", () => {
   it("has not been verified yet", () => {
     throw new Error(${JSON.stringify(NOT_IMPLEMENTED_SENTINEL)});
   });

@@ -34,13 +34,13 @@ export function buildTopicSuggestionsPrompt(params: {
     const description = EXERCISE_MODE_DESCRIPTIONS[params.area] ?? params.area;
     return `You are a thinking-skills tutor generating concrete practice topics.
 
-Exercise mode: "${params.area}" — ${description}
+Exercise mode: "${params.area}" - ${description}
 
-[TOPICS ALREADY PRACTICED — DO NOT SUGGEST THESE OR CLOSE VARIANTS]
+[TOPICS ALREADY PRACTICED - DO NOT SUGGEST THESE OR CLOSE VARIANTS]
 ${excludeList}
 ${params.userContext ? `\n[USER CONTEXT]\n${params.userContext}\n` : ""}
 Return a JSON array of exactly 5 objects. Each object has:
-- "title": a short, SPECIFIC, concrete practice topic (not a broad domain like "DevOps" — instead something like "Choosing between blue-green and canary deployments during a high-traffic migration"). 6-16 words.
+- "title": a short, SPECIFIC, concrete practice topic (not a broad domain like "DevOps" - instead something like "Choosing between blue-green and canary deployments during a high-traffic migration"). 6-16 words.
 - "blurb": one short sentence (under 20 words) on what makes this topic interesting to practice for this mode.
 
 Titles must be diverse from each other and from the already-practiced list above. Return ONLY the JSON array, no markdown fences, no prose.`;
@@ -50,12 +50,12 @@ Titles must be diverse from each other and from the already-practiced list above
   const exampleTitles = expectedValueScenarios.slice(0, 2).map((s) => s.title);
   return `You are designing applied-reasoning practice scenarios for a math/decision-theory training module.
 
-Topic area: "${params.area}" — ${description}
+Topic area: "${params.area}" - ${description}
 
 Existing scenario titles for calibration on tone/specificity (do not copy):
 ${exampleTitles.map((t) => `- ${t}`).join("\n")}
 
-[TOPICS ALREADY PRACTICED — DO NOT SUGGEST THESE OR CLOSE VARIANTS]
+[TOPICS ALREADY PRACTICED - DO NOT SUGGEST THESE OR CLOSE VARIANTS]
 ${excludeList}
 ${params.userContext ? `\n[USER CONTEXT]\n${params.userContext}\n` : ""}
 Return a JSON array of exactly 5 objects. Each object has:

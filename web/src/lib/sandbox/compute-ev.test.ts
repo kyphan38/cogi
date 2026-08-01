@@ -102,7 +102,7 @@ describe("computeSandboxEv", () => {
   });
 });
 
-describe("computeSandboxEv — invalid probability inputs", () => {
+describe("computeSandboxEv - invalid probability inputs", () => {
   it("flags zero branches instead of computing an EV", () => {
     const result = computeSandboxEv(baseInput({ branches: [] }));
     expect(result.validity.ok).toBe(false);

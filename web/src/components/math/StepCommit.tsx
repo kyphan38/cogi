@@ -67,7 +67,7 @@ export function StepCommit({ scenario, onCommit, onStruggle }: StepCommitProps) 
         <CardContent className="space-y-5">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-              Step 2 — Commit prediction (hard gate)
+              Step 2 - Commit prediction (hard gate)
             </span>
             <Badge variant="secondary">No peeking allowed</Badge>
           </div>

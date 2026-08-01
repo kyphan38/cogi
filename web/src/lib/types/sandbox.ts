@@ -1,6 +1,6 @@
 /**
  * Sandbox mode: practice the EV frame on a real, user-supplied decision.
- * Never scored, never calibrated — see src/lib/sandbox/compute-ev.ts for the
+ * Never scored, never calibrated - see src/lib/sandbox/compute-ev.ts for the
  * deterministic (non-AI) math and src/app/(main)/math/sandbox/page.tsx for the flow.
  */
 
@@ -8,7 +8,7 @@ export interface SandboxBranch {
   id: string;
   /** Short human label, e.g. "Outage occurs". */
   label: string;
-  /** 0..1, owned and edited by the user — this is the base-rate lesson in practice. */
+  /** 0..1, owned and edited by the user - this is the base-rate lesson in practice. */
   probability: number;
   /** Signed dollar outcome for this branch (positive = gain, negative = loss). */
   payoff: number;
@@ -34,7 +34,7 @@ export interface SandboxValidity {
 export interface SandboxEvResult {
   /**
    * sum(probability * payoff) - fixedCost. Computed by code, never by the model.
-   * null when `validity.ok` is false — an EV computed from an incoherent probability
+   * null when `validity.ok` is false - an EV computed from an incoherent probability
    * distribution is not a number, it's noise, so it is never returned as if it were one.
    */
   ev: number | null;
@@ -47,7 +47,7 @@ export interface SandboxEvResult {
 
 /**
  * AI's proposed decomposition of the user's free-text decision. Every field here is a
- * *draft* the user must edit/confirm — the structuring prompt is forbidden from asserting
+ * *draft* the user must edit/confirm - the structuring prompt is forbidden from asserting
  * an EV, a recommendation, or a verdict. This type intentionally has no `ev` field.
  */
 export interface SandboxStructuringProposal {

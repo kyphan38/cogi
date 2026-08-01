@@ -82,7 +82,7 @@ export function StepStruggle({ scenario, onProceedToCommit }: StepStruggleProps)
           <div className="flex items-center justify-between">
             <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium tracking-wide uppercase">
               <span className="bg-foreground/60 h-1.5 w-1.5 rounded-full" />
-              <span>Step 3 — Socratic tutor (struggle)</span>
+              <span>Step 3 - Socratic tutor (struggle)</span>
             </div>
             <span className="text-muted-foreground text-[11px]">
               Canonical answer is strictly hidden
