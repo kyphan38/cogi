@@ -131,7 +131,7 @@ export function TopicSuggestionPicker({ area, kind, seedSuggestions, onPick }: T
       {!loadingInitial && !error && suggestions.length > 0 ? (
         moreDisabled ? (
           <p className="text-muted-foreground text-center text-xs italic">
-            That&apos;s all for now — check back later for more suggestions.
+            That&apos;s all for now - check back later for more suggestions.
           </p>
         ) : (
           <div className="flex justify-center">

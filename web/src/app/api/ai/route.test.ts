@@ -129,7 +129,7 @@ beforeEach(() => {
   vi.stubEnv("GEMINI_API_KEY", "test-key");
 });
 
-describe("POST /api/ai — common validation", () => {
+describe("POST /api/ai - common validation", () => {
   it("returns 401 when auth fails", async () => {
     authFail();
     const res = await POST(makeRequest({}));
@@ -173,7 +173,7 @@ describe("POST /api/ai — common validation", () => {
   });
 });
 
-describe("POST /api/ai — sequential", () => {
+describe("POST /api/ai - sequential", () => {
   it("returns parsed exercise on success", async () => {
     authOk();
     mockGenerateRaw.mockResolvedValue(validSequentialJson());
@@ -196,7 +196,7 @@ describe("POST /api/ai — sequential", () => {
   });
 });
 
-describe("POST /api/ai — evaluative", () => {
+describe("POST /api/ai - evaluative", () => {
   it("returns parsed exercise on success", async () => {
     authOk();
     mockGenerateRaw.mockResolvedValue(validEvaluativeJson());
@@ -218,7 +218,7 @@ describe("POST /api/ai — evaluative", () => {
   });
 });
 
-describe("POST /api/ai — generative", () => {
+describe("POST /api/ai - generative", () => {
   it("returns 400 when generativeStage is missing", async () => {
     authOk();
     const res = await POST(
@@ -243,7 +243,7 @@ describe("POST /api/ai — generative", () => {
   });
 });
 
-describe("POST /api/ai — systems", () => {
+describe("POST /api/ai - systems", () => {
   it("returns parsed exercise on success", async () => {
     authOk();
     mockGenerateRaw.mockResolvedValue(validSystemsJson());
@@ -265,7 +265,7 @@ describe("POST /api/ai — systems", () => {
   });
 });
 
-describe("POST /api/ai — analytical generated", () => {
+describe("POST /api/ai - analytical generated", () => {
   it("returns parsed exercise on success", async () => {
     authOk();
     mockGenerateRaw.mockResolvedValue(validAnalyticalJson());
@@ -284,7 +284,7 @@ describe("POST /api/ai — analytical generated", () => {
   });
 });
 
-describe("POST /api/ai — analytical real_data", () => {
+describe("POST /api/ai - analytical real_data", () => {
   it("returns 400 when userText is missing for real_data mode", async () => {
     authOk();
     const res = await POST(
@@ -322,7 +322,7 @@ describe("POST /api/ai — analytical real_data", () => {
   });
 });
 
-describe("POST /api/ai — error handling", () => {
+describe("POST /api/ai - error handling", () => {
   it("returns 500 with error message on unexpected throw", async () => {
     authOk();
     mockGenerateRaw.mockRejectedValue(new Error("Network error"));

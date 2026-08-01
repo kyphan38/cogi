@@ -84,7 +84,7 @@ export function StepTeachBack({ scenario, onComplete }: StepTeachBackProps) {
           <div className="flex items-center justify-between">
             <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium tracking-wide uppercase">
               <span className="bg-foreground/60 h-1.5 w-1.5 rounded-full" />
-              <span>Step 5 — Feynman teach-back (roleplay with Alex)</span>
+              <span>Step 5 - Feynman teach-back (roleplay with Alex)</span>
             </div>
             <span className="text-muted-foreground text-[11px]">
               Alex = curious non-technical colleague

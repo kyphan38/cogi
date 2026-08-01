@@ -8,7 +8,7 @@ export function buildTutorPrompt(payload: TutorRequestPayload): string {
   const trapsList = payload.keyTraps.map((t, i) => `${i + 1}. ${t}`).join("\n");
   const hintsList = payload.hintLadder.map((h, i) => `Nudge ${i + 1}: ${h}`).join("\n");
 
-  return `SYSTEM PROMPT — AI TUTOR (SOCRATIC DIALOGUE)
+  return `SYSTEM PROMPT - AI TUTOR (SOCRATIC DIALOGUE)
 
 You are an expert Socratic tutor in applied mathematics, probability, and decision theory.
 Your sole goal is to help the user unpack their own reasoning about a real-world scenario.
@@ -43,7 +43,7 @@ export function buildStudentPrompt(payload: StudentRequestPayload): string {
     .map((h) => `${h.sender.toUpperCase()}: ${h.message}`)
     .join("\n");
 
-  return `SYSTEM PROMPT — AI STUDENT (NAIVE LEARNER ROLEPLAY)
+  return `SYSTEM PROMPT - AI STUDENT (NAIVE LEARNER ROLEPLAY)
 
 You are role-playing Alex, a curious, intelligent, non-technical colleague.
 Your friend is explaining a decision-making model or mathematical intuition tool to you.

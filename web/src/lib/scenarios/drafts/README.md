@@ -1,7 +1,7 @@
 # drafts/
 
 AI-drafted scenarios land here via `npm run scenarios:author`. Files in this directory are
-**not imported anywhere in the app** — a scenario here is invisible to learners.
+**not imported anywhere in the app** - a scenario here is invisible to learners.
 
 Each numeric draft `dr-<id>.ts` ships with a companion `dr-<id>.verify.test.ts` Monte Carlo
 verifier stub that a human must fill in and get passing.

@@ -7,7 +7,7 @@ import {
   selectTextInPassage,
 } from "../helpers/layout-metrics";
 
-test.describe("HighlightTag — mobile text selection", () => {
+test.describe("HighlightTag - mobile text selection", () => {
   test.beforeEach(async ({ page }) => {
     await bypassFirebaseAuth(page);
     await page.setViewportSize(MOBILE);

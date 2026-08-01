@@ -44,7 +44,7 @@ export const evCloudRedundancyScenario: Scenario = {
         "If a single $480k outage causes immediate bankruptcy, ruin risk overrides EV.",
     },
   ],
-  fieldNote: "Never compare raw worst-case losses to fixed premiums — compare expected probability-weighted costs.",
+  fieldNote: "Never compare raw worst-case losses to fixed premiums - compare expected probability-weighted costs.",
 };
 
 /**
@@ -91,7 +91,7 @@ export const evRuinRiskScenario: Scenario = {
         "Raw EV is valid ONLY when: (1) downside loss is non-fatal and easily absorbed by reserves, (2) the trial is repeated many times independently, or (3) downside risk is syndicated/insured.",
     },
   ],
-  fieldNote: "Never follow positive EV into an absorbing state — ruin risk overrides expected value.",
+  fieldNote: "Never follow positive EV into an absorbing state - ruin risk overrides expected value.",
 };
 
 /**
@@ -113,7 +113,7 @@ export const evBaseRateEstimationScenario: Scenario = {
     ],
   },
   keyTraps: [
-    "Falling into the 'Inside View' trap — trusting internal team optimism over historical reference class data.",
+    "Falling into the 'Inside View' trap - trusting internal team optimism over historical reference class data.",
     "Plugging arbitrary subjective probabilities into EV formulas without checking empirical base rates.",
   ],
   hintLadder: [
@@ -138,7 +138,7 @@ export const evBaseRateEstimationScenario: Scenario = {
         "Specific prior execution experience moves your team out of the generic reference class, lowering failure probability.",
     },
   ],
-  fieldNote: "The hard part of EV is estimating P — always anchor probabilities in reference class base rates.",
+  fieldNote: "The hard part of EV is estimating P - always anchor probabilities in reference class base rates.",
 };
 
 /**

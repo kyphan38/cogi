@@ -102,7 +102,7 @@ export default function MathTopicPage({ params }: { params: Promise<{ topic: str
         <p className="text-muted-foreground max-w-2xl text-sm">
           {topic === "expected_value"
             ? "Pick a scenario below. Verified scenarios are scored and count toward calibration; AI-drafted ones are unscored practice."
-            : "This topic has no human-verified scenarios yet — every option below is an AI-drafted, unscored practice scenario."}
+            : "This topic has no human-verified scenarios yet - every option below is an AI-drafted, unscored practice scenario."}
         </p>
       </div>
 

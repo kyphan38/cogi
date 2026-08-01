@@ -1,20 +1,20 @@
-# Cogi Web — Comprehensive Test Plan
+# Cogi Web - Comprehensive Test Plan
 
 ## Current State
 
 - **199 source files** across 14 major layers
-- **12 unit test files** (94 tests, all passing) — covers analytics scoring, text matching, adaptive tiers, one AI validator
-- **9 Playwright E2E specs** — covers exercise flows, dashboard, decisions, guide, layout
+- **12 unit test files** (94 tests, all passing) - covers analytics scoring, text matching, adaptive tiers, one AI validator
+- **9 Playwright E2E specs** - covers exercise flows, dashboard, decisions, guide, layout
 - **Vitest** for unit tests, **Playwright** for E2E
 - **0 tests** for: database, API routes, auth, prompt builders, hooks, most validators, perspective formatting, insights, backup/export
 
 ---
 
-## Testable Surfaces — Categorized & Prioritized
+## Testable Surfaces - Categorized & Prioritized
 
 ### Tier 1: Pure Functions (no mocking needed)
 
-These are the quickest wins — pure input/output, zero external dependencies.
+These are the quickest wins - pure input/output, zero external dependencies.
 
 | # | Module | File | What to Test | Est. Tests |
 |---|--------|------|--------------|------------|
@@ -78,9 +78,9 @@ Test request validation, auth enforcement, error handling, and retry logic.
 | 4c | useJournal | `lib/hooks/useJournal.ts` | Entry subscription, write operations | 5 |
 | 4d | useGenerativeStage | `lib/hooks/useGenerativeStage.ts` | Stage derivation from completed count | 4 |
 
-**Subtotal: ~20 tests** (requires `@testing-library/react` — not currently installed)
+**Subtotal: ~20 tests** (requires `@testing-library/react` - not currently installed)
 
-### Tier 5: E2E Flows (Playwright — extend existing)
+### Tier 5: E2E Flows (Playwright - extend existing)
 
 | # | Flow | Gap | Est. Tests |
 |---|------|-----|------------|
@@ -114,13 +114,13 @@ Test request validation, auth enforcement, error handling, and retry logic.
 
 **Recommended execution order:**
 
-1. **Tier 1a-1g** — Pure functions. Zero setup, immediate coverage. ~63 tests in one session.
-2. **Tier 1h-1i** — Prompt builders + validators. High value (AI correctness), pure logic. ~65 tests.
-3. **Tier 2a-2c** — Database layer. Highest risk code, needs Firestore mock pattern established first. ~37 tests.
-4. **Tier 2d-2j** — Remaining mockable modules. Builds on mock pattern from 2a-2c. ~58 tests.
-5. **Tier 3** — API routes. Full request/response cycle testing. ~56 tests.
-6. **Tier 4** — Hooks. Requires adding `@testing-library/react`. ~20 tests.
-7. **Tier 5** — E2E gaps. Extends existing Playwright suite. ~25 tests.
+1. **Tier 1a-1g** - Pure functions. Zero setup, immediate coverage. ~63 tests in one session.
+2. **Tier 1h-1i** - Prompt builders + validators. High value (AI correctness), pure logic. ~65 tests.
+3. **Tier 2a-2c** - Database layer. Highest risk code, needs Firestore mock pattern established first. ~37 tests.
+4. **Tier 2d-2j** - Remaining mockable modules. Builds on mock pattern from 2a-2c. ~58 tests.
+5. **Tier 3** - API routes. Full request/response cycle testing. ~56 tests.
+6. **Tier 4** - Hooks. Requires adding `@testing-library/react`. ~20 tests.
+7. **Tier 5** - E2E gaps. Extends existing Playwright suite. ~25 tests.
 
 ---
 
@@ -132,12 +132,12 @@ Test request validation, auth enforcement, error handling, and retry logic.
 - Test pattern: `src/**/*.test.ts`
 
 ### Needed for Tier 2+
-- **Firestore mock helper** — shared `createMockFirestore()` factory for consistent mocking across DB tests
+- **Firestore mock helper** - shared `createMockFirestore()` factory for consistent mocking across DB tests
 - `vi.mock('firebase/firestore')` pattern for unit tests
 - Shared test fixtures for exercise types (analytical, sequential, systems, evaluative, generative)
 
 ### Needed for Tier 3
-- **Route test helper** — wraps `POST` handler with mock `NextRequest`, mock auth, stubbed Gemini
+- **Route test helper** - wraps `POST` handler with mock `NextRequest`, mock auth, stubbed Gemini
 - Shared response assertions (`expectOk`, `expectError`)
 
 ### Needed for Tier 4
@@ -158,8 +158,8 @@ src/lib/text/sanitizeRealData.test.ts           (Tier 1d)
 src/lib/auth/server-auth.test.ts                (Tier 1e)
 src/lib/insights/build-weekly-review-payload.test.ts  (Tier 1f)
 src/lib/perspective/format-structured.test.ts   (Tier 1g)
-src/lib/ai/prompts/analytical.test.ts           (Tier 1h — one per prompt file)
-src/lib/ai/validators/common.test.ts            (Tier 1i — one per validator)
+src/lib/ai/prompts/analytical.test.ts           (Tier 1h - one per prompt file)
+src/lib/ai/validators/common.test.ts            (Tier 1i - one per validator)
 src/lib/db/exercises.test.ts                    (Tier 2a)
 ...
 ```

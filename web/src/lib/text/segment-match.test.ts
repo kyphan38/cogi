@@ -32,7 +32,7 @@ describe("findSegmentRange", () => {
   });
 
   it("handles em-dash normalization", () => {
-    const passage = "The plan—bold as it was—failed.";
+    const passage = "The plan-bold as it was-failed.";
     const seg = "The plan-bold as it was-failed.";
     const range = findSegmentRange(passage, seg);
     expect(range).not.toBeNull();

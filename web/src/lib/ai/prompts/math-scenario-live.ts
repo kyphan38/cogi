@@ -13,7 +13,7 @@ import type { Topic } from "@/lib/types/math-scenario";
  * result as a deterministic pre-filter before serving it.
  */
 export function buildLiveScenarioDraftPrompt(params: { topic: Topic; title: string }): string {
-  return `SYSTEM PROMPT — LIVE SCENARIO DRAFT (SINGLE SCENARIO, ALREADY-CHOSEN PREMISE)
+  return `SYSTEM PROMPT - LIVE SCENARIO DRAFT (SINGLE SCENARIO, ALREADY-CHOSEN PREMISE)
 
 You are drafting ONE applied-reasoning scenario for an unverified, on-the-fly practice
 session. The user already picked this exact topic and title from a list of suggestions -

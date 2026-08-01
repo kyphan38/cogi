@@ -12,7 +12,7 @@ describe("Math Scenario AI Prompts", () => {
       conversationHistory: [],
     });
 
-    expect(prompt).toContain("SYSTEM PROMPT — AI TUTOR");
+    expect(prompt).toContain("SYSTEM PROMPT - AI TUTOR");
     expect(prompt).toContain("Test situation");
     expect(prompt).toContain("Trap 1");
     expect(prompt).not.toContain("canonicalAnswer");
@@ -29,7 +29,7 @@ describe("Math Scenario AI Prompts", () => {
       conversationHistory: [],
     });
 
-    expect(prompt).toContain("SYSTEM PROMPT — AI STUDENT");
+    expect(prompt).toContain("SYSTEM PROMPT - AI STUDENT");
     expect(prompt).toContain("Alex");
     expect(prompt).toContain("Expected Value Rule");
     expect(prompt).toContain("EV is probability times payoff");

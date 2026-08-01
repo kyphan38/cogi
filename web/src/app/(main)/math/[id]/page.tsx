@@ -127,7 +127,7 @@ export default function MathScenarioRunnerPage({
             ← Back to catalog
           </Link>
           <div className="flex items-center gap-2">
-            {isAiDraft ? <Badge variant="attention">AI draft — unverified</Badge> : null}
+            {isAiDraft ? <Badge variant="attention">AI draft - unverified</Badge> : null}
             <Badge variant="secondary" className="uppercase tracking-wide">
               {scenario.topic.replace(/_/g, " ")}
             </Badge>
@@ -135,7 +135,7 @@ export default function MathScenarioRunnerPage({
         </div>
         {isAiDraft ? (
           <p className="text-muted-foreground text-xs">
-            Practice only — not scored, not added to your calibration history.
+            Practice only - not scored, not added to your calibration history.
           </p>
         ) : null}
 
@@ -209,7 +209,7 @@ export default function MathScenarioRunnerPage({
           <h2 className="text-xl font-semibold">Scenario complete!</h2>
           <p className="text-muted-foreground mx-auto max-w-md text-sm leading-relaxed">
             {isAiDraft
-              ? "This was unscored practice — nothing was added to your calibration history."
+              ? "This was unscored practice - nothing was added to your calibration history."
               : "Your prediction & confidence score have been logged into your calibration history."}
           </p>
 
