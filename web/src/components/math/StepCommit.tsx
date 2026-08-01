@@ -4,6 +4,12 @@ import { useState } from "react";
 import type { Scenario } from "@/lib/types/math-scenario";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface StepCommitProps {
   scenario: Scenario;
@@ -57,111 +63,103 @@ export function StepCommit({ scenario, onCommit, onStruggle }: StepCommitProps) 
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl backdrop-blur-md">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-xs font-semibold tracking-wider text-amber-400 uppercase">
-            Step 2 — Commit Prediction (Hard Gate)
-          </span>
-          <span className="rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-400">
-            No peeking allowed
-          </span>
-        </div>
-        <h3 className="text-lg font-bold text-slate-100 mb-4">{commitSpec.promptText}</h3>
-
-        {/* Commitment Options */}
-        {isMultipleChoice ? (
-          <div className="space-y-3 mb-6">
-            {commitSpec.options?.map((opt) => {
-              const isSelected = selectedOptionId === opt.id;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setSelectedOptionId(opt.id)}
-                  className={`w-full text-left p-4 rounded-lg border transition-all text-sm font-medium ${
-                    isSelected
-                      ? "border-emerald-500 bg-emerald-500/10 text-emerald-300 shadow-md"
-                      : "border-slate-800 bg-slate-950/60 text-slate-300 hover:border-slate-700 hover:bg-slate-900/80"
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <span
-                      className={`flex h-5 w-5 items-center justify-center rounded-full border text-xs ${
-                        isSelected
-                          ? "border-emerald-400 bg-emerald-500 text-slate-950 font-bold"
-                          : "border-slate-700 bg-slate-900"
-                      }`}
-                    >
-                      {isSelected ? "✓" : ""}
-                    </span>
-                    <span>{opt.text}</span>
-                  </div>
-                </button>
-              );
-            })}
+      <Card>
+        <CardContent className="space-y-5">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+              Step 2 — Commit prediction (hard gate)
+            </span>
+            <Badge variant="secondary">No peeking allowed</Badge>
           </div>
-        ) : (
-          <div className="mb-6 space-y-2">
-            <label className="text-xs text-slate-400">Numeric Estimate {commitSpec.unit ? `(${commitSpec.unit})` : ""}</label>
-            <input
-              type="number"
-              value={numericInput}
-              onChange={(e) => setNumericInput(e.target.value)}
-              placeholder="e.g. 22000"
-              className="w-full rounded-lg border border-slate-800 bg-slate-950 px-4 py-3 text-slate-100 placeholder-slate-600 focus:border-emerald-500 focus:outline-none"
+          <h3 className="text-base font-semibold">{commitSpec.promptText}</h3>
+
+          {/* Commitment Options */}
+          {isMultipleChoice ? (
+            <div className="space-y-2.5">
+              {commitSpec.options?.map((opt) => {
+                const isSelected = selectedOptionId === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setSelectedOptionId(opt.id)}
+                    className={cn(
+                      "w-full rounded-lg border p-3.5 text-left text-sm font-medium transition-colors",
+                      isSelected
+                        ? "border-zinc-900 bg-zinc-900 text-white"
+                        : "border-border bg-transparent hover:bg-muted/60",
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={cn(
+                          "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs",
+                          isSelected ? "border-white bg-white text-zinc-900" : "border-border",
+                        )}
+                      >
+                        {isSelected ? "✓" : ""}
+                      </span>
+                      <span>{opt.text}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>
+                Numeric estimate {commitSpec.unit ? `(${commitSpec.unit})` : ""}
+              </Label>
+              <Input
+                type="number"
+                value={numericInput}
+                onChange={(e) => setNumericInput(e.target.value)}
+                placeholder="e.g. 22000"
+              />
+            </div>
+          )}
+
+          {/* Optional Reasoning / Notes */}
+          <div className="space-y-2">
+            <Label>Brief reasoning (optional)</Label>
+            <Textarea
+              value={predictionText}
+              onChange={(e) => setPredictionText(e.target.value)}
+              rows={2}
+              placeholder="Why do you predict this? What trade-off are you weighing?"
             />
           </div>
-        )}
 
-        {/* Optional Reasoning / Notes */}
-        <div className="mb-6 space-y-2">
-          <label className="text-xs text-slate-400">Brief Reasoning (Optional)</label>
-          <textarea
-            value={predictionText}
-            onChange={(e) => setPredictionText(e.target.value)}
-            rows={2}
-            placeholder="Why do you predict this? What trade-off are you weighing?"
-            className="w-full rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs text-slate-200 placeholder-slate-600 focus:border-emerald-500 focus:outline-none"
-          />
-        </div>
-
-        {/* Confidence Level Slider */}
-        <div className="space-y-3 rounded-lg border border-slate-800/80 bg-slate-950/50 p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-300">Stated Confidence Level</span>
-            <span className="text-sm font-bold text-emerald-400">{confidence}% Certain</span>
+          {/* Confidence Level Slider */}
+          <div className="border-border bg-muted/30 space-y-3 rounded-lg border p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium">Stated confidence level</span>
+              <span className="text-sm font-semibold tabular-nums">{confidence}% certain</span>
+            </div>
+            <Slider
+              value={[confidence]}
+              onValueChange={(vals) => setConfidence(vals[0])}
+              min={0}
+              max={100}
+              step={5}
+              className="py-2"
+            />
+            <div className="text-muted-foreground flex justify-between text-[10px]">
+              <span>0% (pure guess)</span>
+              <span>50% (uncertain)</span>
+              <span>100% (absolute certainty)</span>
+            </div>
           </div>
-          <Slider
-            value={[confidence]}
-            onValueChange={(vals) => setConfidence(vals[0])}
-            min={0}
-            max={100}
-            step={5}
-            className="py-2"
-          />
-          <div className="flex justify-between text-[10px] text-slate-500">
-            <span>0% (Pure Guess)</span>
-            <span>50% (Uncertain)</span>
-            <span>100% (Absolute Certainty)</span>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          onClick={onStruggle}
-          className="border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 text-xs"
-        >
-          Need Socratic Hint? (Ask AI Tutor)
+        <Button variant="outline" onClick={onStruggle}>
+          Need Socratic hint? (Ask AI tutor)
         </Button>
 
-        <Button
-          disabled={!isFormValid}
-          onClick={handleCommit}
-          className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-semibold px-6 py-2.5 rounded-lg shadow-lg transition-all"
-        >
-          Lock In Commitment →
+        <Button disabled={!isFormValid} onClick={handleCommit} size="lg">
+          Lock in commitment →
         </Button>
       </div>
     </div>

@@ -11,8 +11,7 @@ export type ThinkingType =
   | "systems"
   | "evaluative"
   | "generative"
-  | "combo"
-  | "math_scenario";
+  | "combo";
 
 /** Pre-defined combo chains (Phase 6.5). */
 export type ComboPresetId = "full_analysis" | "decision_sprint" | "root_cause";
@@ -328,34 +327,13 @@ export interface ComboExerciseRow {
   currentStep?: number;
 }
 
-import type { Scenario } from "@/lib/types/math-scenario";
-
-export interface MathScenarioRow {
-  id: string;
-  type: "math_scenario";
-  scenarioId: string;
-  scenario: Scenario;
-  title: string;
-  domain: string;
-  committedOptionId?: string;
-  committedNumericValue?: number;
-  confidenceBefore: number | null;
-  correct: boolean | null;
-  userBoundaryGuess?: string | null;
-  aiPerspective?: string | null;
-  createdAt: string;
-  completedAt: string | null;
-  currentStep?: number;
-}
-
 export type Exercise =
   | AnalyticalExerciseRow
   | SequentialExerciseRow
   | SystemsExerciseRow
   | EvaluativeExerciseRow
   | GenerativeExerciseRow
-  | ComboExerciseRow
-  | MathScenarioRow;
+  | ComboExerciseRow;
 
 export function isAnalyticalExercise(ex: Exercise): ex is AnalyticalExerciseRow {
   return ex.type === "analytical";
@@ -387,10 +365,6 @@ export function isGenerativeExercise(ex: Exercise): ex is GenerativeExerciseRow 
 
 export function isComboExercise(ex: Exercise): ex is ComboExerciseRow {
   return ex.type === "combo";
-}
-
-export function isMathScenarioExercise(ex: Exercise): ex is MathScenarioRow {
-  return ex.type === "math_scenario";
 }
 
 export interface ConfidenceRecord {

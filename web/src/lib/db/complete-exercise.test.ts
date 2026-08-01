@@ -29,10 +29,14 @@ vi.mock("@/lib/adaptive/record-weaknesses", () => ({
 vi.mock("@/lib/db/strip-undefined-deep", () => ({
   stripUndefinedDeep: vi.fn((v: unknown) => v),
 }));
+vi.mock("@/lib/db/practiced-topics", () => ({
+  recordPracticedTopic: vi.fn(),
+}));
 
 import { completeExerciseFlow } from "./complete-exercise";
 import { getAppSettings } from "@/lib/db/settings";
 import { recordWeaknessesAfterExercise } from "@/lib/adaptive/record-weaknesses";
+import { recordPracticedTopic } from "@/lib/db/practiced-topics";
 
 const mockGetAppSettings = vi.mocked(getAppSettings);
 
@@ -113,5 +117,36 @@ describe("completeExerciseFlow", () => {
     } as never);
     await completeExerciseFlow({ exercise, journal, confidence, action });
     expect(mockBatchSet).toHaveBeenCalledTimes(5);
+  });
+
+  it("records the exercise's domain as a practiced topic", async () => {
+    mockGetAppSettings.mockResolvedValue({
+      id: "app", userContext: "", delayedRecallEnabled: false,
+    });
+    await completeExerciseFlow({ exercise, journal, confidence, action });
+    expect(recordPracticedTopic).toHaveBeenCalledWith({
+      area: "analytical",
+      title: "test",
+      origin: "manual",
+    });
+  });
+
+  it("does not record a practiced topic for combo exercises", async () => {
+    mockGetAppSettings.mockResolvedValue({
+      id: "app", userContext: "", delayedRecallEnabled: false,
+    });
+    const comboExercise = { ...exercise, type: "combo" } as unknown as Exercise;
+    await completeExerciseFlow({ exercise: comboExercise, journal, confidence, action });
+    expect(recordPracticedTopic).not.toHaveBeenCalled();
+  });
+
+  it("does not throw if practiced-topic recording fails", async () => {
+    mockGetAppSettings.mockResolvedValue({
+      id: "app", userContext: "", delayedRecallEnabled: false,
+    });
+    vi.mocked(recordPracticedTopic).mockRejectedValue(new Error("fail"));
+    await expect(
+      completeExerciseFlow({ exercise, journal, confidence, action }),
+    ).resolves.toBeUndefined();
   });
 });

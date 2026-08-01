@@ -4,15 +4,20 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getScenarioById } from "@/lib/scenarios";
+import { loadDraftScenario } from "@/lib/scenarios/draft-session-cache";
 import type { LoopState } from "@/lib/types/math-scenario";
 import type { ConfidenceRecord } from "@/lib/types/exercise";
 import { putConfidenceRecord } from "@/lib/db/confidence";
+import { recordPracticedTopic } from "@/lib/db/practiced-topics";
 import { StepDrop } from "@/components/math/StepDrop";
 import { StepCommit } from "@/components/math/StepCommit";
 import { StepStruggle } from "@/components/math/StepStruggle";
 import { StepReveal } from "@/components/math/StepReveal";
 import { StepTeachBack } from "@/components/math/StepTeachBack";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export default function MathScenarioRunnerPage({
   params,
@@ -21,7 +26,10 @@ export default function MathScenarioRunnerPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const scenario = getScenarioById(id);
+  const catalogScenario = getScenarioById(id);
+  const [draftScenario] = useState(() => (catalogScenario ? null : loadDraftScenario(id)));
+  const scenario = catalogScenario ?? draftScenario ?? undefined;
+  const isAiDraft = !catalogScenario && !!draftScenario;
 
   const [loopState, setLoopState] = useState<LoopState>("drop");
   const [committedData, setCommittedData] = useState<{
@@ -33,15 +41,16 @@ export default function MathScenarioRunnerPage({
 
   if (!scenario) {
     return (
-      <div className="space-y-4 text-center py-12">
-        <h1 className="text-xl font-bold text-slate-100">Scenario Not Found</h1>
-        <p className="text-xs text-slate-400">The scenario ID "{id}" does not exist in the catalog.</p>
+      <main className="mx-auto max-w-3xl space-y-4 p-4 py-12 text-center sm:p-6">
+        <h1 className="text-xl font-semibold">Scenario not found</h1>
+        <p className="text-muted-foreground text-sm">
+          The scenario ID &ldquo;{id}&rdquo; does not exist in the catalog, and no matching AI
+          draft was found in this browser tab.
+        </p>
         <Link href="/math">
-          <Button variant="outline" className="text-xs">
-            ← Return to Scenarios
-          </Button>
+          <Button variant="outline">← Return to scenarios</Button>
         </Link>
-      </div>
+      </main>
     );
   }
 
@@ -77,7 +86,7 @@ export default function MathScenarioRunnerPage({
   };
 
   const handleCompleteScenario = async () => {
-    if (committedData) {
+    if (committedData && !isAiDraft) {
       const confPct = Math.round(committedData.confidence * 100);
       const accPct = committedData.correct ? 100 : 0;
       const record: ConfidenceRecord = {
@@ -94,24 +103,41 @@ export default function MathScenarioRunnerPage({
         // Safe local fallback
       }
     }
+    try {
+      await recordPracticedTopic({
+        area: scenario.topic,
+        title: scenario.title,
+        origin: isAiDraft ? "suggested" : "manual",
+      });
+    } catch {
+      // Safe local fallback - exclusion is a nice-to-have, not required for completion.
+    }
     setLoopState("complete");
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <main className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
       {/* Header & Step Indicator */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <Link
             href="/math"
-            className="text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors flex items-center space-x-1"
+            className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs font-medium transition-colors"
           >
-            <span>← Back to Catalog</span>
+            ← Back to catalog
           </Link>
-          <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
-            {scenario.topic.replace("_", " ")}
-          </span>
+          <div className="flex items-center gap-2">
+            {isAiDraft ? <Badge variant="attention">AI draft — unverified</Badge> : null}
+            <Badge variant="secondary" className="uppercase tracking-wide">
+              {scenario.topic.replace(/_/g, " ")}
+            </Badge>
+          </div>
         </div>
+        {isAiDraft ? (
+          <p className="text-muted-foreground text-xs">
+            Practice only — not scored, not added to your calibration history.
+          </p>
+        ) : null}
 
         {/* Stepper Bar */}
         <div className="grid grid-cols-5 gap-2">
@@ -121,13 +147,14 @@ export default function MathScenarioRunnerPage({
             return (
               <div
                 key={step.key}
-                className={`rounded-lg py-2 text-center text-xs font-semibold border transition-all ${
+                className={cn(
+                  "rounded-lg border py-2 text-center text-xs font-medium transition-colors",
                   isActive
-                    ? "border-emerald-500 bg-emerald-500/20 text-emerald-300 shadow-md"
+                    ? "border-zinc-900 bg-zinc-900 text-white"
                     : isCompleted
-                    ? "border-slate-800 bg-slate-900 text-slate-300"
-                    : "border-slate-900 bg-slate-950/50 text-slate-600"
-                }`}
+                      ? "border-border bg-muted text-foreground"
+                      : "border-border bg-transparent text-muted-foreground",
+                )}
               >
                 {step.label}
               </div>
@@ -175,25 +202,24 @@ export default function MathScenarioRunnerPage({
       )}
 
       {loopState === "complete" && (
-        <div className="rounded-xl border border-emerald-500/30 bg-slate-900/90 p-8 text-center space-y-5 shadow-2xl backdrop-blur-md">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-2xl font-bold">
+        <Card className="items-center space-y-5 p-8 text-center">
+          <div className="border-border bg-muted mx-auto flex h-16 w-16 items-center justify-center rounded-full border text-2xl font-semibold">
             ✓
           </div>
-          <h2 className="text-2xl font-bold text-slate-100">Scenario Complete!</h2>
-          <p className="text-sm text-slate-300 max-w-md mx-auto leading-relaxed">
-            Your prediction & confidence score have been logged into your calibration history.
+          <h2 className="text-xl font-semibold">Scenario complete!</h2>
+          <p className="text-muted-foreground mx-auto max-w-md text-sm leading-relaxed">
+            {isAiDraft
+              ? "This was unscored practice — nothing was added to your calibration history."
+              : "Your prediction & confidence score have been logged into your calibration history."}
           </p>
 
-          <div className="pt-4 flex justify-center space-x-3">
-            <Button
-              onClick={() => router.push("/math")}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold px-6 py-2"
-            >
-              Return to Catalog
+          <div className="flex justify-center pt-2">
+            <Button onClick={() => router.push("/math")} size="lg">
+              Return to catalog
             </Button>
           </div>
-        </div>
+        </Card>
       )}
-    </div>
+    </main>
   );
 }

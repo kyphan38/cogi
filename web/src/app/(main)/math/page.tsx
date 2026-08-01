@@ -8,6 +8,17 @@ import type { ConfidenceRecord } from "@/lib/types/exercise";
 import { listConfidenceRecords } from "@/lib/db/exercises";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import type { Topic } from "@/lib/types/math-scenario";
+
+const TOPIC_TILES: { topic: Topic; label: string; verified: boolean }[] = [
+  { topic: "expected_value", label: "Expected Value", verified: true },
+  { topic: "graph_theory", label: "Graph Theory", verified: false },
+  { topic: "game_theory", label: "Game Theory", verified: false },
+  { topic: "probability_bayes", label: "Probability & Bayes", verified: false },
+  { topic: "causal_literacy", label: "Causal Literacy", verified: false },
+  { topic: "exponential_power_law", label: "Exponential & Power Law", verified: false },
+];
 
 export default function MathModuleDashboard() {
   const [records, setRecords] = useState<ConfidenceRecord[]>([]);
@@ -32,6 +43,26 @@ export default function MathModuleDashboard() {
       <div className="mb-6">
         <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Math & Scenarios</h1>
       </div>
+
+      <section className="space-y-3">
+        <p className="font-tracker text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
+          Topic Areas
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {TOPIC_TILES.map((t) => (
+            <Link key={t.topic} href={`/math/topic/${t.topic}`} className="group block">
+              <Card className="h-full gap-1.5 transition-colors group-hover:border-zinc-300">
+                <CardContent className="space-y-1.5">
+                  <Badge variant={t.verified ? "positive" : "secondary"}>
+                    {t.verified ? "Verified + AI" : "AI practice"}
+                  </Badge>
+                  <p className="text-sm font-medium">{t.label}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <section className="space-y-2">
         <p className="font-tracker text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">

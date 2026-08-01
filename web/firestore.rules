@@ -21,6 +21,7 @@ service cloud.firestore {
         "lessons",
         "sidebarFolders",
         "perspectiveDisagreements",
+        "practicedTopics",
         "settings",
         "weaknesses",
         "weeklyReviews"

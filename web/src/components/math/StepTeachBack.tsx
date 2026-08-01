@@ -3,6 +3,10 @@
 import { useState } from "react";
 import type { Scenario } from "@/lib/types/math-scenario";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { InlineSpinner } from "@/components/ui/inline-spinner";
+import { cn } from "@/lib/utils";
 
 interface StepTeachBackProps {
   scenario: Scenario;
@@ -75,76 +79,73 @@ export function StepTeachBack({ scenario, onComplete }: StepTeachBackProps) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl backdrop-blur-md">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2 text-xs font-semibold tracking-wider text-pink-400 uppercase">
-            <span className="flex h-2 w-2 rounded-full bg-pink-400 animate-pulse" />
-            <span>Step 5 — Feynman Teach-Back (Roleplay with Alex)</span>
+      <Card>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium tracking-wide uppercase">
+              <span className="bg-foreground/60 h-1.5 w-1.5 rounded-full" />
+              <span>Step 5 — Feynman teach-back (roleplay with Alex)</span>
+            </div>
+            <span className="text-muted-foreground text-[11px]">
+              Alex = curious non-technical colleague
+            </span>
           </div>
-          <span className="text-[11px] text-slate-500">Alex = Curious non-technical colleague</span>
-        </div>
 
-        <div className="mb-4 rounded-lg bg-pink-950/20 border border-pink-800/30 p-3 text-xs text-pink-200">
-          <span className="font-semibold">Feynman Technique Goal:</span> Explain the concept to Alex in plain English. Alex will ask follow-up questions if your explanation uses unexplained jargon or hand-wavy assumptions.
-        </div>
+          <div className="border-border bg-muted/30 rounded-lg border p-3 text-xs">
+            <span className="font-semibold">Feynman technique goal:</span> Explain the concept to
+            Alex in plain English. Alex will ask follow-up questions if your explanation uses
+            unexplained jargon or hand-wavy assumptions.
+          </div>
 
-        {/* Chat History */}
-        <div className="mb-4 max-h-72 min-h-48 overflow-y-auto space-y-3 p-3 rounded-lg bg-slate-950/60 border border-slate-800">
-          {messages.map((m, idx) => (
-            <div
-              key={idx}
-              className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[85%] rounded-lg p-3 text-xs leading-relaxed ${
-                  m.sender === "user"
-                    ? "bg-purple-600/20 border border-purple-500/30 text-purple-100"
-                    : "bg-pink-950/40 border border-pink-800/40 text-pink-200"
-                }`}
-              >
-                <div className="font-semibold text-[10px] mb-1 opacity-70">
-                  {m.sender === "user" ? "YOU" : "ALEX (COLLEAGUE)"}
+          {/* Chat History */}
+          <div className="border-border bg-muted/30 max-h-72 min-h-48 space-y-3 overflow-y-auto rounded-lg border p-3">
+            {messages.map((m, idx) => (
+              <div key={idx} className={cn("flex", m.sender === "user" ? "justify-end" : "justify-start")}>
+                <div
+                  className={cn(
+                    "max-w-[85%] rounded-lg p-3 text-xs leading-relaxed",
+                    m.sender === "user"
+                      ? "bg-zinc-900 text-white"
+                      : "border-border bg-card border",
+                  )}
+                >
+                  <div className="mb-1 text-[10px] font-semibold opacity-60">
+                    {m.sender === "user" ? "YOU" : "ALEX (COLLEAGUE)"}
+                  </div>
+                  {m.message}
                 </div>
-                {m.message}
               </div>
-            </div>
-          ))}
+            ))}
 
-          {loading && (
-            <div className="flex justify-start">
-              <div className="rounded-lg bg-pink-950/30 p-3 text-xs text-pink-400 animate-pulse">
-                Alex is typing a question...
+            {loading && (
+              <div className="flex justify-start">
+                <div className="border-border bg-card text-muted-foreground rounded-lg border p-3 text-xs">
+                  <InlineSpinner /> Alex is typing a question…
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* Input Bar */}
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-            placeholder="Explain to Alex in your own words..."
-            className="flex-1 rounded-lg border border-slate-800 bg-slate-950 px-4 py-2 text-xs text-slate-100 placeholder-slate-600 focus:border-pink-500 focus:outline-none"
-          />
-          <Button
-            disabled={loading || !userInput.trim()}
-            onClick={handleSendMessage}
-            className="bg-pink-500 hover:bg-pink-400 text-slate-950 font-semibold px-4 text-xs"
-          >
-            Reply
-          </Button>
-        </div>
-      </div>
+          {/* Input Bar */}
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+              placeholder="Explain to Alex in your own words..."
+              className="h-9"
+            />
+            <Button disabled={loading || !userInput.trim()} onClick={handleSendMessage}>
+              Reply
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="flex justify-end">
-        <Button
-          onClick={onComplete}
-          className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold px-6 py-2.5 rounded-lg shadow-lg"
-        >
-          Finish Scenario & Log Calibration →
+        <Button onClick={onComplete} size="lg">
+          Finish scenario &amp; log calibration →
         </Button>
       </div>
     </div>
