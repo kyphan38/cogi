@@ -44,9 +44,15 @@ export default function MathTopicPage({ params }: { params: Promise<{ topic: str
 
   useEffect(() => {
     let cancelled = false;
-    void listPracticedTitleKeys(topic).then((keys) => {
-      if (!cancelled) setPracticedKeys(keys);
-    });
+    void listPracticedTitleKeys(topic)
+      .then((keys) => {
+        if (!cancelled) setPracticedKeys(keys);
+      })
+      .catch(() => {
+        // Degrade gracefully (e.g. offline, permission issue) - an empty exclusion set just
+        // means nothing gets filtered out, not that the page hangs on the loading skeleton.
+        if (!cancelled) setPracticedKeys(new Set());
+      });
     return () => {
       cancelled = true;
     };
