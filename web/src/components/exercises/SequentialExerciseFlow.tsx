@@ -646,7 +646,7 @@ export function SequentialExerciseFlow({
               </Button>
             </div>
 
-            {entryMode === "suggested" ? (
+            <div className={cn(entryMode !== "suggested" && "hidden")}>
               <TopicSuggestionPicker
                 area="sequential"
                 kind="exercise"
@@ -656,8 +656,8 @@ export function SequentialExerciseFlow({
                   void startGenerate(title, "generated");
                 }}
               />
-            ) : (
-              <>
+            </div>
+            <div className={cn("space-y-4", entryMode !== "manual" && "hidden")}>
             <div className="grid gap-2">
               <Label>{setupMode === "custom_scenario" ? "Domain (optional)" : "Domain"}</Label>
               <DomainInput
@@ -725,8 +725,7 @@ export function SequentialExerciseFlow({
                 </Button>
               ) : null}
             </div>
-              </>
-            )}
+            </div>
           </CardContent>
         </Card>
       ) : null}

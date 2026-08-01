@@ -704,7 +704,7 @@ export function GenerativeExerciseFlow({
               </Button>
             </div>
 
-            {entryMode === "suggested" ? (
+            <div className={cn(entryMode !== "suggested" && "hidden")}>
               <TopicSuggestionPicker
                 area="generative"
                 kind="exercise"
@@ -714,8 +714,8 @@ export function GenerativeExerciseFlow({
                   void startGenerate(title, "generated");
                 }}
               />
-            ) : (
-              <>
+            </div>
+            <div className={cn("space-y-4", entryMode !== "manual" && "hidden")}>
             <div className="grid gap-2">
               <Label>{setupMode === "custom_scenario" ? "Domain (optional)" : "Domain"}</Label>
               <DomainInput
@@ -783,8 +783,7 @@ export function GenerativeExerciseFlow({
                 </Button>
               ) : null}
             </div>
-              </>
-            )}
+            </div>
           </CardContent>
         </Card>
       ) : null}
