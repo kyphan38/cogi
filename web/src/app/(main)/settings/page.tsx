@@ -151,12 +151,8 @@ export default function SettingsPage() {
   return (
     <main className="mx-auto max-w-lg p-8">
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle>Settings</CardTitle>
-          <CardDescription>
-            Personal context is injected into AI prompts for exercises and
-            perspective.
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center gap-2">
@@ -168,7 +164,7 @@ export default function SettingsPage() {
               className="size-4"
             />
             <Label htmlFor="recall" className="font-normal">
-              Enable delayed recall (48h card on dashboard)
+              Delayed recall
             </Label>
           </div>
           <div className="flex items-center gap-2">
@@ -180,7 +176,7 @@ export default function SettingsPage() {
               className="size-4"
             />
             <Label htmlFor="adaptive" className="font-normal">
-              Enable adaptive difficulty (tier + weakness hints on exercise generation)
+              Adaptive difficulty
             </Label>
           </div>
           <div className="grid gap-2">
@@ -190,7 +186,7 @@ export default function SettingsPage() {
               rows={8}
               value={ctx}
               onChange={(e) => setCtx(e.target.value)}
-              placeholder="e.g. role, goals, constraints..."
+              placeholder="Context..."
             />
           </div>
           <div className="flex flex-wrap gap-2">
@@ -217,18 +213,14 @@ export default function SettingsPage() {
             </Link>
           </div>
           {saved ? (
-            <p className="text-muted-foreground text-sm">Saved to your account (Firestore).</p>
+            <p className="text-muted-foreground text-sm">Saved.</p>
           ) : null}
         </CardContent>
       </Card>
 
-      <Card className="mt-8">
-        <CardHeader>
+      <Card className="mt-6">
+        <CardHeader className="pb-2">
           <CardTitle>Geopolitics progression</CardTitle>
-          <CardDescription>
-            The dashboard progression card tracks completed geopolitics exercises by phase. Reset
-            if you want a fresh learning path without deleting exercise history.
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <Button type="button" variant="secondary" onClick={() => void resetGeoProgression()}>
@@ -236,52 +228,35 @@ export default function SettingsPage() {
           </Button>
           {geoEpoch ? (
             <p className="text-muted-foreground text-xs">
-              Counting exercises completed after{" "}
+              Reset on{" "}
               {new Date(geoEpoch).toLocaleString(undefined, {
                 dateStyle: "medium",
                 timeStyle: "short",
               })}
               .
             </p>
-          ) : (
-            <p className="text-muted-foreground text-xs">
-              No reset applied - all geopolitics completions count toward progression.
-            </p>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
-      <Card className="mt-8">
-        <CardHeader>
+      <Card className="mt-6">
+        <CardHeader className="pb-2">
           <CardTitle>Keyboard</CardTitle>
-          <CardDescription>
-            Shortcuts implemented in this app (not every browser default).
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <p>
-            <span className="font-medium text-foreground">Exercise history - delete dialog:</span> press{" "}
+            <span className="font-medium text-foreground">Delete dialog:</span> press{" "}
             <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
               Escape
             </kbd>{" "}
-            to close. Type <span className="font-mono font-semibold text-foreground">Delete</span>, then choose{" "}
-            <span className="text-foreground">Delete permanently</span>. Click the dimmed backdrop to dismiss when the
-            dialog is open.
-          </p>
-          <p>
-            <span className="font-medium text-foreground">Scroll:</span> when you leave a page and return in the same
-            browser tab, the main column tries to restore the last scroll position for that path.
+            to close. Type <span className="font-mono font-semibold text-foreground">Delete</span>.
           </p>
         </CardContent>
       </Card>
 
-      <Card className="mt-8">
-        <CardHeader>
+      <Card className="mt-6">
+        <CardHeader className="pb-2">
           <CardTitle>Data backup</CardTitle>
-          <CardDescription>
-            Export or import a JSON snapshot of your Firestore data for this signed-in user. Journal-only
-            export is Markdown for reading outside the app.
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">

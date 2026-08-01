@@ -47,11 +47,8 @@ export function WeeklyInsights() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-2">
         <CardTitle className="text-base">Patterns (local)</CardTitle>
-        <CardDescription>
-          Journal emotions and AI perspective disagreements from your saved exercises.
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         <div>

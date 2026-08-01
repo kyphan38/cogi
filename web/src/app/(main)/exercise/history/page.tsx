@@ -579,10 +579,6 @@ function HistoryPageInner() {
     <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Exercise history</h1>
-        <p className="text-muted-foreground text-sm">
-          Review completed exercises or remove them from your account. Calibration averages use every
-          completion still stored here.
-        </p>
       </div>
 
       {openExerciseHiddenByFilters ? (
@@ -607,13 +603,8 @@ function HistoryPageInner() {
       ) : null}
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Calibration (all completed)</CardTitle>
-          <CardDescription>
-            Three numbers summarize how your self-rated confidence lines up with measured accuracy
-            across finished exercises. Gap = confidence before − actual accuracy (positive ≈
-            overconfident on average).
-          </CardDescription>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Calibration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
@@ -622,17 +613,11 @@ function HistoryPageInner() {
               <p className="text-lg font-medium tabular-nums">
                 {globalStats.avgConf != null ? `${globalStats.avgConf}%` : "-"}
               </p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                How sure you said you were before each run.
-              </p>
             </div>
             <div className="rounded-md border border-border bg-muted/10 p-3 text-sm">
               <p className="text-muted-foreground">Avg accuracy</p>
               <p className="text-lg font-medium tabular-nums">
                 {globalStats.avgAcc != null ? `${globalStats.avgAcc}%` : "-"}
-              </p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                Measured performance after each exercise.
               </p>
             </div>
             <div className="rounded-md border border-border bg-muted/10 p-3 text-sm">
@@ -642,29 +627,21 @@ function HistoryPageInner() {
                   ? `${globalStats.avgGap > 0 ? "+" : ""}${globalStats.avgGap}%`
                   : "-"}
               </p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                Above zero → confidence tended to exceed accuracy.
-              </p>
             </div>
           </div>
           <div>
-            <p className="text-muted-foreground mb-2 text-xs">Gap over time</p>
+            <p className="text-muted-foreground mb-2 text-xs font-medium">Gap over time</p>
             <GapChart points={globalStats.chartPoints} />
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row flex-wrap items-end justify-between gap-2 space-y-0">
-          <div>
-            <CardTitle className="text-base">Activity</CardTitle>
-            <CardDescription>
-              Last {HEATMAP_WEEKS} weeks of completions that match your current filters.
-            </CardDescription>
-          </div>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-2">
+          <CardTitle className="text-base">Activity</CardTitle>
           <p className="text-muted-foreground text-xs tabular-nums">
             Streak: <span className="font-medium text-foreground">{streakDays}</span> day
-            {streakDays === 1 ? "" : "s"} (all completions)
+            {streakDays === 1 ? "" : "s"}
           </p>
         </CardHeader>
         <CardContent>

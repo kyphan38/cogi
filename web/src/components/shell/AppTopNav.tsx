@@ -12,6 +12,7 @@ const links = [
   { href: "/", label: "Home" },
   { href: "/guide", label: "Guide" },
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/math", label: "Math" },
   { href: "/exercise/history", label: "History" },
   { href: "/settings", label: "Settings" },
   { href: "/decisions", label: "Decisions" },
@@ -31,7 +32,6 @@ function navLinkClass(href: string, pathname: string | null) {
 export function AppTopNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const showDev = process.env.NODE_ENV === "development";
 
   const onSignOut = async () => {
     try {
@@ -71,14 +71,6 @@ export function AppTopNav() {
           >
             Sign out
           </Button>
-          {showDev ? (
-            <Link
-              href="/dev/ai-smoke"
-              className={cn(navLinkClass("/dev/ai-smoke", pathname), "text-xs sm:text-sm")}
-            >
-              AI smoke
-            </Link>
-          ) : null}
         </div>
       </nav>
     </header>

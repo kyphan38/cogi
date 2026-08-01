@@ -18,32 +18,11 @@ export function GuidePageContent() {
           Cogi guide
         </h1>
         <p className="max-w-2xl text-sm leading-relaxed text-zinc-600">
-          Everything in the app in one place: exercise types, navigation, dashboard,
-          history, settings, geopolitics practice, and troubleshooting.
+          System overview and practice reference.
         </p>
       </header>
 
-      <MinimalContainer
-        data-testid="guide-hero"
-        title="Ready to practice?"
-        description="Most people start with a short Analytical exercise, then explore other modes from Home."
-        className="mb-8"
-        footer={
-          <MinimalContainerFooter>
-            <MinimalContainerAction
-              label="Start Analytical exercise"
-              href="/exercise/analytical"
-              variant="primary"
-            />
-            <MinimalContainerAction label="Back to Home" href="/" variant="secondary" />
-          </MinimalContainerFooter>
-        }
-      >
-        <p className="text-sm leading-relaxed text-zinc-600">
-          Use the table of contents to jump to any section. Links labeled Try it open the
-          relevant screen with no extra setup.
-        </p>
-      </MinimalContainer>
+
 
       <GuideTableOfContents variant="mobile" className="mb-6" />
 

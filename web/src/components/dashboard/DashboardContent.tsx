@@ -348,7 +348,7 @@ export function DashboardContent() {
       <div className="mb-6">
         <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Dashboard</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Trends from exercises saved to your account.
+          Activity and performance trends.
         </p>
       </div>
 
@@ -359,7 +359,7 @@ export function DashboardContent() {
           <div className="rounded-lg border border-border bg-card px-3.5 py-3">
             <p className="text-muted-foreground text-[11px] tracking-wide uppercase">Completed</p>
             <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{count}</p>
-            <p className="text-muted-foreground mt-0.5 text-xs">Exercises with a completion record.</p>
+            <p className="text-muted-foreground mt-0.5 text-xs">Total exercises.</p>
           </div>
           <div className="rounded-lg border border-zinc-200 bg-white px-3.5 py-3">
             <p className="font-tracker text-[11px] tracking-wide text-zinc-500 uppercase">
@@ -368,25 +368,25 @@ export function DashboardContent() {
             <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-zinc-900">
               {calibrationSummary.avgGap != null ? `${calibrationSummary.avgGap > 0 ? "+" : ""}${calibrationSummary.avgGap}%` : "-"}
             </p>
-            <p className="mt-0.5 text-xs leading-snug text-zinc-600">{stanceLabel}</p>
+            <p className="mt-0.5 text-xs leading-snug text-zinc-600">Confidence gap.</p>
           </div>
           <div className="rounded-lg border border-border bg-card px-3.5 py-3">
             <p className="text-muted-foreground text-[11px] tracking-wide uppercase">Measured accuracy</p>
             <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
               {calibrationSummary.avgAcc != null ? `${calibrationSummary.avgAcc}%` : "-"}
             </p>
-            <p className="text-muted-foreground mt-0.5 text-xs">Average actual accuracy across completed runs.</p>
+            <p className="text-muted-foreground mt-0.5 text-xs">Average accuracy.</p>
           </div>
         </div>
       )}
 
       {!adaptiveOn ? (
         <p className="text-muted-foreground mb-6 text-xs">
-          Adaptive difficulty is off.{" "}
+          Adaptive difficulty: Off (
           <Link href="/settings" className="text-primary underline underline-offset-2">
-            Turn on in Settings
-          </Link>{" "}
-          to send tier and weakness hints when generating exercises.
+            Settings
+          </Link>
+          )
         </p>
       ) : null}
 
@@ -396,19 +396,18 @@ export function DashboardContent() {
             <DashboardCompletedCardSkeleton />
           ) : (
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Completed exercises</CardTitle>
-                <CardDescription>Total: {count}</CardDescription>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Completed exercises ({count})</CardTitle>
               </CardHeader>
               <CardContent>
                 {count === 0 ? (
                   <p className="text-muted-foreground text-sm italic">
-                    No completions yet - finish an exercise to see breakdowns by type and domain.
+                    No completions yet.
                   </p>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <p className="text-muted-foreground mb-2 text-xs">By type</p>
+                      <p className="text-muted-foreground mb-2 text-xs font-medium">By type</p>
                       <ul className="space-y-1 text-sm">
                         {Object.entries(byType).map(([k, v]) => (
                           <li key={k}>
@@ -418,7 +417,7 @@ export function DashboardContent() {
                       </ul>
                     </div>
                     <div>
-                      <p className="text-muted-foreground mb-2 text-xs">By domain (top)</p>
+                      <p className="text-muted-foreground mb-2 text-xs font-medium">By domain</p>
                       <ul className="space-y-1 text-sm">
                         {byDomain.slice(0, 6).map((d) => (
                           <li key={d.domain}>
@@ -435,16 +434,12 @@ export function DashboardContent() {
 
           {dashboardOverviewReady && adaptiveOn ? (
             <Card>
-              <CardHeader>
+              <CardHeader className="pb-2">
                 <CardTitle className="text-base">Adaptive difficulty</CardTitle>
-                <CardDescription>
-                  Rolling accuracy by thinking type (tier after enough completions) and active blind
-                  spots.
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 text-sm">
                 <div>
-                  <p className="text-muted-foreground mb-2 text-xs">Performance tier by type</p>
+                  <p className="text-muted-foreground mb-2 text-xs font-medium">Performance tier</p>
                   <ul className="space-y-1">
                     {ADAPTIVE_TYPES.map((t) => {
                       const s = perfByType[t];
@@ -464,7 +459,7 @@ export function DashboardContent() {
                   </ul>
                 </div>
                 <div>
-                  <p className="text-muted-foreground mb-2 text-xs">Current blind spots (top 3)</p>
+                  <p className="text-muted-foreground mb-2 text-xs font-medium">Blind spots</p>
                   {topWeak.length ? (
                     <ul className="list-inside list-disc space-y-1">
                       {topWeak.map((w) => (
@@ -473,7 +468,7 @@ export function DashboardContent() {
                     </ul>
                   ) : (
                     <p className="text-muted-foreground text-xs italic">
-                      No blind spots queued yet - keep practicing.
+                      No blind spots queued.
                     </p>
                   )}
                 </div>
@@ -484,9 +479,8 @@ export function DashboardContent() {
           {dashboardOverviewReady ? (
             <>
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-2">
               <CardTitle className="text-base">Calibration gap</CardTitle>
-              <CardDescription>Positive gap ≈ overconfident vs measured accuracy.</CardDescription>
             </CardHeader>
             <CardContent>
               <GapChart points={gapPoints} />
@@ -494,12 +488,8 @@ export function DashboardContent() {
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-2">
               <CardTitle className="text-base">Weekly insight</CardTitle>
-              <CardDescription>
-                Generated from your last 7 completed exercises (not calendar-based). Next batch when
-                you reach {lastReviewCount + 7} completed (you have {count}).
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {weeklyError ? <p className="text-destructive text-sm">{weeklyError}</p> : null}
@@ -514,24 +504,24 @@ export function DashboardContent() {
                   )}
                 </Button>
               ) : (
-                <p className="text-muted-foreground text-sm italic">
-                  You need {lastReviewCount + 7 - count} more completed exercise
-                  {lastReviewCount + 7 - count === 1 ? "" : "s"} before the next weekly narrative unlocks.
+                <p className="text-muted-foreground text-xs italic">
+                  Need {lastReviewCount + 7 - count} more exercise
+                  {lastReviewCount + 7 - count === 1 ? "" : "s"}.
                 </p>
               )}
               {latestReview ? (
                 <div className="rounded-md border bg-muted/30 p-3">
                   <p className="text-muted-foreground mb-2 text-xs">
-                    Latest · batch at {latestReview.triggeredAtCompletedExerciseCount} completed ·{" "}
-                    {new Date(latestReview.createdAt).toLocaleString()}
+                    Latest · {latestReview.triggeredAtCompletedExerciseCount} completed ·{" "}
+                    {new Date(latestReview.createdAt).toLocaleDateString()}
                   </p>
                   <div className="prose prose-sm dark:prose-invert max-h-64 overflow-y-auto text-sm">
                     <pre className="whitespace-pre-wrap font-sans">{latestReview.markdown}</pre>
                   </div>
                 </div>
               ) : (
-                <p className="text-muted-foreground text-sm italic">
-                  No review generated yet - once eligible, use the button above to summarize your last seven completions.
+                <p className="text-muted-foreground text-xs italic">
+                  No review generated yet.
                 </p>
               )}
             </CardContent>
@@ -570,29 +560,23 @@ export function DashboardContent() {
             />
           ) : null}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm">Decision reminders</CardTitle>
-              <CardDescription className="text-xs">
-                Outcome check-ins you set on Real decisions (7 days after decided date).
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <DecisionRemindersCard decisions={decisions} />
             </CardContent>
           </Card>
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm">Delayed recall</CardTitle>
-              <CardDescription className="text-xs">
-                One card at a time, 48h after an exercise. Disable in Settings.
-              </CardDescription>
             </CardHeader>
             <CardContent>
               {recall ? (
                 <DelayedRecallCard key={recall.id} recall={recall} />
               ) : (
                 <p className="text-muted-foreground text-xs italic">
-                  Nothing due in the next window - when an exercise matures, a recall prompt will appear here.
+                  No recall due.
                 </p>
               )}
             </CardContent>

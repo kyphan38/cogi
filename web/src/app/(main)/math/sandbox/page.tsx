@@ -99,7 +99,7 @@ export default function MathSandboxPage() {
   };
 
   const handleSendChallenge = async () => {
-    if (!challengeInput.trim() || challengeLoading || !result) return;
+    if (!challengeInput.trim() || challengeLoading || !result || result.ev === null) return;
     const newMsg: SandboxChallengeMessage = { sender: "user", message: challengeInput.trim() };
     const updatedHistory = [...messages, newMsg];
     setMessages(updatedHistory);
@@ -320,68 +320,81 @@ export default function MathSandboxPage() {
             <CardDescription>Computed deterministically from your confirmed inputs above.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="border-border bg-muted/30 rounded-lg border p-4">
-              <div className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                Expected value
-              </div>
-              <div className={cn("text-2xl font-semibold tabular-nums", result.ev < 0 && "text-destructive")}>
-                {result.ev >= 0 ? "+" : ""}
-                {result.ev.toLocaleString("en-US", { style: "currency", currency: "USD" })}
-              </div>
-            </div>
-
-            {result.ruinFlag ? (
+            {result.ev === null ? (
               <Alert variant="destructive">
-                <AlertTitle>Possible ruin-risk decision</AlertTitle>
-                <AlertDescription>{result.ruinReason}</AlertDescription>
+                <AlertTitle>Can&apos;t compute an expected value yet</AlertTitle>
+                <AlertDescription>
+                  {result.validity.reason}{" "}
+                  Fix the branch probabilities above and compute again — a number computed
+                  from an incoherent distribution isn&apos;t a real answer, so none is shown.
+                </AlertDescription>
               </Alert>
-            ) : null}
-
-            <div className="space-y-3">
-              <p className="text-muted-foreground text-xs">
-                Discuss the result below — the AI will question and connect concepts, but it
-                cannot change the number above.
-              </p>
-              <div className="border-border bg-muted/30 max-h-72 min-h-32 space-y-3 overflow-y-auto rounded-lg border p-3">
-                {messages.length === 0 ? (
-                  <p className="text-muted-foreground text-xs italic">
-                    Ask why this result looks the way it does, or push back on it.
-                  </p>
-                ) : (
-                  messages.map((m, idx) => (
-                    <div key={idx} className={cn("flex", m.sender === "user" ? "justify-end" : "justify-start")}>
-                      <div
-                        className={cn(
-                          "max-w-[85%] rounded-lg p-3 text-xs leading-relaxed",
-                          m.sender === "user" ? "bg-zinc-900 text-white" : "border-border bg-card border",
-                        )}
-                      >
-                        {m.message}
-                      </div>
-                    </div>
-                  ))
-                )}
-                {challengeLoading ? (
-                  <div className="flex justify-start">
-                    <div className="border-border bg-card text-muted-foreground rounded-lg border p-3 text-xs">
-                      <InlineSpinner /> Thinking…
-                    </div>
+            ) : (
+              <>
+                <div className="border-border bg-muted/30 rounded-lg border p-4">
+                  <div className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                    Expected value
                   </div>
+                  <div className={cn("text-2xl font-semibold tabular-nums", result.ev < 0 && "text-destructive")}>
+                    {result.ev >= 0 ? "+" : ""}
+                    {result.ev.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+                  </div>
+                </div>
+
+                {result.ruinFlag ? (
+                  <Alert variant="destructive">
+                    <AlertTitle>Possible ruin-risk decision</AlertTitle>
+                    <AlertDescription>{result.ruinReason}</AlertDescription>
+                  </Alert>
                 ) : null}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  value={challengeInput}
-                  onChange={(e) => setChallengeInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSendChallenge()}
-                  placeholder="Ask about or push back on the result..."
-                  className="h-9"
-                />
-                <Button disabled={challengeLoading || !challengeInput.trim()} onClick={() => void handleSendChallenge()}>
-                  Send
-                </Button>
-              </div>
-            </div>
+
+                <div className="space-y-3">
+                  <p className="text-muted-foreground text-xs">
+                    Discuss the result below — the AI will question and connect concepts, but it
+                    cannot change the number above.
+                  </p>
+                  <div className="border-border bg-muted/30 max-h-72 min-h-32 space-y-3 overflow-y-auto rounded-lg border p-3">
+                    {messages.length === 0 ? (
+                      <p className="text-muted-foreground text-xs italic">
+                        Ask why this result looks the way it does, or push back on it.
+                      </p>
+                    ) : (
+                      messages.map((m, idx) => (
+                        <div key={idx} className={cn("flex", m.sender === "user" ? "justify-end" : "justify-start")}>
+                          <div
+                            className={cn(
+                              "max-w-[85%] rounded-lg p-3 text-xs leading-relaxed",
+                              m.sender === "user" ? "bg-zinc-900 text-white" : "border-border bg-card border",
+                            )}
+                          >
+                            {m.message}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    {challengeLoading ? (
+                      <div className="flex justify-start">
+                        <div className="border-border bg-card text-muted-foreground rounded-lg border p-3 text-xs">
+                          <InlineSpinner /> Thinking…
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={challengeInput}
+                      onChange={(e) => setChallengeInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSendChallenge()}
+                      placeholder="Ask about or push back on the result..."
+                      className="h-9"
+                    />
+                    <Button disabled={challengeLoading || !challengeInput.trim()} onClick={() => void handleSendChallenge()}>
+                      Send
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       ) : null}

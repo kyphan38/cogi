@@ -228,24 +228,8 @@ export function HomeContent() {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
       <div className="space-y-1">
-        <p className="text-muted-foreground text-sm">cogi</p>
-        <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Good moment to practice</h1>
-        <p className="text-muted-foreground max-w-xl text-sm leading-relaxed">
-          Enter a topic to find the best mode, or pick one directly below. Completed work is saved
-          to your signed-in account (Firebase). Use Settings for a JSON backup copy anytime.
-        </p>
+        <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Practice</h1>
       </div>
-
-      <Link
-        href="/guide"
-        className="block rounded-2xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm transition-colors hover:bg-zinc-100"
-      >
-        <span className="font-medium text-zinc-900">New to Cogi?</span>
-        <span className="text-zinc-600">
-          {" "}
-          Read the full guide - every exercise type, Dashboard, History, Settings, and more.
-        </span>
-      </Link>
 
       {incompleteExercises.length > 0 ? (
         <Card>
@@ -417,16 +401,13 @@ export function HomeContent() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle className="text-base">Open actions</CardTitle>
-          <CardDescription>
-            Commitments from the end of exercises. Week: {weekKey}
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {actions.length === 0 ? (
             <p className="text-muted-foreground text-sm italic">
-              Nothing here yet - finish an exercise and write one concrete action to see it listed.
+              No open actions.
             </p>
           ) : (
             <ul className="space-y-4">

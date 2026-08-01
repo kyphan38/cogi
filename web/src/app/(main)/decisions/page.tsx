@@ -259,9 +259,8 @@ export default function DecisionsPage() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle>Add decision</CardTitle>
-          <CardDescription>Log a real-world decision (optional link to an exercise).</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <div className="grid gap-2">
@@ -290,9 +289,6 @@ export default function DecisionsPage() {
           </div>
           <div className="grid gap-2">
             <Label>Outcome reminder</Label>
-            <div className="text-xs text-muted-foreground">
-              Optional: set a reminder to review the outcome in 7 days.
-            </div>
             <Select
               value={reminderEnabled ? "on" : "off"}
               onValueChange={(v) => setReminderEnabled(v === "on")}

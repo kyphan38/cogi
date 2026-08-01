@@ -25,12 +25,24 @@ export interface SandboxDecisionInput {
   reserves: number;
 }
 
+export interface SandboxValidity {
+  ok: boolean;
+  /** Human-readable reason the input is invalid; null when ok is true. */
+  reason: string | null;
+}
+
 export interface SandboxEvResult {
-  /** sum(probability * payoff) - fixedCost. Computed by code, never by the model. */
-  ev: number;
-  /** true only when oneShot AND the worst-case branch loss exceeds reserves. */
+  /**
+   * sum(probability * payoff) - fixedCost. Computed by code, never by the model.
+   * null when `validity.ok` is false — an EV computed from an incoherent probability
+   * distribution is not a number, it's noise, so it is never returned as if it were one.
+   */
+  ev: number | null;
+  /** true only when oneShot AND the worst-case branch loss exceeds reserves. Always false when invalid. */
   ruinFlag: boolean;
   ruinReason: string | null;
+  /** Whether the branch probabilities form a coherent distribution (see compute-ev.ts). */
+  validity: SandboxValidity;
 }
 
 /**
