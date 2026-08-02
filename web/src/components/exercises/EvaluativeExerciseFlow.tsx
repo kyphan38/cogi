@@ -503,8 +503,11 @@ export function EvaluativeExerciseFlow({
     return () => {
       cancelled = true;
     };
+    // criteriaFeedbackLoading is intentionally excluded: it's set synchronously above, and
+    // including it here would re-trigger this effect mid-flight, tearing down (cancelling)
+    // the very request it just started before it can resolve.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exercise, criteriaPhase, criteriaFeedback, criteriaFeedbackLoading]);
+  }, [exercise, criteriaPhase, criteriaFeedback]);
 
   const submitPerspective = async () => {
     const ex = exercise;
