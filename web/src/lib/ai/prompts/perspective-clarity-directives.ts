@@ -8,7 +8,8 @@ export const SUITABLE_FOR_RULE = `MANDATORY suitableFor field:
 export const NO_INDEX_REFERENCE_RULE = `ABSOLUTE PROHIBITION OF SHORTCUT REFERENCES:
 - You are strictly forbidden from referencing user input solely by index, item number, step count, grid position, or bare id.
 - Never write phrases like "your answer to question 2", "item 2", "step 3", "p2", "criterion c1", or "node_4" without also quoting or restating the actual text, label, score, or selection the user submitted.
-- When mentioning a criterion, option, node, or prompt, always pair the id with its human-readable label AND the user's concrete value.`;
+- You are also strictly forbidden from writing the internal id anywhere in your output, even alongside the label - do not write things like "'Speed to Market' (c2)", "Option A (o1)", or "criterion c1 (Alliance Credibility)".
+- When mentioning a criterion, option, node, or prompt, refer to it ONLY by its human-readable label or title, always paired with the user's concrete value or quoted text - never the id.`;
 
 export const CLARITY_BLUEPRINT_RULE = `MANDATORY CLARITY BLUEPRINT (every critique or evaluation string):
 1. WHAT the user wrote or selected - quote or mirror a relevant snippet verbatim (use quotation marks for excerpts).

@@ -200,6 +200,12 @@ export interface EvaluativeAxisSpec {
   highLabel: string;
 }
 
+/** AI critique of the user's self-proposed criteria (Propose criteria step). */
+export interface EvaluativeCriteriaFeedback {
+  text: string;
+  generatedAt: string;
+}
+
 export interface EvaluativeMatrixOption {
   id: string;
   title: string;
@@ -219,6 +225,8 @@ export interface EvaluativeMatrixRow {
   scenario: string;
   /** User's proposed criteria before seeing AI framework. */
   userProposedCriteria?: { name: string; rationale: string }[] | null;
+  /** AI feedback on the user's proposed criteria. */
+  criteriaFeedback?: EvaluativeCriteriaFeedback | null;
   axisX: EvaluativeAxisSpec;
   axisY: EvaluativeAxisSpec;
   options: EvaluativeMatrixOption[];
@@ -277,6 +285,8 @@ export interface EvaluativeScoringRow {
   stakeholderMappingRevealed?: boolean;
   /** User's proposed criteria before seeing AI framework. */
   userProposedCriteria?: { name: string; rationale: string }[] | null;
+  /** AI feedback on the user's proposed criteria. */
+  criteriaFeedback?: EvaluativeCriteriaFeedback | null;
   criteria: EvaluativeCriterion[];
   options: EvaluativeScoringOption[];
   hiddenCriteria: EvaluativeHiddenCriterion[];

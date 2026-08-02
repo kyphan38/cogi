@@ -9,22 +9,34 @@ export function buildPerspectiveDisagreePrompt(input: {
   pointTitle?: string | null;
   pointBody: string;
   userReason: string;
+  priorTurns?: { userReason: string; aiReply: string }[];
 }): string {
   const title = input.pointTitle?.trim() || "(untitled point)";
   const domainLine = input.domain?.trim() ? `Domain: ${input.domain}\n` : "";
+  const priorTurns = input.priorTurns ?? [];
+  const conversationBlock =
+    priorTurns.length > 0
+      ? `\nConversation so far (oldest first - stay consistent with what you already said, build on it rather than repeating yourself):
+---
+${priorTurns
+  .map((t, i) => `Round ${i + 1}\nUser: ${t.userReason}\nYou: ${t.aiReply}`)
+  .join("\n\n")}
+---
+`
+      : "";
   return `You are a collaborative peer (not a judge). The user is practicing thinking skills.
 
 Exercise kind: ${input.kind}
 ${domainLine}Exercise title: ${input.exerciseTitle}
 
-They clicked "I disagree" on this perspective point (section: ${input.section}):
+They opened a discussion on this perspective point (section: ${input.section}):
 Title: ${title}
 Point:
 ---
 ${input.pointBody}
 ---
-
-User's reason for disagreeing:
+${conversationBlock}
+User's latest message:
 ---
 ${input.userReason}
 ---

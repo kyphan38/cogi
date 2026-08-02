@@ -1,4 +1,4 @@
-import { CUSTOM_DOMAIN_PLACEHOLDER, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
+import { buildDomainHint, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
 
 export function buildEvaluativeGenerationPrompt(input: {
   domain: string;
@@ -11,10 +11,7 @@ export function buildEvaluativeGenerationPrompt(input: {
     : "";
   const adapt = input.adaptationAppendix?.trim();
   const scenarioBlock = formatUserScenarioBlock(input.customScenario);
-  const domainHint =
-    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
-      ? `\nTone/register hint: ${input.domain.trim()}`
-      : "";
+  const domainHint = buildDomainHint(input.domain);
   const aboutLine = scenarioBlock
     ? `${scenarioBlock}${domainHint}\n\nYou are generating a structured evaluative-thinking exercise anchored to the user's scenario above.${ctx}`
     : `You are generating a structured evaluative-thinking exercise about: ${input.domain}.${ctx}`;
@@ -85,10 +82,7 @@ export function buildGeopoliticsEvaluativePrompt(input: {
   const ctx = input.userContext?.trim() || "(none provided)";
   const adapt = input.adaptationAppendix?.trim();
   const scenarioBlock = formatUserScenarioBlock(input.customScenario);
-  const domainHint =
-    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
-      ? `\nTone/register hint: ${input.domain.trim()}`
-      : "";
+  const domainHint = buildDomainHint(input.domain);
   const topicLine = scenarioBlock
     ? `${scenarioBlock}${domainHint}`
     : `Topic: ${input.domain}`;

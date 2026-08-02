@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
 import { buildRecommendModePrompt } from "@/lib/ai/prompts/recommend-mode";
+import { EXERCISE_MODE_DESCRIPTIONS } from "@/lib/ai/prompts/exercise-mode-catalog";
 import { generateAnalyticalExerciseRaw } from "@/lib/ai/gemini";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 
 export const maxDuration = 30;
 
-const VALID_MODES = new Set([
-  "analytical",
-  "sequential",
-  "systems",
-  "evaluative",
-  "generative",
-]);
+const VALID_MODES = new Set(Object.keys(EXERCISE_MODE_DESCRIPTIONS));
 
 type Recommendation = { mode: string; reason: string };
 

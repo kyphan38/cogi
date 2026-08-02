@@ -1,12 +1,14 @@
+import { EXERCISE_MODE_DESCRIPTIONS } from "@/lib/ai/prompts/exercise-mode-catalog";
+
 export function buildRecommendModePrompt(topic: string): string {
+  const modesList = Object.entries(EXERCISE_MODE_DESCRIPTIONS)
+    .map(([mode, desc]) => `- ${mode}: ${desc}`)
+    .join("\n");
+
   return `You are a thinking-skills tutor. Given a topic, rank which thinking exercise modes fit best for practicing with that topic.
 
 Modes:
-- analytical: spotting flawed reasoning, logical fallacies, and hidden assumptions in arguments
-- sequential: ordering steps in a process, understanding dependencies and sequences
-- systems: mapping feedback loops, cause-and-effect networks, and system dynamics
-- evaluative: comparing options with weighted criteria, tradeoff analysis, and decision matrices
-- generative: writing arguments or proposals, then stress-testing them via debate
+${modesList}
 
 Topic: "${topic}"
 

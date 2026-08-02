@@ -1,4 +1,4 @@
-import { CUSTOM_DOMAIN_PLACEHOLDER, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
+import { buildDomainHint, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
 
 export function buildSystemsGenerationPrompt(input: {
   domain: string;
@@ -9,10 +9,7 @@ export function buildSystemsGenerationPrompt(input: {
   const ctx = input.userContext?.trim() || "(none provided)";
   const adapt = input.adaptationAppendix?.trim();
   const scenarioBlock = formatUserScenarioBlock(input.customScenario);
-  const domainHint =
-    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
-      ? `\nTone/register hint: ${input.domain.trim()}`
-      : "";
+  const domainHint = buildDomainHint(input.domain);
   const topicIntro = scenarioBlock
     ? `${scenarioBlock}\n\nDesign a systems-thinking exercise whose scenario and node labels reflect THIS situation (teams, tools, stakeholders may be renamed for clarity but keep the same tensions).`
     : `Generate a systems-thinking exercise about **${input.domain}**.`;
@@ -61,10 +58,7 @@ export function buildGeopoliticsSystemsPrompt(input: {
   const ctx = input.userContext?.trim() || "(none provided)";
   const adapt = input.adaptationAppendix?.trim();
   const scenarioBlock = formatUserScenarioBlock(input.customScenario);
-  const domainHint =
-    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
-      ? `\nTone/register hint: ${input.domain.trim()}`
-      : "";
+  const domainHint = buildDomainHint(input.domain);
   const topicIntro = scenarioBlock
     ? `${scenarioBlock}\n\nDesign a geopolitical systems exercise grounded in this scenario about: ${input.domain}.`
     : `Generate a geopolitical systems exercise about: ${input.domain}.`;

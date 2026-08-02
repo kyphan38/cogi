@@ -3,7 +3,11 @@ import { z } from "zod";
 import { buildPerspectiveDisagreePrompt } from "@/lib/ai/prompts/disagree";
 import { generatePlainTextRaw } from "@/lib/ai/gemini";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
-import { getFirebaseAdminFirestore, getUserDocPath } from "@/lib/firebaseAdminFirestore";
+import {
+  getFirebaseAdminFirestore,
+  getUserCollectionPath,
+  getUserDocPath,
+} from "@/lib/firebaseAdminFirestore";
 import type { PerspectiveDisagreementRow, PerspectiveKind, PerspectiveSectionKey } from "@/lib/types/disagreement";
 
 const bodySchema = z.object({
@@ -93,6 +97,20 @@ export async function POST(req: Request) {
     });
   }
 
+  // Equality-only filter on exerciseId - no .orderBy() in the Firestore query itself, so this
+  // needs no composite index. Sort/filter by section+pointId happens in JS below. If this is
+  // ever "optimized" to add .orderBy("createdAt"), it will need a new composite index
+  // (exerciseId ASC, createdAt ASC) or it will fail at runtime.
+  const priorSnap = await getFirebaseAdminFirestore()
+    .collection(getUserCollectionPath(auth.user.uid, "perspectiveDisagreements"))
+    .where("exerciseId", "==", exerciseId)
+    .get();
+  const priorTurns = priorSnap.docs
+    .map((d) => d.data() as PerspectiveDisagreementRow)
+    .filter((r) => r.section === section && r.pointId === pointId)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .map((r) => ({ userReason: r.userReason, aiReply: r.aiReply }));
+
   const prompt = buildPerspectiveDisagreePrompt({
     kind: kind as PerspectiveKind,
     exerciseTitle,
@@ -101,6 +119,7 @@ export async function POST(req: Request) {
     pointTitle,
     pointBody,
     userReason,
+    priorTurns,
   });
 
   try {

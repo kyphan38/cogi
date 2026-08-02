@@ -20,13 +20,19 @@ export async function listPerspectiveDisagreementsForExercise(
   return rows.filter((row) => row.exerciseId === exerciseId);
 }
 
+/** Distinct (exercise, section, point) discussed - a multi-round discussion on one point counts once. */
+function countDistinctPoints(rows: PerspectiveDisagreementRow[]): number {
+  const keys = new Set(rows.map((r) => `${r.exerciseId}:${r.section}:${r.pointId}`));
+  return keys.size;
+}
+
 export async function countPerspectiveDisagreementsForExercises(
   exerciseIds: Set<string>,
 ): Promise<number> {
   const rows = await listCollectionRows<PerspectiveDisagreementRow>(
     COGI_COLLECTIONS.perspectiveDisagreements,
   );
-  return rows.filter((row) => exerciseIds.has(row.exerciseId)).length;
+  return countDistinctPoints(rows.filter((row) => exerciseIds.has(row.exerciseId)));
 }
 
 export function subscribePerspectiveDisagreementCount(
@@ -35,7 +41,7 @@ export function subscribePerspectiveDisagreementCount(
 ): Unsubscribe {
   return subscribeCollectionRows<PerspectiveDisagreementRow>(
     COGI_COLLECTIONS.perspectiveDisagreements,
-    (rows) => onData(rows.length),
+    (rows) => onData(countDistinctPoints(rows)),
     onError,
   );
 }

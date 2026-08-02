@@ -4,6 +4,7 @@ import {
   CUSTOM_SCENARIO_MAX_LEN,
   resolveDomainAndScenario,
   formatUserScenarioBlock,
+  buildDomainHint,
 } from "./scenario-steering";
 
 describe("resolveDomainAndScenario", () => {
@@ -77,5 +78,24 @@ describe("formatUserScenarioBlock", () => {
   it("trims whitespace from scenario", () => {
     const result = formatUserScenarioBlock("  padded  ");
     expect(result).toContain("padded");
+  });
+});
+
+describe("buildDomainHint", () => {
+  it("returns empty string for blank domain", () => {
+    expect(buildDomainHint("")).toBe("");
+    expect(buildDomainHint("   ")).toBe("");
+  });
+
+  it("returns empty string for the custom-scenario placeholder domain", () => {
+    expect(buildDomainHint(CUSTOM_DOMAIN_PLACEHOLDER)).toBe("");
+  });
+
+  it("returns a tone/register hint line for a real domain", () => {
+    expect(buildDomainHint("economics")).toBe("\nTone/register hint: economics");
+  });
+
+  it("trims the domain before interpolating", () => {
+    expect(buildDomainHint("  finance  ")).toBe("\nTone/register hint: finance");
   });
 });

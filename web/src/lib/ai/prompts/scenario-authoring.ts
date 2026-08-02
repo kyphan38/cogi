@@ -1,3 +1,5 @@
+import { SCENARIO_DRAFT_SHAPE_PART1, SCENARIO_DRAFT_SHAPE_PART2 } from "@/lib/ai/prompts/scenario-draft-shape";
+
 export interface ExistingReasoningMove {
   toolName: string;
   topic: string;
@@ -65,24 +67,9 @@ CRITICAL OPERATIONAL RULES (violating any of these voids the draft):
   "id": "kebab-case-unique-id",
   "topic": "expected_value",
   "title": "Short title",
-  "situation": "Full scenario text with every needed number...",
-  "commitSpec": {
-    "kind": "multiple_choice",
-    "promptText": "Select the rational decision.",
-    "correctOptionId": "opt_a",
-    "options": [
-      { "id": "opt_a", "text": "Bare choice A" },
-      { "id": "opt_b", "text": "Bare choice B" }
-    ]
-  },
-  "keyTraps": ["Cognitive trap 1", "Cognitive trap 2"],
-  "hintLadder": ["Progressive Socratic hint 1", "Hint 2", "Hint 3"],
-  "canonicalAnswer": "The correct choice, stated plainly with the key number.",
-  "explanation": "Step-by-step derivation with visible arithmetic ending in canonicalAnswer.",
+${SCENARIO_DRAFT_SHAPE_PART1}
   "toolName": "Name of the distinct reasoning move/tool",
-  "transfers": [{ "domain": "Other domain", "mapping": "How the same structure appears there." }],
-  "boundaries": [{ "condition": "When this model breaks", "whyItBreaks": "Why." }],
-  "fieldNote": "One-line real-life takeaway.",
+${SCENARIO_DRAFT_SHAPE_PART2},
   "notes": "Reviewer-only: state the reasoning move and how it differs from the list above; flag any withheld base-rate number per rule 4."
 }`;
 }

@@ -18,6 +18,11 @@ describe("constants", () => {
     expect(NO_INDEX_REFERENCE_RULE).toContain("index");
   });
 
+  it("NO_INDEX_REFERENCE_RULE prohibits writing the internal id alongside the label", () => {
+    expect(NO_INDEX_REFERENCE_RULE).toContain("ONLY by its human-readable label");
+    expect(NO_INDEX_REFERENCE_RULE).toContain("(c2)");
+  });
+
   it("CLARITY_BLUEPRINT_RULE describes 3-part structure", () => {
     expect(CLARITY_BLUEPRINT_RULE).toContain("WHAT the user");
     expect(CLARITY_BLUEPRINT_RULE).toContain("blind spot");

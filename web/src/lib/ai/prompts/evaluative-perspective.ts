@@ -53,8 +53,8 @@ Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
       "optionId": "unique_id",
       "optionTitle": "option title from exercise",
       "userQuadrant": "top-left" | "top-right" | "bottom-left" | "bottom-right",
-      "userValueContext": "You placed 'Option Title' in top-left because ... (state actual placement; infer brief rationale if user gave none)",
-      "aiEvaluationText": "You placed '...' in top-left... However, from an alternative framing..."
+      "userValueContext": "You placed Option Title in top-left because ... (state actual placement; infer brief rationale if user gave none)",
+      "aiEvaluationText": "You placed Option Title in top-left... However, from an alternative framing..."
     }
   ],
   "openQuestions": ["optional 1-3 strings"]
@@ -62,9 +62,10 @@ Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
 
 Rules:
 - One placementCritiques row per option in the exercise.
-- aiEvaluationText must follow the Clarity Blueprint (quote placement, issue, alternative).
+- aiEvaluationText must follow the Clarity Blueprint (state placement, issue, alternative).
 - Note which user-proposed criteria they identified vs missed in relevant rows.
-- Do not give a numeric grade.`;
+- Do not give a numeric grade.
+- State option titles plainly, with no surrounding quotation marks (e.g. write Option Title, not 'Option Title') - the app highlights option names visually, so quotes are redundant clutter. Reserve quotation marks only for verbatim excerpts of the user's own written text.`;
 }
 
 export function buildEvaluativeScoringPerspectivePrompt(input: {
@@ -149,8 +150,8 @@ Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
       "criterionId": "c1",
       "criterionLabel": "human label",
       "userAssignedWeight": 4,
-      "userValueContext": "You weighted 'Alliance Credibility' at 4/5 and scored Option A as 3, Option B as 5 on this criterion (summarize all user weights/scores for this row)",
-      "aiEvaluationText": "You weighted 'Alliance Credibility' as 4 because you noted that '...'. However, from an oppositional stakeholder standpoint..."
+      "userValueContext": "You weighted Alliance Credibility at 4/5 and scored Option A as 3, Option B as 5 on this criterion (summarize all user weights/scores for this row)",
+      "aiEvaluationText": "You weighted Alliance Credibility as 4 because you noted that '...'. However, from an oppositional stakeholder standpoint..."
     }
   ],
   "openQuestions": ["optional 1-3 strings"]
@@ -161,6 +162,7 @@ Rules:
 - userValueContext must summarize the user's weight AND per-option scores for that criterion (even if only numeric).
 - Compare to suggestedWeight and suggestedScores in aiEvaluationText.
 - Note which criteria the user identified vs missed.${geoBlock}
+- State criterion and option names plainly, with no surrounding quotation marks (e.g. write Alliance Credibility, not 'Alliance Credibility') - the app highlights them visually, so quotes are redundant clutter. Reserve quotation marks only for verbatim excerpts of the user's own written text.
 
 No numeric grade for the user.`;
 }

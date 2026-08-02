@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AdaptiveSetupHint } from "@/components/adaptive/AdaptiveSetupHint";
 import {
@@ -40,6 +40,7 @@ import { Slider } from "@/components/ui/slider";
 import type {
   ConfidenceRecord,
   EmotionLabel,
+  EvaluativeCriteriaFeedback,
   EvaluativeExerciseRow,
   EvaluativeMatrixRow,
   EvaluativeQuadrant,
@@ -65,7 +66,10 @@ import { computeEvaluativeAccuracy } from "@/lib/analytics/calibration-evaluativ
 import { currentIsoWeekKey } from "@/lib/db/actions";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
-import type { AIPerspectiveStructured } from "@/lib/types/perspective";
+import type {
+  AIPerspectiveStructured,
+  EvaluativeScoringCriterionBreakdown,
+} from "@/lib/types/perspective";
 import { DomainInput } from "@/components/shared/DomainInput";
 import { TopicSuggestionPicker } from "@/components/shared/TopicSuggestionPicker";
 import { listRecentDomains } from "@/lib/db/exercises";
@@ -172,6 +176,8 @@ export function EvaluativeExerciseFlow({
     { name: string; rationale: string }[]
   >(() => Array.from({ length: 4 }, () => ({ name: "", rationale: "" })));
   const [criteriaPhase, setCriteriaPhase] = useState<"input" | "compare">("input");
+  const [criteriaFeedback, setCriteriaFeedback] = useState<EvaluativeCriteriaFeedback | null>(null);
+  const [criteriaFeedbackLoading, setCriteriaFeedbackLoading] = useState(false);
   const [userStakeholderMapping, setUserStakeholderMapping] = useState<
     { name: string; wants: string }[]
   >(() => Array.from({ length: 4 }, () => ({ name: "", wants: "" })));
@@ -221,6 +227,7 @@ export function EvaluativeExerciseFlow({
         setUserProposedCriteria(row.userProposedCriteria);
         setCriteriaPhase("compare");
       }
+      if (row.criteriaFeedback) setCriteriaFeedback(row.criteriaFeedback);
       if (row.variant === "scoring" && isGeopoliticsEvaluativeExercise(row)) {
         if (row.userStakeholderMapping && row.userStakeholderMapping.length > 0) {
           setUserStakeholderMapping(row.userStakeholderMapping);
@@ -364,6 +371,8 @@ export function EvaluativeExerciseFlow({
       setEmotionLabel("neutral");
       setUserProposedCriteria(Array.from({ length: 4 }, () => ({ name: "", rationale: "" })));
       setCriteriaPhase("input");
+      setCriteriaFeedback(null);
+      setCriteriaFeedbackLoading(false);
       setUserStakeholderMapping(Array.from({ length: 4 }, () => ({ name: "", wants: "" })));
       setStakeholderMappingRevealed(false);
       setStep(1);
@@ -433,6 +442,69 @@ export function EvaluativeExerciseFlow({
     if (!ex) return false;
     return ex.options.every((o) => placements[o.id] != null);
   };
+
+  useEffect(() => {
+    if (!exercise || criteriaPhase !== "compare" || criteriaFeedback || criteriaFeedbackLoading) return;
+    const cleaned = userProposedCriteria
+      .map((c) => ({ name: c.name.trim(), rationale: c.rationale.trim() }))
+      .filter((c) => c.name && c.rationale);
+    if (cleaned.length < 2) return;
+    let cancelled = false;
+    setCriteriaFeedbackLoading(true);
+    void (async () => {
+      try {
+        const requestId = crypto.randomUUID();
+        const body =
+          exercise.variant === "matrix"
+            ? {
+                requestId,
+                variant: "matrix" as const,
+                title: exercise.title,
+                domain: exercise.domain,
+                scenario: exercise.scenario,
+                userProposedCriteria: cleaned,
+                axisX: exercise.axisX,
+                axisY: exercise.axisY,
+              }
+            : {
+                requestId,
+                variant: "scoring" as const,
+                title: exercise.title,
+                domain: exercise.domain,
+                scenario: exercise.scenario,
+                userProposedCriteria: cleaned,
+                criteria: exercise.criteria,
+              };
+        const res = await aiFetch("/api/ai/evaluative-criteria-feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const json = await safeAiJson<
+          { ok: true; text: string } | { ok: false; error: string }
+        >(res);
+        if (cancelled) return;
+        if (json.ok) {
+          const fb: EvaluativeCriteriaFeedback = {
+            text: json.text,
+            generatedAt: new Date().toISOString(),
+          };
+          setCriteriaFeedback(fb);
+          const updated = { ...exercise, criteriaFeedback: fb };
+          setExercise(updated);
+          void putExercise(updated);
+        }
+      } catch {
+        // Non-blocking: criteria feedback failures don't block the flow.
+      } finally {
+        if (!cancelled) setCriteriaFeedbackLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exercise, criteriaPhase, criteriaFeedback, criteriaFeedbackLoading]);
 
   const submitPerspective = async () => {
     const ex = exercise;
@@ -672,6 +744,32 @@ export function EvaluativeExerciseFlow({
     }
   };
 
+  const scoringBreakdown = useMemo<EvaluativeScoringCriterionBreakdown[] | undefined>(() => {
+    if (!exercise || exercise.variant !== "scoring") return undefined;
+    return exercise.criteria.map((c) => ({
+      criterionId: c.id,
+      criterionLabel: c.label,
+      userWeight: criterionWeights[c.id] ?? c.suggestedWeight,
+      aiSuggestedWeight: c.suggestedWeight,
+      optionScores: exercise.options.map((o) => ({
+        optionId: o.id,
+        optionTitle: o.title,
+        userScore: scores[o.id]?.[c.id] ?? 3,
+        aiSuggestedScore: o.suggestedScores[c.id],
+      })),
+    }));
+  }, [exercise, criterionWeights, scores]);
+
+  const perspectiveHighlightTerms = useMemo<string[] | undefined>(() => {
+    if (!exercise) return undefined;
+    const optionTitles = exercise.options.map((o) => o.title);
+    const labels =
+      exercise.variant === "scoring"
+        ? exercise.criteria.map((c) => c.label)
+        : [exercise.axisX.label, exercise.axisY.label];
+    return [...optionTitles, ...labels].filter(Boolean);
+  }, [exercise]);
+
   const isGeoExercise = exercise ? isGeopoliticsEvaluativeExercise(exercise) : false;
   const stepLabels = isGeoExercise
     ? GEOPOLITICS_EVALUATIVE_STEP_LABELS
@@ -862,37 +960,51 @@ export function EvaluativeExerciseFlow({
               <div className="space-y-3">
                 <p className="text-muted-foreground text-sm">
                   What 2–4 criteria would you use to evaluate these options? For each, give a short
-                  name and one sentence explaining why it matters.
+                  name and explain why it matters (up to ~500 words).
                 </p>
-                <div className="grid gap-3">
-                  {userProposedCriteria.map((row, idx) => (
-                    <div key={idx} className="grid gap-2 sm:grid-cols-2">
-                      <Input
-                        value={row.name}
-                        placeholder={`Criterion ${idx + 1} name`}
-                        maxLength={40}
-                        onChange={(e) =>
-                          setUserProposedCriteria((prev) => {
-                            const next = [...prev];
-                            next[idx] = { ...next[idx]!, name: e.target.value };
-                            return next;
-                          })
-                        }
-                      />
-                      <Input
-                        value={row.rationale}
-                        placeholder="Why it matters (1 sentence)"
-                        maxLength={120}
-                        onChange={(e) =>
-                          setUserProposedCriteria((prev) => {
-                            const next = [...prev];
-                            next[idx] = { ...next[idx]!, rationale: e.target.value };
-                            return next;
-                          })
-                        }
-                      />
-                    </div>
-                  ))}
+                <div className="grid gap-4">
+                  {userProposedCriteria.map((row, idx) => {
+                    const wordCount = row.rationale.trim()
+                      ? row.rationale.trim().split(/\s+/).filter(Boolean).length
+                      : 0;
+                    return (
+                      <div key={idx} className="grid gap-2">
+                        <Input
+                          value={row.name}
+                          placeholder={`Criterion ${idx + 1} name`}
+                          maxLength={40}
+                          onChange={(e) =>
+                            setUserProposedCriteria((prev) => {
+                              const next = [...prev];
+                              next[idx] = { ...next[idx]!, name: e.target.value };
+                              return next;
+                            })
+                          }
+                        />
+                        <Textarea
+                          value={row.rationale}
+                          placeholder="Why it matters (up to ~500 words)"
+                          rows={3}
+                          maxLength={3000}
+                          onChange={(e) =>
+                            setUserProposedCriteria((prev) => {
+                              const next = [...prev];
+                              next[idx] = { ...next[idx]!, rationale: e.target.value };
+                              return next;
+                            })
+                          }
+                        />
+                        <p
+                          className={cn(
+                            "text-right text-xs",
+                            wordCount > 500 ? "text-destructive" : "text-muted-foreground",
+                          )}
+                        >
+                          {wordCount} / 500 words
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" variant="secondary" onClick={() => {
@@ -911,6 +1023,10 @@ export function EvaluativeExerciseFlow({
                         .filter((c) => c.name && c.rationale);
                       if (cleaned.length < 2) {
                         setError("Enter at least 2 criteria.");
+                        return;
+                      }
+                      if (cleaned.some((c) => c.rationale.split(/\s+/).filter(Boolean).length > 500)) {
+                        setError("Keep each rationale to 500 words or fewer.");
                         return;
                       }
                       setError(null);
@@ -971,8 +1087,27 @@ export function EvaluativeExerciseFlow({
                     )}
                   </div>
                 </div>
+                {criteriaFeedbackLoading ? (
+                  <div className="text-muted-foreground flex items-center gap-2 text-sm">
+                    <InlineSpinner /> Getting AI feedback on your criteria…
+                  </div>
+                ) : criteriaFeedback ? (
+                  <div className="rounded-md border p-3">
+                    <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">
+                      AI feedback on your criteria
+                    </p>
+                    <p className="text-sm whitespace-pre-wrap">{criteriaFeedback.text}</p>
+                  </div>
+                ) : null}
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="secondary" onClick={() => setCriteriaPhase("input")}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setCriteriaFeedback(null);
+                      setCriteriaPhase("input");
+                    }}
+                  >
                     Edit
                   </Button>
                   <Button
@@ -1015,13 +1150,16 @@ export function EvaluativeExerciseFlow({
                 onPlacementsChange={setPlacements}
               />
             ) : (
-              <div className="overflow-x-auto">
+              <div className="max-h-[min(60vh,640px)] overflow-auto">
                 <table className="w-full min-w-[480px] border-collapse text-sm">
                   <thead>
                     <tr>
-                      <th className="border p-2 text-left">Option</th>
+                      <th className="border p-2 text-left sticky top-0 z-10 bg-card">Option</th>
                       {exercise.criteria.map((c) => (
-                        <th key={c.id} className="border p-2 text-left align-bottom">
+                        <th
+                          key={c.id}
+                          className="border p-2 text-left align-bottom sticky top-0 z-10 bg-card"
+                        >
                           <div className="font-medium">{c.label}</div>
                           <p className="text-muted-foreground mt-1 text-xs font-normal">
                             {c.description}
@@ -1045,7 +1183,9 @@ export function EvaluativeExerciseFlow({
                           </span>
                         </th>
                       ))}
-                      <th className="border p-2 text-right">Weighted avg</th>
+                      <th className="border p-2 text-right sticky top-0 z-10 bg-card">
+                        Weighted avg
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1185,6 +1325,8 @@ export function EvaluativeExerciseFlow({
               }
               exerciseTitle={exercise.title}
               domain={exercise.domain}
+              evaluativeScoringBreakdown={exercise.variant === "scoring" ? scoringBreakdown : undefined}
+              highlightTerms={perspectiveHighlightTerms}
             />
             <Button type="button" onClick={() => advance(5)}>
               Continue to journal

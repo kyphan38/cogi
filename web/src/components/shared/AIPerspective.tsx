@@ -1,12 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { AIPerspectiveStructured } from "@/lib/types/perspective";
+import type {
+  AIPerspectiveStructured,
+  EvaluativeScoringCriterionBreakdown,
+} from "@/lib/types/perspective";
 import type { ClarityPerspectiveKind } from "@/lib/types/perspective";
 import { isLegacyPerspectiveStructured } from "@/lib/types/perspective";
 import type { PerspectiveDisagreementRow, PerspectiveKind, PerspectiveSectionKey } from "@/lib/types/disagreement";
@@ -19,6 +22,7 @@ import {
   listPerspectiveDisagreementsForExercise,
   putPerspectiveDisagreement,
 } from "@/lib/db/disagreements";
+import { highlightTerms as applyHighlightTerms } from "@/lib/text/highlight-terms";
 
 export interface AIPerspectiveProps {
   text: string;
@@ -27,13 +31,21 @@ export interface AIPerspectiveProps {
   perspectiveKind: PerspectiveKind;
   exerciseTitle: string;
   domain?: string;
+  /** Client-computed weight/score breakdown, replaces the run-on "You wrote / selected" line for evaluative-scoring. */
+  evaluativeScoringBreakdown?: EvaluativeScoringCriterionBreakdown[];
+  /** Option titles + criterion/axis labels to highlight in AI-generated prose. Nothing else is highlighted. */
+  highlightTerms?: string[];
+}
+
+function highlightedText(text: string, terms: string[] | undefined): ReactNode {
+  return terms && terms.length > 0 ? applyHighlightTerms(text, terms) : text;
 }
 
 function disagreeKey(section: PerspectiveSectionKey, pointId: string) {
   return `${section}:${pointId}`;
 }
 
-function PerspectiveDisagreeRow(props: {
+function PerspectiveDiscussRow(props: {
   section: PerspectiveSectionKey;
   pointId: string;
   pointTitle: string | null;
@@ -42,7 +54,8 @@ function PerspectiveDisagreeRow(props: {
   perspectiveKind: PerspectiveKind;
   exerciseTitle: string;
   domain?: string;
-  existing: PerspectiveDisagreementRow | undefined;
+  thread: PerspectiveDisagreementRow[];
+  highlightTerms?: string[];
   onSaved?: () => void;
   children: React.ReactNode;
 }) {
@@ -55,7 +68,8 @@ function PerspectiveDisagreeRow(props: {
     perspectiveKind,
     exerciseTitle,
     domain,
-    existing,
+    thread,
+    highlightTerms,
     onSaved,
     children,
   } = props;
@@ -63,11 +77,11 @@ function PerspectiveDisagreeRow(props: {
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [localReply, setLocalReply] = useState<string | null>(existing?.aiReply ?? null);
+  const [localTurns, setLocalTurns] = useState<PerspectiveDisagreementRow[]>(thread);
 
   useEffect(() => {
-    setLocalReply(existing?.aiReply ?? null);
-  }, [existing?.aiReply]);
+    setLocalTurns(thread);
+  }, [thread]);
 
   const submit = useCallback(async () => {
     setError(null);
@@ -107,22 +121,22 @@ function PerspectiveDisagreeRow(props: {
         setError(data.error);
         return;
       }
+      const row: PerspectiveDisagreementRow = {
+        id: requestId,
+        exerciseId,
+        kind: perspectiveKind,
+        section,
+        pointId,
+        pointTitle,
+        pointBody,
+        userReason: trimmed,
+        aiReply: data.text,
+        createdAt: new Date().toISOString(),
+      };
       if (!data.saved?.saved) {
-        const row: PerspectiveDisagreementRow = {
-          id: requestId,
-          exerciseId,
-          kind: perspectiveKind,
-          section,
-          pointId,
-          pointTitle,
-          pointBody,
-          userReason: trimmed,
-          aiReply: data.text,
-          createdAt: new Date().toISOString(),
-        };
         await putPerspectiveDisagreement(row);
       }
-      setLocalReply(data.text);
+      setLocalTurns((prev) => [...prev, row]);
       setOpen(false);
       setReason("");
       onSaved?.();
@@ -147,17 +161,25 @@ function PerspectiveDisagreeRow(props: {
   return (
     <li className="border-muted space-y-2 border-b py-3 last:border-0">
       {children}
-      {localReply ? (
-        <DisagreeReply text={localReply} />
-      ) : open ? (
+      {localTurns.length > 0 ? (
+        <div className="space-y-2">
+          {localTurns.map((t) => (
+            <div key={t.id} className="space-y-1">
+              <p className="text-muted-foreground text-xs italic">You: {t.userReason}</p>
+              <DisagreeReply text={t.aiReply} highlightTerms={highlightTerms} />
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {open ? (
         <div className="grid max-w-xl gap-2">
-          <Label htmlFor={`dis-${section}-${pointId}`}>Why do you disagree?</Label>
+          <Label htmlFor={`dis-${section}-${pointId}`}>What would you like to discuss?</Label>
           <Textarea
             id={`dis-${section}-${pointId}`}
             rows={3}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Explain your reasoning…"
+            placeholder="Agree, disagree, or ask to go deeper…"
           />
           {error ? <p className="text-destructive text-xs">{error}</p> : null}
           <div className="flex flex-wrap gap-2">
@@ -167,7 +189,7 @@ function PerspectiveDisagreeRow(props: {
                   <InlineSpinner /> Sending…
                 </>
               ) : (
-                "Submit"
+                "Send"
               )}
             </Button>
             <Button
@@ -186,18 +208,56 @@ function PerspectiveDisagreeRow(props: {
         </div>
       ) : (
         <Button type="button" size="sm" variant="secondary" onClick={() => setOpen(true)}>
-          I disagree
+          {localTurns.length === 0 ? "Discuss" : "Continue discussion"}
         </Button>
       )}
     </li>
   );
 }
 
-function DisagreeReply({ text }: { text: string }) {
+function DisagreeReply({ text, highlightTerms }: { text: string; highlightTerms?: string[] }) {
   return (
     <div className="bg-muted/50 rounded-md p-3 text-xs leading-relaxed">
-      <p className="text-foreground mb-1 font-medium">AI reply to your disagreement</p>
-      <p className="text-muted-foreground whitespace-pre-wrap">{text}</p>
+      <p className="text-foreground mb-1 font-medium">AI reply</p>
+      <p className="text-muted-foreground whitespace-pre-wrap">
+        {highlightedText(text, highlightTerms)}
+      </p>
+    </div>
+  );
+}
+
+function CriterionBreakdownTable({ breakdown }: { breakdown: EvaluativeScoringCriterionBreakdown }) {
+  return (
+    <div className="bg-muted/40 border-muted rounded-md border px-3 py-2 text-xs">
+      <p className="text-foreground mb-1 font-medium">
+        Your weight: {breakdown.userWeight}/5
+        {breakdown.aiSuggestedWeight != null ? (
+          <span className="text-muted-foreground font-normal">
+            {" "}
+            · AI suggested: {breakdown.aiSuggestedWeight}/5
+          </span>
+        ) : null}
+      </p>
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="text-muted-foreground">
+            <th className="py-0.5 text-left font-medium">Option</th>
+            <th className="py-0.5 text-right font-medium">Your score</th>
+            <th className="py-0.5 text-right font-medium">AI suggested</th>
+          </tr>
+        </thead>
+        <tbody>
+          {breakdown.optionScores.map((o) => (
+            <tr key={o.optionId} className="border-muted/60 border-t">
+              <td className="py-1 pr-2">{o.optionTitle}</td>
+              <td className="py-1 text-right font-medium">{o.userScore}</td>
+              <td className="py-1 text-muted-foreground text-right">
+                {o.aiSuggestedScore ?? "–"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -210,6 +270,8 @@ export function AIPerspective({
   perspectiveKind,
   exerciseTitle,
   domain,
+  evaluativeScoringBreakdown,
+  highlightTerms,
 }: AIPerspectiveProps) {
   const [disagreements, setDisagreements] = useState<PerspectiveDisagreementRow[]>([]);
 
@@ -230,15 +292,23 @@ export function AIPerspective({
 
   const byKey = useMemo(() => {
     const sorted = [...disagreements].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
-    const m = new Map<string, PerspectiveDisagreementRow>();
+    const m = new Map<string, PerspectiveDisagreementRow[]>();
     for (const r of sorted) {
       const k = disagreeKey(r.section, r.pointId);
-      if (!m.has(k)) m.set(k, r);
+      const arr = m.get(k);
+      if (arr) arr.push(r);
+      else m.set(k, [r]);
     }
     return m;
   }, [disagreements]);
+
+  const breakdownById = useMemo(() => {
+    const m = new Map<string, EvaluativeScoringCriterionBreakdown>();
+    for (const b of evaluativeScoringBreakdown ?? []) m.set(b.criterionId, b);
+    return m;
+  }, [evaluativeScoringBreakdown]);
 
   const refreshDisagreements = useCallback(async () => {
     try {
@@ -287,8 +357,9 @@ export function AIPerspective({
                   (d) => d.pointId === b.id && d.section !== "openQuestionsList",
                 );
                 if (!dp) return null;
+                const breakdown = breakdownById.get(b.id);
                 return (
-                  <PerspectiveDisagreeRow
+                  <PerspectiveDiscussRow
                     key={b.id}
                     section={dp.section}
                     pointId={dp.pointId}
@@ -298,26 +369,29 @@ export function AIPerspective({
                     perspectiveKind={perspectiveKind}
                     exerciseTitle={exerciseTitle}
                     domain={domain}
-                    existing={byKey.get(disagreeKey(dp.section, dp.pointId))}
+                    thread={byKey.get(disagreeKey(dp.section, dp.pointId)) ?? []}
+                    highlightTerms={highlightTerms}
                     onSaved={() => void refreshDisagreements()}
                   >
                     <div className="space-y-2">
                       {b.title ? <p className="text-foreground font-medium">{b.title}</p> : null}
-                      {b.userSnippet ? (
+                      {breakdown ? (
+                        <CriterionBreakdownTable breakdown={breakdown} />
+                      ) : b.userSnippet ? (
                         <div className="bg-muted/40 border-muted rounded-md border px-3 py-2 text-xs">
                           <span className="text-foreground font-medium">You wrote / selected: </span>
                           <span className="whitespace-pre-wrap">{b.userSnippet}</span>
                         </div>
                       ) : null}
-                      <p className="whitespace-pre-wrap">{b.body}</p>
+                      <p className="whitespace-pre-wrap">{highlightedText(b.body, highlightTerms)}</p>
                       {b.remediation ? (
                         <p className="whitespace-pre-wrap">
                           <span className="text-foreground font-medium">Stronger alternative: </span>
-                          {b.remediation}
+                          {highlightedText(b.remediation, highlightTerms)}
                         </p>
                       ) : null}
                     </div>
-                  </PerspectiveDisagreeRow>
+                  </PerspectiveDiscussRow>
                 );
               })}
             </ul>
@@ -329,7 +403,7 @@ export function AIPerspective({
                     const pointId = `open_${i + 1}`;
                     const section: PerspectiveSectionKey = "openQuestionsList";
                     return (
-                      <PerspectiveDisagreeRow
+                      <PerspectiveDiscussRow
                         key={pointId}
                         section={section}
                         pointId={pointId}
@@ -339,11 +413,12 @@ export function AIPerspective({
                         perspectiveKind={perspectiveKind}
                         exerciseTitle={exerciseTitle}
                         domain={domain}
-                        existing={byKey.get(disagreeKey(section, pointId))}
+                        thread={byKey.get(disagreeKey(section, pointId)) ?? []}
+                        highlightTerms={highlightTerms}
                         onSaved={() => void refreshDisagreements()}
                       >
-                        <p className="whitespace-pre-wrap">{q}</p>
-                      </PerspectiveDisagreeRow>
+                        <p className="whitespace-pre-wrap">{highlightedText(q, highlightTerms)}</p>
+                      </PerspectiveDiscussRow>
                     );
                   })}
                 </ul>
@@ -357,7 +432,7 @@ export function AIPerspective({
                 <h3 className="text-foreground mb-3 font-semibold">{sec.title}</h3>
                 <ul className="list-none space-y-0 pl-0">
                   {sec.points.map((p) => (
-                    <PerspectiveDisagreeRow
+                    <PerspectiveDiscussRow
                       key={p.id}
                       section={sec.key}
                       pointId={p.id}
@@ -367,7 +442,8 @@ export function AIPerspective({
                       perspectiveKind={perspectiveKind}
                       exerciseTitle={exerciseTitle}
                       domain={domain}
-                      existing={byKey.get(disagreeKey(sec.key, p.id))}
+                      thread={byKey.get(disagreeKey(sec.key, p.id)) ?? []}
+                      highlightTerms={highlightTerms}
                       onSaved={() => void refreshDisagreements()}
                     >
                       <div className="whitespace-pre-wrap">
@@ -377,9 +453,9 @@ export function AIPerspective({
                             {" - "}
                           </>
                         ) : null}
-                        {p.body}
+                        {highlightedText(p.body, highlightTerms)}
                       </div>
-                    </PerspectiveDisagreeRow>
+                    </PerspectiveDiscussRow>
                   ))}
                 </ul>
               </div>
