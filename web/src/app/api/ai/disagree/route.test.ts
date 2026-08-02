@@ -15,11 +15,16 @@ vi.mock("@/lib/ai/gemini", () => ({
 
 const mockDocGet = vi.fn();
 const mockDocSet = vi.fn();
+const mockCollectionGet = vi.fn();
 vi.mock("@/lib/firebaseAdminFirestore", () => ({
   getFirebaseAdminFirestore: vi.fn(() => ({
     doc: vi.fn(() => ({ get: mockDocGet, set: mockDocSet })),
+    collection: vi.fn(() => ({
+      where: vi.fn(() => ({ get: mockCollectionGet })),
+    })),
   })),
   getUserDocPath: vi.fn((_u: string, col: string, id: string) => `users/uid1/${col}/${id}`),
+  getUserCollectionPath: vi.fn((_u: string, col: string) => `users/uid1/${col}`),
 }));
 
 import { POST } from "./route";
@@ -64,6 +69,7 @@ beforeEach(() => {
   vi.stubEnv("GEMINI_API_KEY", "test-key");
   mockDocGet.mockResolvedValue({ exists: false });
   mockDocSet.mockResolvedValue(undefined);
+  mockCollectionGet.mockResolvedValue({ docs: [] });
 });
 
 describe("POST /api/ai/disagree", () => {
@@ -120,5 +126,40 @@ describe("POST /api/ai/disagree", () => {
     mockGeneratePlain.mockRejectedValue(new Error("AI error"));
     const res = await POST(makeRequest(validBody));
     expect(res.status).toBe(500);
+  });
+
+  it("threads prior rounds for the same point into the prompt, filtering out other points", async () => {
+    authOk();
+    mockCollectionGet.mockResolvedValue({
+      docs: [
+        {
+          data: () => ({
+            section: "embedded",
+            pointId: "p1",
+            userReason: "First round reason",
+            aiReply: "First round reply",
+            createdAt: "2025-01-01T00:00:00Z",
+          }),
+        },
+        {
+          data: () => ({
+            section: "embedded",
+            pointId: "other-point",
+            userReason: "Unrelated reason",
+            aiReply: "Unrelated reply",
+            createdAt: "2025-01-01T00:00:01Z",
+          }),
+        },
+      ],
+    });
+    mockGeneratePlain.mockResolvedValue("Second round reply");
+    const res = await POST(makeRequest(validBody));
+    expect(res.status).toBe(200);
+    expect(mockGeneratePlain).toHaveBeenCalledOnce();
+    const promptArg = mockGeneratePlain.mock.calls[0]![0] as string;
+    expect(promptArg).toContain("Conversation so far");
+    expect(promptArg).toContain("First round reason");
+    expect(promptArg).toContain("First round reply");
+    expect(promptArg).not.toContain("Unrelated reason");
   });
 });

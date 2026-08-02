@@ -109,3 +109,17 @@ export type ClarityPerspectiveKind = Extract<
   PerspectiveKind,
   "analytical" | "systems" | "evaluative-matrix" | "evaluative-scoring" | "generative"
 >;
+
+/** Client-computed weight/score breakdown for one evaluative-scoring criterion (replaces the AI's run-on summary sentence). */
+export interface EvaluativeScoringCriterionBreakdown {
+  criterionId: string;
+  criterionLabel: string;
+  userWeight: number;
+  aiSuggestedWeight?: number;
+  optionScores: {
+    optionId: string;
+    optionTitle: string;
+    userScore: number;
+    aiSuggestedScore?: number;
+  }[];
+}

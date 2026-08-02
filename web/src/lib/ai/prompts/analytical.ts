@@ -1,4 +1,65 @@
-import { CUSTOM_DOMAIN_PLACEHOLDER, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
+import { buildDomainHint, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
+
+const ANALYTICAL_ISSUE_SHAPE_BLOCK = `Return a single JSON object with this exact shape:
+{
+  "title": string,
+  "passage": string,
+  "embeddedIssues": [
+    {
+      "description": string,
+      "type": "logical_fallacy" | "hidden_assumption" | "weak_evidence" | "bias",
+      "severity": "obvious" | "moderate" | "subtle",
+      "textSegment": string (exact substring from passage),
+      "explanation": string
+    }
+  ],
+  "validPoints": [
+    {
+      "textSegment": string (exact substring that looks suspicious but is valid),
+      "explanation": string
+    }
+  ]
+}`;
+
+const ANALYTICAL_ISSUE_COUNT_FOOTER = `embeddedIssues must have exactly 4 items (1 obvious, 2 moderate, 1 subtle severities).
+validPoints must have exactly 2 items (the decoys).`;
+
+const SOUND_REASONING_SHAPE_BLOCK = `Return a single JSON object with this exact shape:
+{
+  "title": string,
+  "passage": string,
+  "embeddedIssues": [],
+  "validPoints": [
+    {
+      "textSegment": string (exact substring that looks suspicious but is actually valid),
+      "explanation": string (why it's actually sound reasoning)
+    }
+  ],
+  "isSoundReasoning": true
+}`;
+
+const SOUND_REASONING_COUNT_FOOTER = `embeddedIssues must be an EMPTY array (there are no real issues).
+validPoints must have 2-3 items (statements that look suspicious but are valid).`;
+
+const GEOPOLITICS_ISSUE_SHAPE_PREFIX = `Return a single JSON object with this exact shape:
+{
+  "title": string,
+  "passage": string,
+  "embeddedIssues": [
+    {
+      "description": string,
+      "type": "framing_bias" | "missing_actor" | "assumed_causation" | "analogy_misuse",
+      "severity": "obvious" | "moderate" | "subtle",
+      "textSegment": string (exact substring from passage),
+      "explanation": string
+    }
+  ],
+  "validPoints": [
+    {
+      "textSegment": string,
+      "explanation": string
+    }
+  ],`;
 
 export function buildAnalyticalGenerationPrompt(input: {
   domain: string;
@@ -11,10 +72,7 @@ export function buildAnalyticalGenerationPrompt(input: {
   const ctx = input.userContext?.trim() || "(none provided)";
   const adapt = input.adaptationAppendix?.trim();
   const scenarioBlock = formatUserScenarioBlock(input.customScenario);
-  const domainHint =
-    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
-      ? `\nTone/register hint: ${input.domain.trim()}`
-      : "";
+  const domainHint = buildDomainHint(input.domain);
 
   if (scenarioBlock) {
     return `You are generating a thinking exercise. Return ONLY valid JSON (no markdown, no prose).
@@ -33,29 +91,9 @@ Write an analysis passage (250-350 words) clearly grounded in the scenario above
 The passage should read naturally as part of that situation (memo, internal brief, stakeholder letter, etc., as fits).
 Do NOT make issues cartoonishly obvious.
 
-Return a single JSON object with this exact shape:
-{
-  "title": string,
-  "passage": string,
-  "embeddedIssues": [
-    {
-      "description": string,
-      "type": "logical_fallacy" | "hidden_assumption" | "weak_evidence" | "bias",
-      "severity": "obvious" | "moderate" | "subtle",
-      "textSegment": string (exact substring from passage),
-      "explanation": string
-    }
-  ],
-  "validPoints": [
-    {
-      "textSegment": string (exact substring that looks suspicious but is valid),
-      "explanation": string
-    }
-  ]
-}
+${ANALYTICAL_ISSUE_SHAPE_BLOCK}
 
-embeddedIssues must have exactly 4 items (1 obvious, 2 moderate, 1 subtle severities).
-validPoints must have exactly 2 items (the decoys).${adapt ? `\n\n${adapt}` : ""}`;
+${ANALYTICAL_ISSUE_COUNT_FOOTER}${adapt ? `\n\n${adapt}` : ""}`;
   }
 
   return `You are generating a thinking exercise. Return ONLY valid JSON (no markdown, no prose).
@@ -71,29 +109,9 @@ Generate a ${input.domain} analysis passage (250-350 words) that contains exactl
 The passage should read naturally, like a real ${input.domain} analysis or plan.
 Do NOT make issues cartoonishly obvious.
 
-Return a single JSON object with this exact shape:
-{
-  "title": string,
-  "passage": string,
-  "embeddedIssues": [
-    {
-      "description": string,
-      "type": "logical_fallacy" | "hidden_assumption" | "weak_evidence" | "bias",
-      "severity": "obvious" | "moderate" | "subtle",
-      "textSegment": string (exact substring from passage),
-      "explanation": string
-    }
-  ],
-  "validPoints": [
-    {
-      "textSegment": string (exact substring that looks suspicious but is valid),
-      "explanation": string
-    }
-  ]
-}
+${ANALYTICAL_ISSUE_SHAPE_BLOCK}
 
-embeddedIssues must have exactly 4 items (1 obvious, 2 moderate, 1 subtle severities).
-validPoints must have exactly 2 items (the decoys).${adapt ? `\n\n${adapt}` : ""}`;
+${ANALYTICAL_ISSUE_COUNT_FOOTER}${adapt ? `\n\n${adapt}` : ""}`;
 }
 
 export function buildAnalyticalSoundReasoningPrompt(input: {
@@ -105,10 +123,7 @@ export function buildAnalyticalSoundReasoningPrompt(input: {
   const ctx = input.userContext?.trim() || "(none provided)";
   const adapt = input.adaptationAppendix?.trim();
   const scenarioBlock = formatUserScenarioBlock(input.customScenario);
-  const domainHint =
-    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
-      ? `\nTone/register hint: ${input.domain.trim()}`
-      : "";
+  const domainHint = buildDomainHint(input.domain);
 
   if (scenarioBlock) {
     return `You are generating a thinking exercise. Return ONLY valid JSON (no markdown, no prose).
@@ -128,22 +143,9 @@ The passage should:
 
 The exercise tests whether the user can distinguish good reasoning from bad - the correct answer here is "this reasoning is mostly sound."
 
-Return a single JSON object with this exact shape:
-{
-  "title": string,
-  "passage": string,
-  "embeddedIssues": [],
-  "validPoints": [
-    {
-      "textSegment": string (exact substring that looks suspicious but is actually valid),
-      "explanation": string (why it's actually sound reasoning)
-    }
-  ],
-  "isSoundReasoning": true
-}
+${SOUND_REASONING_SHAPE_BLOCK}
 
-embeddedIssues must be an EMPTY array (there are no real issues).
-validPoints must have 2-3 items (statements that look suspicious but are valid).${adapt ? `\n\n${adapt}` : ""}`;
+${SOUND_REASONING_COUNT_FOOTER}${adapt ? `\n\n${adapt}` : ""}`;
   }
 
   return `You are generating a thinking exercise. Return ONLY valid JSON (no markdown, no prose).
@@ -160,22 +162,9 @@ The passage should:
 
 The exercise tests whether the user can distinguish good reasoning from bad - the correct answer here is "this reasoning is mostly sound."
 
-Return a single JSON object with this exact shape:
-{
-  "title": string,
-  "passage": string,
-  "embeddedIssues": [],
-  "validPoints": [
-    {
-      "textSegment": string (exact substring that looks suspicious but is actually valid),
-      "explanation": string (why it's actually sound reasoning)
-    }
-  ],
-  "isSoundReasoning": true
-}
+${SOUND_REASONING_SHAPE_BLOCK}
 
-embeddedIssues must be an EMPTY array (there are no real issues).
-validPoints must have 2-3 items (statements that look suspicious but are valid).${adapt ? `\n\n${adapt}` : ""}`;
+${SOUND_REASONING_COUNT_FOOTER}${adapt ? `\n\n${adapt}` : ""}`;
 }
 
 const GEOPOLITICS_PERSPECTIVE_POOL = [
@@ -202,10 +191,7 @@ export function buildGeopoliticsAnalyticalPrompt(input: {
   const ctx = input.userContext?.trim() || "(none provided)";
   const adapt = input.adaptationAppendix?.trim();
   const scenarioBlock = formatUserScenarioBlock(input.customScenario);
-  const domainHint =
-    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
-      ? `\nTone/register hint: ${input.domain.trim()}`
-      : "";
+  const domainHint = buildDomainHint(input.domain);
   const perspectivePick = `Pick ONE unstated perspective at random from this pool (vary across generations): ${GEOPOLITICS_PERSPECTIVE_POOL.join("; ")}. Do NOT reveal which you chose in the passage.`;
 
   const topicLine = scenarioBlock
@@ -234,25 +220,7 @@ Also include:
 
 ${TEXT_SEGMENT_RULE}
 
-Return a single JSON object with this exact shape:
-{
-  "title": string,
-  "passage": string,
-  "embeddedIssues": [
-    {
-      "description": string,
-      "type": "framing_bias" | "missing_actor" | "assumed_causation" | "analogy_misuse",
-      "severity": "obvious" | "moderate" | "subtle",
-      "textSegment": string (exact substring from passage),
-      "explanation": string
-    }
-  ],
-  "validPoints": [
-    {
-      "textSegment": string,
-      "explanation": string
-    }
-  ],
+${GEOPOLITICS_ISSUE_SHAPE_PREFIX}
   "hiddenPerspective": string (whose viewpoint is this written from - revealed after user attempts),
   "missingActors": [string] (1-2 actors/stakeholders whose interests are absent from the passage)
 }
@@ -285,26 +253,7 @@ Your task:
 - Treat the provided text as the passage.
 - Identify embedded issues and decoy valid points exactly as in the analytical exercise spec.
 
-Return a single JSON object with this exact shape:
-{
-  "title": string,
-  "passage": string,
-  "embeddedIssues": [
-    {
-      "description": string,
-      "type": "logical_fallacy" | "hidden_assumption" | "weak_evidence" | "bias",
-      "severity": "obvious" | "moderate" | "subtle",
-      "textSegment": string (exact substring from passage),
-      "explanation": string
-    }
-  ],
-  "validPoints": [
-    {
-      "textSegment": string (exact substring that looks suspicious but is valid),
-      "explanation": string
-    }
-  ]
-}
+${ANALYTICAL_ISSUE_SHAPE_BLOCK}
 
 Requirements:
 - Use the USER TEXT above directly as the passage. You may lightly trim whitespace but must NOT paraphrase or expand it.
@@ -341,25 +290,7 @@ Do NOT label issues as generic logical_fallacy, hidden_assumption, weak_evidence
 
 ${TEXT_SEGMENT_RULE}
 
-Return a single JSON object with this exact shape:
-{
-  "title": string,
-  "passage": string,
-  "embeddedIssues": [
-    {
-      "description": string,
-      "type": "framing_bias" | "missing_actor" | "assumed_causation" | "analogy_misuse",
-      "severity": "obvious" | "moderate" | "subtle",
-      "textSegment": string (exact substring from passage),
-      "explanation": string
-    }
-  ],
-  "validPoints": [
-    {
-      "textSegment": string,
-      "explanation": string
-    }
-  ],
+${GEOPOLITICS_ISSUE_SHAPE_PREFIX}
   "hiddenPerspective": string (whose viewpoint is this written from),
   "missingActors": [string] (1-2 actors/stakeholders whose interests are absent)
 }

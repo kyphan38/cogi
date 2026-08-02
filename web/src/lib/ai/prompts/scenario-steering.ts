@@ -35,6 +35,16 @@ export function resolveDomainAndScenario(input: {
 }
 
 /**
+ * "Tone/register hint" line appended when the user supplied a real domain (not blank, not
+ * the custom-scenario placeholder). Shared across every generation prompt that accepts a
+ * `domain` field.
+ */
+export function buildDomainHint(domain: string): string {
+  const d = domain.trim();
+  return d && d !== CUSTOM_DOMAIN_PLACEHOLDER ? `\nTone/register hint: ${d}` : "";
+}
+
+/**
  * Block injected when the user provides their own situation instead of a broad domain.
  */
 export function formatUserScenarioBlock(customScenario?: string): string | undefined {

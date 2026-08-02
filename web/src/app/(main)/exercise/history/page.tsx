@@ -514,11 +514,14 @@ function HistoryPageInner() {
       const ex = await getExercise(selectedId);
       const j = await getJournalForExercise(selectedId);
       const disagreements = await listPerspectiveDisagreementsForExercise(selectedId);
+      const sortedDisagreements = [...disagreements].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
       if (cancelled) return;
       startTransition(() => {
         setDetailEx(ex ?? null);
         setDetailJournal(j ?? null);
-        setDetailDisagreements(disagreements);
+        setDetailDisagreements(sortedDisagreements);
       });
     })();
     return () => {

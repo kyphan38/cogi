@@ -26,6 +26,9 @@ export function buildComboGenerationPrompt(input: {
     ? `${ctx}${scenarioBlock}\n\n${domainHint}You are designing a linked exercise bundle anchored to the user's scenario above (reuse the same stakes across sub-exercises).`
     : `${ctx}You are designing a linked exercise bundle for domain: ${input.domain}.`;
 
+  const buildPresetIntro = (presetName: string): string =>
+    scenarioBlock ? `${intro}\n\nPreset: ${presetName}` : `${ctx}Domain: ${input.domain}. Preset: ${presetName}`;
+
   if (input.preset === "full_analysis") {
     return `${intro}
 
@@ -45,9 +48,7 @@ Required top-level keys:
 - evaluativeMatrix: { variant: "matrix", title, scenario (must equal sharedScenario), axisX, axisY, options }`;
   }
   if (input.preset === "decision_sprint") {
-    const presetIntro = scenarioBlock
-      ? `${intro}\n\nPreset: decision_sprint`
-      : `${ctx}Domain: ${input.domain}. Preset: decision_sprint`;
+    const presetIntro = buildPresetIntro("decision_sprint");
     return `${presetIntro} - evaluative matrix then generative writing on the SAME scenario.
 
 ${JSON_RULES}
@@ -58,9 +59,7 @@ Required keys:
 - evaluativeMatrix: matrix variant as above
 - generative: { title, scenario (sharedScenario), prompts[4] }`;
   }
-  const presetIntro = scenarioBlock
-    ? `${intro}\n\nPreset: root_cause`
-    : `${ctx}Domain: ${input.domain}. Preset: root_cause`;
+  const presetIntro = buildPresetIntro("root_cause");
   return `${presetIntro} - sequential ordering, then systems map, then analytical deep read on the SAME scenario.
 
 ${JSON_RULES}

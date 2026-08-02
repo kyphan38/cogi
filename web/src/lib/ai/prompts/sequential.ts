@@ -1,4 +1,4 @@
-import { CUSTOM_DOMAIN_PLACEHOLDER, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
+import { buildDomainHint, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
 
 export function buildSequentialGenerationPrompt(input: {
   domain: string;
@@ -9,10 +9,7 @@ export function buildSequentialGenerationPrompt(input: {
   const ctx = input.userContext?.trim() || "(none provided)";
   const adapt = input.adaptationAppendix?.trim();
   const scenarioBlock = formatUserScenarioBlock(input.customScenario);
-  const domainHint =
-    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
-      ? `\nTone/register hint: ${input.domain.trim()}`
-      : "";
+  const domainHint = buildDomainHint(input.domain);
   const topicLine = scenarioBlock
     ? `${scenarioBlock}\n\nCreate a process-ordering exercise with **8 steps** directly about this situation.`
     : `Generate a ${input.domain} process-ordering exercise with **8 steps**.`;

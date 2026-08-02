@@ -1,5 +1,5 @@
 import type { GenerativeStage } from "@/lib/ai/validators/generative";
-import { CUSTOM_DOMAIN_PLACEHOLDER, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
+import { buildDomainHint, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
 
 export function buildGenerativeGenerationPrompt(input: {
   domain: string;
@@ -13,10 +13,7 @@ export function buildGenerativeGenerationPrompt(input: {
     : "";
   const adapt = input.adaptationAppendix?.trim();
   const scenarioBlock = formatUserScenarioBlock(input.customScenario);
-  const domainHint =
-    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
-      ? `\nTone/register hint: ${input.domain.trim()}`
-      : "";
+  const domainHint = buildDomainHint(input.domain);
 
   const stageBlock = generativeStageBlock(input.generativeStage);
 
@@ -66,10 +63,7 @@ export function buildGeopoliticsGenerativePrompt(input: {
   const ctx = input.userContext?.trim() || "(none provided)";
   const adapt = input.adaptationAppendix?.trim();
   const scenarioBlock = formatUserScenarioBlock(input.customScenario);
-  const domainHint =
-    input.domain.trim() && input.domain.trim() !== CUSTOM_DOMAIN_PLACEHOLDER
-      ? `\nTone/register hint: ${input.domain.trim()}`
-      : "";
+  const domainHint = buildDomainHint(input.domain);
   const stageBlock = generativeStageBlock(input.generativeStage);
 
   const topicLine = scenarioBlock

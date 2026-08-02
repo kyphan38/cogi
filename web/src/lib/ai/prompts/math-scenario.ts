@@ -1,9 +1,11 @@
 import type { StudentRequestPayload, TutorRequestPayload } from "@/lib/types/math-scenario";
 
+function formatConversationHistory(history: Array<{ sender: string; message: string }>): string {
+  return history.map((h) => `${h.sender.toUpperCase()}: ${h.message}`).join("\n");
+}
+
 export function buildTutorPrompt(payload: TutorRequestPayload): string {
-  const historyText = payload.conversationHistory
-    .map((h) => `${h.sender.toUpperCase()}: ${h.message}`)
-    .join("\n");
+  const historyText = formatConversationHistory(payload.conversationHistory);
 
   const trapsList = payload.keyTraps.map((t, i) => `${i + 1}. ${t}`).join("\n");
   const hintsList = payload.hintLadder.map((h, i) => `Nudge ${i + 1}: ${h}`).join("\n");
@@ -39,9 +41,7 @@ CRITICAL OPERATIONAL RULES:
 }
 
 export function buildStudentPrompt(payload: StudentRequestPayload): string {
-  const historyText = payload.conversationHistory
-    .map((h) => `${h.sender.toUpperCase()}: ${h.message}`)
-    .join("\n");
+  const historyText = formatConversationHistory(payload.conversationHistory);
 
   return `SYSTEM PROMPT - AI STUDENT (NAIVE LEARNER ROLEPLAY)
 

@@ -52,4 +52,24 @@ describe("buildPerspectiveDisagreePrompt", () => {
     const result = buildPerspectiveDisagreePrompt(base);
     expect(result).toContain("PROHIBITION");
   });
+
+  it("omits the conversation block when there are no prior turns", () => {
+    const result = buildPerspectiveDisagreePrompt(base);
+    expect(result).not.toContain("Conversation so far");
+  });
+
+  it("includes prior turns as a conversation transcript when provided", () => {
+    const result = buildPerspectiveDisagreePrompt({
+      ...base,
+      priorTurns: [
+        { userReason: "First round reason", aiReply: "First round reply" },
+        { userReason: "Second round reason", aiReply: "Second round reply" },
+      ],
+    });
+    expect(result).toContain("Conversation so far");
+    expect(result).toContain("First round reason");
+    expect(result).toContain("First round reply");
+    expect(result).toContain("Second round reason");
+    expect(result).toContain("Second round reply");
+  });
 });
