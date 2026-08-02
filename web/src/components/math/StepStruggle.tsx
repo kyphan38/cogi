@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Scenario } from "@/lib/types/math-scenario";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,31 +8,49 @@ import { Card, CardContent } from "@/components/ui/card";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { cn } from "@/lib/utils";
 
-interface StepStruggleProps {
-  scenario: Scenario;
-  onProceedToCommit: () => void;
-}
-
-interface Message {
+export interface StepStruggleMessage {
   sender: "user" | "tutor";
   message: string;
 }
 
-export function StepStruggle({ scenario, onProceedToCommit }: StepStruggleProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      sender: "tutor",
-      message:
-        "Welcome! I am your Socratic AI Tutor. Tell me: what trade-off or intuition are you considering for this scenario?",
-    },
-  ]);
+interface StepStruggleProps {
+  scenario: Scenario;
+  onProceedToCommit: () => void;
+  /** Resume from a persisted chat history; omit to start with the default greeting. */
+  initialMessages?: StepStruggleMessage[];
+  /** Called whenever the conversation changes, so a parent can persist it. */
+  onMessagesChange?: (messages: StepStruggleMessage[]) => void;
+}
+
+const DEFAULT_MESSAGES: StepStruggleMessage[] = [
+  {
+    sender: "tutor",
+    message:
+      "Welcome! I am your Socratic AI Tutor. Tell me: what trade-off or intuition are you considering for this scenario?",
+  },
+];
+
+export function StepStruggle({
+  scenario,
+  onProceedToCommit,
+  initialMessages,
+  onMessagesChange,
+}: StepStruggleProps) {
+  const [messages, setMessages] = useState<StepStruggleMessage[]>(
+    () => initialMessages ?? DEFAULT_MESSAGES,
+  );
   const [userInput, setUserInput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    onMessagesChange?.(messages);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
 
   const handleSendMessage = async () => {
     if (!userInput.trim() || loading) return;
 
-    const newMsg: Message = { sender: "user", message: userInput.trim() };
+    const newMsg: StepStruggleMessage = { sender: "user", message: userInput.trim() };
     const updatedHistory = [...messages, newMsg];
     setMessages(updatedHistory);
     setUserInput("");

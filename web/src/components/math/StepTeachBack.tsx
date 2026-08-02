@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Scenario } from "@/lib/types/math-scenario";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,30 +8,46 @@ import { Card, CardContent } from "@/components/ui/card";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { cn } from "@/lib/utils";
 
-interface StepTeachBackProps {
-  scenario: Scenario;
-  onComplete: () => void;
-}
-
-interface Message {
+export interface StepTeachBackMessage {
   sender: "user" | "student";
   message: string;
 }
 
-export function StepTeachBack({ scenario, onComplete }: StepTeachBackProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      sender: "student",
-      message: `Hey! I heard you just analyzed the "${scenario.title}" problem. Can you explain in plain terms how you decided what to do? I want to make sure I get the intuition!`,
-    },
-  ]);
+interface StepTeachBackProps {
+  scenario: Scenario;
+  onComplete: () => void;
+  /** Resume from a persisted chat history; omit to start with the default greeting. */
+  initialMessages?: StepTeachBackMessage[];
+  /** Called whenever the conversation changes, so a parent can persist it. */
+  onMessagesChange?: (messages: StepTeachBackMessage[]) => void;
+}
+
+export function StepTeachBack({
+  scenario,
+  onComplete,
+  initialMessages,
+  onMessagesChange,
+}: StepTeachBackProps) {
+  const [messages, setMessages] = useState<StepTeachBackMessage[]>(() =>
+    initialMessages ?? [
+      {
+        sender: "student",
+        message: `Hey! I heard you just analyzed the "${scenario.title}" problem. Can you explain in plain terms how you decided what to do? I want to make sure I get the intuition!`,
+      },
+    ],
+  );
   const [userInput, setUserInput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    onMessagesChange?.(messages);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
 
   const handleSendMessage = async () => {
     if (!userInput.trim() || loading) return;
 
-    const newMsg: Message = { sender: "user", message: userInput.trim() };
+    const newMsg: StepTeachBackMessage = { sender: "user", message: userInput.trim() };
     const updatedHistory = [...messages, newMsg];
     setMessages(updatedHistory);
     setUserInput("");

@@ -28,7 +28,7 @@ interface TopicSuggestionPickerProps {
 export function TopicSuggestionPicker({ area, kind, seedSuggestions, onPick }: TopicSuggestionPickerProps) {
   const [pickingTitle, setPickingTitle] = useState<string | null>(null);
   const [pickError, setPickError] = useState<string | null>(null);
-  const { suggestions, loadingInitial, loadingMore, error, moreDisabled, fetchMore, retry } =
+  const { suggestions, loadingInitial, loadingMore, error, moreDisabled, fetchMore, retry, regenerate } =
     useTopicSuggestions({
       area,
       kind,
@@ -129,12 +129,12 @@ export function TopicSuggestionPicker({ area, kind, seedSuggestions, onPick }: T
       )}
 
       {!loadingInitial && !error && suggestions.length > 0 ? (
-        moreDisabled ? (
-          <p className="text-muted-foreground text-center text-xs italic">
-            That&apos;s all for now - check back later for more suggestions.
-          </p>
-        ) : (
-          <div className="flex justify-center">
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {moreDisabled ? (
+            <p className="text-muted-foreground text-center text-xs italic">
+              That&apos;s all for now - check back later for more suggestions.
+            </p>
+          ) : (
             <Button type="button" variant="outline" size="sm" disabled={disabled || loadingMore} onClick={fetchMore}>
               {loadingMore ? (
                 <>
@@ -144,8 +144,11 @@ export function TopicSuggestionPicker({ area, kind, seedSuggestions, onPick }: T
                 "More"
               )}
             </Button>
-          </div>
-        )
+          )}
+          <Button type="button" variant="ghost" size="sm" disabled={disabled || loadingMore} onClick={regenerate}>
+            New suggestions
+          </Button>
+        </div>
       ) : null}
     </div>
   );

@@ -35,6 +35,8 @@ import { InlineSpinner } from "@/components/ui/inline-spinner";
 import type {
   AnalyticalExerciseRow,
   ConfidenceRecord,
+  EmotionLabel,
+  JournalDraft,
   UserHighlight,
 } from "@/lib/types/exercise";
 import type { JournalEntry } from "@/lib/types/journal";
@@ -105,9 +107,7 @@ export function AnalyticalExerciseFlow({
   const [aiRefLine, setAiRefLine] = useState<string | null>(null);
   const [journalPrimed, setJournalPrimed] = useState(false);
   const journalEffectIdRef = useRef(0);
-  const [emotionLabel, setEmotionLabel] = useState<
-    "anxious" | "excited" | "frustrated" | "confident" | "uncertain" | "defensive" | "neutral"
-  >("neutral");
+  const [emotionLabel, setEmotionLabel] = useState<EmotionLabel>("neutral");
 
   const [actionText, setActionText] = useState("");
   const [userPerspectiveGuess, setUserPerspectiveGuess] = useState("");
@@ -159,6 +159,14 @@ export function AnalyticalExerciseFlow({
         setMode("custom_scenario");
         setCustomScenarioText(row.customScenario);
       }
+      if (row.journalDraft) {
+        setJournalPrompts(row.journalDraft.prompts);
+        setJournalAnswers(row.journalDraft.responses);
+        setAiRefLine(row.journalDraft.aiReferenceLine);
+        setEmotionLabel(row.journalDraft.emotionLabel ?? "neutral");
+        setJournalPrimed(true);
+      }
+      if (row.actionDraftText) setActionText(row.actionDraftText);
       setStep((row.currentStep ?? 1) as FlowStep);
     })();
   }, [resumeId]);
@@ -176,6 +184,21 @@ export function AnalyticalExerciseFlow({
     }, 2000);
     return () => clearTimeout(timer);
   }, [highlights, step]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!exercise || (step !== 5 && step !== 6) || !journalPrimed) return;
+    const timer = setTimeout(() => {
+      const journalDraft: JournalDraft = {
+        prompts: journalPrompts,
+        responses: journalAnswers,
+        aiReferenceLine: aiRefLine,
+        emotionLabel,
+      };
+      void putExercise({ ...exercise, journalDraft, actionDraftText: actionText, currentStep: step });
+    }, 2000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [journalAnswers, actionText, emotionLabel, step]);
 
   const startGenerate = useCallback(async (
     domainOverride?: string,
@@ -1040,18 +1063,7 @@ export function AnalyticalExerciseFlow({
                   <Label>What emotion might be influencing your thinking right now?</Label>
                   <Select
                     value={emotionLabel}
-                    onValueChange={(v) =>
-                      setEmotionLabel(
-                        (v as
-                          | "anxious"
-                          | "excited"
-                          | "frustrated"
-                          | "confident"
-                          | "uncertain"
-                          | "defensive"
-                          | "neutral") ?? "neutral",
-                      )
-                    }
+                    onValueChange={(v) => setEmotionLabel((v as EmotionLabel) ?? "neutral")}
                   >
                     <SelectTrigger>
                       <SelectValue />

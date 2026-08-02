@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import type { PracticedTopicArea } from "@/lib/types/practiced-topic";
 import { listPracticedTitles } from "@/lib/db/practiced-topics";
+import { getCachedTopicList, putCachedTopicList } from "@/lib/db/topic-suggestions-cache";
 
 export interface TopicSuggestion {
   title: string;
@@ -29,6 +30,8 @@ interface UseTopicSuggestionsResult {
   moreDisabled: boolean;
   fetchMore: () => void;
   retry: () => void;
+  /** Force a fresh AI batch, discarding suggestion history for this area, and overwrite the cache. */
+  regenerate: () => void;
 }
 
 export function useTopicSuggestions(params: UseTopicSuggestionsParams): UseTopicSuggestionsResult {
@@ -41,6 +44,7 @@ export function useTopicSuggestions(params: UseTopicSuggestionsParams): UseTopic
 
   const shownTitlesRef = useRef<string[]>([]);
   const practicedTitlesRef = useRef<string[]>([]);
+  const moreClicksRef = useRef(0);
   const startedRef = useRef(false);
 
   const fetchBatch = useCallback(
@@ -68,6 +72,17 @@ export function useTopicSuggestions(params: UseTopicSuggestionsParams): UseTopic
         }
         shownTitlesRef.current = [...shownTitlesRef.current, ...json.suggestions.map((s) => s.title)];
         setSuggestions(json.suggestions);
+        void putCachedTopicList({
+          id: `${kind}:${area}`,
+          area,
+          kind,
+          suggestions: json.suggestions,
+          shownTitles: shownTitlesRef.current,
+          moreClicksUsed: moreClicksRef.current,
+          updatedAt: new Date().toISOString(),
+        }).catch(() => {
+          // Cache write is best-effort - a failure shouldn't block showing suggestions.
+        });
       } catch (e) {
         setError(e instanceof Error ? e.message : "Could not load suggestions.");
       } finally {
@@ -87,6 +102,14 @@ export function useTopicSuggestions(params: UseTopicSuggestionsParams): UseTopic
       } catch {
         practicedTitlesRef.current = [];
       }
+      const cached = await getCachedTopicList(kind, area).catch(() => undefined);
+      if (cached && cached.suggestions.length > 0) {
+        shownTitlesRef.current = cached.shownTitles;
+        moreClicksRef.current = cached.moreClicksUsed;
+        setMoreClicks(cached.moreClicksUsed);
+        setSuggestions(cached.suggestions);
+        return;
+      }
       await fetchBatch(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,13 +117,22 @@ export function useTopicSuggestions(params: UseTopicSuggestionsParams): UseTopic
 
   const fetchMore = useCallback(() => {
     if (moreClicks >= MAX_MORE_CLICKS || loadingMore || loadingInitial) return;
-    setMoreClicks((n) => n + 1);
+    moreClicksRef.current += 1;
+    setMoreClicks(moreClicksRef.current);
     void fetchBatch(true);
   }, [moreClicks, loadingMore, loadingInitial, fetchBatch]);
 
   const retry = useCallback(() => {
     void fetchBatch(shownTitlesRef.current.length > 0);
   }, [fetchBatch]);
+
+  const regenerate = useCallback(() => {
+    if (loadingMore || loadingInitial) return;
+    shownTitlesRef.current = [];
+    moreClicksRef.current = 0;
+    setMoreClicks(0);
+    void fetchBatch(false);
+  }, [loadingMore, loadingInitial, fetchBatch]);
 
   return {
     suggestions,
@@ -110,5 +142,6 @@ export function useTopicSuggestions(params: UseTopicSuggestionsParams): UseTopic
     moreDisabled: moreClicks >= MAX_MORE_CLICKS,
     fetchMore,
     retry,
+    regenerate,
   };
 }

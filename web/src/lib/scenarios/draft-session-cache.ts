@@ -4,10 +4,13 @@ import { scenarioObjectSchema } from "@/lib/scenarios/scenario-schema";
 /**
  * AI-drafted, unverified Math scenarios are never in the static allScenarios array (they're
  * generated on the fly per-request), so /math/[id]/page.tsx can't resolve them via
- * getScenarioById. This tab-scoped sessionStorage cache is the hand-off: the topic picker
- * saves a generated scenario here right before navigating to /math/{id}, and the runner
- * loads it back out. A copied link to a draft opened in a new tab will 404 - acceptable for
- * ephemeral, single-use unverified practice content (same tradeoff sandbox mode accepts).
+ * getScenarioById. This tab-scoped sessionStorage cache is a fast-path hand-off: the topic
+ * picker saves a generated scenario here right before navigating to /math/{id}, and the runner
+ * reads it back synchronously to avoid a render flash. It is NOT the source of truth for
+ * progress - the runner also persists the scenario snapshot + loop state to the
+ * `activeMathSessions` Firestore collection (see lib/db/math-sessions.ts), so a closed tab or a
+ * different device can still resume. A copied link opened in a fresh tab falls back to that
+ * Firestore doc rather than 404ing.
  */
 function storageKey(id: string): string {
   return `cogi:math-draft:${id}`;

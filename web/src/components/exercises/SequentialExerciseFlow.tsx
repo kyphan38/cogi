@@ -51,7 +51,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import type { ConfidenceRecord, SequentialExerciseRow } from "@/lib/types/exercise";
+import type { ConfidenceRecord, EmotionLabel, JournalDraft, SequentialExerciseRow } from "@/lib/types/exercise";
 import type { JournalEntry } from "@/lib/types/journal";
 import type { ActionBridge } from "@/lib/types/action";
 import type { SequentialExercisePayload } from "@/lib/ai/validators/sequential";
@@ -191,9 +191,7 @@ export function SequentialExerciseFlow({
   const [journalPrimed, setJournalPrimed] = useState(false);
   const journalEffectIdRef = useRef(0);
 
-  const [emotionLabel, setEmotionLabel] = useState<
-    "anxious" | "excited" | "frustrated" | "confident" | "uncertain" | "defensive" | "neutral"
-  >("neutral");
+  const [emotionLabel, setEmotionLabel] = useState<EmotionLabel>("neutral");
 
   const [actionText, setActionText] = useState("");
 
@@ -229,9 +227,32 @@ export function SequentialExerciseFlow({
       setConfidence(row.confidenceBefore ?? 50);
       if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
       if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
+      if (row.journalDraft) {
+        setJournalPrompts(row.journalDraft.prompts);
+        setJournalAnswers(row.journalDraft.responses);
+        setAiRefLine(row.journalDraft.aiReferenceLine);
+        setEmotionLabel(row.journalDraft.emotionLabel ?? "neutral");
+        setJournalPrimed(true);
+      }
+      if (row.actionDraftText) setActionText(row.actionDraftText);
       setStep((row.currentStep ?? 1) as FlowStep);
     })();
   }, [resumeId]);
+
+  useEffect(() => {
+    if (!exercise || (step !== 4 && step !== 5) || !journalPrimed) return;
+    const timer = setTimeout(() => {
+      const journalDraft: JournalDraft = {
+        prompts: journalPrompts,
+        responses: journalAnswers,
+        aiReferenceLine: aiRefLine,
+        emotionLabel,
+      };
+      void putExercise({ ...exercise, journalDraft, actionDraftText: actionText, currentStep: step });
+    }, 2000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [journalAnswers, actionText, emotionLabel, step]);
 
   useEffect(() => {
     if (resumeId) return;
