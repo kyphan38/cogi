@@ -36,6 +36,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type {
   ConfidenceRecord,
+  EmotionLabel,
+  JournalDraft,
   SystemsExerciseRow,
   SystemsNodeImpact,
   SystemsUserEdge,
@@ -145,9 +147,7 @@ export function SystemsExerciseFlow({
   const [actionText, setActionText] = useState("");
   const [userPerspectiveBNotes, setUserPerspectiveBNotes] = useState("");
 
-  const [emotionLabel, setEmotionLabel] = useState<
-    "anxious" | "excited" | "frustrated" | "confident" | "uncertain" | "defensive" | "neutral"
-  >("neutral");
+  const [emotionLabel, setEmotionLabel] = useState<EmotionLabel>("neutral");
 
   useEffect(() => {
     void listRecentDomains(20).then(setDomainSuggestions);
@@ -182,6 +182,14 @@ export function SystemsExerciseFlow({
       if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
       if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
       setUserPerspectiveBNotes(row.userPerspectiveBNotes ?? "");
+      if (row.journalDraft) {
+        setJournalPrompts(row.journalDraft.prompts);
+        setJournalAnswers(row.journalDraft.responses);
+        setAiRefLine(row.journalDraft.aiReferenceLine);
+        setEmotionLabel(row.journalDraft.emotionLabel ?? "neutral");
+        setJournalPrimed(true);
+      }
+      if (row.actionDraftText) setActionText(row.actionDraftText);
       setStep((row.currentStep ?? 1) as FlowStep);
     })();
   }, [resumeId]);
@@ -191,6 +199,24 @@ export function SystemsExerciseFlow({
     const d = initialDomain?.trim();
     if (d) setDomain(d);
   }, [initialDomain, resumeId]);
+
+  useEffect(() => {
+    if (!exercise || !journalPrimed) return;
+    const isGeo = isGeopoliticsSystemsExercise(exercise);
+    const journalStep = isGeo ? 7 : 6;
+    if (step !== journalStep && step !== journalStep + 1) return;
+    const timer = setTimeout(() => {
+      const journalDraft: JournalDraft = {
+        prompts: journalPrompts,
+        responses: journalAnswers,
+        aiReferenceLine: aiRefLine,
+        emotionLabel,
+      };
+      void putExercise({ ...exercise, journalDraft, actionDraftText: actionText, currentStep: step });
+    }, 2000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [journalAnswers, actionText, emotionLabel, step]);
 
   useEffect(() => {
     const isGeo = exercise ? isGeopoliticsSystemsExercise(exercise) : false;

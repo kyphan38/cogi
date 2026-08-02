@@ -1,23 +1,36 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getScenarioById } from "@/lib/scenarios";
-import { loadDraftScenario } from "@/lib/scenarios/draft-session-cache";
-import type { LoopState } from "@/lib/types/math-scenario";
+import { loadDraftScenario, saveDraftScenario } from "@/lib/scenarios/draft-session-cache";
+import type { LoopState, Scenario } from "@/lib/types/math-scenario";
 import type { ConfidenceRecord } from "@/lib/types/exercise";
+import type { ActiveMathSession, MathSessionMessage } from "@/lib/types/math-session";
 import { putConfidenceRecord } from "@/lib/db/confidence";
 import { recordPracticedTopic } from "@/lib/db/practiced-topics";
+import {
+  deleteActiveMathSession,
+  getActiveMathSession,
+  putActiveMathSession,
+} from "@/lib/db/math-sessions";
 import { StepDrop } from "@/components/math/StepDrop";
 import { StepCommit } from "@/components/math/StepCommit";
-import { StepStruggle } from "@/components/math/StepStruggle";
+import { StepStruggle, type StepStruggleMessage } from "@/components/math/StepStruggle";
 import { StepReveal } from "@/components/math/StepReveal";
-import { StepTeachBack } from "@/components/math/StepTeachBack";
+import { StepTeachBack, type StepTeachBackMessage } from "@/components/math/StepTeachBack";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+
+type CommittedData = {
+  committedValue: string | number;
+  predictionText?: string;
+  confidence: number; // 0.00 to 1.00
+  correct: boolean;
+};
 
 export default function MathScenarioRunnerPage({
   params,
@@ -28,16 +41,83 @@ export default function MathScenarioRunnerPage({
   const router = useRouter();
   const catalogScenario = getScenarioById(id);
   const [draftScenario] = useState(() => (catalogScenario ? null : loadDraftScenario(id)));
-  const scenario = catalogScenario ?? draftScenario ?? undefined;
-  const isAiDraft = !catalogScenario && !!draftScenario;
+
+  const [scenario, setScenario] = useState<Scenario | undefined>(
+    catalogScenario ?? draftScenario ?? undefined,
+  );
+  const isAiDraft = !catalogScenario;
 
   const [loopState, setLoopState] = useState<LoopState>("drop");
-  const [committedData, setCommittedData] = useState<{
-    committedValue: string | number;
-    predictionText?: string;
-    confidence: number; // 0.00 to 1.00
-    correct: boolean;
-  } | null>(null);
+  const [committedData, setCommittedData] = useState<CommittedData | null>(null);
+  const [struggleMessages, setStruggleMessages] = useState<StepStruggleMessage[] | undefined>(undefined);
+  const [teachBackMessages, setTeachBackMessages] = useState<StepTeachBackMessage[] | undefined>(undefined);
+  const [hydrated, setHydrated] = useState(false);
+  const createdAtRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getActiveMathSession(id)
+      .then((session) => {
+        if (cancelled) return;
+        createdAtRef.current = session?.createdAt ?? new Date().toISOString();
+        if (session) {
+          if (!scenario && session.scenarioSnapshot) {
+            setScenario(session.scenarioSnapshot);
+            saveDraftScenario(session.scenarioSnapshot);
+          }
+          setLoopState(session.loopState);
+          setCommittedData(session.committedData);
+          if (session.struggleMessages.length > 0) {
+            setStruggleMessages(session.struggleMessages as StepStruggleMessage[]);
+          }
+          if (session.teachBackMessages.length > 0) {
+            setTeachBackMessages(session.teachBackMessages as StepTeachBackMessage[]);
+          }
+        }
+      })
+      .catch(() => {
+        // Degrade gracefully - no persisted session just means starting fresh.
+        createdAtRef.current = new Date().toISOString();
+      })
+      .finally(() => {
+        if (!cancelled) setHydrated(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  useEffect(() => {
+    if (!hydrated || !scenario || loopState === "complete") return;
+    const timer = setTimeout(() => {
+      const row: ActiveMathSession = {
+        id: scenario.id,
+        topic: scenario.topic,
+        title: scenario.title,
+        isAiDraft,
+        scenarioSnapshot: isAiDraft ? scenario : undefined,
+        loopState,
+        committedData,
+        struggleMessages: (struggleMessages ?? []) as MathSessionMessage[],
+        teachBackMessages: (teachBackMessages ?? []) as MathSessionMessage[],
+        createdAt: createdAtRef.current ?? new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      void putActiveMathSession(row).catch(() => {
+        // Session persistence is best-effort - a failure shouldn't block practicing.
+      });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [hydrated, scenario, isAiDraft, loopState, committedData, struggleMessages, teachBackMessages]);
+
+  if (!hydrated) {
+    return (
+      <main className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
+        <div className="h-40 animate-pulse rounded-2xl border border-border bg-card" />
+      </main>
+    );
+  }
 
   if (!scenario) {
     return (
@@ -45,7 +125,7 @@ export default function MathScenarioRunnerPage({
         <h1 className="text-xl font-semibold">Scenario not found</h1>
         <p className="text-muted-foreground text-sm">
           The scenario ID &ldquo;{id}&rdquo; does not exist in the catalog, and no matching AI
-          draft was found in this browser tab.
+          draft was found.
         </p>
         <Link href="/math">
           <Button variant="outline">← Return to scenarios</Button>
@@ -75,12 +155,7 @@ export default function MathScenarioRunnerPage({
       ? 4
       : 5;
 
-  const handleCommitSubmit = (data: {
-    committedValue: string | number;
-    predictionText?: string;
-    confidence: number;
-    correct: boolean;
-  }) => {
+  const handleCommitSubmit = (data: CommittedData) => {
     setCommittedData(data);
     setLoopState("reveal_answer");
   };
@@ -111,6 +186,11 @@ export default function MathScenarioRunnerPage({
       });
     } catch {
       // Safe local fallback - exclusion is a nice-to-have, not required for completion.
+    }
+    try {
+      await deleteActiveMathSession(scenario.id);
+    } catch {
+      // Safe local fallback - a leftover session doc is harmless (won't reopen once complete).
     }
     setLoopState("complete");
   };
@@ -183,6 +263,8 @@ export default function MathScenarioRunnerPage({
         <StepStruggle
           scenario={scenario}
           onProceedToCommit={() => setLoopState("commit")}
+          initialMessages={struggleMessages}
+          onMessagesChange={setStruggleMessages}
         />
       )}
 
@@ -198,6 +280,8 @@ export default function MathScenarioRunnerPage({
         <StepTeachBack
           scenario={scenario}
           onComplete={handleCompleteScenario}
+          initialMessages={teachBackMessages}
+          onMessagesChange={setTeachBackMessages}
         />
       )}
 

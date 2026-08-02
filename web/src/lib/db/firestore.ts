@@ -18,7 +18,9 @@ import {
 
 export const COGI_COLLECTIONS = {
   actions: "actions",
+  activeMathSessions: "activeMathSessions",
   aiArtifacts: "aiArtifacts",
+  cachedTopicLists: "cachedTopicLists",
   confidenceRecords: "confidenceRecords",
   decisions: "decisions",
   delayedRecallQueue: "delayedRecallQueue",

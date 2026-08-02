@@ -4,6 +4,24 @@ import type { GenerativeStage } from "@/lib/ai/validators/generative";
 import type { SystemsConnectionType } from "@/lib/ai/validators/systems";
 import type { SystemsExercisePayload } from "@/lib/ai/validators/systems";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
+import type { JournalPromptItem } from "@/lib/ai/prompts/journal-pool";
+
+export type EmotionLabel =
+  | "anxious"
+  | "excited"
+  | "frustrated"
+  | "confident"
+  | "uncertain"
+  | "defensive"
+  | "neutral";
+
+/** In-progress journal step state, autosaved so it survives an abandoned session. */
+export interface JournalDraft {
+  prompts: JournalPromptItem[];
+  responses: Record<string, string>;
+  aiReferenceLine: string | null;
+  emotionLabel?: EmotionLabel;
+}
 
 export type ThinkingType =
   | "analytical"
@@ -88,6 +106,8 @@ export interface AnalyticalExerciseRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
+  journalDraft?: JournalDraft;
+  actionDraftText?: string;
 }
 
 export type CriticalErrorSeverity = "catastrophic" | "problematic" | "suboptimal";
@@ -124,6 +144,8 @@ export interface SequentialExerciseRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
+  journalDraft?: JournalDraft;
+  actionDraftText?: string;
 }
 
 export interface SystemsUserEdge {
@@ -168,6 +190,8 @@ export interface SystemsExerciseRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
+  journalDraft?: JournalDraft;
+  actionDraftText?: string;
 }
 
 export interface EvaluativeAxisSpec {
@@ -206,6 +230,8 @@ export interface EvaluativeMatrixRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
+  journalDraft?: JournalDraft;
+  actionDraftText?: string;
 }
 
 export interface EvaluativeCriterion {
@@ -262,6 +288,8 @@ export interface EvaluativeScoringRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
+  journalDraft?: JournalDraft;
+  actionDraftText?: string;
 }
 
 export type EvaluativeExerciseRow = EvaluativeMatrixRow | EvaluativeScoringRow;
@@ -300,6 +328,8 @@ export interface GenerativeExerciseRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
+  journalDraft?: JournalDraft;
+  actionDraftText?: string;
 }
 
 export type ComboSubExercise =
@@ -325,6 +355,8 @@ export interface ComboExerciseRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
+  journalDraft?: JournalDraft;
+  actionDraftText?: string;
 }
 
 export type Exercise =

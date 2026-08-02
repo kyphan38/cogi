@@ -12,7 +12,9 @@ service cloud.firestore {
     function isAllowedCollection(collectionName) {
       return collectionName in [
         "actions",
+        "activeMathSessions",
         "aiArtifacts",
+        "cachedTopicLists",
         "confidenceRecords",
         "decisions",
         "delayedRecallQueue",
