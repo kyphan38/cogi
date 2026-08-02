@@ -52,7 +52,7 @@ export function GeopoliticsProgressionCard({
         </MinimalContainerFooter>
       }
     >
-      <p className="font-tracker mb-4">
+      <p className="section-label mb-4">
         Phase {state.activePhaseIndex + 1}: {state.activePhase.phase}
       </p>
       <ProgressionTrackBar percent={state.progressPercent} className="mb-6" />

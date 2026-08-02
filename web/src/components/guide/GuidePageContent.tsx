@@ -13,7 +13,7 @@ export function GuidePageContent() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:py-10">
       <header className="mb-8 space-y-3">
-        <p className="font-tracker">Reference</p>
+        <p className="section-label">Reference</p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
           Cogi guide
         </h1>
