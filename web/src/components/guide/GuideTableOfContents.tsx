@@ -52,7 +52,7 @@ export function GuideTableOfContents({
       aria-label="Guide contents"
       className={cn("hidden lg:block", className)}
     >
-      <p className="font-tracker mb-3">Contents</p>
+      <p className="section-label mb-3">Contents</p>
       <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2">
         {list}
       </div>

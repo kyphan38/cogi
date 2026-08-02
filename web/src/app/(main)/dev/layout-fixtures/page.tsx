@@ -65,14 +65,14 @@ export default function LayoutFixturesPage() {
       </header>
 
       <section aria-labelledby="progression-heading" className="space-y-4">
-        <h2 id="progression-heading" className="font-tracker">
+        <h2 id="progression-heading" className="section-label">
           Progression track
         </h2>
         <GeopoliticsProgressionCard completed={MOCK_GEO_COMPLETED} />
       </section>
 
       <section aria-labelledby="highlight-heading" className="space-y-4">
-        <h2 id="highlight-heading" className="font-tracker">
+        <h2 id="highlight-heading" className="section-label">
           Highlight and semantic tags
         </h2>
         <div className="flex flex-wrap gap-2">
@@ -97,7 +97,7 @@ export default function LayoutFixturesPage() {
       </section>
 
       <section aria-labelledby="container-heading" className="space-y-4">
-        <h2 id="container-heading" className="font-tracker">
+        <h2 id="container-heading" className="section-label">
           Minimal container
         </h2>
         <MinimalContainer

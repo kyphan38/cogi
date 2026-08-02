@@ -38,7 +38,7 @@ export function ExercisePickerCard({
       <div className={cn(TrailingIcon && "min-w-0 flex-1")}>
         <p
           className={cn(
-            "font-tracker mb-1 text-[11px] font-medium tracking-wide text-zinc-500 uppercase",
+            "section-label mb-1 text-zinc-500",
             recommended && "text-zinc-800",
           )}
         >

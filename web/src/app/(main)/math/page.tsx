@@ -48,7 +48,7 @@ export default function MathModuleDashboard() {
       </div>
 
       <section className="mb-8 space-y-3">
-        <p className="font-tracker text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
+        <p className="section-label">
           Topic Areas
         </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -68,7 +68,7 @@ export default function MathModuleDashboard() {
       </section>
 
       <section className="mb-8 space-y-3">
-        <p className="font-tracker text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
+        <p className="section-label">
           Calibration Subsystem
         </p>
         {loading ? (
@@ -80,7 +80,7 @@ export default function MathModuleDashboard() {
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <p className="font-tracker text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
+          <p className="section-label">
             Expected Value Scenarios
           </p>
           <span className="text-xs text-muted-foreground">

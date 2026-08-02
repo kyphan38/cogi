@@ -357,12 +357,12 @@ export function DashboardContent() {
       ) : (
         <div className="mb-6 grid gap-2.5 sm:grid-cols-3">
           <div className="rounded-lg border border-border bg-card px-3.5 py-3">
-            <p className="text-muted-foreground text-[11px] tracking-wide uppercase">Completed</p>
+            <p className="section-label">Completed</p>
             <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{count}</p>
             <p className="text-muted-foreground mt-0.5 text-xs">Total exercises.</p>
           </div>
           <div className="rounded-lg border border-zinc-200 bg-white px-3.5 py-3">
-            <p className="font-tracker text-[11px] tracking-wide text-zinc-500 uppercase">
+            <p className="section-label text-zinc-500">
               Calibration
             </p>
             <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-zinc-900">
@@ -371,7 +371,7 @@ export function DashboardContent() {
             <p className="mt-0.5 text-xs leading-snug text-zinc-600">Confidence gap.</p>
           </div>
           <div className="rounded-lg border border-border bg-card px-3.5 py-3">
-            <p className="text-muted-foreground text-[11px] tracking-wide uppercase">Measured accuracy</p>
+            <p className="section-label">Measured accuracy</p>
             <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
               {calibrationSummary.avgAcc != null ? `${calibrationSummary.avgAcc}%` : "-"}
             </p>
