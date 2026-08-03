@@ -132,6 +132,23 @@ export function getClarityPerspectiveViewModel(
         pointBody: row.aiEvaluationText,
       });
     }
+  } else if (kind === "evaluative-uncertainty" && "outcomeCritiques" in s) {
+    for (const row of s.outcomeCritiques) {
+      const evLine = `Implied user EV: ${row.userImpliedEv ?? "n/a"} · AI EV: ${row.aiEv ?? "n/a"}`;
+      blocks.push({
+        id: row.optionId,
+        title: row.optionTitle,
+        userSnippet: evLine,
+        body: row.critique,
+        remediation: null,
+      });
+      disagreePoints.push({
+        section: "outcomeCritiques",
+        pointId: row.optionId,
+        pointTitle: row.optionTitle,
+        pointBody: row.critique,
+      });
+    }
   } else if (kind === "generative" && "stepCritiques" in s) {
     for (const row of s.stepCritiques) {
       blocks.push({

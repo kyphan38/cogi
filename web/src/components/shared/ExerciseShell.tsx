@@ -11,6 +11,16 @@ export const ANALYTICAL_EXERCISE_STEP_LABELS = [
   "Done",
 ] as const;
 
+export const ANALYTICAL_STEELMAN_STEP_LABELS = [
+  "Setup",
+  "Steelman",
+  "Confidence",
+  "AI perspective",
+  "Journal",
+  "Action",
+  "Done",
+] as const;
+
 export const GEOPOLITICS_ANALYTICAL_STEP_LABELS = [
   "Setup",
   "Highlight & tag",
@@ -72,6 +82,17 @@ export const GEOPOLITICS_EVALUATIVE_STEP_LABELS = [
   "Setup",
   "Stakeholder mapping",
   "Evaluate",
+  "Confidence",
+  "AI perspective",
+  "Journal",
+  "Action",
+  "Done",
+] as const;
+
+export const EVALUATIVE_UNCERTAINTY_STEP_LABELS = [
+  "Setup",
+  "Outcome intuition",
+  "Estimate & compute EV",
   "Confidence",
   "AI perspective",
   "Journal",

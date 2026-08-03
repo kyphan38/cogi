@@ -4,6 +4,7 @@ export type PerspectiveKind =
   | "systems"
   | "evaluative-matrix"
   | "evaluative-scoring"
+  | "evaluative-uncertainty"
   | "generative";
 
 export type PerspectiveSectionKey =
@@ -16,7 +17,8 @@ export type PerspectiveSectionKey =
   | "placementCritiques"
   | "critiqueMatrix"
   | "stepCritiques"
-  | "openQuestionsList";
+  | "openQuestionsList"
+  | "outcomeCritiques";
 
 export interface PerspectiveDisagreementRow {
   id: string;

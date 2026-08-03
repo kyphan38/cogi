@@ -7,11 +7,14 @@ import {
   ExerciseShell,
   EVALUATIVE_EXERCISE_STEP_LABELS,
   GEOPOLITICS_EVALUATIVE_STEP_LABELS,
+  EVALUATIVE_UNCERTAINTY_STEP_LABELS,
 } from "@/components/shared/ExerciseShell";
 import { EvaluativeBlindSpotAlerts } from "@/components/exercises/EvaluativeBlindSpotAlerts";
 import { EvaluativeStakeholderMappingCard } from "@/components/exercises/EvaluativeStakeholderMappingCard";
 import { EvaluativeWeightAlignment } from "@/components/exercises/EvaluativeWeightAlignment";
 import { EvaluativeMatrixBoard } from "@/components/exercises/EvaluativeMatrixBoard";
+import { EvaluativeOutcomeInputRow } from "@/components/exercises/EvaluativeOutcomeInputRow";
+import { EvaluativeDealbreakerAlerts } from "@/components/exercises/EvaluativeDealbreakerAlerts";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
@@ -45,12 +48,20 @@ import type {
   EvaluativeMatrixRow,
   EvaluativeQuadrant,
   EvaluativeScoringRow,
+  EvaluativeUncertaintyRow,
   JournalDraft,
 } from "@/lib/types/exercise";
 import {
   isGeopoliticsEvaluativePayload,
   type EvaluativeExercisePayload,
+  type EvaluativeTaskType,
 } from "@/lib/ai/validators/evaluative";
+import {
+  computeOptionEv,
+  computeEvaluativeAccuracy,
+  EVALUATIVE_UNCERTAINTY_PROBABILITY_EPSILON,
+} from "@/lib/analytics/calibration-evaluative";
+import { computeDisqualifiedOptions } from "@/lib/analytics/evaluative-dealbreaker";
 import type { JournalEntry } from "@/lib/types/journal";
 import type { ActionBridge } from "@/lib/types/action";
 import { buildAdaptiveHintsForRequest } from "@/lib/adaptive/adaptive-hints";
@@ -62,7 +73,6 @@ import {
   getRecentJournalSnippetsForDomain,
 } from "@/lib/db/journal";
 import { pickJournalPrompts, type JournalPromptItem } from "@/lib/ai/prompts/journal-pool";
-import { computeEvaluativeAccuracy } from "@/lib/analytics/calibration-evaluative";
 import { currentIsoWeekKey } from "@/lib/db/actions";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
@@ -105,6 +115,26 @@ function payloadToRow(
       axisY: data.axisY,
       options: data.options,
       placements: {},
+      confidenceBefore: null,
+      aiPerspective: null,
+      createdAt: new Date().toISOString(),
+      completedAt: null,
+    };
+    return row;
+  }
+  if (data.variant === "uncertainty") {
+    const row: EvaluativeUncertaintyRow = {
+      id,
+      type: "evaluative",
+      variant: "uncertainty",
+      domain,
+      customScenario,
+      title: data.title,
+      scenario: data.scenario,
+      options: data.options,
+      userProbabilities: {},
+      userPayoffs: {},
+      outcomeIntuitionText: "",
       confidenceBefore: null,
       aiPerspective: null,
       createdAt: new Date().toISOString(),
@@ -162,6 +192,7 @@ export function EvaluativeExerciseFlow({
   const [setupMode, setSetupMode] = useState<"generated" | "custom_scenario">(
     initialSource === "custom_scenario" ? "custom_scenario" : "generated",
   );
+  const [evaluativeTaskType, setEvaluativeTaskType] = useState<EvaluativeTaskType>("auto");
   const [entryMode, setEntryMode] = useState<"suggested" | "manual">(initialDomain ? "manual" : "suggested");
   const [customScenarioText, setCustomScenarioText] = useState("");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
@@ -182,6 +213,12 @@ export function EvaluativeExerciseFlow({
     { name: string; wants: string }[]
   >(() => Array.from({ length: 4 }, () => ({ name: "", wants: "" })));
   const [stakeholderMappingRevealed, setStakeholderMappingRevealed] = useState(false);
+
+  const [outcomeIntuitionText, setOutcomeIntuitionText] = useState("");
+  const [userProbabilities, setUserProbabilities] = useState<Record<string, Record<string, number>>>(
+    {},
+  );
+  const [userPayoffs, setUserPayoffs] = useState<Record<string, Record<string, number>>>({});
 
   const [confidence, setConfidence] = useState(50);
   const [perspectiveText, setPerspectiveText] = useState<string | null>(null);
@@ -219,15 +256,25 @@ export function EvaluativeExerciseFlow({
       setExercise(row);
       if (row.variant === "matrix") {
         setPlacements(row.placements ?? {});
+      } else if (row.variant === "uncertainty") {
+        setUserProbabilities(row.userProbabilities ?? {});
+        setUserPayoffs(row.userPayoffs ?? {});
+        setOutcomeIntuitionText(row.outcomeIntuitionText ?? "");
       } else {
         setCriterionWeights(row.criterionWeights ?? {});
         setScores(row.scores ?? {});
       }
-      if (row.userProposedCriteria && row.userProposedCriteria.length > 0) {
+      if (
+        row.variant !== "uncertainty" &&
+        row.userProposedCriteria &&
+        row.userProposedCriteria.length > 0
+      ) {
         setUserProposedCriteria(row.userProposedCriteria);
         setCriteriaPhase("compare");
       }
-      if (row.criteriaFeedback) setCriteriaFeedback(row.criteriaFeedback);
+      if (row.variant !== "uncertainty" && row.criteriaFeedback) {
+        setCriteriaFeedback(row.criteriaFeedback);
+      }
       if (row.variant === "scoring" && isGeopoliticsEvaluativeExercise(row)) {
         if (row.userStakeholderMapping && row.userStakeholderMapping.length > 0) {
           setUserStakeholderMapping(row.userStakeholderMapping);
@@ -277,26 +324,44 @@ export function EvaluativeExerciseFlow({
       const updated: EvaluativeExerciseRow =
         exercise.variant === "matrix"
           ? { ...exercise, placements, currentStep: step }
-          : {
-              ...exercise,
-              criterionWeights,
-              scores,
-              userStakeholderMapping:
-                scoringEx && isGeopoliticsEvaluativeExercise(scoringEx)
-                  ? userStakeholderMapping
-                      .map((e) => ({ name: e.name.trim(), wants: e.wants.trim() }))
-                      .filter((e) => e.name || e.wants)
-                  : scoringEx?.userStakeholderMapping,
-              stakeholderMappingRevealed:
-                scoringEx && isGeopoliticsEvaluativeExercise(scoringEx)
-                  ? stakeholderMappingRevealed
-                  : scoringEx?.stakeholderMappingRevealed,
-              currentStep: step,
-            };
+          : exercise.variant === "uncertainty"
+            ? {
+                ...exercise,
+                userProbabilities,
+                userPayoffs,
+                outcomeIntuitionText,
+                currentStep: step,
+              }
+            : {
+                ...exercise,
+                criterionWeights,
+                scores,
+                userStakeholderMapping:
+                  scoringEx && isGeopoliticsEvaluativeExercise(scoringEx)
+                    ? userStakeholderMapping
+                        .map((e) => ({ name: e.name.trim(), wants: e.wants.trim() }))
+                        .filter((e) => e.name || e.wants)
+                    : scoringEx?.userStakeholderMapping,
+                stakeholderMappingRevealed:
+                  scoringEx && isGeopoliticsEvaluativeExercise(scoringEx)
+                    ? stakeholderMappingRevealed
+                    : scoringEx?.stakeholderMappingRevealed,
+                currentStep: step,
+              };
       void putExercise(updated);
     }, 2000);
     return () => clearTimeout(timer);
-  }, [placements, scores, criterionWeights, userStakeholderMapping, stakeholderMappingRevealed, step]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [
+    placements,
+    scores,
+    criterionWeights,
+    userStakeholderMapping,
+    stakeholderMappingRevealed,
+    userProbabilities,
+    userPayoffs,
+    outcomeIntuitionText,
+    step,
+  ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startGenerate = useCallback(async (
     domainOverride?: string,
@@ -328,6 +393,7 @@ export function EvaluativeExerciseFlow({
           mode: effectiveSetupMode,
           customScenario: customScenarioOut,
           adaptiveHints,
+          evaluativeTaskType,
         }),
       });
       const json = await safeAiJson<
@@ -347,6 +413,10 @@ export function EvaluativeExerciseFlow({
       setExercise(row);
       if (row.variant === "matrix") {
         setPlacements({});
+      } else if (row.variant === "uncertainty") {
+        setUserProbabilities({});
+        setUserPayoffs({});
+        setOutcomeIntuitionText("");
       } else {
         const geo = isGeopoliticsEvaluativeExercise(row);
         const w: Record<string, number> = {};
@@ -381,7 +451,7 @@ export function EvaluativeExerciseFlow({
     } finally {
       setLoading(false);
     }
-  }, [domain, setupMode, customScenarioText]);
+  }, [domain, setupMode, customScenarioText, evaluativeTaskType]);
 
   const autoGenerateTriggered = useRef(false);
   const [autoGenerateReady, setAutoGenerateReady] = useState(false);
@@ -443,8 +513,34 @@ export function EvaluativeExerciseFlow({
     return ex.options.every((o) => placements[o.id] != null);
   };
 
+  const mergedUncertaintyExercise = (): EvaluativeUncertaintyRow | null => {
+    if (!exercise || exercise.variant !== "uncertainty") return null;
+    return { ...exercise, userProbabilities, userPayoffs, outcomeIntuitionText };
+  };
+
+  const uncertaintyReady = () => {
+    const ex = mergedUncertaintyExercise();
+    if (!ex) return false;
+    return ex.options.every((o) => {
+      const probs = o.outcomes.map((out) => userProbabilities[o.id]?.[out.id]);
+      const payoffs = o.outcomes.map((out) => userPayoffs[o.id]?.[out.id]);
+      if (probs.some((p) => typeof p !== "number") || payoffs.some((p) => typeof p !== "number")) {
+        return false;
+      }
+      const sum = probs.reduce<number>((a, b) => a + (b ?? 0), 0);
+      return Math.abs(sum - 1) <= EVALUATIVE_UNCERTAINTY_PROBABILITY_EPSILON;
+    });
+  };
+
   useEffect(() => {
-    if (!exercise || criteriaPhase !== "compare" || criteriaFeedback || criteriaFeedbackLoading) return;
+    if (
+      !exercise ||
+      exercise.variant === "uncertainty" ||
+      criteriaPhase !== "compare" ||
+      criteriaFeedback ||
+      criteriaFeedbackLoading
+    )
+      return;
     const cleaned = userProposedCriteria
       .map((c) => ({ name: c.name.trim(), rationale: c.rationale.trim() }))
       .filter((c) => c.name && c.rationale);
@@ -520,12 +616,22 @@ export function EvaluativeExerciseFlow({
       setError("Place every option in a quadrant.");
       return;
     }
+    if (ex.variant === "uncertainty" && !uncertaintyReady()) {
+      setError(
+        "For each option, your outcome probabilities must sum to 100% and every outcome needs a payoff.",
+      );
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
       const userContext = await getUserContext();
       const kind =
-        ex.variant === "matrix" ? "evaluative-matrix" : "evaluative-scoring";
+        ex.variant === "matrix"
+          ? "evaluative-matrix"
+          : ex.variant === "uncertainty"
+            ? "evaluative-uncertainty"
+            : "evaluative-scoring";
       const body =
         ex.variant === "matrix"
           ? {
@@ -536,14 +642,23 @@ export function EvaluativeExerciseFlow({
               exercise: mergedMatrixExercise(),
               userContext: userContext || undefined,
             }
-          : {
-              kind,
-              title: ex.title,
-              domain: ex.domain,
-              confidenceBefore: confidence,
-              exercise: mergedScoringExercise(),
-              userContext: userContext || undefined,
-            };
+          : ex.variant === "uncertainty"
+            ? {
+                kind,
+                title: ex.title,
+                domain: ex.domain,
+                confidenceBefore: confidence,
+                exercise: mergedUncertaintyExercise(),
+                userContext: userContext || undefined,
+              }
+            : {
+                kind,
+                title: ex.title,
+                domain: ex.domain,
+                confidenceBefore: confidence,
+                exercise: mergedScoringExercise(),
+                userContext: userContext || undefined,
+              };
       const res = await aiFetch("/api/ai/perspective", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -567,21 +682,32 @@ export function EvaluativeExerciseFlow({
               aiPerspectiveStructured: parsed.structured,
               currentStep: 4,
             }
-          : {
-              ...ex,
-              criterionWeights,
-              scores,
-              userStakeholderMapping:
-                ex.variant === "scoring"
-                  ? (mergedScoringExercise()?.userStakeholderMapping ??
-                    ex.userStakeholderMapping)
-                  : undefined,
-              stakeholderMappingRevealed,
-              confidenceBefore: confidence,
-              aiPerspective: parsed.text,
-              aiPerspectiveStructured: parsed.structured,
-              currentStep: 4,
-            };
+          : ex.variant === "uncertainty"
+            ? {
+                ...ex,
+                userProbabilities,
+                userPayoffs,
+                outcomeIntuitionText,
+                confidenceBefore: confidence,
+                aiPerspective: parsed.text,
+                aiPerspectiveStructured: parsed.structured,
+                currentStep: 4,
+              }
+            : {
+                ...ex,
+                criterionWeights,
+                scores,
+                userStakeholderMapping:
+                  ex.variant === "scoring"
+                    ? (mergedScoringExercise()?.userStakeholderMapping ??
+                      ex.userStakeholderMapping)
+                    : undefined,
+                stakeholderMappingRevealed,
+                confidenceBefore: confidence,
+                aiPerspective: parsed.text,
+                aiPerspectiveStructured: parsed.structured,
+                currentStep: 4,
+              };
       await putExercise(partial);
       setExercise(partial);
       setStep(4);
@@ -602,7 +728,9 @@ export function EvaluativeExerciseFlow({
         const forAccuracy: EvaluativeExerciseRow =
           exercise.variant === "matrix"
             ? { ...exercise, placements }
-            : { ...exercise, criterionWeights, scores };
+            : exercise.variant === "uncertainty"
+              ? { ...exercise, userProbabilities, userPayoffs }
+              : { ...exercise, criterionWeights, scores };
         const accuracy = computeEvaluativeAccuracy(forAccuracy);
         const picks = pickJournalPrompts(excluded, {
           exerciseType: "evaluative",
@@ -682,7 +810,9 @@ export function EvaluativeExerciseFlow({
     const forAccuracy: EvaluativeExerciseRow =
       exercise.variant === "matrix"
         ? { ...exercise, placements }
-        : { ...exercise, criterionWeights, scores };
+        : exercise.variant === "uncertainty"
+          ? { ...exercise, userProbabilities, userPayoffs }
+          : { ...exercise, criterionWeights, scores };
     const accuracy = computeEvaluativeAccuracy(forAccuracy);
     const confidenceRecord: ConfidenceRecord = {
       id: crypto.randomUUID(),
@@ -720,19 +850,30 @@ export function EvaluativeExerciseFlow({
             aiPerspectiveStructured: struct,
             completedAt: new Date().toISOString(),
           }
-        : {
-            ...exercise,
-            criterionWeights,
-            scores,
-            userStakeholderMapping:
-              mergedScoringExercise()?.userStakeholderMapping ??
-              exercise.userStakeholderMapping,
-            stakeholderMappingRevealed,
-            confidenceBefore: confidence,
-            aiPerspective: perspectiveText,
-            aiPerspectiveStructured: struct,
-            completedAt: new Date().toISOString(),
-          };
+        : exercise.variant === "uncertainty"
+          ? {
+              ...exercise,
+              userProbabilities,
+              userPayoffs,
+              outcomeIntuitionText,
+              confidenceBefore: confidence,
+              aiPerspective: perspectiveText,
+              aiPerspectiveStructured: struct,
+              completedAt: new Date().toISOString(),
+            }
+          : {
+              ...exercise,
+              criterionWeights,
+              scores,
+              userStakeholderMapping:
+                mergedScoringExercise()?.userStakeholderMapping ??
+                exercise.userStakeholderMapping,
+              stakeholderMappingRevealed,
+              confidenceBefore: confidence,
+              aiPerspective: perspectiveText,
+              aiPerspectiveStructured: struct,
+              completedAt: new Date().toISOString(),
+            };
     try {
       await completeExerciseFlow({
         exercise: finalEx,
@@ -769,14 +910,19 @@ export function EvaluativeExerciseFlow({
     const labels =
       exercise.variant === "scoring"
         ? exercise.criteria.map((c) => c.label)
-        : [exercise.axisX.label, exercise.axisY.label];
+        : exercise.variant === "matrix"
+          ? [exercise.axisX.label, exercise.axisY.label]
+          : [];
     return [...optionTitles, ...labels].filter(Boolean);
   }, [exercise]);
 
   const isGeoExercise = exercise ? isGeopoliticsEvaluativeExercise(exercise) : false;
-  const stepLabels = isGeoExercise
-    ? GEOPOLITICS_EVALUATIVE_STEP_LABELS
-    : EVALUATIVE_EXERCISE_STEP_LABELS;
+  const stepLabels =
+    exercise?.variant === "uncertainty"
+      ? EVALUATIVE_UNCERTAINTY_STEP_LABELS
+      : isGeoExercise
+        ? GEOPOLITICS_EVALUATIVE_STEP_LABELS
+        : EVALUATIVE_EXERCISE_STEP_LABELS;
 
   return (
     <ExerciseShell stepIndex={step} stepLabels={stepLabels}>
@@ -828,6 +974,23 @@ export function EvaluativeExerciseFlow({
               >
                 Type your own
               </Button>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Task type</Label>
+              <Select
+                value={evaluativeTaskType}
+                onValueChange={(v) => setEvaluativeTaskType((v as EvaluativeTaskType) ?? "auto")}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Surprise me</SelectItem>
+                  <SelectItem value="dealbreaker">Dealbreaker check</SelectItem>
+                  <SelectItem value="uncertainty">Uncertainty & expected value</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className={cn(entryMode !== "suggested" && "hidden")}>
@@ -914,7 +1077,61 @@ export function EvaluativeExerciseFlow({
         </Card>
       ) : null}
 
-      {step === 1 && exercise ? (
+      {step === 1 && exercise && exercise.variant === "uncertainty" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{exercise.title}</CardTitle>
+            <CardDescription className="leading-relaxed">{exercise.scenario}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Options</h3>
+              <ul className="space-y-2 text-sm">
+                {exercise.options.map((o) => (
+                  <li key={o.id} className="rounded-md border bg-muted/10 p-2">
+                    <p className="font-medium">{o.title}</p>
+                    <p className="text-muted-foreground text-xs">{o.description}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="grid gap-2">
+              <Label>
+                Before estimating probabilities, what&apos;s your gut read on which option is
+                best, and why?
+              </Label>
+              <Textarea
+                value={outcomeIntuitionText}
+                onChange={(e) => setOutcomeIntuitionText(e.target.value)}
+                rows={4}
+                placeholder="Your intuition before running the numbers…"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="secondary" onClick={() => setStep(0)}>
+                Back
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  const next: EvaluativeUncertaintyRow = {
+                    ...exercise,
+                    outcomeIntuitionText,
+                    currentStep: 2,
+                  };
+                  void putExercise(next);
+                  setExercise(next);
+                  setStep(2);
+                }}
+              >
+                Continue to estimate
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {step === 1 && exercise && exercise.variant !== "uncertainty" ? (
         <Card>
           <CardHeader>
             <CardTitle>{exercise.title}</CardTitle>
@@ -1152,8 +1369,62 @@ export function EvaluativeExerciseFlow({
                 placements={placements}
                 onPlacementsChange={setPlacements}
               />
+            ) : exercise.variant === "uncertainty" ? (
+              <div className="space-y-6">
+                {exercise.options.map((o) => {
+                  const ev = computeOptionEv(
+                    o.outcomes.map((out) => ({
+                      probability: userProbabilities[o.id]?.[out.id] ?? 0,
+                      payoff: userPayoffs[o.id]?.[out.id] ?? 0,
+                    })),
+                  );
+                  return (
+                    <div key={o.id} className="space-y-3 rounded-md border p-3">
+                      <div>
+                        <p className="font-medium">{o.title}</p>
+                        <p className="text-muted-foreground text-xs">{o.description}</p>
+                      </div>
+                      {o.outcomes.map((out) => (
+                        <EvaluativeOutcomeInputRow
+                          key={out.id}
+                          outcome={out}
+                          userProbability={userProbabilities[o.id]?.[out.id]}
+                          userPayoff={userPayoffs[o.id]?.[out.id]}
+                          onProbabilityChange={(p) =>
+                            setUserProbabilities((prev) => ({
+                              ...prev,
+                              [o.id]: { ...prev[o.id], [out.id]: p },
+                            }))
+                          }
+                          onPayoffChange={(payoff) =>
+                            setUserPayoffs((prev) => ({
+                              ...prev,
+                              [o.id]: { ...prev[o.id], [out.id]: payoff },
+                            }))
+                          }
+                        />
+                      ))}
+                      <p className="text-sm font-medium">
+                        Your expected value: {ev === null ? "—" : `$${ev.toFixed(2)}`}
+                      </p>
+                    </div>
+                  );
+                })}
+                {!uncertaintyReady() ? (
+                  <p className="text-destructive text-xs">
+                    For each option, your outcome probabilities must sum to 100% and every outcome
+                    needs a payoff.
+                  </p>
+                ) : null}
+              </div>
             ) : (
-              <div className="max-h-[min(60vh,640px)] overflow-auto">
+              <div className="space-y-3">
+                {exercise.criteria.some((c) => c.isDealbreaker) ? (
+                  <EvaluativeDealbreakerAlerts
+                    disqualified={computeDisqualifiedOptions(exercise, scores)}
+                  />
+                ) : null}
+                <div className="max-h-[min(60vh,640px)] overflow-auto">
                 <table className="w-full min-w-[480px] border-collapse text-sm">
                   <thead>
                     <tr>
@@ -1226,11 +1497,17 @@ export function EvaluativeExerciseFlow({
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="secondary" onClick={() => {
-                const updated = exercise.variant === "matrix" ? { ...exercise, placements, currentStep: 1 as const } : { ...exercise, currentStep: 1 as const };
+                const updated =
+                  exercise.variant === "matrix"
+                    ? { ...exercise, placements, currentStep: 1 as const }
+                    : exercise.variant === "uncertainty"
+                      ? { ...exercise, userProbabilities, userPayoffs, currentStep: 1 as const }
+                      : { ...exercise, currentStep: 1 as const };
                 setExercise(updated);
                 void putExercise(updated);
                 setStep(0);
@@ -1246,11 +1523,16 @@ export function EvaluativeExerciseFlow({
                   const updated: EvaluativeExerciseRow =
                     exercise.variant === "matrix"
                       ? { ...exercise, placements }
-                      : { ...exercise, criterionWeights, scores };
+                      : exercise.variant === "uncertainty"
+                        ? { ...exercise, userProbabilities, userPayoffs }
+                        : { ...exercise, criterionWeights, scores };
                   setExercise(updated);
                   advance(3, updated);
                 }}
-                disabled={exercise.variant === "matrix" && !matrixReady()}
+                disabled={
+                  (exercise.variant === "matrix" && !matrixReady()) ||
+                  (exercise.variant === "uncertainty" && !uncertaintyReady())
+                }
               >
                 Continue to confidence
               </Button>
@@ -1324,7 +1606,11 @@ export function EvaluativeExerciseFlow({
               structured={perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null}
               exerciseId={exercise.id}
               perspectiveKind={
-                exercise.variant === "matrix" ? "evaluative-matrix" : "evaluative-scoring"
+                exercise.variant === "matrix"
+                  ? "evaluative-matrix"
+                  : exercise.variant === "uncertainty"
+                    ? "evaluative-uncertainty"
+                    : "evaluative-scoring"
               }
               exerciseTitle={exercise.title}
               domain={exercise.domain}

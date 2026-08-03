@@ -167,6 +167,55 @@ ${SOUND_REASONING_SHAPE_BLOCK}
 ${SOUND_REASONING_COUNT_FOOTER}${adapt ? `\n\n${adapt}` : ""}`;
 }
 
+const STEELMAN_SHAPE_BLOCK = `Return a single JSON object with this exact shape:
+{
+  "title": string,
+  "passage": string,
+  "embeddedIssues": [],
+  "validPoints": []
+}`;
+
+export function buildAnalyticalSteelmanPrompt(input: {
+  domain: string;
+  userContext?: string;
+  adaptationAppendix?: string;
+  customScenario?: string;
+}): string {
+  const ctx = input.userContext?.trim() || "(none provided)";
+  const adapt = input.adaptationAppendix?.trim();
+  const scenarioBlock = formatUserScenarioBlock(input.customScenario);
+  const domainHint = buildDomainHint(input.domain);
+
+  if (scenarioBlock) {
+    return `You are generating a thinking exercise. Return ONLY valid JSON (no markdown, no prose).
+
+USER context: ${ctx}
+${domainHint}
+
+${scenarioBlock}
+
+State a contestable position or recommendation (80-150 words) clearly grounded in the scenario above - a policy call, a technical tradeoff decision, a prioritization choice - something a reasonable person could disagree with.
+
+State it plainly and somewhat one-sidedly, the way a stakeholder would first pitch it. Do NOT pre-empt counterarguments, hedge heavily, or already make the strongest possible case for it - the user's task will be to write a stronger, more rigorous argument for this position than you just did.
+
+${STEELMAN_SHAPE_BLOCK}
+
+embeddedIssues and validPoints must both be empty arrays.${adapt ? `\n\n${adapt}` : ""}`;
+  }
+
+  return `You are generating a thinking exercise. Return ONLY valid JSON (no markdown, no prose).
+
+USER context: ${ctx}
+
+State a contestable ${input.domain} position or recommendation (80-150 words) - a policy call, a technical tradeoff decision, a prioritization choice - something a reasonable person could disagree with.
+
+State it plainly and somewhat one-sidedly, the way a stakeholder would first pitch it. Do NOT pre-empt counterarguments, hedge heavily, or already make the strongest possible case for it - the user's task will be to write a stronger, more rigorous argument for this position than you just did.
+
+${STEELMAN_SHAPE_BLOCK}
+
+embeddedIssues and validPoints must both be empty arrays.${adapt ? `\n\n${adapt}` : ""}`;
+}
+
 const GEOPOLITICS_PERSPECTIVE_POOL = [
   "US-aligned think tank",
   "Chinese state-media framing",

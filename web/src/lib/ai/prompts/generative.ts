@@ -105,6 +105,92 @@ Return:
 Exactly 4 prompts with ids p1-p4.${adapt ? `\n\n${adapt}` : ""}`;
 }
 
+export function buildReframingGenerativePrompt(input: {
+  domain: string;
+  userContext?: string;
+  generativeStage: GenerativeStage;
+  adaptationAppendix?: string;
+  customScenario?: string;
+}): string {
+  const ctx = input.userContext?.trim()
+    ? `\nUser context (optional): ${input.userContext.trim()}`
+    : "";
+  const adapt = input.adaptationAppendix?.trim();
+  const scenarioBlock = formatUserScenarioBlock(input.customScenario);
+  const domainHint = buildDomainHint(input.domain);
+  const stageBlock = generativeStageBlock(input.generativeStage);
+
+  const intro = scenarioBlock
+    ? `${scenarioBlock}${domainHint}\n\nYou are generating a problem-reframing exercise anchored to the user's scenario above.${ctx}`
+    : `You are generating a problem-reframing exercise about: ${input.domain}.${ctx}`;
+
+  return `${intro}
+
+The scenario must state a problem the "obvious" or naive way - the way most people would first frame it, including one unexamined assumption baked into that framing.
+
+Scaffold stage for this exercise: "${input.generativeStage}".
+${stageBlock}
+
+Return ONLY JSON:
+{
+  "title": "string",
+  "scenario": "short framing paragraph stating the problem the naive/obvious way",
+  "prompts": [
+    { "id": "p1", "question": "Restate the problem as a 'How might we...' reformulation of the naive framing above.", ...stage-specific fields... },
+    { "id": "p2", "question": "Reframe the problem around the underlying need rather than the stated want (a Jobs-to-be-Done style reframe).", ...stage-specific fields... },
+    { "id": "p3", "question": "Reframe by flipping whose problem this really is - a different stakeholder's framing.", ...stage-specific fields... },
+    { "id": "p4", "question": "Reframe by questioning the constraint the naive framing assumed is fixed - what changes if it isn't?", ...stage-specific fields... }
+  ]
+}
+
+Each of the 4 prompts must be a genuinely distinct reframing technique (How-Might-We restatement, underlying-need reframe, stakeholder-flip reframe, constraint-removal reframe) - not 4 wordings of the same idea. Questions must be self-contained and adapted to the domain/scenario above (you may phrase them naturally as long as each covers its theme).
+
+Exactly 4 prompts. Unique ids.${adapt ? `\n\n${adapt}` : ""}`;
+}
+
+export function buildInversionGenerativePrompt(input: {
+  domain: string;
+  userContext?: string;
+  generativeStage: GenerativeStage;
+  adaptationAppendix?: string;
+  customScenario?: string;
+}): string {
+  const ctx = input.userContext?.trim()
+    ? `\nUser context (optional): ${input.userContext.trim()}`
+    : "";
+  const adapt = input.adaptationAppendix?.trim();
+  const scenarioBlock = formatUserScenarioBlock(input.customScenario);
+  const domainHint = buildDomainHint(input.domain);
+  const stageBlock = generativeStageBlock(input.generativeStage);
+
+  const intro = scenarioBlock
+    ? `${scenarioBlock}${domainHint}\n\nYou are generating an inversion / pre-mortem exercise anchored to the user's scenario above.${ctx}`
+    : `You are generating an inversion / pre-mortem exercise about: ${input.domain}.${ctx}`;
+
+  return `${intro}
+
+The scenario must state a concrete goal or initiative the user is pursuing (not a problem to solve - a plan already in motion).
+
+Scaffold stage for this exercise: "${input.generativeStage}".
+${stageBlock}
+
+Return ONLY JSON:
+{
+  "title": "string",
+  "scenario": "short framing paragraph stating the goal/initiative being pursued",
+  "prompts": [
+    { "id": "p1", "question": "Imagine this fails catastrophically. Describe one specific, causally distinct failure path.", ...stage-specific fields... },
+    { "id": "p2", "question": "Describe a second failure path, causally independent of the first.", ...stage-specific fields... },
+    { "id": "p3", "question": "Describe a third failure path - ideally one that would go unnoticed until too late (a silent failure).", ...stage-specific fields... },
+    { "id": "p4", "question": "Given these three failure paths, what single change made today would do the most to prevent the most dangerous one?", ...stage-specific fields... }
+  ]
+}
+
+The first three prompts must each describe a causally distinct failure path (not restatements of the same underlying risk). The fourth prompt must ask the user to synthesize ONE preventive action targeting the highest-leverage failure path identified, not just the first one listed. This is not red-teaming an existing plan's defenses - it is generating brand-new failure insight from scratch by inverting the goal.
+
+Exactly 4 prompts. Unique ids.${adapt ? `\n\n${adapt}` : ""}`;
+}
+
 export const GEOPOLITICS_GENERATIVE_RETRY_SUFFIX = `
 
 IMPORTANT: Your previous JSON failed geopolitics generative validation. Return ONLY valid JSON:

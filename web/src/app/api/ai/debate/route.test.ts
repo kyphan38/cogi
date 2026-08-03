@@ -121,6 +121,40 @@ describe("POST /api/ai/debate", () => {
     expect((await res.json()).text).toBe("Continued debate");
   });
 
+  it("threads generativeVariant into the start-mode prompt", async () => {
+    authOk();
+    mockGeneratePlain.mockResolvedValue("AI debate response");
+    await POST(
+      makeRequest({
+        domain: "tech",
+        title: "Title",
+        mode: "start",
+        scenario: "test scenario",
+        qa: [{ id: "q1", question: "Q?", answer: "A" }],
+        generativeVariant: "inversion",
+      }),
+    );
+    const prompt = mockGeneratePlain.mock.calls[0]![0] as string;
+    expect(prompt).toContain("Inversion / pre-mortem focus");
+  });
+
+  it("threads generativeVariant into the continue-mode prompt", async () => {
+    authOk();
+    mockGeneratePlain.mockResolvedValue("Continued debate");
+    await POST(
+      makeRequest({
+        domain: "tech",
+        title: "Title",
+        mode: "continue",
+        userReply: "My reply",
+        history: [],
+        generativeVariant: "reframing",
+      }),
+    );
+    const prompt = mockGeneratePlain.mock.calls[0]![0] as string;
+    expect(prompt).toContain("Problem-reframing focus");
+  });
+
   it("returns 500 on AI generation failure", async () => {
     authOk();
     mockGeneratePlain.mockRejectedValue(new Error("AI down"));

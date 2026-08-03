@@ -17,7 +17,7 @@ test.describe("Home page - exercise picker and navigation", () => {
   }) => {
     await gotoAuthenticated(page, "/");
     await expect(
-      page.getByRole("heading", { name: "Good moment to practice" }),
+      page.getByRole("heading", { name: "Practice" }),
     ).toBeVisible();
 
     const analyticalCard = page.getByRole("link", {
@@ -59,9 +59,7 @@ test.describe("Home page - exercise picker and navigation", () => {
 
   test("open actions section shows empty state message", async ({ page }) => {
     await gotoAuthenticated(page, "/");
-    await expect(
-      page.getByText(/Nothing here yet.*finish an exercise/),
-    ).toBeVisible();
+    await expect(page.getByText("No open actions.")).toBeVisible();
   });
 });
 
@@ -137,7 +135,7 @@ test.describe("Dashboard page content", () => {
       page.getByRole("heading", { name: "Dashboard" }),
     ).toBeVisible();
     await expect(
-      page.getByText("Trends from exercises saved to your account."),
+      page.getByText("Activity and performance trends."),
     ).toBeVisible();
   });
 
@@ -148,9 +146,7 @@ test.describe("Dashboard page content", () => {
     await expect(
       page.getByRole("heading", { name: "Patterns (local)" }),
     ).toBeVisible();
-    await expect(
-      page.getByText("Journal emotions and AI perspective disagreements"),
-    ).toBeVisible();
+    await expect(page.getByText("Perspective disagreements")).toBeVisible();
   });
 
   test("dashboard shows calibration gap card", async ({ page }) => {

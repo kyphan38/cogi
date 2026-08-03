@@ -19,6 +19,7 @@ function clarityKindFromPerspectiveKind(
     kind === "systems" ||
     kind === "evaluative-matrix" ||
     kind === "evaluative-scoring" ||
+    kind === "evaluative-uncertainty" ||
     kind === "generative"
   ) {
     return kind;

@@ -1,5 +1,10 @@
 import { buildPerspectiveClarityPreamble } from "@/lib/ai/prompts/perspective-clarity-directives";
-import type { EvaluativeMatrixRow, EvaluativeScoringRow } from "@/lib/types/exercise";
+import { computeOptionEv } from "@/lib/analytics/calibration-evaluative";
+import type {
+  EvaluativeMatrixRow,
+  EvaluativeScoringRow,
+  EvaluativeUncertaintyRow,
+} from "@/lib/types/exercise";
 
 export function buildEvaluativeMatrixPerspectivePrompt(input: {
   title: string;
@@ -165,4 +170,78 @@ Rules:
 - State criterion and option names plainly, with no surrounding quotation marks (e.g. write Alliance Credibility, not 'Alliance Credibility') - the app highlights them visually, so quotes are redundant clutter. Reserve quotation marks only for verbatim excerpts of the user's own written text.
 
 No numeric grade for the user.`;
+}
+
+export function buildEvaluativeUncertaintyPerspectivePrompt(input: {
+  title: string;
+  domain: string;
+  exercise: EvaluativeUncertaintyRow;
+  confidenceBefore: number;
+  userContext?: string;
+}): string {
+  const opts = input.exercise.options
+    .map((o) => {
+      const userOutcomes = o.outcomes.map((out) => ({
+        probability: input.exercise.userProbabilities[o.id]?.[out.id] ?? 0,
+        payoff: input.exercise.userPayoffs[o.id]?.[out.id] ?? 0,
+      }));
+      const aiOutcomes = o.outcomes.map((out) => ({
+        probability: out.probability,
+        payoff: out.payoff,
+      }));
+      const userEv = computeOptionEv(userOutcomes);
+      const aiEv = computeOptionEv(aiOutcomes);
+      const rows = o.outcomes
+        .map((out) => {
+          const userP = input.exercise.userProbabilities[o.id]?.[out.id];
+          const userPay = input.exercise.userPayoffs[o.id]?.[out.id];
+          return `  - ${out.id} (${out.label}): AI probability ${out.probability}, AI payoff ${out.payoff}; user probability ${userP ?? "n/a"}, user payoff ${userPay ?? "n/a"} - ${out.explanation}`;
+        })
+        .join("\n");
+      return `Option ${o.id} (${o.title}): ${o.description}\n${rows}\n  Implied user EV: ${userEv ?? "n/a"}; AI EV: ${aiEv ?? "n/a"}`;
+    })
+    .join("\n\n");
+  const ctx = input.userContext?.trim() ? `\nUser context: ${input.userContext}` : "";
+  const intuition = input.exercise.outcomeIntuitionText?.trim()
+    ? `\nUser's initial intuition (before estimating): ${input.exercise.outcomeIntuitionText.trim()}`
+    : "";
+  const clarity = buildPerspectiveClarityPreamble();
+
+  return `You are a collaborative thinking coach.
+
+${clarity}
+
+Domain: ${input.domain}
+Title: ${input.title}
+Scenario:
+${input.exercise.scenario}
+
+User confidence before this reflection: ${input.confidenceBefore}%${ctx}${intuition}
+
+Options, AI ground-truth outcomes, and user estimates (with computed expected values):
+${opts}
+
+Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
+{
+  "perspectiveFormat": "clarity_v2",
+  "title": string (echo exercise title),
+  "suitableFor": "Suitable for <concrete audience>",
+  "outcomeCritiques": [
+    {
+      "optionId": "o1",
+      "optionTitle": "option title from exercise",
+      "userImpliedEv": number or null (the implied user EV given above, echoed back),
+      "aiEv": number or null (the AI EV given above, echoed back),
+      "critique": "Compare the user's implied EV for Option Title to the AI's; note which probability or payoff estimates drove the gap, and whether the user's ranking of options by EV matches the AI's."
+    }
+  ],
+  "openQuestions": ["optional 1-3 strings"]
+}
+
+Rules:
+- One outcomeCritiques row per option in the exercise.
+- critique should reference specific outcomes (over- or under-estimated probability or payoff), not just restate the EV numbers.
+- If userImpliedEv or aiEv is null (probabilities didn't sum to ~1), say so plainly rather than inventing a number.
+- Do not give a numeric grade.
+- State option and outcome titles plainly, with no surrounding quotation marks - the app highlights them visually, so quotes are redundant clutter. Reserve quotation marks only for verbatim excerpts of the user's own written text.`;
 }

@@ -3,6 +3,9 @@ import {
   parseAnalyticalExerciseJson,
   isGeopoliticsAnalyticalPayload,
   validateGeopoliticsAnalyticalSemantics,
+  validateAnalyticalSteelmanSemantics,
+  analyticalVariantSchema,
+  ANALYTICAL_STEELMAN_RETRY_SUFFIX,
   type AnalyticalExercise,
 } from "./common";
 
@@ -60,10 +63,10 @@ describe("parseAnalyticalExerciseJson", () => {
     if (!result.success) expect(result.error).toContain("Invalid JSON");
   });
 
-  it("fails when validPoints is empty", () => {
+  it("allows empty validPoints (loosened for steelman payloads)", () => {
     const bad = { ...validAnalytical, validPoints: [] };
     const result = parseAnalyticalExerciseJson(JSON.stringify(bad));
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   it("fails on invalid issue type", () => {
@@ -177,5 +180,74 @@ describe("validateGeopoliticsAnalyticalSemantics", () => {
     };
     const errors = validateGeopoliticsAnalyticalSemantics(bad);
     expect(errors.some((e) => e.includes("textSegment not found"))).toBe(true);
+  });
+});
+
+describe("analyticalVariantSchema", () => {
+  it("accepts highlight_tag and steelman", () => {
+    expect(analyticalVariantSchema.safeParse("highlight_tag").success).toBe(true);
+    expect(analyticalVariantSchema.safeParse("steelman").success).toBe(true);
+  });
+
+  it("rejects unknown variants", () => {
+    expect(analyticalVariantSchema.safeParse("something_else").success).toBe(false);
+  });
+});
+
+describe("validateAnalyticalSteelmanSemantics", () => {
+  const validSteelman: AnalyticalExercise = {
+    title: "Remote work is bad for productivity",
+    passage: Array(100).fill("word").join(" "),
+    embeddedIssues: [],
+    validPoints: [],
+  };
+
+  it("returns no errors for a valid steelman payload", () => {
+    expect(validateAnalyticalSteelmanSemantics(validSteelman)).toEqual([]);
+  });
+
+  it("catches non-empty embeddedIssues", () => {
+    const bad: AnalyticalExercise = {
+      ...validSteelman,
+      embeddedIssues: [
+        { description: "x", type: "logical_fallacy", severity: "obvious", textSegment: "x", explanation: "x" },
+      ],
+    };
+    const errors = validateAnalyticalSteelmanSemantics(bad);
+    expect(errors.some((e) => e.includes("embeddedIssues"))).toBe(true);
+  });
+
+  it("catches non-empty validPoints", () => {
+    const bad: AnalyticalExercise = {
+      ...validSteelman,
+      validPoints: [{ textSegment: "x", explanation: "x" }],
+    };
+    const errors = validateAnalyticalSteelmanSemantics(bad);
+    expect(errors.some((e) => e.includes("validPoints"))).toBe(true);
+  });
+
+  it("catches empty title", () => {
+    const bad: AnalyticalExercise = { ...validSteelman, title: "  " };
+    const errors = validateAnalyticalSteelmanSemantics(bad);
+    expect(errors.some((e) => e.includes("title"))).toBe(true);
+  });
+
+  it("catches passage that is too short", () => {
+    const bad: AnalyticalExercise = { ...validSteelman, passage: "Too short." };
+    const errors = validateAnalyticalSteelmanSemantics(bad);
+    expect(errors.some((e) => e.includes("80-250 words"))).toBe(true);
+  });
+
+  it("catches passage that is too long", () => {
+    const bad: AnalyticalExercise = { ...validSteelman, passage: Array(300).fill("word").join(" ") };
+    const errors = validateAnalyticalSteelmanSemantics(bad);
+    expect(errors.some((e) => e.includes("80-250 words"))).toBe(true);
+  });
+});
+
+describe("ANALYTICAL_STEELMAN_RETRY_SUFFIX", () => {
+  it("is a non-empty string", () => {
+    expect(typeof ANALYTICAL_STEELMAN_RETRY_SUFFIX).toBe("string");
+    expect(ANALYTICAL_STEELMAN_RETRY_SUFFIX.length).toBeGreaterThan(0);
   });
 });

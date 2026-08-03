@@ -23,7 +23,10 @@ test.describe("Guide page", () => {
     const tocLinks = tocNav.first().getByRole("link");
     await expect(tocLinks).toHaveCount(GUIDE_SECTIONS.length);
 
-    const analyticalLink = page.getByRole("link", { name: /Analytical/i }).first();
+    const analyticalLink = page
+      .getByTestId("guide-section-analytical")
+      .getByRole("link", { name: /Analytical/i })
+      .first();
     await expect(analyticalLink).toHaveAttribute("href", "/exercise/analytical");
   });
 });

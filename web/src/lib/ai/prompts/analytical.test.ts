@@ -5,6 +5,7 @@ import {
   buildGeopoliticsAnalyticalPrompt,
   buildAnalyticalFromUserTextPrompt,
   buildGeopoliticsFromUserTextPrompt,
+  buildAnalyticalSteelmanPrompt,
 } from "./analytical";
 
 describe("buildAnalyticalGenerationPrompt", () => {
@@ -113,5 +114,51 @@ describe("buildGeopoliticsFromUserTextPrompt", () => {
     expect(result).toContain("missing_actor");
     expect(result).toContain("The sanctions affected trade.");
     expect(result).toContain('"hiddenPerspective"');
+  });
+});
+
+describe("buildAnalyticalSteelmanPrompt", () => {
+  it("returns non-empty string containing domain", () => {
+    const result = buildAnalyticalSteelmanPrompt({ domain: "economics" });
+    expect(result).toContain("economics");
+    expect(result.length).toBeGreaterThan(100);
+  });
+
+  it("requires embeddedIssues and validPoints to be empty arrays", () => {
+    const result = buildAnalyticalSteelmanPrompt({ domain: "tech" });
+    expect(result).toContain('"embeddedIssues": []');
+    expect(result).toContain('"validPoints": []');
+    expect(result).toContain("embeddedIssues and validPoints must both be empty arrays");
+  });
+
+  it("interpolates userContext", () => {
+    const result = buildAnalyticalSteelmanPrompt({ domain: "tech", userContext: "senior analyst" });
+    expect(result).toContain("senior analyst");
+  });
+
+  it("defaults userContext to none provided", () => {
+    const result = buildAnalyticalSteelmanPrompt({ domain: "tech" });
+    expect(result).toContain("(none provided)");
+  });
+
+  it("includes adaptation appendix when provided", () => {
+    const result = buildAnalyticalSteelmanPrompt({ domain: "tech", adaptationAppendix: "Focus on AI risks" });
+    expect(result).toContain("Focus on AI risks");
+  });
+
+  it("includes scenario block when customScenario provided", () => {
+    const result = buildAnalyticalSteelmanPrompt({ domain: "tech", customScenario: "My company merger" });
+    expect(result).toContain("My company merger");
+  });
+
+  it("instructs the model not to pre-steelman the position", () => {
+    const result = buildAnalyticalSteelmanPrompt({ domain: "tech" });
+    expect(result).toContain("Do NOT pre-empt counterarguments");
+  });
+
+  it("does not leak undefined or [object Object]", () => {
+    const result = buildAnalyticalSteelmanPrompt({ domain: "test" });
+    expect(result).not.toContain("undefined");
+    expect(result).not.toContain("[object Object]");
   });
 });

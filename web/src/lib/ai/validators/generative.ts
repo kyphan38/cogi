@@ -4,6 +4,10 @@ export const generativeStageSchema = z.enum(["edit", "hint", "independent"]);
 
 export type GenerativeStage = z.infer<typeof generativeStageSchema>;
 
+export const generativeVariantSchema = z.enum(["argue_debate", "reframing", "inversion"]);
+
+export type GenerativeVariant = z.infer<typeof generativeVariantSchema>;
+
 const promptSchema = z.object({
   id: z.string().min(1).max(20),
   question: z.string().min(1).max(500),
@@ -30,6 +34,23 @@ IMPORTANT: Your previous JSON failed validation. Return ONLY valid JSON:
 - For generativeStage "edit": every prompt MUST include draftText (non-empty string).
 - For "hint": every prompt MUST include hints array of 2-3 non-empty strings.
 - For "independent": do NOT include draftText or hints; you MAY include spareHint per prompt (optional).
+`;
+
+export const REFRAMING_GENERATIVE_RETRY_SUFFIX = `
+
+IMPORTANT: Your previous JSON failed reframing validation. Return ONLY valid JSON:
+- title, scenario (must state the problem's naive/obvious framing), prompts array length 4
+- prompts must be 4 genuinely distinct reframing techniques (not 4 wordings of the same idea)
+- stage-specific fields per generativeStage rules (draftText, hints, or neither)
+`;
+
+export const INVERSION_GENERATIVE_RETRY_SUFFIX = `
+
+IMPORTANT: Your previous JSON failed inversion/pre-mortem validation. Return ONLY valid JSON:
+- title, scenario (must state a goal/initiative the user is pursuing), prompts array length 4
+- p1-p3 (or first three prompts) must each describe a causally distinct catastrophic-failure path
+- the last prompt must ask for a single synthesized preventive action given those failure paths
+- stage-specific fields per generativeStage rules (draftText, hints, or neither)
 `;
 
 export function parseGenerativeExerciseJson(
@@ -106,6 +127,37 @@ export function validateGeopoliticsGenerativeSemantics(
   const p3 = data.prompts.find((p) => p.id === "p3")?.question.trim() ?? "";
   if (p2 && p3 && p2 === p3) {
     errors.push("Prompts p2 and p3 questions must differ (upside vs downside)");
+  }
+  return errors;
+}
+
+function checkDistinctQuestions(data: GenerativeExercisePayload): string[] {
+  const errors: string[] = [];
+  const ids = data.prompts.map((p) => p.id);
+  if (new Set(ids).size !== ids.length) errors.push("Prompt ids must be unique");
+  const questions = data.prompts.map((p) => p.question.trim().toLowerCase());
+  if (new Set(questions).size !== questions.length) {
+    errors.push("All 4 prompt questions must be genuinely distinct, not near-duplicate wordings");
+  }
+  return errors;
+}
+
+export function validateReframingGenerativeSemantics(
+  data: GenerativeExercisePayload,
+): string[] {
+  const errors = checkDistinctQuestions(data);
+  if (data.prompts.length !== 4) {
+    errors.push("Reframing generative requires exactly 4 prompts");
+  }
+  return errors;
+}
+
+export function validateInversionGenerativeSemantics(
+  data: GenerativeExercisePayload,
+): string[] {
+  const errors = checkDistinctQuestions(data);
+  if (data.prompts.length !== 4) {
+    errors.push("Inversion generative requires exactly 4 prompts");
   }
   return errors;
 }

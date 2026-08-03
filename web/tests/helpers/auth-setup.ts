@@ -56,6 +56,27 @@ export async function gotoAuthenticated(page: Page, path: string): Promise<void>
   await page
     .getByRole("navigation", { name: "Main" })
     .waitFor({ state: "visible", timeout: 15_000 });
+  await ensureManualEntryMode(page);
+}
+
+/**
+ * Exercise setup screens (Evaluative/Analytical/Generative/Systems/Sequential)
+ * default to a "Suggested topics" entry mode. Its AI topic-suggestions fetch
+ * always fails in e2e (no real Firebase ID token for the server to verify),
+ * but the manual Domain/Source/Generate controls stay hidden until the user
+ * switches tabs. Defensively switch to "Type your own" wherever that toggle
+ * exists so setup-form locators used across the suite resolve. No-op on
+ * pages without this toggle (e.g. dashboard, settings).
+ */
+export async function ensureManualEntryMode(page: Page): Promise<void> {
+  const manualToggle = page.getByRole("main").getByRole("button", { name: "Type your own" });
+  await manualToggle
+    .first()
+    .waitFor({ state: "visible", timeout: 3_000 })
+    .then(() => manualToggle.first().click())
+    .catch(() => {
+      /* not an exercise setup screen, or already in manual mode */
+    });
 }
 
 const NAV_URL_TIMEOUT = 15_000;
@@ -121,11 +142,17 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
     }
     const domain = typeof body.domain === "string" ? body.domain : "Testing";
     const exerciseType = body.exerciseType as string | undefined;
+    const evaluativeTaskType = body.evaluativeTaskType as string | undefined;
 
     let data: unknown;
     switch (exerciseType) {
       case "evaluative":
-        data = makeMockEvaluativeAiPayload();
+        data =
+          evaluativeTaskType === "dealbreaker"
+            ? makeMockEvaluativeDealbreakerAiPayload()
+            : evaluativeTaskType === "uncertainty"
+              ? makeMockEvaluativeUncertaintyAiPayload()
+              : makeMockEvaluativeAiPayload();
         break;
       case "systems":
         data = makeMockStandaloneSystemsPayload();
@@ -406,6 +433,122 @@ function makeMockEvaluativeAiPayload() {
       { id: "o2", title: "Svelte + SvelteKit", description: "Modern with smaller ecosystem.", intendedQuadrant: "top-right", explanation: "Scalable but fewer devs know it." },
       { id: "o3", title: "Vue + Nuxt", description: "Gentle learning curve.", intendedQuadrant: "bottom-left", explanation: "Quick start, moderate scale." },
       { id: "o4", title: "HTMX + Jinja", description: "Server-rendered with Python.", intendedQuadrant: "bottom-right", explanation: "Slow for complex UIs." },
+    ],
+  };
+}
+
+function makeMockEvaluativeDealbreakerAiPayload() {
+  return {
+    variant: "scoring",
+    title: "Vendor Contract Renewal",
+    scenario:
+      "Your company must choose a cloud vendor for the next 3-year contract. " +
+      "Security compliance is non-negotiable for regulators, but cost and support " +
+      "quality also matter to the finance and ops teams.",
+    criteria: [
+      {
+        id: "c1",
+        label: "Data Security Compliance",
+        description: "Must meet SOC 2 and regional data residency requirements.",
+        isDealbreaker: true,
+        suggestedWeight: 5,
+      },
+      {
+        id: "c2",
+        label: "Total Cost of Ownership",
+        description: "License, migration, and support cost over 3 years.",
+        suggestedWeight: 3,
+      },
+      {
+        id: "c3",
+        label: "Support Quality",
+        description: "Vendor SLA and historical performance.",
+        suggestedWeight: 3,
+      },
+    ],
+    options: [
+      {
+        id: "o1",
+        title: "Amazon Cloud",
+        description: "Broad service catalog, strong compliance history.",
+        suggestedScores: { c1: 5, c2: 2, c3: 4 },
+        explanation: "Passes compliance, but pricier and locked-in.",
+      },
+      {
+        id: "o2",
+        title: "Budget Cloud Co",
+        description: "Cheap, but SOC 2 certification is still pending.",
+        suggestedScores: { c1: 3, c2: 5, c3: 2 },
+        explanation: "Borderline compliance, but attractive on cost.",
+      },
+      {
+        id: "o3",
+        title: "Regional Provider",
+        description: "Mid-tier pricing with dedicated regional support.",
+        suggestedScores: { c1: 4, c2: 3, c3: 5 },
+        explanation: "Strong reliability, moderate cost, compliant.",
+      },
+    ],
+    hiddenCriteria: [
+      {
+        label: "Vendor Lock-in Risk",
+        description: "Migration cost and data portability if you switch again.",
+      },
+    ],
+  };
+}
+
+function makeMockEvaluativeUncertaintyAiPayload() {
+  return {
+    variant: "uncertainty",
+    title: "Market Expansion Bet",
+    scenario:
+      "Your startup is deciding whether to enter a new international market this " +
+      "quarter or wait six months to gather more data. Both paths carry real financial " +
+      "risk and opportunity cost.",
+    options: [
+      {
+        id: "o1",
+        title: "Enter Market Now",
+        description: "Launch immediately with the current product.",
+        outcomes: [
+          {
+            id: "out1",
+            label: "Strong adoption",
+            probability: 0.4,
+            payoff: 500000,
+            explanation: "Early-mover advantage captures a large user base.",
+          },
+          {
+            id: "out2",
+            label: "Weak adoption",
+            probability: 0.6,
+            payoff: -100000,
+            explanation: "Localization gaps drive users to established competitors.",
+          },
+        ],
+      },
+      {
+        id: "o2",
+        title: "Wait 6 Months",
+        description: "Delay launch to run further localization research.",
+        outcomes: [
+          {
+            id: "out3",
+            label: "Improved product-market fit",
+            probability: 0.7,
+            payoff: 200000,
+            explanation: "Extra research reduces launch risk considerably.",
+          },
+          {
+            id: "out4",
+            label: "Competitor claims the market",
+            probability: 0.3,
+            payoff: -50000,
+            explanation: "A rival launches first and locks in early customers.",
+          },
+        ],
+      },
     ],
   };
 }

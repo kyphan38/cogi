@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export type EvaluativeTaskType = "auto" | "dealbreaker" | "uncertainty";
+
 const quadrantSchema = z.enum(["top-left", "top-right", "bottom-left", "bottom-right"]);
 
 const axisSchema = z.object({
@@ -29,6 +31,7 @@ const criterionSchema = z.object({
   id: z.string().min(1).max(40),
   label: z.string().min(1).max(120),
   description: z.string().min(1).max(400),
+  isDealbreaker: z.boolean().optional(),
   suggestedWeight: z.number().int().min(1).max(5),
 });
 
@@ -61,9 +64,34 @@ export const geopoliticsScoringPayloadSchema = scoringPayloadSchema.extend({
   hiddenCriteria: z.array(hiddenCriterionSchema).min(2).max(8),
 });
 
+const EVALUATIVE_UNCERTAINTY_PROBABILITY_EPSILON = 0.02;
+
+const uncertaintyOutcomeSchema = z.object({
+  id: z.string().min(1).max(40),
+  label: z.string().min(1).max(120),
+  probability: z.number().min(0).max(1),
+  payoff: z.number().finite(),
+  explanation: z.string().min(1).max(600),
+});
+
+const uncertaintyOptionSchema = z.object({
+  id: z.string().min(1).max(40),
+  title: z.string().min(1).max(120),
+  description: z.string().min(1).max(400),
+  outcomes: z.array(uncertaintyOutcomeSchema).min(2).max(5),
+});
+
+const uncertaintyPayloadSchema = z.object({
+  variant: z.literal("uncertainty"),
+  title: z.string().min(1).max(200),
+  scenario: z.string().min(1).max(4000),
+  options: z.array(uncertaintyOptionSchema).min(2).max(5),
+});
+
 export const evaluativeExercisePayloadSchema = z.discriminatedUnion("variant", [
   matrixPayloadSchema,
   scoringPayloadSchema,
+  uncertaintyPayloadSchema,
 ]);
 
 export type EvaluativeExercisePayload = z.infer<typeof evaluativeExercisePayloadSchema>;
@@ -97,6 +125,23 @@ IMPORTANT: Your previous JSON failed geopolitics evaluative validation. Return O
 - at least 3 options with unique ids
 - at least 2 hiddenCriteria
 - every option.suggestedScores key must exactly match a criterion id
+`;
+
+export const EVALUATIVE_DEALBREAKER_RETRY_SUFFIX = `
+
+IMPORTANT: Your previous JSON failed dealbreaker validation. Return ONLY scoring variant JSON:
+- variant must be "scoring"
+- at least one criterion must have isDealbreaker: true
+- every option.suggestedScores key must exactly match a criterion id
+`;
+
+export const EVALUATIVE_UNCERTAINTY_RETRY_SUFFIX = `
+
+IMPORTANT: Your previous JSON failed uncertainty validation. Return ONLY uncertainty variant JSON:
+- variant must be "uncertainty"
+- 2-5 options, each with 2-5 outcomes with unique ids
+- each option's outcome probabilities must sum to 1.0 (within ${EVALUATIVE_UNCERTAINTY_PROBABILITY_EPSILON})
+- probability must be between 0 and 1; payoff must be a finite number
 `;
 
 function validateScoringSuggestedScores(
@@ -150,13 +195,45 @@ export function parseEvaluativeExerciseJson(
   return { success: true, data: r.data };
 }
 
+function validateUncertaintyOutcomes(
+  data: z.infer<typeof uncertaintyPayloadSchema>,
+  errors: string[],
+): void {
+  const optIds = data.options.map((o) => o.id);
+  if (new Set(optIds).size !== optIds.length) errors.push("Option ids must be unique");
+  for (const o of data.options) {
+    const outIds = o.outcomes.map((out) => out.id);
+    if (new Set(outIds).size !== outIds.length) {
+      errors.push(`Option ${o.id} outcome ids must be unique`);
+    }
+    const sum = o.outcomes.reduce((s, out) => s + out.probability, 0);
+    if (Math.abs(sum - 1) > EVALUATIVE_UNCERTAINTY_PROBABILITY_EPSILON) {
+      errors.push(`Option ${o.id} outcome probabilities must sum to 1.0 (got ${sum})`);
+    }
+  }
+}
+
 export function validateEvaluativeSemantics(data: EvaluativeExercisePayload): string[] {
   const errors: string[] = [];
   if (data.variant === "matrix") {
     const ids = data.options.map((o) => o.id);
     if (new Set(ids).size !== ids.length) errors.push("Matrix options must have unique ids");
+  } else if (data.variant === "uncertainty") {
+    validateUncertaintyOutcomes(data, errors);
   } else if (!isGeopoliticsEvaluativePayload(data)) {
     validateScoringSuggestedScores(data, errors);
+  }
+  return errors;
+}
+
+export function validateEvaluativeDealbreakerSemantics(data: EvaluativeExercisePayload): string[] {
+  if (data.variant !== "scoring") {
+    return ['Dealbreaker evaluative must use variant "scoring"'];
+  }
+  const errors: string[] = [];
+  validateScoringSuggestedScores(data, errors);
+  if (!data.criteria.some((c) => c.isDealbreaker === true)) {
+    errors.push("At least one criterion must have isDealbreaker: true");
   }
   return errors;
 }

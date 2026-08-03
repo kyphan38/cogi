@@ -56,6 +56,34 @@ describe("buildGenerativeDebateStartPrompt", () => {
     const result = buildGenerativeDebateStartPrompt(base);
     expect(result).toContain("PROHIBITION");
   });
+
+  it("includes reframing block when generativeVariant is reframing", () => {
+    const result = buildGenerativeDebateStartPrompt({ ...base, generativeVariant: "reframing" });
+    expect(result).toContain("Problem-reframing focus");
+    expect(result).toContain("shifts scope");
+  });
+
+  it("includes inversion block when generativeVariant is inversion", () => {
+    const result = buildGenerativeDebateStartPrompt({ ...base, generativeVariant: "inversion" });
+    expect(result).toContain("Inversion / pre-mortem focus");
+    expect(result).toContain("causally independent");
+  });
+
+  it("geopolitics takes priority over generativeVariant if both are set", () => {
+    const result = buildGenerativeDebateStartPrompt({
+      ...base,
+      isGeopolitics: true,
+      generativeVariant: "reframing",
+    });
+    expect(result).toContain("actor motivations");
+    expect(result).not.toContain("Problem-reframing focus");
+  });
+
+  it("omits variant blocks for the default argue_debate variant", () => {
+    const result = buildGenerativeDebateStartPrompt({ ...base, generativeVariant: "argue_debate" });
+    expect(result).not.toContain("Problem-reframing focus");
+    expect(result).not.toContain("Inversion / pre-mortem focus");
+  });
 });
 
 describe("buildGenerativeDebateContinuePrompt", () => {
@@ -89,5 +117,10 @@ describe("buildGenerativeDebateContinuePrompt", () => {
   it("includes geopolitics suffix when flagged", () => {
     const result = buildGenerativeDebateContinuePrompt({ ...input, isGeopolitics: true });
     expect(result).toContain("actor motivations");
+  });
+
+  it("includes inversion suffix when generativeVariant is inversion", () => {
+    const result = buildGenerativeDebateContinuePrompt({ ...input, generativeVariant: "inversion" });
+    expect(result).toContain("Inversion / pre-mortem focus");
   });
 });
