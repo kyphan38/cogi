@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
-import { buildAnalyticalPerspectivePrompt } from "@/lib/ai/prompts/analytical-perspective";
+import {
+  buildAnalyticalPerspectivePrompt,
+  buildAnalyticalSteelmanPerspectivePrompt,
+} from "@/lib/ai/prompts/analytical-perspective";
 import {
   buildEvaluativeMatrixPerspectivePrompt,
   buildEvaluativeScoringPerspectivePrompt,
+  buildEvaluativeUncertaintyPerspectivePrompt,
 } from "@/lib/ai/prompts/evaluative-perspective";
 import { buildGenerativePerspectivePrompt } from "@/lib/ai/prompts/generative-perspective";
 import { buildSequentialPerspectivePrompt } from "@/lib/ai/prompts/sequential-perspective";
@@ -20,6 +24,7 @@ import type { UserHighlight } from "@/lib/types/exercise";
 import type {
   EvaluativeMatrixRow,
   EvaluativeScoringRow,
+  EvaluativeUncertaintyRow,
   GenerativeExerciseRow,
   SequentialCriticalError,
   SequentialStepSpec,
@@ -101,9 +106,11 @@ export async function POST(req: Request) {
           ? "evaluative-matrix"
           : b.kind === "evaluative-scoring"
             ? "evaluative-scoring"
-            : b.kind === "generative"
-              ? "generative"
-              : "analytical";
+            : b.kind === "evaluative-uncertainty"
+              ? "evaluative-uncertainty"
+              : b.kind === "generative"
+                ? "generative"
+                : "analytical";
 
   if (kind === "evaluative-matrix") {
     const title = typeof b.title === "string" ? b.title : "";
@@ -197,6 +204,61 @@ export async function POST(req: Request) {
       const { structured, text } = await generateStructuredPerspective(
         prompt,
         "evaluative-scoring",
+      );
+      return NextResponse.json({ ok: true, structured, text });
+    } catch (e) {
+      const isTimeout =
+        e instanceof Error &&
+        (e.name === "AbortError" || e.message.includes("timed out") || e.message.includes("timeout"));
+      if (isTimeout) {
+        return NextResponse.json(
+          { ok: false, error: "Exercise generation timed out. Please try again." },
+          { status: 504 },
+        );
+      }
+      const message = e instanceof Error ? e.message : "Unknown error";
+      return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    }
+  }
+
+  if (kind === "evaluative-uncertainty") {
+    const title = typeof b.title === "string" ? b.title : "";
+    const domain = typeof b.domain === "string" ? b.domain : "";
+    const confidenceBefore =
+      typeof b.confidenceBefore === "number" ? b.confidenceBefore : NaN;
+    const exercise = b.exercise as EvaluativeUncertaintyRow | undefined;
+    if (
+      !title.trim() ||
+      !domain.trim() ||
+      !Number.isFinite(confidenceBefore) ||
+      !exercise ||
+      exercise.type !== "evaluative" ||
+      exercise.variant !== "uncertainty"
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "evaluative-uncertainty requires title, domain, confidenceBefore, exercise uncertainty row",
+        },
+        { status: 400 },
+      );
+    }
+    const userContext =
+      typeof b.userContext === "string" && b.userContext.trim()
+        ? b.userContext.trim()
+        : undefined;
+    const prompt = buildEvaluativeUncertaintyPerspectivePrompt({
+      title,
+      domain,
+      exercise,
+      confidenceBefore,
+      userContext,
+    });
+    try {
+      const { structured, text } = await generateStructuredPerspective(
+        prompt,
+        "evaluative-uncertainty",
       );
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
@@ -402,6 +464,55 @@ export async function POST(req: Request) {
     });
     try {
       const { structured, text } = await generateStructuredPerspective(prompt, "sequential");
+      return NextResponse.json({ ok: true, structured, text });
+    } catch (e) {
+      const isTimeout =
+        e instanceof Error &&
+        (e.name === "AbortError" || e.message.includes("timed out") || e.message.includes("timeout"));
+      if (isTimeout) {
+        return NextResponse.json(
+          { ok: false, error: "Exercise generation timed out. Please try again." },
+          { status: 504 },
+        );
+      }
+      const message = e instanceof Error ? e.message : "Unknown error";
+      return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    }
+  }
+
+  if (kind === "analytical" && b.analyticalVariant === "steelman") {
+    const title = typeof b.title === "string" ? b.title : "";
+    const passage = typeof b.passage === "string" ? b.passage : "";
+    const steelmanText = typeof b.steelmanText === "string" ? b.steelmanText : "";
+    const domain = typeof b.domain === "string" ? b.domain : "";
+    const confidenceBefore =
+      typeof b.confidenceBefore === "number" ? b.confidenceBefore : NaN;
+    if (
+      !title.trim() ||
+      !passage.trim() ||
+      !steelmanText.trim() ||
+      !domain.trim() ||
+      !Number.isFinite(confidenceBefore)
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "title, passage, steelmanText, domain, confidenceBefore required" },
+        { status: 400 },
+      );
+    }
+    const userContext =
+      typeof b.userContext === "string" && b.userContext.trim()
+        ? b.userContext.trim()
+        : undefined;
+    const prompt = buildAnalyticalSteelmanPerspectivePrompt({
+      title,
+      passage,
+      steelmanText,
+      confidenceBefore,
+      domain,
+      userContext,
+    });
+    try {
+      const { structured, text } = await generateStructuredPerspective(prompt, "analytical");
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
       const isTimeout =

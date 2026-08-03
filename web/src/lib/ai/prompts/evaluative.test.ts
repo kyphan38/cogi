@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildEvaluativeGenerationPrompt, buildGeopoliticsEvaluativePrompt } from "./evaluative";
+import {
+  buildEvaluativeGenerationPrompt,
+  buildGeopoliticsEvaluativePrompt,
+  buildEvaluativeDealbreakerPrompt,
+  buildEvaluativeUncertaintyPrompt,
+} from "./evaluative";
 
 describe("buildEvaluativeGenerationPrompt", () => {
   it("returns non-empty string containing domain", () => {
@@ -77,5 +82,100 @@ describe("buildGeopoliticsEvaluativePrompt", () => {
   it("includes scenario block", () => {
     const result = buildGeopoliticsEvaluativePrompt({ domain: "trade", customScenario: "Sanctions debate" });
     expect(result).toContain("Sanctions debate");
+  });
+});
+
+describe("buildEvaluativeDealbreakerPrompt", () => {
+  it("returns non-empty string containing domain", () => {
+    const result = buildEvaluativeDealbreakerPrompt({ domain: "vendor selection" });
+    expect(result).toContain("vendor selection");
+    expect(result.length).toBeGreaterThan(100);
+  });
+
+  it("forces scoring-only variant", () => {
+    const result = buildEvaluativeDealbreakerPrompt({ domain: "tech" });
+    expect(result).toContain('"variant": "scoring"');
+    expect(result).toContain("do not return matrix");
+  });
+
+  it("includes isDealbreaker and hiddenCriteria fields", () => {
+    const result = buildEvaluativeDealbreakerPrompt({ domain: "tech" });
+    expect(result).toContain("isDealbreaker");
+    expect(result).toContain("hiddenCriteria");
+    expect(result).toContain("suggestedScores");
+  });
+
+  it("describes non-compensatory hard-constraint semantics", () => {
+    const result = buildEvaluativeDealbreakerPrompt({ domain: "tech" });
+    expect(result).toContain("non-compensatory");
+    expect(result).toContain("deal-breaker");
+  });
+
+  it("interpolates userContext", () => {
+    const result = buildEvaluativeDealbreakerPrompt({ domain: "tech", userContext: "PM lead" });
+    expect(result).toContain("PM lead");
+  });
+
+  it("includes adaptation appendix when provided", () => {
+    const result = buildEvaluativeDealbreakerPrompt({ domain: "tech", adaptationAppendix: "Advanced tier" });
+    expect(result).toContain("Advanced tier");
+  });
+
+  it("includes scenario block when customScenario provided", () => {
+    const result = buildEvaluativeDealbreakerPrompt({ domain: "tech", customScenario: "Vendor RFP" });
+    expect(result).toContain("Vendor RFP");
+  });
+
+  it("does not leak undefined", () => {
+    const result = buildEvaluativeDealbreakerPrompt({ domain: "test" });
+    expect(result).not.toContain("undefined");
+    expect(result).not.toContain("[object Object]");
+  });
+});
+
+describe("buildEvaluativeUncertaintyPrompt", () => {
+  it("returns non-empty string containing domain", () => {
+    const result = buildEvaluativeUncertaintyPrompt({ domain: "startup fundraising" });
+    expect(result).toContain("startup fundraising");
+    expect(result.length).toBeGreaterThan(100);
+  });
+
+  it("forces uncertainty variant", () => {
+    const result = buildEvaluativeUncertaintyPrompt({ domain: "tech" });
+    expect(result).toContain('"variant": "uncertainty"');
+  });
+
+  it("includes outcomes with probability and payoff fields", () => {
+    const result = buildEvaluativeUncertaintyPrompt({ domain: "tech" });
+    expect(result).toContain("outcomes");
+    expect(result).toContain("probability");
+    expect(result).toContain("payoff");
+  });
+
+  it("requires probabilities to sum to 1.0 and consistent payoff units", () => {
+    const result = buildEvaluativeUncertaintyPrompt({ domain: "tech" });
+    expect(result).toContain("sum to 1.0");
+    expect(result).toContain("consistent");
+  });
+
+  it("interpolates userContext", () => {
+    const result = buildEvaluativeUncertaintyPrompt({ domain: "tech", userContext: "PM lead" });
+    expect(result).toContain("PM lead");
+  });
+
+  it("includes adaptation appendix when provided", () => {
+    const result = buildEvaluativeUncertaintyPrompt({ domain: "tech", adaptationAppendix: "Advanced tier" });
+    expect(result).toContain("Advanced tier");
+  });
+
+  it("includes scenario block when customScenario provided", () => {
+    const result = buildEvaluativeUncertaintyPrompt({ domain: "tech", customScenario: "Series A decision" });
+    expect(result).toContain("Series A decision");
+  });
+
+  it("does not leak undefined", () => {
+    const result = buildEvaluativeUncertaintyPrompt({ domain: "test" });
+    expect(result).not.toContain("undefined");
+    expect(result).not.toContain("[object Object]");
   });
 });

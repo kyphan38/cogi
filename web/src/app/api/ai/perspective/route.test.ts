@@ -120,6 +120,73 @@ describe("POST /api/ai/perspective - analytical", () => {
   });
 });
 
+describe("POST /api/ai/perspective - analytical steelman", () => {
+  it("returns 400 when required fields are missing", async () => {
+    authOk();
+    const res = await POST(makeRequest({ kind: "analytical", analyticalVariant: "steelman" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/steelmanText/);
+  });
+
+  it("returns structured perspective on success", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue(structuredPerspectiveJson());
+    const res = await POST(
+      makeRequest({
+        kind: "analytical",
+        analyticalVariant: "steelman",
+        title: "Remote work reduces productivity",
+        passage: "The original contestable position statement.",
+        steelmanText: "A much stronger version of the argument for this position.",
+        domain: "management",
+        confidenceBefore: 55,
+      }),
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.ok).toBe(true);
+    expect(data.structured).toBeDefined();
+    expect(data.text).toBeDefined();
+  });
+
+  it("builds the prompt from steelmanText, not embeddedIssues/userHighlights", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue(structuredPerspectiveJson());
+    await POST(
+      makeRequest({
+        kind: "analytical",
+        analyticalVariant: "steelman",
+        title: "Remote work reduces productivity",
+        passage: "The original contestable position statement.",
+        steelmanText: "A much stronger version of the argument for this position.",
+        domain: "management",
+        confidenceBefore: 55,
+      }),
+    );
+    const prompt = mockGenerateRaw.mock.calls[0][0] as string;
+    expect(prompt).toContain("A much stronger version of the argument for this position.");
+    expect(prompt).toContain("NOT the position");
+  });
+
+  it("retries on parse failure then returns 500 if still invalid", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue("not json");
+    const res = await POST(
+      makeRequest({
+        kind: "analytical",
+        analyticalVariant: "steelman",
+        title: "T",
+        passage: "position",
+        steelmanText: "steelman text",
+        domain: "tech",
+        confidenceBefore: 50,
+      }),
+    );
+    expect(res.status).toBe(500);
+    expect(mockGenerateRaw).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("POST /api/ai/perspective - sequential", () => {
   it("returns 400 when required fields are missing", async () => {
     authOk();

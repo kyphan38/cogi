@@ -3,6 +3,7 @@ import {
   bypassFirebaseAuth,
   stubFirestoreReads,
   gotoLayoutFixtures,
+  ensureManualEntryMode,
 } from "../helpers/auth-setup";
 import {
   DESKTOP,
@@ -140,6 +141,7 @@ test.describe("Nordic Mono layout architecture", () => {
       }) => {
         await page.setViewportSize(size);
         await page.goto("/exercise/analytical");
+        await ensureManualEntryMode(page);
         const domain = page.getByLabel(/^Domain/i);
         await domain.fill("US-China strategic competition");
         await expect(page.getByTestId("domain-suggestions-list")).toBeVisible({

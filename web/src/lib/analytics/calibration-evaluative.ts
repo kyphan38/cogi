@@ -10,9 +10,12 @@ import type {
   EvaluativeMatrixRow,
   EvaluativeQuadrant,
   EvaluativeScoringRow,
+  EvaluativeUncertaintyRow,
 } from "@/lib/types/exercise";
 
 const MAX_SCORE_DELTA = 4;
+
+export const EVALUATIVE_UNCERTAINTY_PROBABILITY_EPSILON = 0.02;
 
 export function computeEvaluativeMatrixAccuracy(ex: EvaluativeMatrixRow): number {
   if (ex.options.length === 0) return 0;
@@ -47,8 +50,38 @@ export function computeEvaluativeScoringAccuracy(ex: EvaluativeScoringRow): numb
   return Math.max(0, Math.min(100, Math.round(raw)));
 }
 
+export function computeOptionEv(
+  outcomes: { probability: number; payoff: number }[],
+): number | null {
+  if (outcomes.length === 0) return null;
+  const sum = outcomes.reduce((s, o) => s + o.probability, 0);
+  if (
+    Math.abs(sum - 1) > EVALUATIVE_UNCERTAINTY_PROBABILITY_EPSILON ||
+    outcomes.some((o) => o.probability < 0 || o.probability > 1)
+  ) {
+    return null;
+  }
+  return Math.round(outcomes.reduce((s, o) => s + o.probability * o.payoff, 0) * 100) / 100;
+}
+
+export function computeEvaluativeUncertaintyAccuracy(ex: EvaluativeUncertaintyRow): number {
+  const cells: number[] = [];
+  for (const opt of ex.options) {
+    for (const out of opt.outcomes) {
+      const userP = ex.userProbabilities[opt.id]?.[out.id];
+      if (typeof userP === "number" && Number.isFinite(userP)) {
+        cells.push(Math.abs(userP - out.probability));
+      }
+    }
+  }
+  if (cells.length === 0) return 0;
+  const meanAbs = cells.reduce((a, b) => a + b, 0) / cells.length;
+  return Math.max(0, Math.min(100, Math.round(100 * (1 - meanAbs))));
+}
+
 export function computeEvaluativeAccuracy(ex: EvaluativeExerciseRow): number {
   if (ex.variant === "matrix") return computeEvaluativeMatrixAccuracy(ex);
+  if (ex.variant === "uncertainty") return computeEvaluativeUncertaintyAccuracy(ex);
   return computeEvaluativeScoringAccuracy(ex);
 }
 

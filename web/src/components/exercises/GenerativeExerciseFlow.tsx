@@ -82,6 +82,7 @@ function buildRowFromPayload(
   data: GenerativeExercisePayload,
   customScenario?: string,
   isGeopolitics?: boolean,
+  generativeVariant?: "argue_debate" | "reframing" | "inversion",
 ): GenerativeExerciseRow {
   const answers: Record<string, string> = {};
   const draftBaseline: Record<string, string> = {};
@@ -99,6 +100,7 @@ function buildRowFromPayload(
     domain,
     customScenario,
     isGeopolitics: isGeopolitics ?? isGeopoliticsAnalyticalDomain(domain),
+    generativeVariant: generativeVariant ?? "argue_debate",
     title: data.title,
     scenario: data.scenario,
     stageAtStart: stage,
@@ -149,6 +151,9 @@ export function GenerativeExerciseFlow({
   );
   const [entryMode, setEntryMode] = useState<"suggested" | "manual">(initialDomain ? "manual" : "suggested");
   const [customScenarioText, setCustomScenarioText] = useState("");
+  const [generativeVariant, setGenerativeVariant] = useState<
+    "argue_debate" | "reframing" | "inversion"
+  >("argue_debate");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -202,6 +207,7 @@ export function GenerativeExerciseFlow({
       const row = await getExercise(resumeId);
       if (!row || row.completedAt || !isGenerativeExercise(row)) return;
       setExercise(row);
+      setGenerativeVariant(row.generativeVariant ?? "argue_debate");
       setAnswers(row.answers ?? {});
       setSteelmanText(row.steelmanText ?? "");
       setConfidence(row.confidenceBefore ?? 50);
@@ -298,6 +304,7 @@ export function GenerativeExerciseFlow({
           userContext: userContext || undefined,
           exerciseType: "generative",
           generativeStage,
+          generativeVariant,
           mode: effectiveSetupMode,
           customScenario: customScenarioOut,
           adaptiveHints,
@@ -314,7 +321,15 @@ export function GenerativeExerciseFlow({
       const id = crypto.randomUUID();
       const isGeo = isGeopoliticsAnalyticalDomain(d);
       const row: GenerativeExerciseRow = {
-        ...buildRowFromPayload(id, d, generativeStage, json.data, customScenarioOut, isGeo),
+        ...buildRowFromPayload(
+          id,
+          d,
+          generativeStage,
+          json.data,
+          customScenarioOut,
+          isGeo,
+          generativeVariant,
+        ),
         currentStep: 1,
       };
       await putExercise(row);
@@ -338,7 +353,7 @@ export function GenerativeExerciseFlow({
     } finally {
       setLoading(false);
     }
-  }, [domain, setupMode, customScenarioText]);
+  }, [domain, setupMode, customScenarioText, generativeVariant]);
 
   const autoGenerateTriggered = useRef(false);
   const [autoGenerateReady, setAutoGenerateReady] = useState(false);
@@ -400,6 +415,7 @@ export function GenerativeExerciseFlow({
             qa,
             steelmanText,
             isGeopolitics: exercise.isGeopolitics === true,
+            generativeVariant: exercise.generativeVariant ?? "argue_debate",
           }),
         });
         const json = await safeAiJson<{ ok: true; text: string } | { ok: false; error: string }>(res);
@@ -463,6 +479,7 @@ export function GenerativeExerciseFlow({
           history: debateHistoryMessages(),
           userReply: reply,
           isGeopolitics: exercise.isGeopolitics === true,
+          generativeVariant: exercise.generativeVariant ?? "argue_debate",
         }),
       });
       const json = await safeAiJson<{ ok: true; text: string } | { ok: false; error: string }>(res);
@@ -769,6 +786,26 @@ export function GenerativeExerciseFlow({
                 <SelectContent>
                   <SelectItem value="generated">AI-generated from domain</SelectItem>
                   <SelectItem value="custom_scenario">My scenario</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Task type</Label>
+              <Select
+                value={generativeVariant}
+                onValueChange={(v) =>
+                  setGenerativeVariant(
+                    (v as "argue_debate" | "reframing" | "inversion") ?? "argue_debate",
+                  )
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="argue_debate">Argue & defend</SelectItem>
+                  <SelectItem value="reframing">Reframe the problem</SelectItem>
+                  <SelectItem value="inversion">Pre-mortem (find failure paths)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

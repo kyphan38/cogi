@@ -12,22 +12,18 @@ test.describe("Settings page - layout and controls", () => {
     await expect(
       page.getByRole("heading", { name: "Settings" }),
     ).toBeVisible();
-    await expect(
-      page.getByText(/Personal context is injected into AI prompts/),
-    ).toBeVisible();
+    await expect(page.getByLabel("Personal context")).toBeVisible();
   });
 
   test("renders delayed recall checkbox", async ({ page }) => {
     await gotoAuthenticated(page, "/settings");
-    await expect(
-      page.getByLabel("Enable delayed recall (48h card on dashboard)"),
-    ).toBeVisible();
+    await expect(page.getByLabel("Delayed recall")).toBeVisible();
   });
 
   test("renders adaptive difficulty checkbox", async ({ page }) => {
     await gotoAuthenticated(page, "/settings");
     await expect(
-      page.getByLabel(/Enable adaptive difficulty/),
+      page.getByLabel("Adaptive difficulty"),
     ).toBeVisible();
   });
 
@@ -75,9 +71,7 @@ test.describe("Settings page - geopolitics progression card", () => {
 
   test("shows default no-reset message", async ({ page }) => {
     await gotoAuthenticated(page, "/settings");
-    await expect(
-      page.getByText(/No reset applied/),
-    ).toBeVisible();
+    await expect(page.getByText(/Reset on/)).toHaveCount(0);
   });
 });
 

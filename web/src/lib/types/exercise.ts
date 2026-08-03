@@ -97,6 +97,12 @@ export interface AnalyticalExerciseRow {
   userPerspectiveGuess?: string;
   userMissingActorsGuess?: string[];
   metaGuessScore?: number;
+  /** Task type: highlight & tag embedded issues (default/legacy), or steelman a position. Absent = "highlight_tag". */
+  analyticalVariant?: "highlight_tag" | "steelman";
+  /** User's free-text steelman of `passage` (steelman variant only). */
+  steelmanText?: string | null;
+  /** AI-rubric score for the steelman variant (no span-based ground truth to score against). */
+  rubricScore?: number | null;
   embeddedIssues: EmbeddedIssue[];
   validPoints: ValidPoint[];
   userHighlights: UserHighlight[];
@@ -246,6 +252,8 @@ export interface EvaluativeCriterion {
   id: string;
   label: string;
   description: string;
+  /** True for a non-compensatory "hard constraint" criterion (dealbreaker variant). */
+  isDealbreaker?: boolean;
   suggestedWeight: number;
 }
 
@@ -302,7 +310,47 @@ export interface EvaluativeScoringRow {
   actionDraftText?: string;
 }
 
-export type EvaluativeExerciseRow = EvaluativeMatrixRow | EvaluativeScoringRow;
+export interface EvaluativeUncertaintyOutcome {
+  id: string;
+  label: string;
+  probability: number; // AI ground truth, 0..1; outcomes within one option sum to 1
+  payoff: number; // AI ground truth, signed (e.g. dollars)
+  explanation: string;
+}
+
+export interface EvaluativeUncertaintyOption {
+  id: string;
+  title: string;
+  description: string;
+  outcomes: EvaluativeUncertaintyOutcome[];
+}
+
+/** Decision under uncertainty: options with probability/payoff-weighted outcomes. */
+export interface EvaluativeUncertaintyRow {
+  id: string;
+  type: "evaluative";
+  variant: "uncertainty";
+  domain: string;
+  customScenario?: string;
+  title: string;
+  scenario: string;
+  options: EvaluativeUncertaintyOption[];
+  /** [optionId][outcomeId] -> 0..1 */
+  userProbabilities: Record<string, Record<string, number>>;
+  userPayoffs: Record<string, Record<string, number>>;
+  /** Step-1 free text ("Outcome intuition"); no AI call for this step. */
+  outcomeIntuitionText?: string;
+  confidenceBefore: number | null;
+  aiPerspective: string | null;
+  aiPerspectiveStructured?: AIPerspectiveStructured | null;
+  createdAt: string;
+  completedAt: string | null;
+  currentStep?: number;
+  journalDraft?: JournalDraft;
+  actionDraftText?: string;
+}
+
+export type EvaluativeExerciseRow = EvaluativeMatrixRow | EvaluativeScoringRow | EvaluativeUncertaintyRow;
 
 export interface GenerativePromptPersisted {
   id: string;
@@ -320,6 +368,8 @@ export interface GenerativeExerciseRow {
   customScenario?: string;
   /** True when exercise used geopolitics scenario-planning generation. */
   isGeopolitics?: boolean;
+  /** Task type: argue & defend (default/legacy), reframing, or inversion/pre-mortem. Absent = "argue_debate". */
+  generativeVariant?: "argue_debate" | "reframing" | "inversion";
   title: string;
   scenario: string;
   /** Scaffold stage locked when exercise was generated. */
@@ -399,6 +449,15 @@ export function isEvaluativeMatrix(ex: Exercise): ex is EvaluativeMatrixRow {
 
 export function isEvaluativeScoring(ex: Exercise): ex is EvaluativeScoringRow {
   return ex.type === "evaluative" && ex.variant === "scoring";
+}
+
+export function isEvaluativeUncertainty(ex: Exercise): ex is EvaluativeUncertaintyRow {
+  return ex.type === "evaluative" && ex.variant === "uncertainty";
+}
+
+/** Scoring exercise using the non-compensatory dealbreaker prompt (>=1 isDealbreaker criterion). */
+export function isDealbreakerEvaluativeExercise(ex: EvaluativeExerciseRow): boolean {
+  return ex.variant === "scoring" && ex.criteria.some((c) => c.isDealbreaker === true);
 }
 
 export function isGenerativeExercise(ex: Exercise): ex is GenerativeExerciseRow {

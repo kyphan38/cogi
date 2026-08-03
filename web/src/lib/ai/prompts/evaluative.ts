@@ -122,3 +122,104 @@ Return scoring variant JSON:
 Minimums: at least 4 criteria, at least 3 options, at least 2 hiddenCriteria.
 Every option.suggestedScores must include every criterion id with integer 1–5.${adapt ? `\n\n${adapt}` : ""}`;
 }
+
+export function buildEvaluativeDealbreakerPrompt(input: {
+  domain: string;
+  userContext?: string;
+  adaptationAppendix?: string;
+  customScenario?: string;
+}): string {
+  const ctx = input.userContext?.trim()
+    ? `\nUser context (optional): ${input.userContext.trim()}`
+    : "";
+  const adapt = input.adaptationAppendix?.trim();
+  const scenarioBlock = formatUserScenarioBlock(input.customScenario);
+  const domainHint = buildDomainHint(input.domain);
+  const aboutLine = scenarioBlock
+    ? `${scenarioBlock}${domainHint}\n\nYou are generating a structured non-compensatory (deal-breaker) evaluative-thinking exercise anchored to the user's scenario above.${ctx}`
+    : `You are generating a structured non-compensatory (deal-breaker) evaluative-thinking exercise about: ${input.domain}.${ctx}`;
+
+  return `${aboutLine}
+
+Always use the SCORING variant (variant must be "scoring" - do not return matrix).
+
+This exercise teaches non-compensatory decision-making: some criteria are hard constraints ("deal-breakers") that disqualify an option outright if scored poorly, no matter how well it scores on everything else.
+
+Return ONLY a single JSON object (no markdown fences):
+{
+  "variant": "scoring",
+  "title": "string",
+  "scenario": "string",
+  "criteria": [
+    { "id": "c1", "label": "string", "description": "string", "isDealbreaker": true, "suggestedWeight": 1 }
+  ],
+  "options": [
+    {
+      "id": "o1",
+      "title": "string",
+      "description": "string",
+      "suggestedScores": { "c1": 3 },
+      "explanation": "string"
+    }
+  ],
+  "hiddenCriteria": [ { "label": "string", "description": "string" } ]
+}
+
+Rules:
+- At least 3 criteria, each with unique id, suggestedWeight integer 1-5.
+- Mark 1 to 3 criteria with "isDealbreaker": true - these must represent hard constraints (e.g. safety, legal compliance, budget ceiling), not soft preferences. Most criteria should NOT be dealbreakers.
+- Each dealbreaker criterion's description must concretely state what a score of 1-2 means as a failure of that constraint (e.g. "1-2 means the option is legally non-compliant and cannot proceed").
+- At least 2 options, unique ids.
+- Every option.suggestedScores must include EVERY criterion id with integer 1-5.
+- At least one hiddenCriteria entry.
+${adapt ? `\n${adapt}` : ""}`;
+}
+
+export function buildEvaluativeUncertaintyPrompt(input: {
+  domain: string;
+  userContext?: string;
+  adaptationAppendix?: string;
+  customScenario?: string;
+}): string {
+  const ctx = input.userContext?.trim()
+    ? `\nUser context (optional): ${input.userContext.trim()}`
+    : "";
+  const adapt = input.adaptationAppendix?.trim();
+  const scenarioBlock = formatUserScenarioBlock(input.customScenario);
+  const domainHint = buildDomainHint(input.domain);
+  const aboutLine = scenarioBlock
+    ? `${scenarioBlock}${domainHint}\n\nYou are generating a structured decision-under-uncertainty evaluative exercise anchored to the user's scenario above.${ctx}`
+    : `You are generating a structured decision-under-uncertainty evaluative exercise about: ${input.domain}.${ctx}`;
+
+  return `${aboutLine}
+
+Always use the UNCERTAINTY variant (variant must be "uncertainty").
+
+This exercise teaches expected-value reasoning: each option has several mutually exclusive, collectively exhaustive possible outcomes, each with a probability and a payoff.
+
+Return ONLY a single JSON object (no markdown fences):
+{
+  "variant": "uncertainty",
+  "title": "string",
+  "scenario": "string",
+  "options": [
+    {
+      "id": "o1",
+      "title": "string",
+      "description": "string",
+      "outcomes": [
+        { "id": "out1", "label": "string", "probability": 0.6, "payoff": 1000, "explanation": "string" }
+      ]
+    }
+  ]
+}
+
+Rules:
+- 2 to 5 options, unique ids.
+- Each option has 2 to 5 outcomes, unique ids within that option, that are mutually exclusive and collectively exhaustive.
+- Each option's outcome probabilities MUST sum to 1.0.
+- payoff is a signed number in ONE consistent, comparable unit across ALL options (e.g. dollars) - do not mix units.
+- Vary risk profile across options: include at least one relatively safe option (high-probability, modest-payoff outcomes) and at least one riskier option (low-probability, high-payoff outcome), so the expected-value ranking is not obvious from the titles alone.
+- explanation should justify the probability/payoff estimate briefly.
+${adapt ? `\n${adapt}` : ""}`;
+}

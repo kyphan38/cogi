@@ -79,3 +79,55 @@ Rules:
 - For highlights with no matching embedded issue, still quote their selected text in userTextSnippet.
 - Tone: collaborative peer, not a judge. Do not give a numeric score for the exercise.`;
 }
+
+export function buildAnalyticalSteelmanPerspectivePrompt(input: {
+  title: string;
+  passage: string;
+  steelmanText: string;
+  confidenceBefore: number;
+  domain: string;
+  userContext?: string;
+}): string {
+  const ctx = input.userContext?.trim() || "(none)";
+  const clarity = buildPerspectiveClarityPreamble();
+
+  return `You are a thoughtful peer helping someone practice steelmanning in the domain: ${input.domain}.
+User context (may be empty): ${ctx}
+
+${clarity}
+
+Exercise title: ${input.title}
+Position to steelman:
+---
+${input.passage}
+---
+
+User's steelman:
+---
+${input.steelmanText}
+---
+
+User self-reported confidence before seeing your notes: ${input.confidenceBefore}%
+
+Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
+{
+  "perspectiveFormat": "clarity_v2",
+  "title": string (echo exercise title above),
+  "suitableFor": "Suitable for <concrete audience derived from domain and scenario>",
+  "highlightCritiques": [
+    {
+      "id": "hc_1",
+      "userTextSnippet": "exact quoted substring from the user's steelman text above (NOT the position)",
+      "critique": "You wrote '[snippet]'... However, ...",
+      "remediationAlternative": "A stronger version of this point would have..."
+    }
+  ],
+  "openQuestions": ["optional 1-3 strings about what remains uncertain"]
+}
+
+Rules:
+- Produce 3-6 highlightCritiques rows, each quoting a distinct phrase from the user's steelman (never from the original position).
+- Critique whether the steelman genuinely strengthens the position stated above, or merely restates/waters it down.
+- Identify the single strongest counter-argument the steelman failed to preempt, and cover it in at least one row.
+- Tone: collaborative peer, not a judge. Do not give a numeric score for the exercise.`;
+}

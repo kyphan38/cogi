@@ -324,6 +324,7 @@ export function AIPerspective({
     perspectiveKind === "systems" ||
     perspectiveKind === "evaluative-matrix" ||
     perspectiveKind === "evaluative-scoring" ||
+    perspectiveKind === "evaluative-uncertainty" ||
     perspectiveKind === "generative"
       ? perspectiveKind
       : null;

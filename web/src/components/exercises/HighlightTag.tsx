@@ -445,6 +445,7 @@ export function HighlightTag({
           {highlights.map((h) => (
             <li
               key={h.id}
+              data-testid="highlight-chip"
               className="flex flex-wrap items-start justify-between gap-2 rounded-2xl border border-zinc-200 p-3"
             >
               <div>

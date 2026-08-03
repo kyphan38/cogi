@@ -69,15 +69,30 @@ export async function advanceEvaluativeToMatrix(page: Page): Promise<void> {
   await nameInputs.nth(0).fill("Team expertise");
   await nameInputs.nth(1).fill("Time to market");
   await page
-    .getByPlaceholder("Why it matters (1 sentence)")
+    .getByPlaceholder("Why it matters (up to ~500 words)")
     .nth(0)
     .fill("Existing skills reduce onboarding risk.");
   await page
-    .getByPlaceholder("Why it matters (1 sentence)")
+    .getByPlaceholder("Why it matters (up to ~500 words)")
     .nth(1)
     .fill("MVP deadline is fixed at six months.");
   await page.getByRole("button", { name: "Compare and continue" }).click();
   await page.getByRole("button", { name: "Continue to evaluate" }).click();
+}
+
+export async function selectEvaluativeTaskType(
+  page: Page,
+  name: RegExp | string,
+): Promise<void> {
+  await comboboxBelowLabel(page, "Task type").click();
+  await page.getByRole("option", { name }).click();
+}
+
+export async function advanceEvaluativeUncertaintyToEstimate(page: Page): Promise<void> {
+  await page
+    .getByPlaceholder("Your intuition before running the numbers…")
+    .fill("Entering now looks riskier but has the higher expected payoff.");
+  await page.getByRole("button", { name: "Continue to estimate" }).click();
 }
 
 export async function advanceSystemsToCanvas(page: Page): Promise<void> {

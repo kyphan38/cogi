@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildGenerativeGenerationPrompt,
   buildGeopoliticsGenerativePrompt,
+  buildReframingGenerativePrompt,
+  buildInversionGenerativePrompt,
   GEOPOLITICS_GENERATIVE_RETRY_SUFFIX,
 } from "./generative";
 
@@ -117,5 +119,88 @@ describe("GEOPOLITICS_GENERATIVE_RETRY_SUFFIX", () => {
     expect(GEOPOLITICS_GENERATIVE_RETRY_SUFFIX.length).toBeGreaterThan(50);
     expect(GEOPOLITICS_GENERATIVE_RETRY_SUFFIX).toContain("p1");
     expect(GEOPOLITICS_GENERATIVE_RETRY_SUFFIX).toContain("p4");
+  });
+});
+
+describe("buildReframingGenerativePrompt", () => {
+  it("includes domain and reframing-technique instructions", () => {
+    const result = buildReframingGenerativePrompt({
+      domain: "team hiring",
+      generativeStage: "edit",
+    });
+    expect(result).toContain("team hiring");
+    expect(result).toContain("How might we");
+    expect(result).toContain("underlying need");
+    expect(result).toContain("whose problem");
+  });
+
+  it("includes edit stage instructions", () => {
+    const result = buildReframingGenerativePrompt({ domain: "tech", generativeStage: "edit" });
+    expect(result).toContain("draftText");
+    expect(result).toContain("EDIT");
+  });
+
+  it("includes hint stage instructions", () => {
+    const result = buildReframingGenerativePrompt({ domain: "tech", generativeStage: "hint" });
+    expect(result).toContain("hints");
+    expect(result).toContain("HINT");
+  });
+
+  it("requires exactly 4 prompts", () => {
+    const result = buildReframingGenerativePrompt({ domain: "tech", generativeStage: "edit" });
+    expect(result).toContain("Exactly 4 prompts");
+  });
+
+  it("includes scenario block when customScenario provided", () => {
+    const result = buildReframingGenerativePrompt({
+      domain: "tech",
+      generativeStage: "edit",
+      customScenario: "Users drop off during onboarding",
+    });
+    expect(result).toContain("Users drop off during onboarding");
+  });
+
+  it("does not leak undefined", () => {
+    const result = buildReframingGenerativePrompt({ domain: "test", generativeStage: "edit" });
+    expect(result).not.toContain("undefined");
+    expect(result).not.toContain("[object Object]");
+  });
+});
+
+describe("buildInversionGenerativePrompt", () => {
+  it("includes domain and pre-mortem instructions", () => {
+    const result = buildInversionGenerativePrompt({
+      domain: "product launch",
+      generativeStage: "edit",
+    });
+    expect(result).toContain("product launch");
+    expect(result).toContain("fails catastrophically");
+    expect(result).toContain("causally distinct");
+    expect(result).toContain("preventive action");
+  });
+
+  it("includes independent stage instructions", () => {
+    const result = buildInversionGenerativePrompt({
+      domain: "tech",
+      generativeStage: "independent",
+    });
+    expect(result).toContain("INDEPENDENT");
+    expect(result).toContain("spareHint");
+  });
+
+  it("requires exactly 4 prompts", () => {
+    const result = buildInversionGenerativePrompt({ domain: "tech", generativeStage: "hint" });
+    expect(result).toContain("Exactly 4 prompts");
+  });
+
+  it("distinguishes itself from red-teaming", () => {
+    const result = buildInversionGenerativePrompt({ domain: "tech", generativeStage: "edit" });
+    expect(result).toContain("not red-teaming");
+  });
+
+  it("does not leak undefined", () => {
+    const result = buildInversionGenerativePrompt({ domain: "test", generativeStage: "hint" });
+    expect(result).not.toContain("undefined");
+    expect(result).not.toContain("[object Object]");
   });
 });

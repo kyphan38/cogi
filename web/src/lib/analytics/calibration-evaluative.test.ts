@@ -2,10 +2,16 @@ import { describe, expect, it } from "vitest";
 import {
   computeEvaluativeMatrixAccuracy,
   computeEvaluativeScoringAccuracy,
+  computeEvaluativeUncertaintyAccuracy,
   computeEvaluativeAccuracy,
+  computeOptionEv,
   isQuadrant,
 } from "./calibration-evaluative";
-import type { EvaluativeMatrixRow, EvaluativeScoringRow } from "@/lib/types/exercise";
+import type {
+  EvaluativeMatrixRow,
+  EvaluativeScoringRow,
+  EvaluativeUncertaintyRow,
+} from "@/lib/types/exercise";
 
 function makeMatrixRow(placements: Record<string, string>): EvaluativeMatrixRow {
   return {
@@ -50,6 +56,45 @@ function makeScoringRow(scores: Record<string, Record<string, number>>): Evaluat
     hiddenCriteria: [],
     criterionWeights: { c1: 1, c2: 1 },
     scores,
+    confidenceBefore: null,
+    aiPerspective: null,
+    createdAt: "2025-01-01",
+    completedAt: null,
+  };
+}
+
+function makeUncertaintyRow(
+  userProbabilities: Record<string, Record<string, number>>,
+): EvaluativeUncertaintyRow {
+  return {
+    id: "ex1",
+    type: "evaluative",
+    variant: "uncertainty",
+    domain: "test",
+    title: "Test",
+    scenario: "Test scenario",
+    options: [
+      {
+        id: "o1",
+        title: "Opt 1",
+        description: "",
+        outcomes: [
+          { id: "out1", label: "Success", probability: 0.6, payoff: 1000, explanation: "" },
+          { id: "out2", label: "Failure", probability: 0.4, payoff: -200, explanation: "" },
+        ],
+      },
+      {
+        id: "o2",
+        title: "Opt 2",
+        description: "",
+        outcomes: [
+          { id: "out1", label: "Success", probability: 0.3, payoff: 5000, explanation: "" },
+          { id: "out2", label: "Failure", probability: 0.7, payoff: -500, explanation: "" },
+        ],
+      },
+    ],
+    userProbabilities,
+    userPayoffs: {},
     confidenceBefore: null,
     aiPerspective: null,
     createdAt: "2025-01-01",
@@ -150,6 +195,92 @@ describe("computeEvaluativeAccuracy", () => {
   it("delegates to scoring for scoring variant", () => {
     const row = makeScoringRow({ o1: { c1: 3, c2: 1 }, o2: { c1: 1, c2: 3 } });
     expect(computeEvaluativeAccuracy(row)).toBe(100);
+  });
+
+  it("delegates to uncertainty for uncertainty variant", () => {
+    const row = makeUncertaintyRow({ o1: { out1: 0.6, out2: 0.4 }, o2: { out1: 0.3, out2: 0.7 } });
+    expect(computeEvaluativeAccuracy(row)).toBe(100);
+  });
+});
+
+describe("computeOptionEv", () => {
+  it("returns null for empty outcomes", () => {
+    expect(computeOptionEv([])).toBeNull();
+  });
+
+  it("computes probability-weighted expected value", () => {
+    const ev = computeOptionEv([
+      { probability: 0.6, payoff: 1000 },
+      { probability: 0.4, payoff: -200 },
+    ]);
+    expect(ev).toBe(520);
+  });
+
+  it("returns null when probabilities don't sum to ~1", () => {
+    const ev = computeOptionEv([
+      { probability: 0.5, payoff: 1000 },
+      { probability: 0.3, payoff: -200 },
+    ]);
+    expect(ev).toBeNull();
+  });
+
+  it("tolerates probabilities within epsilon of 1", () => {
+    const ev = computeOptionEv([
+      { probability: 0.61, payoff: 1000 },
+      { probability: 0.4, payoff: -200 },
+    ]);
+    expect(ev).not.toBeNull();
+  });
+
+  it("returns null when a probability is out of 0-1 range", () => {
+    const ev = computeOptionEv([
+      { probability: 1.5, payoff: 1000 },
+      { probability: -0.5, payoff: -200 },
+    ]);
+    expect(ev).toBeNull();
+  });
+
+  it("handles a single certain outcome", () => {
+    expect(computeOptionEv([{ probability: 1, payoff: 42 }])).toBe(42);
+  });
+});
+
+describe("computeEvaluativeUncertaintyAccuracy", () => {
+  it("returns 0 with no user probability estimates", () => {
+    const row = makeUncertaintyRow({});
+    expect(computeEvaluativeUncertaintyAccuracy(row)).toBe(0);
+  });
+
+  it("returns 100 when user probabilities exactly match AI ground truth", () => {
+    const row = makeUncertaintyRow({
+      o1: { out1: 0.6, out2: 0.4 },
+      o2: { out1: 0.3, out2: 0.7 },
+    });
+    expect(computeEvaluativeUncertaintyAccuracy(row)).toBe(100);
+  });
+
+  it("returns partial accuracy for offset estimates", () => {
+    const row = makeUncertaintyRow({
+      o1: { out1: 0.4, out2: 0.2 },
+      o2: { out1: 0.1, out2: 0.5 },
+    });
+    const score = computeEvaluativeUncertaintyAccuracy(row);
+    expect(score).toBeGreaterThan(0);
+    expect(score).toBeLessThan(100);
+  });
+
+  it("returns low accuracy for maximally wrong estimates", () => {
+    const row = makeUncertaintyRow({
+      o1: { out1: 0, out2: 1 },
+      o2: { out1: 1, out2: 0 },
+    });
+    // mean abs error = (0.6+0.6+0.7+0.7)/4 = 0.65 -> 100*(1-0.65) = 35
+    expect(computeEvaluativeUncertaintyAccuracy(row)).toBe(35);
+  });
+
+  it("only counts cells the user actually estimated", () => {
+    const row = makeUncertaintyRow({ o1: { out1: 0.6 } });
+    expect(computeEvaluativeUncertaintyAccuracy(row)).toBe(100);
   });
 });
 

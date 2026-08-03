@@ -3,6 +3,8 @@ import {
   parseGenerativeExerciseJson,
   validateGenerativeSemantics,
   validateGeopoliticsGenerativeSemantics,
+  validateReframingGenerativeSemantics,
+  validateInversionGenerativeSemantics,
 } from "./generative";
 
 const validPayload = {
@@ -193,6 +195,82 @@ describe("validateGeopoliticsGenerativeSemantics", () => {
     if (result.success) {
       const errors = validateGeopoliticsGenerativeSemantics(result.data);
       expect(errors.some((e) => e.includes("must differ"))).toBe(true);
+    }
+  });
+});
+
+describe("validateReframingGenerativeSemantics", () => {
+  const reframingPayload = {
+    title: "Reframe the onboarding problem",
+    scenario: "Users are dropping off during onboarding.",
+    prompts: [
+      { id: "p1", question: "How might we reduce onboarding steps?" },
+      { id: "p2", question: "What underlying need are users actually trying to satisfy?" },
+      { id: "p3", question: "Whose problem is this really - the user's or the team's?" },
+      { id: "p4", question: "What if the assumed time constraint wasn't real?" },
+    ],
+  };
+
+  it("returns no errors for genuinely distinct reframes", () => {
+    const result = parseGenerativeExerciseJson(JSON.stringify(reframingPayload));
+    if (result.success) {
+      expect(validateReframingGenerativeSemantics(result.data)).toEqual([]);
+    }
+  });
+
+  it("catches near-duplicate reframing questions", () => {
+    const dup = {
+      ...reframingPayload,
+      prompts: reframingPayload.prompts.map((p) => ({ ...p, question: reframingPayload.prompts[0]!.question })),
+    };
+    const result = parseGenerativeExerciseJson(JSON.stringify(dup));
+    if (result.success) {
+      const errors = validateReframingGenerativeSemantics(result.data);
+      expect(errors.some((e) => e.includes("distinct"))).toBe(true);
+    }
+  });
+
+  it("catches duplicate prompt ids", () => {
+    const dup = {
+      ...reframingPayload,
+      prompts: reframingPayload.prompts.map((p) => ({ ...p, id: "same" })),
+    };
+    const result = parseGenerativeExerciseJson(JSON.stringify(dup));
+    if (result.success) {
+      const errors = validateReframingGenerativeSemantics(result.data);
+      expect(errors.some((e) => e.includes("unique"))).toBe(true);
+    }
+  });
+});
+
+describe("validateInversionGenerativeSemantics", () => {
+  const inversionPayload = {
+    title: "Pre-mortem the product launch",
+    scenario: "The team is launching a new feature next quarter.",
+    prompts: [
+      { id: "p1", question: "How could the launch fail due to a technical rollout issue?" },
+      { id: "p2", question: "How could the launch fail due to a marketing miscommunication?" },
+      { id: "p3", question: "How could the launch fail due to a silent adoption failure?" },
+      { id: "p4", question: "Given these failure paths, what single change would you make today?" },
+    ],
+  };
+
+  it("returns no errors for genuinely distinct failure paths", () => {
+    const result = parseGenerativeExerciseJson(JSON.stringify(inversionPayload));
+    if (result.success) {
+      expect(validateInversionGenerativeSemantics(result.data)).toEqual([]);
+    }
+  });
+
+  it("catches near-duplicate failure-path questions", () => {
+    const dup = {
+      ...inversionPayload,
+      prompts: inversionPayload.prompts.map((p) => ({ ...p, question: inversionPayload.prompts[0]!.question })),
+    };
+    const result = parseGenerativeExerciseJson(JSON.stringify(dup));
+    if (result.success) {
+      const errors = validateInversionGenerativeSemantics(result.data);
+      expect(errors.some((e) => e.includes("distinct"))).toBe(true);
     }
   });
 });

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ANALYTICAL_EXERCISE_STEP_LABELS,
+  ANALYTICAL_STEELMAN_STEP_LABELS,
   ExerciseShell,
   GEOPOLITICS_ANALYTICAL_STEP_LABELS,
 } from "@/components/shared/ExerciseShell";
@@ -53,6 +54,7 @@ import {
 } from "@/lib/db/journal";
 import { pickJournalPrompts, type JournalPromptItem } from "@/lib/ai/prompts/journal-pool";
 import { computeAnalyticalAccuracy } from "@/lib/analytics/calibration-analytical";
+import { generativeRubricToAccuracy } from "@/lib/analytics/calibration-generative";
 import { scoreEmbeddedIssueCatch } from "@/lib/analytics/analytical-per-issue";
 import { currentIsoWeekKey } from "@/lib/db/actions";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
@@ -97,6 +99,11 @@ export function AnalyticalExerciseFlow({
 
   const [exercise, setExercise] = useState<AnalyticalExerciseRow | null>(null);
   const [highlights, setHighlights] = useState<UserHighlight[]>([]);
+  const [analyticalVariant, setAnalyticalVariant] = useState<"highlight_tag" | "steelman">(
+    "highlight_tag",
+  );
+  const [steelmanText, setSteelmanText] = useState("");
+  const [rubricScore, setRubricScore] = useState<number | null>(null);
   const [confidence, setConfidence] = useState(50);
   const [perspectiveText, setPerspectiveText] = useState<string | null>(null);
   const [perspectiveStructured, setPerspectiveStructured] =
@@ -144,6 +151,9 @@ export function AnalyticalExerciseFlow({
       if (!row || row.completedAt || !isAnalyticalExercise(row)) return;
       setExercise(row);
       setHighlights(row.userHighlights ?? []);
+      setAnalyticalVariant(row.analyticalVariant ?? "highlight_tag");
+      setSteelmanText(row.steelmanText ?? "");
+      setRubricScore(row.rubricScore ?? null);
       setConfidence(row.confidenceBefore ?? 50);
       if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
       if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
@@ -180,10 +190,14 @@ export function AnalyticalExerciseFlow({
   useEffect(() => {
     if (!exercise || step === 0 || step === 7) return;
     const timer = setTimeout(() => {
-      void putExercise({ ...exercise, userHighlights: highlights, currentStep: step });
+      const patch =
+        exercise.analyticalVariant === "steelman"
+          ? { steelmanText }
+          : { userHighlights: highlights };
+      void putExercise({ ...exercise, ...patch, currentStep: step });
     }, 2000);
     return () => clearTimeout(timer);
-  }, [highlights, step]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [highlights, steelmanText, step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!exercise || (step !== 5 && step !== 6) || !journalPrimed) return;
@@ -270,6 +284,7 @@ export function AnalyticalExerciseFlow({
           userContext: userContext || undefined,
           exerciseType: "analytical",
           mode: effectiveMode,
+          analyticalVariant,
           userText: effectiveMode === "real_data" ? userTextForReal : undefined,
           customScenario: customScenarioBody,
           adaptiveHints,
@@ -284,7 +299,8 @@ export function AnalyticalExerciseFlow({
         return;
       }
       const data = json.data;
-      const isGeopolitics = isGeopoliticsAnalyticalDomain(effectiveDomain);
+      const isGeopolitics =
+        analyticalVariant === "steelman" ? false : isGeopoliticsAnalyticalDomain(effectiveDomain);
       const id = crypto.randomUUID();
       const row: AnalyticalExerciseRow = {
         id,
@@ -302,6 +318,9 @@ export function AnalyticalExerciseFlow({
         embeddedIssues: data.embeddedIssues,
         validPoints: data.validPoints,
         userHighlights: [],
+        analyticalVariant,
+        steelmanText: null,
+        rubricScore: null,
         confidenceBefore: null,
         aiPerspective: null,
         createdAt: new Date().toISOString(),
@@ -311,6 +330,8 @@ export function AnalyticalExerciseFlow({
       await putExercise(row);
       setExercise(row);
       setHighlights([]);
+      setSteelmanText("");
+      setRubricScore(null);
       setPerspectiveText(null);
       setPerspectiveStructured(null);
       setJournalAnswers({});
@@ -327,7 +348,7 @@ export function AnalyticalExerciseFlow({
     } finally {
       setLoading(false);
     }
-  }, [domain, mode, realText, customScenarioText]);
+  }, [domain, mode, realText, customScenarioText, analyticalVariant]);
 
   const autoGenerateTriggered = useRef(false);
   const [autoGenerateReady, setAutoGenerateReady] = useState(false);
@@ -363,7 +384,9 @@ export function AnalyticalExerciseFlow({
   }, [autoGenerateReady, initialDomain, resumeId, startGenerate]);
 
   const regenerate = () => {
-    if (highlights.length > 0) {
+    const hasWork =
+      analyticalVariant === "steelman" ? steelmanText.trim().length > 0 : highlights.length > 0;
+    if (hasWork) {
       const ok = window.confirm("Discard current work and regenerate?");
       if (!ok) return;
     }
@@ -430,6 +453,87 @@ export function AnalyticalExerciseFlow({
     }
   };
 
+  const submitSteelmanAndConfidence = async () => {
+    if (!exercise) return;
+    if (perspectiveText != null) {
+      advance(4);
+      return;
+    }
+    if (steelmanText.trim().length < 100) {
+      setError("Write at least 100 characters before continuing.");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    try {
+      const base: AnalyticalExerciseRow = { ...exercise, steelmanText };
+      const rubRes = await aiFetch("/api/ai/analytical-steelman-rubric", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exercise: base }),
+      });
+      const rubJson = (await rubRes.json()) as
+        | { ok: true; overall: number }
+        | { ok: false; error: string };
+      const score = rubJson.ok ? rubJson.overall : 0;
+      if (!rubJson.ok) setError(rubJson.error);
+      setRubricScore(score);
+
+      const userContext = await getUserContext();
+      const res = await aiFetch("/api/ai/perspective", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "analytical",
+          analyticalVariant: "steelman",
+          title: exercise.title,
+          passage: exercise.passage,
+          steelmanText,
+          confidenceBefore: confidence,
+          domain: exercise.domain,
+          userContext: userContext || undefined,
+        }),
+      });
+      const json = await safeAiJson<unknown>(res);
+      const parsed = parsePerspectiveFetchJson(json, "analytical");
+      if (!parsed.ok) {
+        setError(parsed.error);
+        return;
+      }
+      setPerspectiveText(parsed.text);
+      setPerspectiveStructured(parsed.structured);
+      const partial: AnalyticalExerciseRow = {
+        ...base,
+        confidenceBefore: confidence,
+        rubricScore: score,
+        aiPerspective: parsed.text,
+        aiPerspectiveStructured: parsed.structured,
+        currentStep: 4,
+      };
+      await putExercise(partial);
+      setExercise(partial);
+      setStep(4);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Perspective failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const computeAccuracy = useCallback(
+    (ex: AnalyticalExerciseRow) =>
+      ex.analyticalVariant === "steelman"
+        ? generativeRubricToAccuracy(rubricScore ?? 0)
+        : computeAnalyticalAccuracy(
+            ex.passage,
+            ex.embeddedIssues,
+            ex.validPoints,
+            highlights,
+            ex.isSoundReasoning === true,
+          ),
+    [highlights, rubricScore],
+  );
+
   useEffect(() => {
     if (step !== 5 || journalPrimed || !exercise) return;
     const effectId = ++journalEffectIdRef.current;
@@ -437,13 +541,7 @@ export function AnalyticalExerciseFlow({
     (async () => {
       try {
         const excluded = await getPromptIdsUsedInLastNCompleted(5);
-        const accuracy = computeAnalyticalAccuracy(
-          exercise.passage,
-          exercise.embeddedIssues,
-          exercise.validPoints,
-          highlights,
-          exercise.isSoundReasoning === true,
-        );
+        const accuracy = computeAccuracy(exercise);
         const missedIssueTypes = exercise.embeddedIssues
           .filter((issue) => scoreEmbeddedIssueCatch(exercise.passage, issue, highlights) < 58)
           .map((issue) => issue.type);
@@ -511,13 +609,7 @@ export function AnalyticalExerciseFlow({
       return;
     }
     setError(null);
-    const accuracy = computeAnalyticalAccuracy(
-      exercise.passage,
-      exercise.embeddedIssues,
-      exercise.validPoints,
-      highlights,
-      exercise.isSoundReasoning === true,
-    );
+    const accuracy = computeAccuracy(exercise);
     const confidenceRecord: ConfidenceRecord = {
       id: crypto.randomUUID(),
       exerciseId: exercise.id,
@@ -546,7 +638,9 @@ export function AnalyticalExerciseFlow({
     };
     const finalEx: AnalyticalExerciseRow = {
       ...exercise,
-      userHighlights: highlights,
+      ...(exercise.analyticalVariant === "steelman"
+        ? { steelmanText, rubricScore: rubricScore ?? 0 }
+        : { userHighlights: highlights }),
       confidenceBefore: confidence,
       aiPerspective: perspectiveText,
       aiPerspectiveStructured: perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null,
@@ -600,9 +694,12 @@ export function AnalyticalExerciseFlow({
   };
 
   const shellStep = analyticalShellStep(step, exercise?.isGeopolitics === true);
-  const stepLabels = exercise?.isGeopolitics
-    ? GEOPOLITICS_ANALYTICAL_STEP_LABELS
-    : ANALYTICAL_EXERCISE_STEP_LABELS;
+  const stepLabels =
+    exercise?.analyticalVariant === "steelman"
+      ? ANALYTICAL_STEELMAN_STEP_LABELS
+      : exercise?.isGeopolitics
+        ? GEOPOLITICS_ANALYTICAL_STEP_LABELS
+        : ANALYTICAL_EXERCISE_STEP_LABELS;
 
   return (
     <ExerciseShell stepIndex={shellStep} stepLabels={stepLabels}>
@@ -678,6 +775,25 @@ export function AnalyticalExerciseFlow({
               />
             </div>
             <div className="grid gap-2">
+              <Label>Task type</Label>
+              <Select
+                value={analyticalVariant}
+                onValueChange={(v) => {
+                  const next = (v as "highlight_tag" | "steelman") ?? "highlight_tag";
+                  setAnalyticalVariant(next);
+                  if (next === "steelman" && mode === "real_data") setMode("generated");
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="highlight_tag">Highlight & tag issues</SelectItem>
+                  <SelectItem value="steelman">Steelman a position</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
               <Label>Source</Label>
               <Select
                 value={mode}
@@ -690,7 +806,9 @@ export function AnalyticalExerciseFlow({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="generated">AI-generated passage</SelectItem>
-                  <SelectItem value="real_data">Use my own text</SelectItem>
+                  {analyticalVariant !== "steelman" ? (
+                    <SelectItem value="real_data">Use my own text</SelectItem>
+                  ) : null}
                   <SelectItem value="custom_scenario">My scenario</SelectItem>
                 </SelectContent>
               </Select>
@@ -840,7 +958,67 @@ export function AnalyticalExerciseFlow({
         </ExerciseStepCard>
       ) : null}
 
-      {step === 1 && exercise ? (
+      {step === 1 && exercise && exercise.analyticalVariant === "steelman" ? (
+        <ExerciseStepCard
+          data-testid="analytical-exercise-card"
+          title={exercise.title}
+          description={`Domain: ${exercise.domain}`}
+          bodyClassName="space-y-4"
+        >
+            <div className="space-y-1">
+              <p className="text-muted-foreground text-sm">Position to steelman (read-only):</p>
+              <p className="rounded-md border bg-muted/20 p-3 text-sm whitespace-pre-wrap">
+                {exercise.passage}
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <Label>
+                Write the strongest possible version of this argument. Assume a smart,
+                well-informed person holds this position - what is the best case they could make?
+              </Label>
+              <Textarea
+                rows={8}
+                value={steelmanText}
+                onChange={(e) => setSteelmanText(e.target.value)}
+                placeholder="Your steelman…"
+              />
+              <p className="text-muted-foreground text-xs">
+                Minimum 100 characters to continue ({steelmanText.trim().length}/100).
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="secondary" onClick={() => {
+                const updated = { ...exercise, steelmanText, currentStep: 1 as const };
+                setExercise(updated);
+                void putExercise(updated);
+                setStep(0);
+              }}>
+                Back
+              </Button>
+              <Button type="button" variant="secondary" onClick={regenerate}>
+                Regenerate
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  if (steelmanText.trim().length < 100) {
+                    setError("Write at least 100 characters.");
+                    return;
+                  }
+                  const updated = { ...exercise, steelmanText };
+                  setExercise(updated);
+                  advance(3, updated);
+                }}
+                disabled={steelmanText.trim().length < 100}
+              >
+                Continue to confidence
+              </Button>
+            </div>
+        </ExerciseStepCard>
+      ) : null}
+
+      {step === 1 && exercise && exercise.analyticalVariant !== "steelman" ? (
         <ExerciseStepCard
           data-testid="analytical-exercise-card"
           title={exercise.title}
@@ -972,7 +1150,11 @@ export function AnalyticalExerciseFlow({
                 variant="secondary"
                 disabled={loading}
                 onClick={() => {
-                  void putExercise({ ...exercise, userHighlights: highlights, currentStep: exercise.isGeopolitics ? 2 : 1 });
+                  const patch =
+                    exercise.analyticalVariant === "steelman"
+                      ? { steelmanText }
+                      : { userHighlights: highlights };
+                  void putExercise({ ...exercise, ...patch, currentStep: exercise.isGeopolitics ? 2 : 1 });
                   setStep(exercise.isGeopolitics ? 2 : 1);
                 }}
               >
@@ -981,7 +1163,11 @@ export function AnalyticalExerciseFlow({
               <Button
                 type="button"
                 disabled={loading}
-                onClick={() => void submitHighlightsAndConfidence()}
+                onClick={() =>
+                  void (exercise.analyticalVariant === "steelman"
+                    ? submitSteelmanAndConfidence()
+                    : submitHighlightsAndConfidence())
+                }
               >
                 {loading ? (
                   <>

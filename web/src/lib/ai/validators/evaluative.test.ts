@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseEvaluativeExerciseJson,
   validateEvaluativeSemantics,
+  validateEvaluativeDealbreakerSemantics,
   isGeopoliticsEvaluativePayload,
   validateGeopoliticsEvaluativeSemantics,
 } from "./evaluative";
@@ -36,6 +37,37 @@ const validScoring = {
   hiddenCriteria: [{ label: "Lock-in", description: "Vendor lock-in risk assessment and migration cost" }],
 };
 
+const validDealbreaker = {
+  ...validScoring,
+  criteria: validScoring.criteria.map((c, i) => (i === 0 ? { ...c, isDealbreaker: true } : c)),
+};
+
+const validUncertainty = {
+  variant: "uncertainty",
+  title: "Investment Decision",
+  scenario: "Choose an investment strategy",
+  options: [
+    {
+      id: "u1",
+      title: "Aggressive",
+      description: "High risk, high reward",
+      outcomes: [
+        { id: "out1", label: "Boom", probability: 0.3, payoff: 5000, explanation: "Market surges" },
+        { id: "out2", label: "Bust", probability: 0.7, payoff: -1000, explanation: "Market crashes" },
+      ],
+    },
+    {
+      id: "u2",
+      title: "Conservative",
+      description: "Low risk, low reward",
+      outcomes: [
+        { id: "out1", label: "Steady", probability: 0.9, payoff: 500, explanation: "Modest gains" },
+        { id: "out2", label: "Dip", probability: 0.1, payoff: -100, explanation: "Minor loss" },
+      ],
+    },
+  ],
+};
+
 describe("parseEvaluativeExerciseJson", () => {
   it("parses valid matrix payload", () => {
     const result = parseEvaluativeExerciseJson(JSON.stringify(validMatrix));
@@ -47,6 +79,48 @@ describe("parseEvaluativeExerciseJson", () => {
     const result = parseEvaluativeExerciseJson(JSON.stringify(validScoring));
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.variant).toBe("scoring");
+  });
+
+  it("parses valid uncertainty payload", () => {
+    const result = parseEvaluativeExerciseJson(JSON.stringify(validUncertainty));
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.variant).toBe("uncertainty");
+  });
+
+  it("parses uncertainty payload with unbalanced probabilities (shape-only validation)", () => {
+    const bad = {
+      ...validUncertainty,
+      options: [
+        {
+          ...validUncertainty.options[0],
+          outcomes: [
+            { id: "out1", label: "Boom", probability: 0.3, payoff: 5000, explanation: "Market surges" },
+            { id: "out2", label: "Bust", probability: 0.3, payoff: -1000, explanation: "Market crashes" },
+          ],
+        },
+        validUncertainty.options[1],
+      ],
+    };
+    // schema itself doesn't enforce the sum; parse should still succeed at the shape level
+    const result = parseEvaluativeExerciseJson(JSON.stringify(bad));
+    expect(result.success).toBe(true);
+  });
+
+  it("fails uncertainty payload with out-of-range probability", () => {
+    const bad = {
+      ...validUncertainty,
+      options: [
+        {
+          ...validUncertainty.options[0],
+          outcomes: [
+            { id: "out1", label: "Boom", probability: 1.5, payoff: 5000, explanation: "Market surges" },
+            { id: "out2", label: "Bust", probability: 0.7, payoff: -1000, explanation: "Market crashes" },
+          ],
+        },
+      ],
+    };
+    const result = parseEvaluativeExerciseJson(JSON.stringify(bad));
+    expect(result.success).toBe(false);
   });
 
   it("fails on invalid JSON", () => {
@@ -146,6 +220,147 @@ describe("validateGeopoliticsEvaluativeSemantics", () => {
     if (result.success) {
       const errors = validateGeopoliticsEvaluativeSemantics(result.data);
       expect(errors.some((e) => e.includes("whose interest"))).toBe(true);
+    }
+  });
+});
+
+describe("validateEvaluativeSemantics (uncertainty)", () => {
+  it("returns no errors for valid uncertainty payload", () => {
+    const result = parseEvaluativeExerciseJson(JSON.stringify(validUncertainty));
+    if (result.success) {
+      expect(validateEvaluativeSemantics(result.data)).toEqual([]);
+    } else {
+      throw new Error("expected parse success");
+    }
+  });
+
+  it("flags duplicate option ids", () => {
+    const dup = {
+      ...validUncertainty,
+      options: [validUncertainty.options[0], { ...validUncertainty.options[1], id: "u1" }],
+    };
+    const result = parseEvaluativeExerciseJson(JSON.stringify(dup));
+    if (result.success) {
+      const errors = validateEvaluativeSemantics(result.data);
+      expect(errors.some((e) => e.includes("Option ids must be unique"))).toBe(true);
+    } else {
+      throw new Error("expected parse success");
+    }
+  });
+
+  it("flags duplicate outcome ids within an option", () => {
+    const dup = {
+      ...validUncertainty,
+      options: [
+        {
+          ...validUncertainty.options[0],
+          outcomes: [
+            { id: "out1", label: "Boom", probability: 0.5, payoff: 5000, explanation: "Market surges" },
+            { id: "out1", label: "Bust", probability: 0.5, payoff: -1000, explanation: "Market crashes" },
+          ],
+        },
+        validUncertainty.options[1],
+      ],
+    };
+    const result = parseEvaluativeExerciseJson(JSON.stringify(dup));
+    if (result.success) {
+      const errors = validateEvaluativeSemantics(result.data);
+      expect(errors.some((e) => e.includes("outcome ids must be unique"))).toBe(true);
+    } else {
+      throw new Error("expected parse success");
+    }
+  });
+
+  it("flags outcome probabilities that don't sum to 1", () => {
+    const bad = {
+      ...validUncertainty,
+      options: [
+        {
+          ...validUncertainty.options[0],
+          outcomes: [
+            { id: "out1", label: "Boom", probability: 0.3, payoff: 5000, explanation: "Market surges" },
+            { id: "out2", label: "Bust", probability: 0.3, payoff: -1000, explanation: "Market crashes" },
+          ],
+        },
+        validUncertainty.options[1],
+      ],
+    };
+    const result = parseEvaluativeExerciseJson(JSON.stringify(bad));
+    if (result.success) {
+      const errors = validateEvaluativeSemantics(result.data);
+      expect(errors.some((e) => e.includes("must sum to 1.0"))).toBe(true);
+    } else {
+      throw new Error("expected parse success");
+    }
+  });
+
+  it("tolerates probability sums within epsilon of 1", () => {
+    const ok = {
+      ...validUncertainty,
+      options: [
+        {
+          ...validUncertainty.options[0],
+          outcomes: [
+            { id: "out1", label: "Boom", probability: 0.31, payoff: 5000, explanation: "Market surges" },
+            { id: "out2", label: "Bust", probability: 0.7, payoff: -1000, explanation: "Market crashes" },
+          ],
+        },
+        validUncertainty.options[1],
+      ],
+    };
+    const result = parseEvaluativeExerciseJson(JSON.stringify(ok));
+    if (result.success) {
+      expect(validateEvaluativeSemantics(result.data)).toEqual([]);
+    } else {
+      throw new Error("expected parse success");
+    }
+  });
+});
+
+describe("validateEvaluativeDealbreakerSemantics", () => {
+  it("returns no errors for a valid dealbreaker payload", () => {
+    const result = parseEvaluativeExerciseJson(JSON.stringify(validDealbreaker));
+    if (result.success) {
+      expect(validateEvaluativeDealbreakerSemantics(result.data)).toEqual([]);
+    } else {
+      throw new Error("expected parse success");
+    }
+  });
+
+  it("rejects non-scoring variant", () => {
+    const result = parseEvaluativeExerciseJson(JSON.stringify(validMatrix));
+    if (result.success) {
+      const errors = validateEvaluativeDealbreakerSemantics(result.data);
+      expect(errors).toEqual(['Dealbreaker evaluative must use variant "scoring"']);
+    } else {
+      throw new Error("expected parse success");
+    }
+  });
+
+  it("requires at least one isDealbreaker criterion", () => {
+    const result = parseEvaluativeExerciseJson(JSON.stringify(validScoring));
+    if (result.success) {
+      const errors = validateEvaluativeDealbreakerSemantics(result.data);
+      expect(errors.some((e) => e.includes("isDealbreaker"))).toBe(true);
+    } else {
+      throw new Error("expected parse success");
+    }
+  });
+
+  it("still validates suggestedScores completeness", () => {
+    const broken = {
+      ...validDealbreaker,
+      options: [
+        { ...validDealbreaker.options[0], suggestedScores: { c1: 3 } },
+        validDealbreaker.options[1],
+      ],
+    };
+    const result = parseEvaluativeExerciseJson(JSON.stringify(broken));
+    if (result.success) {
+      const errors = validateEvaluativeDealbreakerSemantics(result.data);
+      expect(errors.some((e) => e.includes("missing suggestedScores"))).toBe(true);
+    } else {
+      throw new Error("expected parse success");
     }
   });
 });

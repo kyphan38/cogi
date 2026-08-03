@@ -41,6 +41,14 @@ export interface StepCritique {
   remediationAlternative: string;
 }
 
+export interface OutcomeCritique {
+  optionId: string;
+  optionTitle: string;
+  userImpliedEv: number | null;
+  aiEv: number | null;
+  critique: string;
+}
+
 export interface ClarityPerspectiveBase {
   perspectiveFormat: "clarity_v2";
   title: string;
@@ -68,11 +76,16 @@ export interface GenerativePerspectiveStructured extends ClarityPerspectiveBase 
   stepCritiques: StepCritique[];
 }
 
+export interface EvaluativeUncertaintyPerspectiveStructured extends ClarityPerspectiveBase {
+  outcomeCritiques: OutcomeCritique[];
+}
+
 export type ClarityPerspectiveStructured =
   | AnalyticalPerspectiveStructured
   | SystemsPerspectiveStructured
   | EvaluativeMatrixPerspectiveStructured
   | EvaluativeScoringPerspectiveStructured
+  | EvaluativeUncertaintyPerspectiveStructured
   | GenerativePerspectiveStructured;
 
 /** @deprecated Legacy four-section shape; read-only fallback for saved exercises. */
@@ -107,7 +120,12 @@ export function isClarityPerspectiveStructured(
 
 export type ClarityPerspectiveKind = Extract<
   PerspectiveKind,
-  "analytical" | "systems" | "evaluative-matrix" | "evaluative-scoring" | "generative"
+  | "analytical"
+  | "systems"
+  | "evaluative-matrix"
+  | "evaluative-scoring"
+  | "evaluative-uncertainty"
+  | "generative"
 >;
 
 /** Client-computed weight/score breakdown for one evaluative-scoring criterion (replaces the AI's run-on summary sentence). */

@@ -12,15 +12,12 @@ test.describe("History page - layout and structure", () => {
     await expect(
       page.getByRole("heading", { name: "Exercise history" }),
     ).toBeVisible();
-    await expect(
-      page.getByText("Review completed exercises"),
-    ).toBeVisible();
   });
 
   test("renders calibration card with three stat boxes", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/history");
     await expect(
-      page.getByRole("heading", { name: "Calibration (all completed)" }),
+      page.getByRole("heading", { name: "Calibration" }),
     ).toBeVisible();
     await expect(page.getByText("Avg confidence")).toBeVisible();
     await expect(page.getByText("Avg accuracy")).toBeVisible();

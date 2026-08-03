@@ -62,6 +62,14 @@ const stepCritiqueSchema = z.object({
   remediationAlternative: z.string().min(1),
 });
 
+const outcomeCritiqueSchema = z.object({
+  optionId: z.string().min(1),
+  optionTitle: z.string().min(1),
+  userImpliedEv: z.number().nullable(),
+  aiEv: z.number().nullable(),
+  critique: z.string().min(1),
+});
+
 export const analyticalPerspectiveSchema = clarityBaseSchema.extend({
   highlightCritiques: z.array(highlightCritiqueSchema).min(1),
 });
@@ -80,6 +88,10 @@ export const evaluativeScoringPerspectiveSchema = clarityBaseSchema.extend({
 
 export const generativePerspectiveSchema = clarityBaseSchema.extend({
   stepCritiques: z.array(stepCritiqueSchema).min(1),
+});
+
+export const evaluativeUncertaintyPerspectiveSchema = clarityBaseSchema.extend({
+  outcomeCritiques: z.array(outcomeCritiqueSchema).min(1),
 });
 
 const perspectivePointSchema = z.object({
@@ -101,6 +113,7 @@ export const aiPerspectiveStructuredSchema = z.union([
   systemsPerspectiveSchema,
   evaluativeMatrixPerspectiveSchema,
   evaluativeScoringPerspectiveSchema,
+  evaluativeUncertaintyPerspectiveSchema,
   generativePerspectiveSchema,
   legacyPerspectiveStructuredSchema,
 ]);
@@ -115,6 +128,8 @@ function schemaForKind(kind: ClarityPerspectiveKind) {
       return evaluativeMatrixPerspectiveSchema;
     case "evaluative-scoring":
       return evaluativeScoringPerspectiveSchema;
+    case "evaluative-uncertainty":
+      return evaluativeUncertaintyPerspectiveSchema;
     case "generative":
       return generativePerspectiveSchema;
   }
@@ -208,6 +223,9 @@ Required keys: title, suitableFor, placementCritiques[{ optionId, optionTitle, u
     case "evaluative-scoring":
       return `${base}
 Required keys: title, suitableFor, critiqueMatrix[{ criterionId, criterionLabel, userAssignedWeight, userValueContext, aiEvaluationText }], optional openQuestions.`;
+    case "evaluative-uncertainty":
+      return `${base}
+Required keys: title, suitableFor, outcomeCritiques[{ optionId, optionTitle, userImpliedEv, aiEv, critique }], optional openQuestions.`;
     case "generative":
       return `${base}
 Required keys: title, suitableFor, stepCritiques[{ phaseId, promptQuestion, userResponseSnippet, critique, remediationAlternative }], optional openQuestions.`;

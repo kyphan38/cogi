@@ -27,11 +27,18 @@ const validPointSchema = z.object({
   explanation: z.string(),
 });
 
+export const analyticalVariantSchema = z.enum(["highlight_tag", "steelman"]);
+
+export type AnalyticalVariant = z.infer<typeof analyticalVariantSchema>;
+
 export const analyticalExerciseSchema = z.object({
   title: z.string(),
   passage: z.string(),
   embeddedIssues: z.array(embeddedIssueSchema),
-  validPoints: z.array(validPointSchema).min(1),
+  // No .min(1): the steelman variant returns both arrays empty (no annotated
+  // passage to embed issues in). Per-variant count requirements are enforced
+  // by the semantic validators below, not the base schema.
+  validPoints: z.array(validPointSchema),
   isSoundReasoning: z.boolean().optional(),
   hiddenPerspective: z.string().optional(),
   missingActors: z.array(z.string()).min(1).max(3).optional(),
@@ -107,6 +114,29 @@ export function validateGeopoliticsAnalyticalSemantics(
 
 export const GEOPOLITICS_ANALYTICAL_RETRY_SUFFIX =
   "Your previous JSON failed validation. Fix ALL issues and return ONLY the corrected JSON object.";
+
+export function validateAnalyticalSteelmanSemantics(data: AnalyticalExercise): string[] {
+  const errors: string[] = [];
+
+  if (data.embeddedIssues.length !== 0) {
+    errors.push("embeddedIssues must be an empty array for steelman");
+  }
+  if (data.validPoints.length !== 0) {
+    errors.push("validPoints must be an empty array for steelman");
+  }
+  if (!data.title.trim()) {
+    errors.push("title is required");
+  }
+  const wordCount = data.passage.trim().split(/\s+/).filter(Boolean).length;
+  if (wordCount < 80 || wordCount > 250) {
+    errors.push("passage (the position to steelman) should be roughly 80-250 words");
+  }
+
+  return errors;
+}
+
+export const ANALYTICAL_STEELMAN_RETRY_SUFFIX =
+  "Your previous JSON failed steelman validation. Return ONLY the corrected JSON object: embeddedIssues and validPoints must both be empty arrays, and passage must state a clear, arguable position without already steelmanning it.";
 
 function stripJsonFences(text: string): string {
   const trimmed = text.trim();

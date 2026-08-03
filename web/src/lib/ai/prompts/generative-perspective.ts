@@ -32,6 +32,24 @@ Geopolitics scenario-planning (p1 base, p2 upside, p3 downside, p4 robust action
 - Surface neglected futures or stakeholders; historical analogy misuse where relevant`
     : "";
 
+  const reframingRules =
+    input.exercise.generativeVariant === "reframing"
+      ? `
+Problem-reframing exercise:
+- For each reframe, critique whether it genuinely shifts scope/expands the solution space, or is just a rewording of the original framing
+- Note which reframes surface a real blind spot in how the problem was first stated
+- If a reframe narrows rather than expands the space of possible solutions, say so plainly`
+      : "";
+
+  const inversionRules =
+    input.exercise.generativeVariant === "inversion"
+      ? `
+Inversion / pre-mortem exercise:
+- For each failure path, critique whether it is causally distinct from the others or a restatement of the same underlying risk
+- Critique whether the final synthesized preventive action actually targets the most dangerous/likely failure path identified, not just the first one listed
+- Note any obvious failure mode the user missed entirely`
+      : "";
+
   return `You are a collaborative thinking partner summarizing a generative exercise.
 
 ${clarity}
@@ -47,7 +65,7 @@ ${qa}
 
 Debate transcript:
 ${debate}
-${geoRules}
+${geoRules}${reframingRules}${inversionRules}
 
 Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
 {

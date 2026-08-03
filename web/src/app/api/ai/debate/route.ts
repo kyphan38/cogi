@@ -9,6 +9,10 @@ import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 
 export const maxDuration = 60;
 
+function parseGenerativeVariant(raw: unknown): "argue_debate" | "reframing" | "inversion" {
+  return raw === "reframing" || raw === "inversion" ? raw : "argue_debate";
+}
+
 export async function POST(req: Request) {
   const auth = await requireAuthenticatedRouteUser(req);
   if (!auth.ok) return auth.response;
@@ -69,6 +73,7 @@ export async function POST(req: Request) {
         qa,
         steelmanText: steelmanText.trim() || null,
         isGeopolitics,
+        generativeVariant: parseGenerativeVariant(b.generativeVariant),
       });
       const text = await generatePlainTextRaw(prompt, "thinking");
       return NextResponse.json({ ok: true, text });
@@ -99,6 +104,7 @@ export async function POST(req: Request) {
       history,
       userReply: userReply.trim(),
       isGeopolitics,
+      generativeVariant: parseGenerativeVariant(b.generativeVariant),
     });
     const text = await generatePlainTextRaw(prompt, "thinking");
     return NextResponse.json({ ok: true, text });
