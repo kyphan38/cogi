@@ -469,6 +469,20 @@ export async function POST(req: Request) {
       typeof b.userContext === "string" && b.userContext.trim()
         ? b.userContext.trim()
         : undefined;
+    const perspectiveAName =
+      typeof b.perspectiveAName === "string" ? b.perspectiveAName : undefined;
+    const perspectiveBName =
+      typeof b.perspectiveBName === "string" ? b.perspectiveBName : undefined;
+    const userOrderedStepIdsB = Array.isArray(b.userOrderedStepIdsB)
+      ? (b.userOrderedStepIdsB as string[])
+      : undefined;
+    const criticalErrorsB = Array.isArray(b.criticalErrorsB)
+      ? (b.criticalErrorsB as SequentialCriticalError[])
+      : undefined;
+    const timeLimitMinutes =
+      typeof b.timeLimitMinutes === "number" ? b.timeLimitMinutes : undefined;
+    const elapsedSeconds =
+      typeof b.elapsedSeconds === "number" ? b.elapsedSeconds : undefined;
     const prompt = buildSequentialPerspectivePrompt({
       title,
       scenario,
@@ -478,6 +492,12 @@ export async function POST(req: Request) {
       confidenceBefore,
       domain,
       userContext,
+      perspectiveAName,
+      perspectiveBName,
+      userOrderedStepIdsB,
+      criticalErrorsB,
+      timeLimitMinutes,
+      elapsedSeconds,
     });
     try {
       const { structured, text } = await generateStructuredPerspective(prompt, "sequential");

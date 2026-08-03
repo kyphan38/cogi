@@ -15,10 +15,11 @@ import {
   flattenVisibleTreeLeaves,
   getAutoExpandedGroupIds,
   getDomainPickerTree,
+  getRandomDomainSuggestion,
   type DomainPickerTreeGroup,
 } from "@/lib/exercise/exercise-domain-catalog";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronRight, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Shuffle, X } from "lucide-react";
 
 const LS_KEY = "cogi:dismissed-domains";
 const LS_EXPANDED_KEY = "cogi:domain-tree-expanded";
@@ -204,6 +205,11 @@ export function DomainInput({
     [onChange],
   );
 
+  const randomize = useCallback(() => {
+    const pick = getRandomDomainSuggestion({ exclude: dismissed, avoid: value });
+    if (pick) select(pick);
+  }, [dismissed, value, select]);
+
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       setOpen(false);
@@ -329,7 +335,7 @@ export function DomainInput({
     ) : null;
 
   return (
-    <div ref={rootRef} className={cn("relative", className)}>
+    <div ref={rootRef} className={cn("relative flex items-center gap-1.5", className)}>
       <Input
         ref={inputRef}
         aria-label="Domain"
@@ -348,7 +354,20 @@ export function DomainInput({
         onKeyDown={onKeyDown}
         placeholder={placeholder}
         autoComplete="off"
+        className="min-w-0 flex-1"
       />
+      <button
+        type="button"
+        aria-label="Shuffle topic"
+        title="Pick a random domain / topic"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          randomize();
+        }}
+        className="flex shrink-0 items-center justify-center rounded-md border border-input p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+      >
+        <Shuffle className="size-4" aria-hidden />
+      </button>
       {typeof document !== "undefined" && dropdown
         ? createPortal(dropdown, document.body)
         : null}

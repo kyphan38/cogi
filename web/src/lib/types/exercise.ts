@@ -1,6 +1,7 @@
 import type { AnalyticalExercise } from "@/lib/ai/validators/common";
 import type { EvaluativeQuadrant } from "@/lib/ai/validators/evaluative";
 import type { GenerativeStage } from "@/lib/ai/validators/generative";
+import type { SequentialTaskType } from "@/lib/ai/validators/sequential";
 import type { SystemsConnectionType } from "@/lib/ai/validators/systems";
 import type { SystemsExercisePayload } from "@/lib/ai/validators/systems";
 import type { SystemsResilienceExercisePayload } from "@/lib/ai/validators/systems";
@@ -34,9 +35,15 @@ export type ThinkingType =
   | "combo";
 
 /** Pre-defined combo chains (Phase 6.5). */
-export type ComboPresetId = "full_analysis" | "decision_sprint" | "root_cause";
+export type ComboPresetId =
+  | "full_analysis"
+  | "decision_sprint"
+  | "root_cause"
+  | "crisis_response";
 
 export type { EvaluativeQuadrant, GenerativeStage };
+
+export type { SequentialTaskType };
 
 export type { SystemsConnectionType };
 
@@ -129,6 +136,8 @@ export interface SequentialCriticalError {
   severity: CriticalErrorSeverity;
 }
 
+export type SequentialStepSeverity = "critical" | "major" | "minor";
+
 export interface SequentialStepSpec {
   id: string;
   text: string;
@@ -136,6 +145,10 @@ export interface SequentialStepSpec {
   dependencies: string[];
   isFlexible: boolean;
   explanation: string;
+  /** Geopolitics dual-actor variant: Actor B's correct position for this same step id. */
+  correctPositionB?: number;
+  /** Crisis-triage variant: how costly it is to misorder this step. */
+  severity?: SequentialStepSeverity;
 }
 
 /** Persisted sequential exercise (ordering mechanic + user state). */
@@ -150,6 +163,16 @@ export interface SequentialExerciseRow {
   criticalErrors: SequentialCriticalError[];
   /** Left-to-right process order (user answer). */
   userOrderedStepIds: string[];
+  /** Which new-mechanic variant generated this exercise, if any. */
+  variantKind?: "geopolitics" | "triage";
+  /** Geopolitics dual-actor variant. */
+  perspectiveAName?: string;
+  perspectiveBName?: string;
+  /** User's order for Perspective B (same step ids, second pass). */
+  userOrderedStepIdsB?: string[];
+  criticalErrorsB?: SequentialCriticalError[];
+  /** Crisis-triage variant: time budget given at generation time. */
+  timeLimitMinutes?: number;
   confidenceBefore: number | null;
   aiPerspective: string | null;
   aiPerspectiveStructured?: AIPerspectiveStructured | null;

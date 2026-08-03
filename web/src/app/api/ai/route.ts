@@ -22,7 +22,11 @@ import {
   GEOPOLITICS_GENERATIVE_RETRY_SUFFIX,
 } from "@/lib/ai/prompts/generative";
 import { getGeopoliticsRegionalAppendix } from "@/lib/exercise/geopolitics-regional-appendix";
-import { buildSequentialGenerationPrompt } from "@/lib/ai/prompts/sequential";
+import {
+  buildGeopoliticsSequentialPrompt,
+  buildSequentialGenerationPrompt,
+  buildSequentialTriagePrompt,
+} from "@/lib/ai/prompts/sequential";
 import {
   buildGeopoliticsSystemsPrompt,
   buildSystemsGenerationPrompt,
@@ -62,7 +66,16 @@ import {
   type GenerativeStage,
   type GenerativeVariant,
 } from "@/lib/ai/validators/generative";
-import { parseSequentialExerciseJson } from "@/lib/ai/validators/sequential";
+import {
+  GEOPOLITICS_SEQUENTIAL_RETRY_SUFFIX,
+  SEQUENTIAL_TRIAGE_RETRY_SUFFIX,
+  isGeopoliticsSequentialPayload,
+  isTriageSequentialPayload,
+  parseSequentialExerciseJson,
+  validateGeopoliticsSequentialSemantics,
+  validateSequentialTriageSemantics,
+  type SequentialTaskType,
+} from "@/lib/ai/validators/sequential";
 import {
   GEOPOLITICS_SYSTEMS_RETRY_SUFFIX,
   isGeopoliticsSystemsPayload,
@@ -401,18 +414,44 @@ export async function POST(req: Request) {
       (systemsTaskType === "geopolitics" ||
         (systemsTaskType === "auto" && isGeopoliticsAnalyticalDomain(effectiveDomain)));
 
+    const rawSequentialTaskType = (body as { sequentialTaskType?: unknown }).sequentialTaskType;
+    const sequentialTaskType: SequentialTaskType =
+      rawSequentialTaskType === "geopolitics" || rawSequentialTaskType === "triage"
+        ? rawSequentialTaskType
+        : "auto";
+    // Geopolitics domain auto-detect only applies on the "auto" path - triage never checks it
+    // (parity with systemsTaskType/evaluativeTaskType handling above).
+    const isGeoSequential =
+      exerciseType === "sequential" &&
+      (sequentialTaskType === "geopolitics" ||
+        (sequentialTaskType === "auto" && isGeopoliticsAnalyticalDomain(effectiveDomain)));
+
     const appendixFor = (t: AdaptiveExerciseType) =>
       buildAdaptationAppendix(adaptiveHints, t);
     const useSteelman =
       exerciseType === "analytical" && analyticalVariant === "steelman" && mode !== "real_data";
     const basePrompt =
       exerciseType === "sequential"
-        ? buildSequentialGenerationPrompt({
-            domain: effectiveDomain,
-            userContext,
-            adaptationAppendix: appendixFor("sequential"),
-            customScenario: scenarioForPrompt,
-          })
+        ? sequentialTaskType === "triage"
+          ? buildSequentialTriagePrompt({
+              domain: effectiveDomain,
+              userContext,
+              adaptationAppendix: appendixFor("sequential"),
+              customScenario: scenarioForPrompt,
+            })
+          : isGeoSequential
+            ? buildGeopoliticsSequentialPrompt({
+                domain: effectiveDomain,
+                userContext,
+                adaptationAppendix: appendixFor("sequential"),
+                customScenario: scenarioForPrompt,
+              })
+            : buildSequentialGenerationPrompt({
+                domain: effectiveDomain,
+                userContext,
+                adaptationAppendix: appendixFor("sequential"),
+                customScenario: scenarioForPrompt,
+              })
         : exerciseType === "systems"
           ? systemsTaskType === "resilience"
             ? buildSystemsResilienceGenerationPrompt({
@@ -538,19 +577,57 @@ export async function POST(req: Request) {
     }
 
     if (exerciseType === "sequential") {
-      const raw = await generateAnalyticalExerciseRaw(basePrompt, "thinking");
-      const parsed = parseSequentialExerciseJson(raw);
-      if (!parsed.success) {
+      const runSequential = async (prompt: string) => {
+        const raw = await generateAnalyticalExerciseRaw(prompt, "thinking");
+        const parsed = parseSequentialExerciseJson(raw);
+        if (!parsed.success) {
+          return { ok: false as const, raw, parsed, sem: [] as string[] };
+        }
+        const sem = isTriageSequentialPayload(parsed.data)
+          ? validateSequentialTriageSemantics(parsed.data)
+          : isGeopoliticsSequentialPayload(parsed.data)
+            ? validateGeopoliticsSequentialSemantics(parsed.data)
+            : [];
+        return { ok: true as const, raw, parsed, sem };
+      };
+
+      let r = await runSequential(basePrompt);
+      if (!r.ok || r.sem.length > 0) {
+        const reason = !r.ok
+          ? `Invalid JSON from model: ${!r.parsed.success ? r.parsed.error : ""}`
+          : `Semantic validation failed:\n${r.sem.join("\n")}`;
+        const suffix =
+          sequentialTaskType === "triage"
+            ? SEQUENTIAL_TRIAGE_RETRY_SUFFIX
+            : isGeoSequential
+              ? GEOPOLITICS_SEQUENTIAL_RETRY_SUFFIX
+              : "";
+        r = await runSequential(
+          suffix ? `${basePrompt}\n${suffix}\n${reason}` : `${basePrompt}\n${reason}`,
+        );
+      }
+      if (!r.ok || !r.parsed.success) {
         return NextResponse.json(
           {
             ok: false,
-            error: parsed.error,
-            rawSnippet: raw.slice(0, 500),
+            error: !r.parsed.success ? r.parsed.error : "Invalid JSON from model",
+            rawSnippet: r.raw.slice(0, 500),
           },
           { status: 422 },
         );
       }
-      return NextResponse.json({ ok: true, data: parsed.data });
+      const sem2 = isTriageSequentialPayload(r.parsed.data)
+        ? validateSequentialTriageSemantics(r.parsed.data)
+        : isGeopoliticsSequentialPayload(r.parsed.data)
+          ? validateGeopoliticsSequentialSemantics(r.parsed.data)
+          : [];
+      if (sem2.length > 0) {
+        return NextResponse.json(
+          { ok: false, error: "AI generated an invalid exercise. Please try again." },
+          { status: 422 },
+        );
+      }
+      return NextResponse.json({ ok: true, data: r.parsed.data });
     }
     // Analytical (generated, custom_scenario, or real_data based on mode).
     if (mode === "real_data") {

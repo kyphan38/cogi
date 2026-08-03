@@ -124,4 +124,26 @@ describe("POST /api/ai/combo", () => {
     const res = await POST(makeRequest(validBody));
     expect(res.status).toBe(500);
   });
+
+  it("accepts crisis_response as a valid preset", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue("not json");
+    const res = await POST(
+      makeRequest({ ...validBody, preset: "crisis_response", domain: "geopolitics" }),
+    );
+    // Reaches generation (422 for unparseable JSON) rather than 400 (invalid preset).
+    expect(res.status).toBe(422);
+    expect(mockGenerateRaw).toHaveBeenCalled();
+  });
+
+  it("accepts an optional generativeVariant for decision_sprint", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue("not json");
+    const res = await POST(
+      makeRequest({ ...validBody, preset: "decision_sprint", generativeVariant: "reframing" }),
+    );
+    expect(res.status).toBe(422);
+    const prompt = mockGenerateRaw.mock.calls[0]?.[0] as string;
+    expect(prompt).toContain("reframing techniques");
+  });
 });

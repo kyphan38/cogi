@@ -26,10 +26,16 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { AdaptiveSetupHint } from "@/components/adaptive/AdaptiveSetupHint";
-import { ExerciseShell, SEQUENTIAL_EXERCISE_STEP_LABELS } from "@/components/shared/ExerciseShell";
+import {
+  ExerciseShell,
+  GEOPOLITICS_SEQUENTIAL_STEP_LABELS,
+  SEQUENTIAL_EXERCISE_STEP_LABELS,
+  SEQUENTIAL_TRIAGE_STEP_LABELS,
+} from "@/components/shared/ExerciseShell";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { cn } from "@/lib/utils";
@@ -48,13 +54,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import type { ConfidenceRecord, EmotionLabel, JournalDraft, SequentialExerciseRow } from "@/lib/types/exercise";
+import type {
+  ConfidenceRecord,
+  EmotionLabel,
+  JournalDraft,
+  SequentialExerciseRow,
+  SequentialStepSeverity,
+  SequentialTaskType,
+} from "@/lib/types/exercise";
 import type { JournalEntry } from "@/lib/types/journal";
 import type { ActionBridge } from "@/lib/types/action";
-import type { SequentialExercisePayload } from "@/lib/ai/validators/sequential";
+import {
+  isGeopoliticsSequentialPayload,
+  isTriageSequentialPayload,
+  type SequentialExercisePayload,
+  type SequentialGeopoliticsExercisePayload,
+  type SequentialTriageExercisePayload,
+} from "@/lib/ai/validators/sequential";
 import { buildAdaptiveHintsForRequest } from "@/lib/adaptive/adaptive-hints";
 import { putExercise, getExercise } from "@/lib/db/exercises";
 import { getUserContext } from "@/lib/db/settings";
@@ -64,7 +82,10 @@ import {
   getRecentJournalSnippetsForDomain,
 } from "@/lib/db/journal";
 import { pickJournalPrompts, type JournalPromptItem } from "@/lib/ai/prompts/journal-pool";
-import { computeSequentialAccuracy } from "@/lib/analytics/calibration-sequential";
+import {
+  computeSequentialAccuracy,
+  computeSequentialTriageAccuracy,
+} from "@/lib/analytics/calibration-sequential";
 import { currentIsoWeekKey } from "@/lib/db/actions";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
@@ -79,7 +100,66 @@ const ZONE_POOL = "__zone_pool__";
 const ZONE_TIMELINE_EMPTY = "__zone_timeline_empty__";
 const ZONE_APPEND = "__zone_timeline_append__";
 
-type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+const ZONE_POOL_B = "__zone_pool_b__";
+const ZONE_TIMELINE_EMPTY_B = "__zone_timeline_empty_b__";
+const ZONE_APPEND_B = "__zone_timeline_append_b__";
+
+type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+function isGeopoliticsSequentialExercise(ex: SequentialExerciseRow): boolean {
+  return (
+    ex.variantKind === "geopolitics" ||
+    Boolean(ex.perspectiveAName?.trim() && ex.perspectiveBName?.trim())
+  );
+}
+
+function isTriageSequentialExercise(ex: SequentialExerciseRow): boolean {
+  return ex.variantKind === "triage";
+}
+
+/** Geopolitics inserts an "Order steps (Actor B)" step after the Actor A ordering step; triage
+ * reuses the base step count (it only relabels step 1 and adds severity/timer UI). The two
+ * variants are mutually exclusive, so each row is at most one of isGeo/isTriage. */
+function sequentialVariantSteps(ex: SequentialExerciseRow | null): {
+  isGeo: boolean;
+  isTriage: boolean;
+  orderStep: FlowStep;
+  orderBStep: FlowStep;
+  confidenceStep: FlowStep;
+  perspectiveStep: FlowStep;
+  journalStep: FlowStep;
+  actionStep: FlowStep;
+  doneStep: FlowStep;
+} {
+  const isGeo = ex ? isGeopoliticsSequentialExercise(ex) : false;
+  const isTriage = ex ? isTriageSequentialExercise(ex) : false;
+  return {
+    isGeo,
+    isTriage,
+    orderStep: 1,
+    orderBStep: 2,
+    confidenceStep: isGeo ? 3 : 2,
+    perspectiveStep: isGeo ? 4 : 3,
+    journalStep: isGeo ? 5 : 4,
+    actionStep: isGeo ? 6 : 5,
+    doneStep: isGeo ? 7 : 6,
+  };
+}
+
+function severityBadgeVariant(
+  severity: SequentialStepSeverity | undefined,
+): "attention" | "secondary" | "outline" {
+  if (severity === "critical") return "attention";
+  if (severity === "major") return "secondary";
+  return "outline";
+}
+
+function formatCountdown(remainingSeconds: number): string {
+  const clamped = Math.max(0, Math.round(remainingSeconds));
+  const m = Math.floor(clamped / 60);
+  const s = clamped % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
 
 function shuffleIds(ids: string[]): string[] {
   const a = [...ids];
@@ -92,7 +172,15 @@ function shuffleIds(ids: string[]): string[] {
   return a;
 }
 
-function DraggablePoolItem({ id, text }: { id: string; text: string }) {
+function DraggablePoolItem({
+  id,
+  text,
+  severity,
+}: {
+  id: string;
+  text: string;
+  severity?: SequentialStepSeverity;
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id,
   });
@@ -104,18 +192,27 @@ function DraggablePoolItem({ id, text }: { id: string; text: string }) {
       ref={setNodeRef}
       style={style}
       className={cn(
-        "cursor-grab touch-none rounded-md border bg-card px-3 py-2 text-sm shadow-sm active:cursor-grabbing",
+        "flex cursor-grab touch-none items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm shadow-sm active:cursor-grabbing",
         isDragging && "opacity-40",
       )}
       {...listeners}
       {...attributes}
     >
-      {text}
+      {severity ? <Badge variant={severityBadgeVariant(severity)}>{severity}</Badge> : null}
+      <span>{text}</span>
     </div>
   );
 }
 
-function SortableTimelineItem({ id, text }: { id: string; text: string }) {
+function SortableTimelineItem({
+  id,
+  text,
+  severity,
+}: {
+  id: string;
+  text: string;
+  severity?: SequentialStepSeverity;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
   const style = {
@@ -127,13 +224,14 @@ function SortableTimelineItem({ id, text }: { id: string; text: string }) {
       ref={setNodeRef}
       style={style}
       className={cn(
-        "cursor-grab touch-none rounded-md border bg-card px-3 py-2 text-sm shadow-sm active:cursor-grabbing",
+        "flex cursor-grab touch-none items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm shadow-sm active:cursor-grabbing",
         isDragging && "opacity-50",
       )}
       {...listeners}
       {...attributes}
     >
-      {text}
+      {severity ? <Badge variant={severityBadgeVariant(severity)}>{severity}</Badge> : null}
+      <span>{text}</span>
     </div>
   );
 }
@@ -175,10 +273,18 @@ export function SequentialExerciseFlow({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [sequentialTaskType, setSequentialTaskType] = useState<SequentialTaskType>("auto");
+
   const [exercise, setExercise] = useState<SequentialExerciseRow | null>(null);
   const [pool, setPool] = useState<string[]>([]);
   const [timeline, setTimeline] = useState<string[]>([]);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+
+  const [poolB, setPoolB] = useState<string[]>([]);
+  const [timelineB, setTimelineB] = useState<string[]>([]);
+  const [activeDragIdB, setActiveDragIdB] = useState<string | null>(null);
+
+  const [triageElapsedSeconds, setTriageElapsedSeconds] = useState(0);
 
   const [confidence, setConfidence] = useState(50);
   const [perspectiveText, setPerspectiveText] = useState<string | null>(null);
@@ -200,6 +306,16 @@ export function SequentialExerciseFlow({
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+
+  const variantSteps = useMemo(() => sequentialVariantSteps(exercise), [exercise]);
+  const { isGeo, isTriage, orderStep, orderBStep, confidenceStep, perspectiveStep, journalStep, actionStep, doneStep } =
+    variantSteps;
+
+  const stepLabels = isGeo
+    ? GEOPOLITICS_SEQUENTIAL_STEP_LABELS
+    : isTriage
+      ? SEQUENTIAL_TRIAGE_STEP_LABELS
+      : SEQUENTIAL_EXERCISE_STEP_LABELS;
 
   useEffect(() => {
     void listRecentDomains(20).then(setDomainSuggestions);
@@ -224,6 +340,9 @@ export function SequentialExerciseFlow({
       const orderedIds = row.userOrderedStepIds ?? [];
       setTimeline(orderedIds);
       setPool(ids.filter((id) => !orderedIds.includes(id)));
+      const orderedIdsB = row.userOrderedStepIdsB ?? [];
+      setTimelineB(orderedIdsB);
+      setPoolB(ids.filter((id) => !orderedIdsB.includes(id)));
       setConfidence(row.confidenceBefore ?? 50);
       if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
       if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
@@ -240,7 +359,8 @@ export function SequentialExerciseFlow({
   }, [resumeId]);
 
   useEffect(() => {
-    if (!exercise || (step !== 4 && step !== 5) || !journalPrimed) return;
+    if (!exercise || !journalPrimed) return;
+    if (step !== journalStep && step !== actionStep) return;
     const timer = setTimeout(() => {
       const journalDraft: JournalDraft = {
         prompts: journalPrompts,
@@ -261,16 +381,33 @@ export function SequentialExerciseFlow({
   }, [initialDomain, resumeId]);
 
   useEffect(() => {
-    if (!exercise || step === 0 || step === 6) return;
+    if (!exercise || step === 0 || step === doneStep) return;
     const timer = setTimeout(() => {
-      void putExercise({ ...exercise, userOrderedStepIds: timeline, currentStep: step });
+      void putExercise({
+        ...exercise,
+        userOrderedStepIds: timeline,
+        userOrderedStepIdsB: isGeo ? timelineB : exercise.userOrderedStepIdsB,
+        currentStep: step,
+      });
     }, 2000);
     return () => clearTimeout(timer);
-  }, [timeline, step]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeline, timelineB, step]);
+
+  useEffect(() => {
+    if (!exercise || !isTriage || step !== orderStep) return;
+    const id = setInterval(() => setTriageElapsedSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [exercise, isTriage, step, orderStep]);
 
   const stepById = useMemo(() => {
     if (!exercise) return new Map<string, string>();
     return new Map(exercise.steps.map((s) => [s.id, s.text]));
+  }, [exercise]);
+
+  const severityById = useMemo(() => {
+    if (!exercise) return new Map<string, SequentialStepSeverity | undefined>();
+    return new Map(exercise.steps.map((s) => [s.id, s.severity]));
   }, [exercise]);
 
   const startGenerate = useCallback(async (
@@ -300,13 +437,20 @@ export function SequentialExerciseFlow({
           domain: d,
           userContext: userContext || undefined,
           exerciseType: "sequential",
+          sequentialTaskType,
           mode: effectiveSetupMode,
           customScenario: customScenarioOut,
           adaptiveHints,
         }),
       });
       const json = await safeAiJson<
-        | { ok: true; data: SequentialExercisePayload }
+        | {
+            ok: true;
+            data:
+              | SequentialExercisePayload
+              | SequentialGeopoliticsExercisePayload
+              | SequentialTriageExercisePayload;
+          }
         | { ok: false; error: string }
       >(res);
       if (!json.ok) {
@@ -314,6 +458,8 @@ export function SequentialExerciseFlow({
         return;
       }
       const data = json.data;
+      const geoData = isGeopoliticsSequentialPayload(data) ? data : null;
+      const triageData = isTriageSequentialPayload(data) ? data : null;
       const id = crypto.randomUUID();
       const ids = data.steps.map((s) => s.id);
       const row: SequentialExerciseRow = {
@@ -326,6 +472,12 @@ export function SequentialExerciseFlow({
         steps: data.steps,
         criticalErrors: data.criticalErrors,
         userOrderedStepIds: [],
+        variantKind: triageData ? "triage" : geoData ? "geopolitics" : undefined,
+        perspectiveAName: geoData?.perspectiveAName,
+        perspectiveBName: geoData?.perspectiveBName,
+        userOrderedStepIdsB: geoData ? [] : undefined,
+        criticalErrorsB: geoData?.criticalErrorsB,
+        timeLimitMinutes: triageData?.timeLimitMinutes,
         confidenceBefore: null,
         aiPerspective: null,
         createdAt: new Date().toISOString(),
@@ -336,6 +488,9 @@ export function SequentialExerciseFlow({
       setExercise(row);
       setPool(shuffleIds(ids));
       setTimeline([]);
+      setPoolB(shuffleIds(ids));
+      setTimelineB([]);
+      setTriageElapsedSeconds(0);
       setPerspectiveText(null);
       setPerspectiveStructured(null);
       setJournalAnswers({});
@@ -349,7 +504,7 @@ export function SequentialExerciseFlow({
     } finally {
       setLoading(false);
     }
-  }, [domain, setupMode, customScenarioText]);
+  }, [domain, setupMode, customScenarioText, sequentialTaskType]);
 
   const autoGenerateTriggered = useRef(false);
   const [autoGenerateReady, setAutoGenerateReady] = useState(false);
@@ -378,7 +533,7 @@ export function SequentialExerciseFlow({
   }, [autoGenerateReady, initialDomain, resumeId, startGenerate]);
 
   const regenerate = () => {
-    if (timeline.length > 0) {
+    if (timeline.length > 0 || timelineB.length > 0) {
       const ok = window.confirm("Discard current work and regenerate?");
       if (!ok) return;
     }
@@ -425,14 +580,57 @@ export function SequentialExerciseFlow({
     }
   };
 
+  const handleDragStartB = (e: DragStartEvent) => {
+    setActiveDragIdB(String(e.active.id));
+  };
+
+  const handleDragEndB = (e: DragEndEvent) => {
+    setActiveDragIdB(null);
+    const activeId = String(e.active.id);
+    const overId = e.over ? String(e.over.id) : null;
+    if (!overId) return;
+
+    const inPool = poolB.includes(activeId);
+    const inTimeline = timelineB.includes(activeId);
+
+    if (inPool) {
+      if (overId === ZONE_TIMELINE_EMPTY_B || overId === ZONE_APPEND_B) {
+        setPoolB((p) => p.filter((x) => x !== activeId));
+        setTimelineB((t) => [...t, activeId]);
+        return;
+      }
+      if (timelineB.includes(overId)) {
+        const idx = timelineB.indexOf(overId);
+        setPoolB((p) => p.filter((x) => x !== activeId));
+        setTimelineB((t) => [...t.slice(0, idx), activeId, ...t.slice(idx)]);
+      }
+      return;
+    }
+
+    if (inTimeline) {
+      if (overId === ZONE_POOL_B) {
+        setTimelineB((t) => t.filter((x) => x !== activeId));
+        setPoolB((p) => [...p, activeId]);
+        return;
+      }
+      if (timelineB.includes(overId)) {
+        setTimelineB((t) => arrayMove(t, t.indexOf(activeId), t.indexOf(overId)));
+      }
+    }
+  };
+
   const submitOrderAndConfidence = async () => {
     if (!exercise) return;
     if (perspectiveText != null) {
-      advance(3);
+      advance(perspectiveStep);
       return;
     }
     if (pool.length > 0 || timeline.length !== exercise.steps.length) {
       setError("Move every step into the timeline before continuing.");
+      return;
+    }
+    if (isGeo && (poolB.length > 0 || timelineB.length !== exercise.steps.length)) {
+      setError("Move every step into Actor B's timeline before continuing.");
       return;
     }
     setError(null);
@@ -452,6 +650,20 @@ export function SequentialExerciseFlow({
           confidenceBefore: confidence,
           domain: exercise.domain,
           userContext: userContext || undefined,
+          ...(isGeo
+            ? {
+                perspectiveAName: exercise.perspectiveAName,
+                perspectiveBName: exercise.perspectiveBName,
+                userOrderedStepIdsB: timelineB,
+                criticalErrorsB: exercise.criticalErrorsB,
+              }
+            : {}),
+          ...(isTriage
+            ? {
+                timeLimitMinutes: exercise.timeLimitMinutes,
+                elapsedSeconds: triageElapsedSeconds,
+              }
+            : {}),
         }),
       });
       const json = await safeAiJson<unknown>(res);
@@ -465,14 +677,15 @@ export function SequentialExerciseFlow({
       const partial: SequentialExerciseRow = {
         ...exercise,
         userOrderedStepIds: timeline,
+        userOrderedStepIdsB: isGeo ? timelineB : exercise.userOrderedStepIdsB,
         confidenceBefore: confidence,
         aiPerspective: parsed.text,
         aiPerspectiveStructured: parsed.structured,
-        currentStep: 3,
+        currentStep: perspectiveStep,
       };
       await putExercise(partial);
       setExercise(partial);
-      setStep(3);
+      setStep(perspectiveStep);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Perspective failed");
     } finally {
@@ -481,13 +694,15 @@ export function SequentialExerciseFlow({
   };
 
   useEffect(() => {
-    if (step !== 4 || journalPrimed || !exercise) return;
+    if (step !== journalStep || journalPrimed || !exercise) return;
     const effectId = ++journalEffectIdRef.current;
     let cancelled = false;
     (async () => {
       try {
         const excluded = await getPromptIdsUsedInLastNCompleted(5);
-        const accuracy = computeSequentialAccuracy(exercise.steps, timeline);
+        const accuracy = isTriage
+          ? computeSequentialTriageAccuracy(exercise.steps, timeline)
+          : computeSequentialAccuracy(exercise.steps, timeline);
         const picks = pickJournalPrompts(excluded, {
           exerciseType: "sequential",
           accuracy,
@@ -532,7 +747,7 @@ export function SequentialExerciseFlow({
     return () => {
       cancelled = true;
     };
-  }, [step, journalPrimed, exercise]);
+  }, [step, journalStep, journalPrimed, exercise, isTriage, timeline, confidence]);
 
   const journalValid = () => {
     const vals = Object.values(journalAnswers);
@@ -551,7 +766,9 @@ export function SequentialExerciseFlow({
       return;
     }
     setError(null);
-    const accuracy = computeSequentialAccuracy(exercise.steps, timeline);
+    const accuracy = isTriage
+      ? computeSequentialTriageAccuracy(exercise.steps, timeline)
+      : computeSequentialAccuracy(exercise.steps, timeline);
     const confidenceRecord: ConfidenceRecord = {
       id: crypto.randomUUID(),
       exerciseId: exercise.id,
@@ -579,6 +796,7 @@ export function SequentialExerciseFlow({
     const finalEx: SequentialExerciseRow = {
       ...exercise,
       userOrderedStepIds: timeline,
+      userOrderedStepIdsB: isGeo ? timelineB : exercise.userOrderedStepIdsB,
       confidenceBefore: confidence,
       aiPerspective: perspectiveText,
       aiPerspectiveStructured: perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null,
@@ -592,32 +810,24 @@ export function SequentialExerciseFlow({
         action,
       });
       setExercise(finalEx);
-      setStep(6);
+      setStep(doneStep);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     }
   };
 
-  const shellStep =
-    step === 0
-      ? 0
-      : step === 1
-        ? 1
-        : step === 2
-          ? 2
-          : step === 3
-            ? 3
-            : step === 4
-              ? 4
-              : step === 5
-                ? 5
-                : 6;
-
   const activeLabel =
     activeDragId && stepById.has(activeDragId) ? stepById.get(activeDragId)! : "";
+  const activeLabelB =
+    activeDragIdB && stepById.has(activeDragIdB) ? stepById.get(activeDragIdB)! : "";
+
+  const remainingTriageSeconds =
+    exercise?.timeLimitMinutes != null
+      ? exercise.timeLimitMinutes * 60 - triageElapsedSeconds
+      : null;
 
   return (
-    <ExerciseShell stepIndex={shellStep} stepLabels={SEQUENTIAL_EXERCISE_STEP_LABELS}>
+    <ExerciseShell stepIndex={step} stepLabels={stepLabels}>
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -665,6 +875,23 @@ export function SequentialExerciseFlow({
               >
                 Type your own
               </Button>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Task type</Label>
+              <Select
+                value={sequentialTaskType}
+                onValueChange={(v) => setSequentialTaskType((v as SequentialTaskType) ?? "auto")}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Auto</SelectItem>
+                  <SelectItem value="geopolitics">Geopolitical (dual actor)</SelectItem>
+                  <SelectItem value="triage">Crisis triage</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className={cn(entryMode !== "suggested" && "hidden")}>
@@ -751,14 +978,29 @@ export function SequentialExerciseFlow({
         </Card>
       ) : null}
 
-      {step === 1 && exercise ? (
+      {step === orderStep && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>{exercise.title}</CardTitle>
-            <CardDescription>Domain: {exercise.domain}</CardDescription>
+            <CardDescription>
+              Domain: {exercise.domain}
+              {isGeo ? ` — order steps from ${exercise.perspectiveAName}'s perspective` : null}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm leading-relaxed">{exercise.scenario}</p>
+            {isTriage && exercise.timeLimitMinutes != null ? (
+              <div className="flex items-center gap-2">
+                <Badge variant={remainingTriageSeconds != null && remainingTriageSeconds <= 0 ? "attention" : "secondary"}>
+                  {remainingTriageSeconds != null && remainingTriageSeconds <= 0
+                    ? "Time's up"
+                    : `Time remaining: ${formatCountdown(remainingTriageSeconds ?? 0)}`}
+                </Badge>
+                <span className="text-muted-foreground text-xs">
+                  Budget: {exercise.timeLimitMinutes} minute{exercise.timeLimitMinutes === 1 ? "" : "s"}
+                </span>
+              </div>
+            ) : null}
             <DndContext
               sensors={sensors}
               collisionDetection={closestCorners}
@@ -780,6 +1022,7 @@ export function SequentialExerciseFlow({
                           key={id}
                           id={id}
                           text={stepById.get(id) ?? id}
+                          severity={isTriage ? severityById.get(id) : undefined}
                         />
                       ))
                     )}
@@ -807,6 +1050,7 @@ export function SequentialExerciseFlow({
                             key={id}
                             id={id}
                             text={stepById.get(id) ?? id}
+                            severity={isTriage ? severityById.get(id) : undefined}
                           />
                         ))}
                       </SortableContext>
@@ -829,7 +1073,7 @@ export function SequentialExerciseFlow({
             </DndContext>
             <div className="flex gap-2">
               <Button type="button" variant="secondary" onClick={() => {
-                const updated = { ...exercise, userOrderedStepIds: timeline, currentStep: 1 as const };
+                const updated = { ...exercise, userOrderedStepIds: timeline, currentStep: orderStep };
                 setExercise(updated);
                 void putExercise(updated);
                 setStep(0);
@@ -849,7 +1093,109 @@ export function SequentialExerciseFlow({
                   }
                   const updated = { ...exercise, userOrderedStepIds: timeline };
                   setExercise(updated);
-                  advance(2, updated);
+                  advance(isGeo ? orderBStep : confidenceStep, updated);
+                }}
+              >
+                {isGeo ? "Continue to Actor B ordering" : "Continue to confidence"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {step === orderBStep && exercise && isGeo ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{exercise.title}</CardTitle>
+            <CardDescription>
+              Now order the same steps from {exercise.perspectiveBName}&apos;s perspective — the ideal
+              order may differ from what you chose for {exercise.perspectiveAName}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm leading-relaxed">{exercise.scenario}</p>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCorners}
+              onDragStart={handleDragStartB}
+              onDragEnd={handleDragEndB}
+            >
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <h3 className="mb-2 text-sm font-medium">Source</h3>
+                  <DroppableZone
+                    id={ZONE_POOL_B}
+                    className="flex min-h-[220px] flex-col gap-2 rounded-md border border-dashed p-2"
+                  >
+                    {poolB.length === 0 ? (
+                      <p className="text-muted-foreground text-xs">All steps placed.</p>
+                    ) : (
+                      poolB.map((id) => (
+                        <DraggablePoolItem key={id} id={id} text={stepById.get(id) ?? id} />
+                      ))
+                    )}
+                  </DroppableZone>
+                </div>
+                <div>
+                  <h3 className="mb-2 text-sm font-medium">Timeline</h3>
+                  {timelineB.length === 0 ? (
+                    <DroppableZone
+                      id={ZONE_TIMELINE_EMPTY_B}
+                      className="flex min-h-[220px] flex-col items-center justify-center rounded-md border border-dashed p-2 text-center"
+                    >
+                      <p className="text-muted-foreground text-xs">
+                        Drag steps here in {exercise.perspectiveBName}&apos;s process order.
+                      </p>
+                    </DroppableZone>
+                  ) : (
+                    <div className="flex min-h-[220px] flex-col gap-2 rounded-md border border-dashed p-2">
+                      <SortableContext
+                        items={timelineB}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {timelineB.map((id) => (
+                          <SortableTimelineItem key={id} id={id} text={stepById.get(id) ?? id} />
+                        ))}
+                      </SortableContext>
+                      <DroppableZone id={ZONE_APPEND_B} className="py-2 text-center">
+                        <span className="text-muted-foreground text-xs">
+                          Drop here to append to the end
+                        </span>
+                      </DroppableZone>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <DragOverlay>
+                {activeDragIdB ? (
+                  <div className="rounded-md border bg-card px-3 py-2 text-sm shadow-lg">
+                    {activeLabelB}
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  void putExercise({ ...exercise, userOrderedStepIdsB: timelineB, currentStep: orderStep });
+                  setStep(orderStep);
+                }}
+              >
+                Back
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  if (poolB.length > 0 || timelineB.length !== exercise.steps.length) {
+                    setError("Place every step in the timeline before continuing.");
+                    return;
+                  }
+                  const updated = { ...exercise, userOrderedStepIdsB: timelineB };
+                  setExercise(updated);
+                  advance(confidenceStep, updated);
                 }}
               >
                 Continue to confidence
@@ -859,7 +1205,7 @@ export function SequentialExerciseFlow({
         </Card>
       ) : null}
 
-      {step === 2 && exercise ? (
+      {step === confidenceStep && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Confidence</CardTitle>
@@ -880,8 +1226,13 @@ export function SequentialExerciseFlow({
                 variant="secondary"
                 disabled={loading}
                 onClick={() => {
-                  void putExercise({ ...exercise, userOrderedStepIds: timeline, currentStep: 1 });
-                  setStep(1);
+                  void putExercise({
+                    ...exercise,
+                    userOrderedStepIds: timeline,
+                    userOrderedStepIdsB: isGeo ? timelineB : exercise.userOrderedStepIdsB,
+                    currentStep: isGeo ? orderBStep : orderStep,
+                  });
+                  setStep(isGeo ? orderBStep : orderStep);
                 }}
               >
                 Back
@@ -904,7 +1255,7 @@ export function SequentialExerciseFlow({
         </Card>
       ) : null}
 
-      {step === 3 && exercise && perspectiveText ? (
+      {step === perspectiveStep && exercise && perspectiveText ? (
         <div className="space-y-4">
           <Card>
             <CardHeader className="pb-2">
@@ -919,7 +1270,9 @@ export function SequentialExerciseFlow({
                 <p className="font-medium">{exercise.domain || "-"}</p>
               </div>
               <div>
-                <p className="text-muted-foreground text-xs font-medium uppercase">Step order</p>
+                <p className="text-muted-foreground text-xs font-medium uppercase">
+                  {isGeo ? `Step order (${exercise.perspectiveAName})` : "Step order"}
+                </p>
                 <ol className="mt-1 list-decimal space-y-1 pl-5">
                   {timeline.map((id) => (
                     <li key={id} className="leading-snug">
@@ -928,6 +1281,20 @@ export function SequentialExerciseFlow({
                   ))}
                 </ol>
               </div>
+              {isGeo ? (
+                <div>
+                  <p className="text-muted-foreground text-xs font-medium uppercase">
+                    Step order ({exercise.perspectiveBName})
+                  </p>
+                  <ol className="mt-1 list-decimal space-y-1 pl-5">
+                    {timelineB.map((id) => (
+                      <li key={id} className="leading-snug">
+                        {stepById.get(id) ?? id}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
               <div>
                 <p className="text-muted-foreground text-xs font-medium uppercase">Confidence</p>
                 <p className="font-medium">{confidence}%</p>
@@ -942,13 +1309,13 @@ export function SequentialExerciseFlow({
             exerciseTitle={exercise.title}
             domain={exercise.domain}
           />
-          <Button type="button" onClick={() => advance(4)}>
+          <Button type="button" onClick={() => advance(journalStep)}>
             Continue to journal
           </Button>
         </div>
       ) : null}
 
-      {step === 4 && exercise ? (
+      {step === journalStep && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Metacognition journal</CardTitle>
@@ -1014,7 +1381,7 @@ export function SequentialExerciseFlow({
                   </div>
                 ))}
                 <div className="flex gap-2">
-                  <Button type="button" variant="secondary" onClick={() => setStep(3)}>
+                  <Button type="button" variant="secondary" onClick={() => setStep(perspectiveStep)}>
                     Back
                   </Button>
                   <Button
@@ -1025,7 +1392,7 @@ export function SequentialExerciseFlow({
                         setError("Need two answers with more than 10 characters.");
                         return;
                       }
-                      advance(5);
+                      advance(actionStep);
                     }}
                   >
                     Continue to action
@@ -1037,7 +1404,7 @@ export function SequentialExerciseFlow({
         </Card>
       ) : null}
 
-      {step === 5 && exercise ? (
+      {step === actionStep && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Action bridge</CardTitle>
@@ -1053,7 +1420,7 @@ export function SequentialExerciseFlow({
               onChange={(e) => setActionText(e.target.value)}
             />
             <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(4)}>
+              <Button type="button" variant="secondary" onClick={() => setStep(journalStep)}>
                 Back
               </Button>
               <Button type="button" onClick={() => void finishExercise()}>
@@ -1064,7 +1431,7 @@ export function SequentialExerciseFlow({
         </Card>
       ) : null}
 
-      {step === 6 ? (
+      {step === doneStep ? (
         <Card>
           <CardHeader>
             <CardTitle>Exercise saved</CardTitle>

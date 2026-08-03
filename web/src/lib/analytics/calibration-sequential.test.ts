@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeSequentialAccuracy } from "./calibration-sequential";
+import { computeSequentialAccuracy, computeSequentialTriageAccuracy } from "./calibration-sequential";
 import type { SequentialStepSpec } from "@/lib/types/exercise";
 
 function makeSteps(): SequentialStepSpec[] {
@@ -55,5 +55,41 @@ describe("computeSequentialAccuracy", () => {
   it("handles unknown step ids gracefully", () => {
     const score = computeSequentialAccuracy(makeSteps(), ["a", "b", "unknown", "c", "d"]);
     expect(score).toBe(100);
+  });
+});
+
+describe("computeSequentialTriageAccuracy", () => {
+  function makeTriageSteps(): SequentialStepSpec[] {
+    return [
+      { id: "a", text: "A", correctPosition: 1, dependencies: [], isFlexible: false, explanation: "", severity: "critical" },
+      { id: "b", text: "B", correctPosition: 2, dependencies: ["a"], isFlexible: false, explanation: "", severity: "critical" },
+      { id: "c", text: "C", correctPosition: 3, dependencies: ["b"], isFlexible: false, explanation: "", severity: "minor" },
+      { id: "d", text: "D", correctPosition: 4, dependencies: ["c"], isFlexible: false, explanation: "", severity: "minor" },
+    ];
+  }
+
+  it("returns 100 for a fully correct order", () => {
+    expect(computeSequentialTriageAccuracy(makeTriageSteps(), ["a", "b", "c", "d"])).toBe(100);
+  });
+
+  it("returns 0 when every dependency is violated", () => {
+    expect(computeSequentialTriageAccuracy(makeTriageSteps(), ["d", "c", "b", "a"])).toBe(0);
+  });
+
+  it("weights a violated critical-severity edge more than a violated minor-severity edge", () => {
+    const steps = makeTriageSteps();
+    // Violate only the critical a->b edge (b before a); c->d stays correct.
+    const criticalViolation = computeSequentialTriageAccuracy(steps, ["b", "a", "c", "d"]);
+    // Violate only the minor c->d edge (d before c); a->b stays correct.
+    const minorViolation = computeSequentialTriageAccuracy(steps, ["a", "b", "d", "c"]);
+    expect(criticalViolation).toBeLessThan(minorViolation);
+  });
+
+  it("defaults missing severity to minor weight and returns 100 with no dependency constraints", () => {
+    const noDeps: SequentialStepSpec[] = [
+      { id: "x", text: "X", correctPosition: 1, dependencies: [], isFlexible: false, explanation: "" },
+      { id: "y", text: "Y", correctPosition: 2, dependencies: [], isFlexible: false, explanation: "" },
+    ];
+    expect(computeSequentialTriageAccuracy(noDeps, ["y", "x"])).toBe(100);
   });
 });
