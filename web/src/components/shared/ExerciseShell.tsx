@@ -67,6 +67,20 @@ export const GEOPOLITICS_SYSTEMS_STEP_LABELS = [
   "Done",
 ] as const;
 
+export const SYSTEMS_RESILIENCE_STEP_LABELS = [
+  "Setup",
+  "Decompose",
+  "Connect",
+  "Criticality",
+  "Confidence",
+  "Shock",
+  "Cascade",
+  "AI reflection",
+  "Journal",
+  "Action",
+  "Done",
+] as const;
+
 export const EVALUATIVE_EXERCISE_STEP_LABELS = [
   "Setup",
   "Propose criteria",

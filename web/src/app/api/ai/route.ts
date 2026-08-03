@@ -26,6 +26,7 @@ import { buildSequentialGenerationPrompt } from "@/lib/ai/prompts/sequential";
 import {
   buildGeopoliticsSystemsPrompt,
   buildSystemsGenerationPrompt,
+  buildSystemsResilienceGenerationPrompt,
 } from "@/lib/ai/prompts/systems";
 import { generateAnalyticalExerciseRaw } from "@/lib/ai/gemini";
 import {
@@ -65,10 +66,14 @@ import { parseSequentialExerciseJson } from "@/lib/ai/validators/sequential";
 import {
   GEOPOLITICS_SYSTEMS_RETRY_SUFFIX,
   isGeopoliticsSystemsPayload,
+  isResilienceSystemsPayload,
   parseSystemsExerciseJson,
   validateGeopoliticsSystemsSemantics,
+  validateResilienceSystemsSemantics,
   validateSystemsExerciseSemantics,
+  SYSTEMS_RESILIENCE_RETRY_SUFFIX,
   SYSTEMS_RETRY_SUFFIX,
+  type SystemsTaskType,
 } from "@/lib/ai/validators/systems";
 import { sanitizeRealDataText } from "@/lib/text/sanitizeRealData";
 import {
@@ -384,6 +389,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, data: r.parsed.data });
     }
 
+    const rawSystemsTaskType = (body as { systemsTaskType?: unknown }).systemsTaskType;
+    const systemsTaskType: SystemsTaskType =
+      rawSystemsTaskType === "geopolitics" || rawSystemsTaskType === "resilience"
+        ? rawSystemsTaskType
+        : "auto";
+    // Geopolitics domain auto-detect only applies on the "auto" path - resilience never checks it
+    // (parity with evaluativeTaskType/generativeVariant handling above).
+    const isGeoSystems =
+      exerciseType === "systems" &&
+      (systemsTaskType === "geopolitics" ||
+        (systemsTaskType === "auto" && isGeopoliticsAnalyticalDomain(effectiveDomain)));
+
     const appendixFor = (t: AdaptiveExerciseType) =>
       buildAdaptationAppendix(adaptiveHints, t);
     const useSteelman =
@@ -397,19 +414,26 @@ export async function POST(req: Request) {
             customScenario: scenarioForPrompt,
           })
         : exerciseType === "systems"
-          ? isGeopoliticsAnalyticalDomain(effectiveDomain)
-            ? buildGeopoliticsSystemsPrompt({
+          ? systemsTaskType === "resilience"
+            ? buildSystemsResilienceGenerationPrompt({
                 domain: effectiveDomain,
                 userContext,
                 adaptationAppendix: appendixFor("systems"),
                 customScenario: scenarioForPrompt,
               })
-            : buildSystemsGenerationPrompt({
-                domain: effectiveDomain,
-                userContext,
-                adaptationAppendix: appendixFor("systems"),
-                customScenario: scenarioForPrompt,
-              })
+            : isGeoSystems
+              ? buildGeopoliticsSystemsPrompt({
+                  domain: effectiveDomain,
+                  userContext,
+                  adaptationAppendix: appendixFor("systems"),
+                  customScenario: scenarioForPrompt,
+                })
+              : buildSystemsGenerationPrompt({
+                  domain: effectiveDomain,
+                  userContext,
+                  adaptationAppendix: appendixFor("systems"),
+                  customScenario: scenarioForPrompt,
+                })
           : (() => {
               if (useSteelman) {
                 return buildAnalyticalSteelmanPrompt({
@@ -461,9 +485,11 @@ export async function POST(req: Request) {
         }
         const sem = [
           ...validateSystemsExerciseSemantics(parsed.data),
-          ...(isGeopoliticsSystemsPayload(parsed.data)
-            ? validateGeopoliticsSystemsSemantics(parsed.data)
-            : []),
+          ...(isResilienceSystemsPayload(parsed.data)
+            ? validateResilienceSystemsSemantics(parsed.data)
+            : isGeopoliticsSystemsPayload(parsed.data)
+              ? validateGeopoliticsSystemsSemantics(parsed.data)
+              : []),
         ];
         return { ok: true as const, raw, parsed, sem };
       };
@@ -473,9 +499,12 @@ export async function POST(req: Request) {
         const reason = !r.ok
           ? `Invalid JSON from model: ${!r.parsed.success ? r.parsed.error : ""}`
           : `Semantic validation failed:\n${r.sem.join("\n")}`;
-        const suffix = isGeopoliticsAnalyticalDomain(effectiveDomain)
-          ? GEOPOLITICS_SYSTEMS_RETRY_SUFFIX
-          : SYSTEMS_RETRY_SUFFIX;
+        const suffix =
+          systemsTaskType === "resilience"
+            ? SYSTEMS_RESILIENCE_RETRY_SUFFIX
+            : isGeoSystems
+              ? GEOPOLITICS_SYSTEMS_RETRY_SUFFIX
+              : SYSTEMS_RETRY_SUFFIX;
         r = await runSystems(`${basePrompt}\n${suffix}\n${reason}`);
       }
       if (!r.ok || !r.parsed.success) {
@@ -490,9 +519,11 @@ export async function POST(req: Request) {
       }
       const sem2 = [
         ...validateSystemsExerciseSemantics(r.parsed.data),
-        ...(isGeopoliticsSystemsPayload(r.parsed.data)
-          ? validateGeopoliticsSystemsSemantics(r.parsed.data)
-          : []),
+        ...(isResilienceSystemsPayload(r.parsed.data)
+          ? validateResilienceSystemsSemantics(r.parsed.data)
+          : isGeopoliticsSystemsPayload(r.parsed.data)
+            ? validateGeopoliticsSystemsSemantics(r.parsed.data)
+            : []),
       ];
       if (sem2.length > 0) {
         return NextResponse.json(

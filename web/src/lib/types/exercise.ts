@@ -3,6 +3,8 @@ import type { EvaluativeQuadrant } from "@/lib/ai/validators/evaluative";
 import type { GenerativeStage } from "@/lib/ai/validators/generative";
 import type { SystemsConnectionType } from "@/lib/ai/validators/systems";
 import type { SystemsExercisePayload } from "@/lib/ai/validators/systems";
+import type { SystemsResilienceExercisePayload } from "@/lib/ai/validators/systems";
+import type { SystemsTaskType } from "@/lib/ai/validators/systems";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import type { JournalPromptItem } from "@/lib/ai/prompts/journal-pool";
 
@@ -38,9 +40,13 @@ export type { EvaluativeQuadrant, GenerativeStage };
 
 export type { SystemsConnectionType };
 
+export type { SystemsTaskType };
+
 export type SystemsNodeSpec = SystemsExercisePayload["nodes"][number];
 export type SystemsIntendedConnection = SystemsExercisePayload["intendedConnections"][number];
 export type SystemsShockEvent = SystemsExercisePayload["shockEvent"];
+export type SystemsNodeCriticalityHint =
+  SystemsResilienceExercisePayload["criticalityGroundTruth"][number];
 
 export type ValidPoint = AnalyticalExercise["validPoints"][number];
 
@@ -185,6 +191,14 @@ export interface SystemsExerciseRow {
     explanation: string;
   };
   userPerspectiveBNotes?: string;
+  /** Resilience audit: two-hop cascade variant. */
+  variantKind?: "resilience";
+  criticalityGroundTruth?: SystemsNodeCriticalityHint[];
+  /** User's own criticality ranking guess (node id -> rank, 1 = most critical), set before the shock is revealed. */
+  userCriticalityRanking?: Record<string, number>;
+  secondShockEvent?: SystemsShockEvent;
+  /** Per node_id impact assessment after the second (cascade) shock. */
+  secondNodeImpact?: Record<string, SystemsNodeImpact>;
   /** User's proposed components before seeing AI nodes (diagnostic, not scored). */
   userProposedComponents?: string[] | null;
   userEdges: SystemsUserEdge[];

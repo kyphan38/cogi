@@ -154,9 +154,14 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
               ? makeMockEvaluativeUncertaintyAiPayload()
               : makeMockEvaluativeAiPayload();
         break;
-      case "systems":
-        data = makeMockStandaloneSystemsPayload();
+      case "systems": {
+        const systemsTaskType = body.systemsTaskType as string | undefined;
+        data =
+          systemsTaskType === "resilience"
+            ? makeMockSystemsResiliencePayload()
+            : makeMockStandaloneSystemsPayload();
         break;
+      }
       case "generative":
         data = makeMockGenerativeAiPayload();
         break;
@@ -579,6 +584,53 @@ function makeMockStandaloneSystemsPayload() {
       directlyAffected: ["node_3", "node_5"],
       indirectlyAffected: ["node_1", "node_4"],
       explanation: "DB failure breaks writes and cache invalidation cascades upstream.",
+    },
+  };
+}
+
+function makeMockSystemsResiliencePayload() {
+  return {
+    title: "Regional Power Grid Resilience",
+    scenario:
+      "A regional utility operator relies on an aging grid where a handful of " +
+      "components quietly hold everything together. Planners want to know whether " +
+      "the team can spot the single points of failure before a storm proves it the hard way.",
+    variantKind: "resilience",
+    nodes: [
+      { id: "node_1", label: "Substation", description: "Steps down transmission voltage", x: 50, y: 15 },
+      { id: "node_2", label: "Control Room", description: "Coordinates grid operations", x: 20, y: 35 },
+      { id: "node_3", label: "Transformer Bank", description: "Regulates local distribution", x: 80, y: 35 },
+      { id: "node_4", label: "Backup Generator", description: "Emergency power reserve", x: 20, y: 65 },
+      { id: "node_5", label: "Grid Sensors", description: "Monitors load and faults", x: 80, y: 65 },
+      { id: "node_6", label: "Load Balancer", description: "Shifts demand across feeders", x: 50, y: 85 },
+    ],
+    intendedConnections: [
+      { from: "node_1", to: "node_3", type: "enables", explanation: "Substation feeds the transformer bank." },
+      { from: "node_2", to: "node_1", type: "depends_on", explanation: "Control room commands the substation." },
+      { from: "node_5", to: "node_2", type: "enables", explanation: "Sensors inform control room decisions." },
+      { from: "node_2", to: "node_5", type: "depends_on", explanation: "Control room relies on sensor feeds." },
+      { from: "node_4", to: "node_3", type: "risks", explanation: "Generator strain can overload the bank." },
+      { from: "node_6", to: "node_3", type: "depends_on", explanation: "Load balancing needs the transformer bank." },
+    ],
+    criticalityGroundTruth: [
+      { nodeId: "node_1", criticalityRank: 1, rationale: "Every downstream node depends on this substation." },
+      { nodeId: "node_2", criticalityRank: 3, rationale: "Central coordinator, but has sensor redundancy." },
+      { nodeId: "node_3", criticalityRank: 2, rationale: "Distribution hub feeding most local nodes." },
+      { nodeId: "node_4", criticalityRank: 5, rationale: "Backup only, limited blast radius." },
+      { nodeId: "node_5", criticalityRank: 4, rationale: "Important feedback loop, but not structural." },
+      { nodeId: "node_6", criticalityRank: 6, rationale: "Leaf node with the least downstream impact." },
+    ],
+    shockEvent: {
+      description: "A lightning strike takes the substation offline during peak demand",
+      directlyAffected: ["node_1"],
+      indirectlyAffected: ["node_2", "node_3"],
+      explanation: "Losing the substation starves the transformer bank and blinds the control room.",
+    },
+    secondShockEvent: {
+      description: "With the transformer bank already degraded, a second cold front spikes demand",
+      directlyAffected: ["node_3"],
+      indirectlyAffected: ["node_6"],
+      explanation: "The already-strained transformer bank cascades into load-balancing failures.",
     },
   };
 }

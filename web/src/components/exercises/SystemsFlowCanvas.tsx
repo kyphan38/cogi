@@ -5,8 +5,10 @@ import {
   ReactFlow,
   Background,
   BaseEdge,
+  ConnectionMode,
   EdgeLabelRenderer,
   Handle,
+  MarkerType,
   Position,
   applyEdgeChanges,
   getBezierPath,
@@ -47,7 +49,26 @@ function SystemFlowNode({ data }: NodeProps) {
         : "border-border bg-card";
   return (
     <>
-      <Handle type="target" position={Position.Top} />
+      {/* One handle per side; each is connectable as both the start and the
+          end of a drag (regardless of its declared `type`) so users can draw
+          a connection from or to any side of any node, not just top/bottom. */}
+      {(
+        [
+          ["top", Position.Top],
+          ["right", Position.Right],
+          ["bottom", Position.Bottom],
+          ["left", Position.Left],
+        ] as const
+      ).map(([pos, position]) => (
+        <Handle
+          key={pos}
+          id={pos}
+          type="source"
+          position={position}
+          isConnectableStart
+          isConnectableEnd
+        />
+      ))}
       <div
         className={cn(
           "min-w-[96px] max-w-[132px] rounded-md border px-2 py-1.5 text-left text-xs shadow-sm",
@@ -59,7 +80,6 @@ function SystemFlowNode({ data }: NodeProps) {
           {d.description}
         </div>
       </div>
-      <Handle type="source" position={Position.Bottom} />
     </>
   );
 }
@@ -74,6 +94,7 @@ function SystemFlowEdge({
   targetPosition,
   label,
   data,
+  markerEnd,
 }: EdgeProps) {
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -92,12 +113,19 @@ function SystemFlowEdge({
 
   return (
     <>
+      {/* markerEnd renders an arrowhead at the target so the direction of the
+          relationship (source -> target) is always visible; a mutual
+          relationship is represented by two edges, each with its own arrow. */}
       <BaseEdge
         path={edgePath}
+        markerEnd={markerEnd}
         style={
           isReference
-            ? { strokeDasharray: "6 4", stroke: "hsl(var(--muted-foreground))" }
-            : undefined
+            ? {
+                strokeDasharray: "6 4",
+                stroke: "hsl(var(--muted-foreground))",
+              }
+            : { stroke: "hsl(var(--foreground))" }
         }
       />
       <EdgeLabelRenderer>
@@ -150,19 +178,55 @@ function toRfNodes(
   }));
 }
 
+/** Each node exposes a "top" | "right" | "bottom" | "left" handle (see
+ * SystemFlowNode). Pick whichever pair most directly faces the other node so
+ * a connection visually leaves/enters from the closest side instead of
+ * always funneling through the same top/bottom pair. */
+function pickHandles(
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+): { sourceHandle: string; targetHandle: string } {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return dx >= 0
+      ? { sourceHandle: "right", targetHandle: "left" }
+      : { sourceHandle: "left", targetHandle: "right" };
+  }
+  return dy >= 0
+    ? { sourceHandle: "bottom", targetHandle: "top" }
+    : { sourceHandle: "top", targetHandle: "bottom" };
+}
+
 function toRfEdges(
   edges: SystemsUserEdge[],
+  nodesById: Map<string, { x: number; y: number }>,
   onDelete: ((id: string) => void) | undefined,
   isReference = false,
 ): Edge[] {
-  return edges.map((e) => ({
-    id: e.id,
-    type: "systemEdge",
-    source: e.source,
-    target: e.target,
-    label: e.type.replace(/_/g, " "),
-    data: { type: e.type, onDelete, isReference },
-  }));
+  return edges.map((e) => {
+    const a = nodesById.get(e.source);
+    const b = nodesById.get(e.target);
+    const handles = a && b ? pickHandles(a, b) : undefined;
+    return {
+      id: e.id,
+      type: "systemEdge",
+      source: e.source,
+      target: e.target,
+      sourceHandle: handles?.sourceHandle,
+      targetHandle: handles?.targetHandle,
+      label: e.type.replace(/_/g, " "),
+      data: { type: e.type, onDelete, isReference },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 16,
+        height: 16,
+        color: isReference
+          ? "hsl(var(--muted-foreground))"
+          : "hsl(var(--foreground))",
+      },
+    };
+  });
 }
 
 export function intendedConnectionsToEdges(
@@ -216,14 +280,20 @@ export function SystemsFlowCanvas({
     [userEdges, onUserEdgesChange],
   );
 
+  const nodesById = useMemo(
+    () => new Map(nodeSpecs.map((n) => [n.id, { x: n.x, y: n.y }])),
+    [nodeSpecs],
+  );
+
   const rfEdges = useMemo(
     () =>
       toRfEdges(
         displayEdges,
+        nodesById,
         mode === "connect" && !showReferenceOnly ? handleDeleteEdge : undefined,
         showReferenceOnly,
       ),
-    [displayEdges, mode, showReferenceOnly, handleDeleteEdge],
+    [displayEdges, nodesById, mode, showReferenceOnly, handleDeleteEdge],
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
@@ -307,6 +377,14 @@ export function SystemsFlowCanvas({
         nodesDraggable={mode === "connect"}
         nodesConnectable={mode === "connect"}
         edgesReconnectable={false}
+        // All 4 handles per node are declared type="source" so any side can
+        // both start and receive a drag (see SystemFlowNode). ReactFlow's
+        // default "strict" connectionMode only allows source->target handle
+        // pairs, which silently rejects most same-type combinations here —
+        // that's what caused connections to intermittently fail (e.g. "top
+        // to top") and made it look like only ~2 connections per node were
+        // possible. "loose" allows any handle to connect to any other.
+        connectionMode={ConnectionMode.Loose}
         zoomOnScroll={false}
         panOnDrag={false}
         autoPanOnConnect={false}

@@ -29,6 +29,7 @@ import type {
   SequentialCriticalError,
   SequentialStepSpec,
   SystemsIntendedConnection,
+  SystemsNodeCriticalityHint,
   SystemsNodeSpec,
   SystemsShockEvent,
   SystemsUserEdge,
@@ -382,6 +383,18 @@ export async function POST(req: Request) {
       typeof b.userPerspectiveBNotes === "string"
         ? b.userPerspectiveBNotes
         : undefined;
+    const variantKind = b.variantKind === "resilience" ? "resilience" : undefined;
+    const criticalityGroundTruth = Array.isArray(b.criticalityGroundTruth)
+      ? (b.criticalityGroundTruth as SystemsNodeCriticalityHint[])
+      : undefined;
+    const userCriticalityRanking =
+      b.userCriticalityRanking && typeof b.userCriticalityRanking === "object"
+        ? (b.userCriticalityRanking as Record<string, number>)
+        : undefined;
+    const secondShockEvent =
+      b.secondShockEvent && typeof b.secondShockEvent === "object"
+        ? (b.secondShockEvent as SystemsShockEvent)
+        : undefined;
     const prompt = buildSystemsShockPerspectivePrompt({
       title,
       domain,
@@ -399,6 +412,10 @@ export async function POST(req: Request) {
       intendedConnectionsB,
       shockEventB,
       userPerspectiveBNotes,
+      variantKind,
+      criticalityGroundTruth,
+      userCriticalityRanking,
+      secondShockEvent,
     });
     try {
       const { structured, text } = await generateStructuredPerspective(prompt, "systems");

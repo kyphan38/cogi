@@ -59,10 +59,31 @@ export const systemsGeopoliticsExerciseSchema = systemsExerciseSchema.extend({
   shockEventB: shockEventBSchema,
 });
 
+export const nodeCriticalityHintSchema = z.object({
+  nodeId: nodeIdSchema,
+  /** AI's ground-truth ranking, 1 = most critical (single point of failure). */
+  criticalityRank: z.number().int().min(1).max(6),
+  rationale: z.string(),
+});
+
+export const systemsResilienceExerciseSchema = systemsExerciseSchema.extend({
+  variantKind: z.literal("resilience"),
+  criticalityGroundTruth: z.array(nodeCriticalityHintSchema).length(6),
+  /** Second shock, applied only after the first shock's indirect ring; cascades one hop further. */
+  secondShockEvent: shockEventSchema,
+});
+
 export type SystemsExercisePayload = z.infer<typeof systemsExerciseSchema>;
 export type GeopoliticsSystemsExercisePayload = z.infer<
   typeof systemsGeopoliticsExerciseSchema
 >;
+export type SystemsResilienceExercisePayload = z.infer<
+  typeof systemsResilienceExerciseSchema
+>;
+
+/** Mirrors `EvaluativeTaskType`: `"auto"` keeps silent domain-detection, `"geopolitics"`
+ * forces the dual-perspective payload, `"resilience"` is the new two-hop-cascade variant. */
+export type SystemsTaskType = "auto" | "geopolitics" | "resilience";
 export type SystemsConnectionType = z.infer<typeof connectionTypeSchema>;
 
 const SYSTEMS_NODE_LABEL_MAX = 20;
@@ -110,17 +131,44 @@ function looksLikeGeopoliticsSystemsRaw(parsed: unknown): boolean {
   );
 }
 
+function looksLikeResilienceSystemsRaw(parsed: unknown): boolean {
+  if (!parsed || typeof parsed !== "object") return false;
+  const o = parsed as Record<string, unknown>;
+  return o.variantKind === "resilience";
+}
+
 export type ParseSystemsResult =
-  | { success: true; data: SystemsExercisePayload | GeopoliticsSystemsExercisePayload }
+  | {
+      success: true;
+      data:
+        | SystemsExercisePayload
+        | GeopoliticsSystemsExercisePayload
+        | SystemsResilienceExercisePayload;
+    }
   | { success: false; error: string };
 
 export function isGeopoliticsSystemsPayload(
-  data: SystemsExercisePayload | GeopoliticsSystemsExercisePayload,
+  data:
+    | SystemsExercisePayload
+    | GeopoliticsSystemsExercisePayload
+    | SystemsResilienceExercisePayload,
 ): data is GeopoliticsSystemsExercisePayload {
   return (
     "perspectiveAName" in data &&
     typeof (data as GeopoliticsSystemsExercisePayload).perspectiveAName === "string" &&
     (data as GeopoliticsSystemsExercisePayload).perspectiveAName.trim().length > 0
+  );
+}
+
+export function isResilienceSystemsPayload(
+  data:
+    | SystemsExercisePayload
+    | GeopoliticsSystemsExercisePayload
+    | SystemsResilienceExercisePayload,
+): data is SystemsResilienceExercisePayload {
+  return (
+    "variantKind" in data &&
+    (data as SystemsResilienceExercisePayload).variantKind === "resilience"
   );
 }
 
@@ -133,6 +181,17 @@ export function parseSystemsExerciseJson(text: string): ParseSystemsResult {
     return { success: false, error: "Invalid JSON from model" };
   }
   sanitizeSystemsNodesInPlace(parsed);
+
+  if (looksLikeResilienceSystemsRaw(parsed)) {
+    const resilience = systemsResilienceExerciseSchema.safeParse(parsed);
+    if (resilience.success) {
+      return { success: true, data: resilience.data };
+    }
+    return {
+      success: false,
+      error: resilience.error.issues.map((i) => i.message).join("; "),
+    };
+  }
 
   if (looksLikeGeopoliticsSystemsRaw(parsed)) {
     const geo = systemsGeopoliticsExerciseSchema.safeParse(parsed);
@@ -339,6 +398,58 @@ export function validateGeopoliticsSystemsSemantics(
   return errors;
 }
 
+/** Resilience-specific checks: unique 1-6 criticality ranks covering every node, valid
+ * secondShockEvent refs, and proof of genuine cascade (second shock's directly/indirectly
+ * affected sets must overlap the first shock's indirectlyAffected set). */
+export function validateResilienceSystemsSemantics(
+  data: SystemsResilienceExercisePayload,
+): string[] {
+  const errors: string[] = [];
+  const ids = new Set(data.nodes.map((n) => n.id));
+
+  const hintedIds = data.criticalityGroundTruth.map((h) => h.nodeId);
+  if (new Set(hintedIds).size !== hintedIds.length) {
+    errors.push("criticalityGroundTruth nodeIds must be unique");
+  }
+  for (const expected of NODE_IDS) {
+    if (!hintedIds.includes(expected)) {
+      errors.push(`criticalityGroundTruth missing entry for node ${expected}`);
+    }
+  }
+  const ranks = data.criticalityGroundTruth.map((h) => h.criticalityRank);
+  if (new Set(ranks).size !== ranks.length) {
+    errors.push("criticalityGroundTruth criticalityRank values must be unique");
+  }
+  for (const hint of data.criticalityGroundTruth) {
+    if (!ids.has(hint.nodeId)) {
+      errors.push(`criticalityGroundTruth references unknown node: ${hint.nodeId}`);
+    }
+  }
+
+  errors.push(
+    ...validateShockRefs(
+      data.secondShockEvent.directlyAffected,
+      data.secondShockEvent.indirectlyAffected,
+      ids,
+      "secondShockEvent",
+    ),
+  );
+
+  const firstIndirect = new Set(data.shockEvent.indirectlyAffected);
+  const secondTouched = new Set([
+    ...data.secondShockEvent.directlyAffected,
+    ...data.secondShockEvent.indirectlyAffected,
+  ]);
+  const overlaps = [...secondTouched].some((id) => firstIndirect.has(id));
+  if (!overlaps) {
+    errors.push(
+      "secondShockEvent must cascade from the first shock's indirectlyAffected nodes (no overlap found)",
+    );
+  }
+
+  return errors;
+}
+
 export const SYSTEMS_RETRY_SUFFIX = `
 IMPORTANT: Your previous JSON failed validation. Fix ALL issues:
 - node ids must be exactly node_1 … node_6
@@ -354,4 +465,14 @@ IMPORTANT: Your previous geopolitics systems JSON failed validation. Fix ALL iss
 - perspectives must name different actors
 - both connection sets need valid node ids, no duplicate (from,to) pairs, and at least one feedback loop each
 - shockEventB only varies directlyAffected, indirectlyAffected, explanation (shared shock description is in shockEvent)
+Return ONLY corrected valid JSON with the same shape as before.`;
+
+export const SYSTEMS_RESILIENCE_RETRY_SUFFIX = `
+IMPORTANT: Your previous resilience systems JSON failed validation. Fix ALL issues:
+- variantKind must be exactly "resilience"
+- criticalityGroundTruth must have exactly 6 entries, one per node_1…node_6, each nodeId unique
+- criticalityGroundTruth criticalityRank values must be the unique integers 1-6 (1 = most critical)
+- secondShockEvent.directlyAffected and indirectlyAffected must only reference existing node ids
+- secondShockEvent must genuinely cascade: at least one of its directlyAffected/indirectlyAffected nodes must also appear in the first shockEvent's indirectlyAffected set
+- do not reveal criticality ranking or which nodes are single points of failure inside scenario or node description text
 Return ONLY corrected valid JSON with the same shape as before.`;

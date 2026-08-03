@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildSystemsGenerationPrompt, buildGeopoliticsSystemsPrompt } from "./systems";
+import {
+  buildSystemsGenerationPrompt,
+  buildGeopoliticsSystemsPrompt,
+  buildSystemsResilienceGenerationPrompt,
+} from "./systems";
 
 describe("buildSystemsGenerationPrompt", () => {
   it("returns non-empty string containing domain", () => {
@@ -85,5 +89,55 @@ describe("buildGeopoliticsSystemsPrompt", () => {
   it("includes scenario block", () => {
     const result = buildGeopoliticsSystemsPrompt({ domain: "trade", customScenario: "Trade war" });
     expect(result).toContain("Trade war");
+  });
+});
+
+describe("buildSystemsResilienceGenerationPrompt", () => {
+  it("includes domain and variantKind marker", () => {
+    const result = buildSystemsResilienceGenerationPrompt({ domain: "power grid" });
+    expect(result).toContain("power grid");
+    expect(result).toContain('"variantKind": "resilience"');
+  });
+
+  it("still requires 6 nodes", () => {
+    const result = buildSystemsResilienceGenerationPrompt({ domain: "logistics" });
+    expect(result).toContain("node_1");
+    expect(result).toContain("node_6");
+    expect(result).toContain("6 nodes");
+  });
+
+  it("includes criticalityGroundTruth structure keyed by rationale (matches schema field)", () => {
+    const result = buildSystemsResilienceGenerationPrompt({ domain: "logistics" });
+    expect(result).toContain("criticalityGroundTruth");
+    expect(result).toContain("criticalityRank");
+    expect(result).toContain('"rationale"');
+    expect(result).not.toContain('"explanation": string }\n  ],\n  "shockEvent"');
+  });
+
+  it("includes secondShockEvent cascading from the first shock", () => {
+    const result = buildSystemsResilienceGenerationPrompt({ domain: "logistics" });
+    expect(result).toContain("secondShockEvent");
+    expect(result).toContain("cascades FROM the consequences of the first shock");
+  });
+
+  it("includes adaptation appendix when provided", () => {
+    const result = buildSystemsResilienceGenerationPrompt({
+      domain: "logistics",
+      adaptationAppendix: "Foundation tier",
+    });
+    expect(result).toContain("Foundation tier");
+  });
+
+  it("includes scenario block when customScenario provided", () => {
+    const result = buildSystemsResilienceGenerationPrompt({
+      domain: "logistics",
+      customScenario: "Warehouse automation rollout",
+    });
+    expect(result).toContain("Warehouse automation rollout");
+  });
+
+  it("does not leak undefined", () => {
+    const result = buildSystemsResilienceGenerationPrompt({ domain: "test" });
+    expect(result).not.toContain("undefined");
   });
 });
