@@ -3,8 +3,17 @@ import { z } from "zod";
 import { generateAnalyticalExerciseRaw } from "@/lib/ai/gemini";
 import { buildComboGenerationPrompt } from "@/lib/ai/prompts/combo";
 import { parseComboBundleJson, type ComboBundle } from "@/lib/ai/validators/combo-bundle";
-import { validateSystemsExerciseSemantics } from "@/lib/ai/validators/systems";
+import {
+  isGeopoliticsSystemsPayload,
+  validateGeopoliticsSystemsSemantics,
+  validateSystemsExerciseSemantics,
+} from "@/lib/ai/validators/systems";
 import { validateEvaluativeSemantics } from "@/lib/ai/validators/evaluative";
+import {
+  isGeopoliticsSequentialPayload,
+  validateGeopoliticsSequentialSemantics,
+} from "@/lib/ai/validators/sequential";
+import { validateGeopoliticsAnalyticalSemantics } from "@/lib/ai/validators/common";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 import { getFirebaseAdminFirestore, getUserDocPath } from "@/lib/firebaseAdminFirestore";
 import {
@@ -14,7 +23,12 @@ import {
 
 export const maxDuration = 60;
 
-const presetSchema = z.enum(["full_analysis", "decision_sprint", "root_cause"]);
+const presetSchema = z.enum([
+  "full_analysis",
+  "decision_sprint",
+  "root_cause",
+  "crisis_response",
+]);
 
 const bodySchema = z
   .object({
@@ -24,6 +38,8 @@ const bodySchema = z
     domain: z.string().trim().optional(),
     customScenario: z.string().trim().max(CUSTOM_SCENARIO_MAX_LEN).optional(),
     userContext: z.string().trim().optional(),
+    /** decision_sprint only - which standalone generative task type to request (§2a). */
+    generativeVariant: z.enum(["argue_debate", "reframing", "inversion"]).optional(),
   })
   .superRefine((data, ctx) => {
     const hasDomain = !!(data.domain && data.domain.length > 0);
@@ -69,7 +85,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const { requestId, preset, domain, customScenario, userContext } = parsed.data;
+  const { requestId, preset, domain, customScenario, userContext, generativeVariant } = parsed.data;
   const domainTrimmed = domain?.trim() ?? "";
   const scenarioTrimmed = customScenario?.trim();
   const effectiveDomain = domainTrimmed || CUSTOM_DOMAIN_PLACEHOLDER;
@@ -106,6 +122,7 @@ export async function POST(req: Request) {
     domain: effectiveDomain,
     userContext,
     customScenario: scenarioForPrompt,
+    generativeVariant,
   });
 
   try {
@@ -116,9 +133,18 @@ export async function POST(req: Request) {
     }
     const data = bundleParsed.data;
     if (data.preset === "full_analysis") {
-      const sysErr = validateSystemsExerciseSemantics(data.systems);
+      const sysErr = [
+        ...validateSystemsExerciseSemantics(data.systems),
+        ...(isGeopoliticsSystemsPayload(data.systems)
+          ? validateGeopoliticsSystemsSemantics(data.systems)
+          : []),
+      ];
       if (sysErr.length) {
         return NextResponse.json({ ok: false, error: sysErr.join("; ") }, { status: 422 });
+      }
+      const anaErr = validateGeopoliticsAnalyticalSemantics(data.analytical);
+      if (anaErr.length) {
+        return NextResponse.json({ ok: false, error: anaErr.join("; ") }, { status: 422 });
       }
       const evErr = validateEvaluativeSemantics(data.evaluativeMatrix);
       if (evErr.length) {
@@ -129,10 +155,41 @@ export async function POST(req: Request) {
       if (evErr.length) {
         return NextResponse.json({ ok: false, error: evErr.join("; ") }, { status: 422 });
       }
-    } else {
-      const sysErr = validateSystemsExerciseSemantics(data.systems);
+    } else if (data.preset === "root_cause") {
+      const sysErr = [
+        ...validateSystemsExerciseSemantics(data.systems),
+        ...(isGeopoliticsSystemsPayload(data.systems)
+          ? validateGeopoliticsSystemsSemantics(data.systems)
+          : []),
+      ];
       if (sysErr.length) {
         return NextResponse.json({ ok: false, error: sysErr.join("; ") }, { status: 422 });
+      }
+      const seqErr = isGeopoliticsSequentialPayload(data.sequential)
+        ? validateGeopoliticsSequentialSemantics(data.sequential)
+        : [];
+      if (seqErr.length) {
+        return NextResponse.json({ ok: false, error: seqErr.join("; ") }, { status: 422 });
+      }
+      const anaErr = validateGeopoliticsAnalyticalSemantics(data.analytical);
+      if (anaErr.length) {
+        return NextResponse.json({ ok: false, error: anaErr.join("; ") }, { status: 422 });
+      }
+    } else {
+      const sysErr = [
+        ...validateSystemsExerciseSemantics(data.systems),
+        ...validateGeopoliticsSystemsSemantics(data.systems),
+      ];
+      if (sysErr.length) {
+        return NextResponse.json({ ok: false, error: sysErr.join("; ") }, { status: 422 });
+      }
+      const seqErr = validateGeopoliticsSequentialSemantics(data.sequential);
+      if (seqErr.length) {
+        return NextResponse.json({ ok: false, error: seqErr.join("; ") }, { status: 422 });
+      }
+      const evErr = validateEvaluativeSemantics(data.evaluativeUncertainty);
+      if (evErr.length) {
+        return NextResponse.json({ ok: false, error: evErr.join("; ") }, { status: 422 });
       }
     }
 

@@ -42,6 +42,27 @@ export const SEQUENTIAL_EXERCISE_STEP_LABELS = [
   "Done",
 ] as const;
 
+export const GEOPOLITICS_SEQUENTIAL_STEP_LABELS = [
+  "Setup",
+  "Order steps (Actor A)",
+  "Order steps (Actor B)",
+  "Confidence",
+  "AI perspective",
+  "Journal",
+  "Action",
+  "Done",
+] as const;
+
+export const SEQUENTIAL_TRIAGE_STEP_LABELS = [
+  "Setup",
+  "Order under time pressure",
+  "Confidence",
+  "AI perspective",
+  "Journal",
+  "Action",
+  "Done",
+] as const;
+
 export const SYSTEMS_EXERCISE_STEP_LABELS = [
   "Setup",
   "Decompose",

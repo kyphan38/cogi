@@ -61,6 +61,65 @@ function makeGenerative() {
   };
 }
 
+function makeGeoSteps(overrides?: { correctPositionB?: (i: number) => number }) {
+  return Array.from({ length: 6 }, (_, i) => ({
+    id: `s${i + 1}`, text: `Step ${i + 1}`, correctPosition: i,
+    correctPositionB: overrides?.correctPositionB ? overrides.correctPositionB(i) : (i + 3) % 6,
+    dependencies: [], isFlexible: false, explanation: `Why ${i + 1}`,
+  }));
+}
+
+function makeGeoSequential(perspectiveAName = "Actor A", perspectiveBName = "Actor B") {
+  return {
+    title: "Seq", scenario: "Order steps",
+    perspectiveAName,
+    perspectiveBName,
+    steps: makeGeoSteps(),
+    criticalErrors: [{ description: "Bad order for A", severity: "catastrophic" }],
+    criticalErrorsB: [{ description: "Bad order for B", severity: "problematic" }],
+  };
+}
+
+function makeGeoSystems(perspectiveAName = "Actor A", perspectiveBName = "Actor B") {
+  return {
+    ...makeSystems(),
+    perspectiveAName,
+    perspectiveBName,
+    intendedConnectionsB: [
+      { from: "node_2", to: "node_3", type: "conflicts_with", explanation: "Why B" },
+    ],
+    shockEventB: {
+      directlyAffected: ["node_2"],
+      indirectlyAffected: ["node_4"],
+      explanation: "Impact on B",
+    },
+  };
+}
+
+function makeUncertaintyEvaluative() {
+  return {
+    variant: "uncertainty" as const,
+    title: "Crisis options",
+    scenario: "Estimate the response options",
+    options: [
+      {
+        id: "o1", title: "Option A", description: "D",
+        outcomes: [
+          { id: "out1", label: "Good", probability: 0.6, payoff: 100, explanation: "E" },
+          { id: "out2", label: "Bad", probability: 0.4, payoff: -50, explanation: "E" },
+        ],
+      },
+      {
+        id: "o2", title: "Option B", description: "D",
+        outcomes: [
+          { id: "out3", label: "Good", probability: 0.5, payoff: 80, explanation: "E" },
+          { id: "out4", label: "Bad", probability: 0.5, payoff: -20, explanation: "E" },
+        ],
+      },
+    ],
+  };
+}
+
 describe("parseComboBundleJson", () => {
   describe("full_analysis preset", () => {
     const payload = {
@@ -156,5 +215,104 @@ describe("parseComboBundleJson", () => {
       generative: makeGenerative(),
     };
     expect(parseComboBundleJson(JSON.stringify(payload), "decision_sprint").success).toBe(false);
+  });
+
+  describe("geopolitics auto-detection for full_analysis/root_cause (§2a)", () => {
+    it("parses full_analysis with a geopolitics systems sub-schema and keeps the extra fields", () => {
+      const payload = {
+        preset: "full_analysis",
+        sharedTitle: "Shared Title",
+        sharedScenario: "A shared scenario that is long enough to pass validation.",
+        analytical: makeAnalytical(),
+        systems: makeGeoSystems(),
+        evaluativeMatrix: makeEvaluativeMatrix(),
+      };
+      const result = parseComboBundleJson(JSON.stringify(payload), "full_analysis");
+      expect(result.success).toBe(true);
+      if (result.success && result.data.preset === "full_analysis") {
+        expect(result.data.systems).toHaveProperty("perspectiveAName", "Actor A");
+        expect(result.data.systems).toHaveProperty("shockEventB");
+      }
+    });
+
+    it("parses root_cause with geopolitics sequential + systems sub-schemas", () => {
+      const payload = {
+        preset: "root_cause",
+        sharedTitle: "Root Cause Title",
+        sharedScenario: "A root cause analysis scenario that passes min length.",
+        sequential: makeGeoSequential(),
+        systems: makeGeoSystems(),
+        analytical: makeAnalytical(),
+      };
+      const result = parseComboBundleJson(JSON.stringify(payload), "root_cause");
+      expect(result.success).toBe(true);
+      if (result.success && result.data.preset === "root_cause") {
+        expect(result.data.sequential).toHaveProperty("perspectiveAName", "Actor A");
+        expect(result.data.systems).toHaveProperty("perspectiveBName", "Actor B");
+      }
+    });
+  });
+
+  describe("crisis_response preset", () => {
+    function makeCrisisResponsePayload(overrides?: {
+      perspectiveAName?: string;
+      perspectiveBName?: string;
+      sequentialA?: string;
+      systemsA?: string;
+      evaluative?: unknown;
+    }) {
+      const perspectiveAName = overrides?.perspectiveAName ?? "Actor A";
+      const perspectiveBName = overrides?.perspectiveBName ?? "Actor B";
+      return {
+        preset: "crisis_response",
+        sharedTitle: "Crisis Title",
+        sharedScenario: "A shared geopolitical crisis scenario that is long enough to pass.",
+        perspectiveAName,
+        perspectiveBName,
+        sequential: makeGeoSequential(overrides?.sequentialA ?? perspectiveAName, perspectiveBName),
+        systems: makeGeoSystems(overrides?.systemsA ?? perspectiveAName, perspectiveBName),
+        evaluativeUncertainty: overrides?.evaluative ?? makeUncertaintyEvaluative(),
+      };
+    }
+
+    it("parses a valid crisis_response payload", () => {
+      const result = parseComboBundleJson(JSON.stringify(makeCrisisResponsePayload()), "crisis_response");
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.preset).toBe("crisis_response");
+    });
+
+    it("fails when sequential.perspectiveAName doesn't match the shared perspectiveAName", () => {
+      const payload = makeCrisisResponsePayload({ sequentialA: "Someone Else" });
+      const result = parseComboBundleJson(JSON.stringify(payload), "crisis_response");
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error).toContain("sequential.perspectiveAName");
+    });
+
+    it("fails when systems.perspectiveAName doesn't match the shared perspectiveAName", () => {
+      const payload = makeCrisisResponsePayload({ systemsA: "Someone Else" });
+      const result = parseComboBundleJson(JSON.stringify(payload), "crisis_response");
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error).toContain("systems.perspectiveAName");
+    });
+
+    it("fails when evaluativeUncertainty is the matrix variant instead of uncertainty", () => {
+      const payload = makeCrisisResponsePayload({ evaluative: makeEvaluativeMatrix() });
+      const result = parseComboBundleJson(JSON.stringify(payload), "crisis_response");
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error).toContain("uncertainty");
+    });
+
+    it("clips oversized system node labels", () => {
+      const payload = makeCrisisResponsePayload();
+      const oversized = {
+        ...payload,
+        systems: {
+          ...payload.systems,
+          nodes: payload.systems.nodes.map((n) => ({ ...n, label: "x".repeat(30) })),
+        },
+      };
+      const result = parseComboBundleJson(JSON.stringify(oversized), "crisis_response");
+      expect(result.success).toBe(true);
+    });
   });
 });

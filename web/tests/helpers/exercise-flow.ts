@@ -103,6 +103,14 @@ export async function selectSystemsTaskType(
   await page.getByRole("option", { name }).click();
 }
 
+export async function selectSequentialTaskType(
+  page: Page,
+  name: RegExp | string,
+): Promise<void> {
+  await comboboxBelowLabel(page, "Task type").click();
+  await page.getByRole("option", { name }).click();
+}
+
 /** Drag from one node's bottom (source) handle to another's top (target) handle on a
  * SystemsFlowCanvas in "connect" mode, creating a single edge. */
 export async function addSystemsConnection(page: Page): Promise<void> {

@@ -5,7 +5,9 @@ import Link from "next/link";
 import { ExerciseShell } from "@/components/shared/ExerciseShell";
 import { HighlightTag } from "@/components/exercises/HighlightTag";
 import { SystemsFlowCanvas } from "@/components/exercises/SystemsFlowCanvas";
+import { SystemsPerspectiveCompare } from "@/components/exercises/SystemsPerspectiveCompare";
 import { EvaluativeMatrixBoard } from "@/components/exercises/EvaluativeMatrixBoard";
+import { EvaluativeOutcomeInputRow } from "@/components/exercises/EvaluativeOutcomeInputRow";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
@@ -36,6 +38,7 @@ import type {
   ConfidenceRecord,
   EvaluativeMatrixRow,
   EvaluativeQuadrant,
+  EvaluativeUncertaintyRow,
   GenerativeExerciseRow,
   SequentialExerciseRow,
   SystemsExerciseRow,
@@ -57,10 +60,16 @@ import { computeAnalyticalAccuracy } from "@/lib/analytics/calibration-analytica
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { computeSequentialAccuracy } from "@/lib/analytics/calibration-sequential";
 import { computeSystemsAccuracy } from "@/lib/analytics/calibration-systems";
-import { computeEvaluativeMatrixAccuracy } from "@/lib/analytics/calibration-evaluative";
+import {
+  computeEvaluativeMatrixAccuracy,
+  computeEvaluativeUncertaintyAccuracy,
+  EVALUATIVE_UNCERTAINTY_PROBABILITY_EPSILON,
+} from "@/lib/analytics/calibration-evaluative";
 import { generativeRubricToAccuracy } from "@/lib/analytics/calibration-generative";
 import { currentIsoWeekKey } from "@/lib/db/actions";
-import type { SystemsConnectionType } from "@/lib/ai/validators/systems";
+import { isGeopoliticsSystemsPayload, type SystemsConnectionType } from "@/lib/ai/validators/systems";
+import { isGeopoliticsSequentialPayload } from "@/lib/ai/validators/sequential";
+import type { GenerativeVariant } from "@/lib/ai/validators/generative";
 import { DomainInput } from "@/components/shared/DomainInput";
 import { listRecentDomains } from "@/lib/db/exercises";
 import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
@@ -99,6 +108,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
   );
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [preset, setPreset] = useState<ComboPresetId>("full_analysis");
+  const [generativeVariant, setGenerativeVariant] = useState<GenerativeVariant>("argue_debate");
   const [bundle, setBundle] = useState<ComboBundle | null>(null);
   const [comboId, setComboId] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>("pick");
@@ -112,7 +122,14 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
   const [nodeImpact, setNodeImpact] = useState<Record<string, SystemsNodeImpact>>({});
   const [placements, setPlacements] = useState<Partial<Record<string, EvaluativeQuadrant>>>({});
   const [genAnswers, setGenAnswers] = useState<Record<string, string>>({});
-  const [systemsPhase, setSystemsPhase] = useState<"connect" | "shock">("connect");
+  const [systemsPhase, setSystemsPhase] = useState<"connect" | "shock" | "compare">("connect");
+  const [systemsPerspectiveBNotes, setSystemsPerspectiveBNotes] = useState("");
+  const [outcomeIntuitionText, setOutcomeIntuitionText] = useState("");
+  const [uncertaintyPhase, setUncertaintyPhase] = useState<"intuition" | "estimate">("intuition");
+  const [userProbabilities, setUserProbabilities] = useState<Record<string, Record<string, number>>>(
+    {},
+  );
+  const [userPayoffs, setUserPayoffs] = useState<Record<string, Record<string, number>>>({});
 
   const [comboConfidence, setComboConfidence] = useState(50);
   const [journalPrompts, setJournalPrompts] = useState<JournalPromptItem[]>([]);
@@ -144,6 +161,11 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
     setGenAnswers({});
     setMechStep(0);
     setSystemsPhase("connect");
+    setSystemsPerspectiveBNotes("");
+    setOutcomeIntuitionText("");
+    setUncertaintyPhase("intuition");
+    setUserProbabilities({});
+    setUserPayoffs({});
   };
 
   useEffect(() => {
@@ -175,6 +197,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
           mode: setupMode,
           customScenario: customScenarioOut,
           userContext: userContext || undefined,
+          generativeVariant: preset === "decision_sprint" ? generativeVariant : undefined,
         }),
       });
       const json = await safeAiJson<{ ok: true; data: ComboBundle } | { ok: false; error: string }>(res);
@@ -188,10 +211,14 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
       setPersistedDomain(d);
       setPersistedCustomScenario(customScenarioOut);
       resetWorkState();
-      if (json.data.preset === "root_cause") {
+      if (json.data.preset === "root_cause" || json.data.preset === "crisis_response") {
         setSeqOrder(shuffleIds(json.data.sequential.steps.map((s) => s.id)));
       }
-      if (json.data.preset === "full_analysis" || json.data.preset === "root_cause") {
+      if (
+        json.data.preset === "full_analysis" ||
+        json.data.preset === "root_cause" ||
+        json.data.preset === "crisis_response"
+      ) {
         const nodes = json.data.systems.nodes;
         setNodeImpact(emptyImpact(nodes.map((n) => n.id)));
       }
@@ -201,7 +228,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
     } finally {
       setLoading(false);
     }
-  }, [domain, preset, setupMode, customScenarioText]);
+  }, [domain, preset, generativeVariant, setupMode, customScenarioText]);
 
   const regenerate = () => {
     const dirty =
@@ -209,7 +236,10 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
       seqOrder.length > 0 ||
       userEdges.length > 0 ||
       Object.keys(placements).length > 0 ||
-      Object.values(genAnswers).some((t) => t.trim().length > 0);
+      Object.values(genAnswers).some((t) => t.trim().length > 0) ||
+      systemsPerspectiveBNotes.trim().length > 0 ||
+      outcomeIntuitionText.trim().length > 0 ||
+      Object.keys(userProbabilities).length > 0;
     if (dirty) {
       const ok = window.confirm("Discard current work and regenerate?");
       if (!ok) return;
@@ -249,7 +279,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
     if (!bundle || !comboId) return null;
     if (bundle.preset === "decision_sprint") return null;
     const s = bundle.systems;
-    return {
+    const base: SystemsExerciseRow = {
       id: `${comboId}-systems`,
       type: "systems",
       domain: persistedDomain,
@@ -266,7 +296,27 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
       createdAt: new Date().toISOString(),
       completedAt: null,
     };
-  }, [bundle, comboId, persistedDomain, persistedCustomScenario, userEdges, nodeImpact]);
+    if (isGeopoliticsSystemsPayload(s)) {
+      return {
+        ...base,
+        isGeopolitics: true,
+        perspectiveAName: s.perspectiveAName,
+        perspectiveBName: s.perspectiveBName,
+        intendedConnectionsB: s.intendedConnectionsB,
+        shockEventB: s.shockEventB,
+        userPerspectiveBNotes: systemsPerspectiveBNotes,
+      };
+    }
+    return base;
+  }, [
+    bundle,
+    comboId,
+    persistedDomain,
+    persistedCustomScenario,
+    userEdges,
+    nodeImpact,
+    systemsPerspectiveBNotes,
+  ]);
 
   const matrixSource = useMemo((): EvaluativeMatrixRow | null => {
     if (!bundle || !comboId) return null;
@@ -297,9 +347,10 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
   }, [bundle, comboId, persistedDomain, persistedCustomScenario, placements]);
 
   const sequentialSource = useMemo((): SequentialExerciseRow | null => {
-    if (!bundle || bundle.preset !== "root_cause" || !comboId) return null;
+    if (!bundle || !comboId) return null;
+    if (bundle.preset !== "root_cause" && bundle.preset !== "crisis_response") return null;
     const s = bundle.sequential;
-    return {
+    const base: SequentialExerciseRow = {
       id: `${comboId}-sequential`,
       type: "sequential",
       domain: persistedDomain,
@@ -314,6 +365,16 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
       createdAt: new Date().toISOString(),
       completedAt: null,
     };
+    if (isGeopoliticsSequentialPayload(s)) {
+      return {
+        ...base,
+        variantKind: "geopolitics",
+        perspectiveAName: s.perspectiveAName,
+        perspectiveBName: s.perspectiveBName,
+        criticalErrorsB: s.criticalErrorsB,
+      };
+    }
+    return base;
   }, [bundle, comboId, persistedDomain, persistedCustomScenario, seqOrder]);
 
   const generativeSource = useMemo((): GenerativeExerciseRow | null => {
@@ -331,6 +392,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
       type: "generative",
       domain: persistedDomain,
       customScenario: persistedCustomScenario,
+      generativeVariant,
       title: g.title,
       scenario: bundle.sharedScenario,
       stageAtStart: "independent",
@@ -345,7 +407,37 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
       createdAt: new Date().toISOString(),
       completedAt: null,
     };
-  }, [bundle, comboId, persistedDomain, persistedCustomScenario, genAnswers]);
+  }, [bundle, comboId, persistedDomain, persistedCustomScenario, genAnswers, generativeVariant]);
+
+  const evaluativeUncertaintySource = useMemo((): EvaluativeUncertaintyRow | null => {
+    if (!bundle || bundle.preset !== "crisis_response" || !comboId) return null;
+    const e = bundle.evaluativeUncertainty;
+    return {
+      id: `${comboId}-evaluative-uncertainty`,
+      type: "evaluative",
+      variant: "uncertainty",
+      domain: persistedDomain,
+      customScenario: persistedCustomScenario,
+      title: e.title,
+      scenario: bundle.sharedScenario,
+      options: e.options,
+      userProbabilities,
+      userPayoffs,
+      outcomeIntuitionText,
+      confidenceBefore: null,
+      aiPerspective: null,
+      createdAt: new Date().toISOString(),
+      completedAt: null,
+    };
+  }, [
+    bundle,
+    comboId,
+    persistedDomain,
+    persistedCustomScenario,
+    userProbabilities,
+    userPayoffs,
+    outcomeIntuitionText,
+  ]);
 
   const moveSeq = (idx: number, dir: -1 | 1) => {
     setSeqOrder((prev) => {
@@ -357,6 +449,30 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
     });
   };
 
+  /** Shared by every preset whose systems mechanic sits at mechStep 1: connect -> shock -> (if
+   * geopolitics) compare. Returns true if it consumed the click (stayed on the same sub-phase). */
+  const advanceSystemsPhase = (): boolean => {
+    if (systemsPhase === "connect") {
+      if (userEdges.length < 1) {
+        setError("Draw at least one connection before continuing.");
+        return true;
+      }
+      setSystemsPhase("shock");
+      return true;
+    }
+    if (systemsPhase === "shock" && systemsSource?.isGeopolitics) {
+      setSystemsPhase("compare");
+      return true;
+    }
+    if (systemsPhase === "compare") {
+      if (systemsPerspectiveBNotes.trim().length < 40) {
+        setError("Describe the other actor's perspective in at least 40 characters before continuing.");
+        return true;
+      }
+    }
+    return false;
+  };
+
   const nextMechanic = () => {
     setError(null);
     if (!bundle) return;
@@ -365,16 +481,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
         setError("Add at least one highlight before continuing.");
         return;
       }
-      if (mechStep === 1) {
-        if (systemsPhase === "connect") {
-          if (userEdges.length < 1) {
-            setError("Draw at least one connection before continuing.");
-            return;
-          }
-          setSystemsPhase("shock");
-          return;
-        }
-      }
+      if (mechStep === 1 && advanceSystemsPhase()) return;
       if (mechStep === 2) {
         const m = matrixSource;
         if (!m || Object.keys(placements).length < m.options.length) {
@@ -396,24 +503,48 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
           return;
         }
       }
-    } else {
+    } else if (bundle.preset === "root_cause") {
       if (mechStep === 0 && seqOrder.length < 1) {
         setError("Order the steps.");
         return;
       }
-      if (mechStep === 1) {
-        if (systemsPhase === "connect") {
-          if (userEdges.length < 1) {
-            setError("Draw at least one connection before continuing.");
-            return;
-          }
-          setSystemsPhase("shock");
-          return;
-        }
-      }
+      if (mechStep === 1 && advanceSystemsPhase()) return;
       if (mechStep === 2 && highlights.length < 1) {
         setError("Add at least one highlight before continuing.");
         return;
+      }
+    } else {
+      // crisis_response
+      if (mechStep === 0 && seqOrder.length < 1) {
+        setError("Order the steps.");
+        return;
+      }
+      if (mechStep === 1 && advanceSystemsPhase()) return;
+      if (mechStep === 2) {
+        if (uncertaintyPhase === "intuition") {
+          if (outcomeIntuitionText.trim().length < 10) {
+            setError("Share your gut read before estimating probabilities.");
+            return;
+          }
+          setUncertaintyPhase("estimate");
+          return;
+        }
+        const e = evaluativeUncertaintySource;
+        const ready =
+          e != null &&
+          e.options.every((o) => {
+            const probs = o.outcomes.map((out) => e.userProbabilities[o.id]?.[out.id]);
+            if (probs.some((p) => typeof p !== "number" || !Number.isFinite(p))) return false;
+            const sum = probs.reduce((s: number, p) => s + (p ?? 0), 0);
+            if (Math.abs(sum - 1) > EVALUATIVE_UNCERTAINTY_PROBABILITY_EPSILON) return false;
+            return o.outcomes.every((out) => typeof e.userPayoffs[o.id]?.[out.id] === "number");
+          });
+        if (!ready) {
+          setError(
+            "Each option's outcome probabilities must sum to 1.0, and every payoff must be filled in.",
+          );
+          return;
+        }
       }
     }
     if (mechStep + 1 >= mechCount) {
@@ -467,7 +598,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
           if (gFilled > 0) {
             accuracies.push(generativeRubricToAccuracy(50));
           }
-        } else {
+        } else if (bundle.preset === "root_cause") {
           if (sequentialSource) {
             accuracies.push(computeSequentialAccuracy(sequentialSource.steps, seqOrder));
           }
@@ -491,6 +622,23 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
                 analyticalSource.isSoundReasoning === true,
               ),
             );
+          }
+        } else {
+          if (sequentialSource) {
+            accuracies.push(computeSequentialAccuracy(sequentialSource.steps, seqOrder));
+          }
+          if (systemsSource) {
+            accuracies.push(
+              computeSystemsAccuracy({
+                intendedConnections: systemsSource.intendedConnections,
+                userEdges,
+                shock: systemsSource.shockEvent,
+                nodeImpact,
+              }),
+            );
+          }
+          if (evaluativeUncertaintySource) {
+            accuracies.push(computeEvaluativeUncertaintyAccuracy(evaluativeUncertaintySource));
           }
         }
         const accuracy =
@@ -583,7 +731,7 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
       const g: GenerativeExerciseRow = { ...generativeSource! };
       subs.push(ev, g);
       accs = [computeEvaluativeMatrixAccuracy(ev), generativeRubricToAccuracy(50)];
-    } else {
+    } else if (bundle.preset === "root_cause") {
       const seq: SequentialExerciseRow = { ...sequentialSource! };
       const sys: SystemsExerciseRow = { ...systemsSource!, userEdges, nodeImpact };
       const a: AnalyticalExerciseRow = { ...analyticalSource!, userHighlights: highlights };
@@ -597,6 +745,21 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
           nodeImpact,
         }),
         computeAnalyticalAccuracy(a.passage, a.embeddedIssues, a.validPoints, highlights),
+      ];
+    } else {
+      const seq: SequentialExerciseRow = { ...sequentialSource! };
+      const sys: SystemsExerciseRow = { ...systemsSource!, userEdges, nodeImpact };
+      const ev: EvaluativeUncertaintyRow = { ...evaluativeUncertaintySource! };
+      subs.push(seq, sys, ev);
+      accs = [
+        computeSequentialAccuracy(seq.steps, seqOrder),
+        computeSystemsAccuracy({
+          intendedConnections: sys.intendedConnections,
+          userEdges,
+          shock: sys.shockEvent,
+          nodeImpact,
+        }),
+        computeEvaluativeUncertaintyAccuracy(ev),
       ];
     }
 
@@ -769,9 +932,32 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
                   <SelectItem value="root_cause">
                     Root cause - sequential → systems → analytical
                   </SelectItem>
+                  <SelectItem value="crisis_response">
+                    Crisis response - sequential → systems → evaluative uncertainty
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {preset === "decision_sprint" ? (
+              <div className="grid gap-2">
+                <Label>Generative style</Label>
+                <Select
+                  value={generativeVariant}
+                  onValueChange={(v) =>
+                    setGenerativeVariant((v as GenerativeVariant) ?? "argue_debate")
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="argue_debate">Argue & defend</SelectItem>
+                    <SelectItem value="reframing">Reframe the problem</SelectItem>
+                    <SelectItem value="inversion">Pre-mortem (find failure paths)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
             <Button type="button" disabled={loading} onClick={() => void generateBundle()}>
               {loading ? (
                 <>
@@ -806,7 +992,9 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
               <p className="text-muted-foreground mb-4 text-sm whitespace-pre-wrap">
                 {bundle.sharedScenario}
               </p>
-              {bundle.preset === "full_analysis" && mechStep === 0 && analyticalSource ? (
+              {((bundle.preset === "full_analysis" && mechStep === 0) ||
+                (bundle.preset === "root_cause" && mechStep === 2)) &&
+              analyticalSource ? (
                 <HighlightTag
                   passage={analyticalSource.passage}
                   highlights={highlights}
@@ -816,7 +1004,8 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
                   }
                 />
               ) : null}
-              {bundle.preset === "full_analysis" && mechStep === 1 && systemsSource ? (
+
+              {bundle.preset !== "decision_sprint" && mechStep === 1 && systemsSource ? (
                 <>
                   {systemsPhase === "shock" ? (
                     <div className="mb-3 space-y-1">
@@ -825,62 +1014,97 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
                         {systemsSource.shockEvent.description}
                       </p>
                       <p className="text-muted-foreground text-xs">
-                        Click nodes to cycle: unaffected → directly affected → indirectly affected.
+                        Click nodes to cycle impact: none → direct → indirect.
                       </p>
                     </div>
-                  ) : (
+                  ) : systemsPhase === "connect" ? (
                     <p className="text-muted-foreground mb-2 text-xs">
                       Connect nodes, set edge types, then continue to mark shock impacts.
                     </p>
-                  )}
-                  <SystemsFlowCanvas
-                    nodes={systemsSource.nodes}
-                    userEdges={userEdges}
-                    onUserEdgesChange={setUserEdges}
-                    mode={systemsPhase === "connect" ? "connect" : "shock"}
-                    nodeImpact={nodeImpact}
-                    onToggleNodeImpact={
-                      systemsPhase === "shock"
-                        ? (id) =>
-                            setNodeImpact((prev) => ({
-                              ...prev,
-                              [id]: cycleImpact(prev[id] ?? "none"),
-                            }))
-                        : undefined
-                    }
-                  />
+                  ) : null}
+                  {systemsPhase !== "compare" ? (
+                    <SystemsFlowCanvas
+                      nodes={systemsSource.nodes}
+                      userEdges={userEdges}
+                      onUserEdgesChange={setUserEdges}
+                      mode={systemsPhase === "connect" ? "connect" : "shock"}
+                      nodeImpact={nodeImpact}
+                      onToggleNodeImpact={
+                        systemsPhase === "shock"
+                          ? (id) =>
+                              setNodeImpact((prev) => ({
+                                ...prev,
+                                [id]: cycleImpact(prev[id] ?? "none"),
+                              }))
+                          : undefined
+                      }
+                    />
+                  ) : null}
+                  {systemsPhase === "connect" ? (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-sm font-medium">Edge types</p>
+                      <ul className="space-y-2 text-xs">
+                        {userEdges.map((e) => (
+                          <li key={e.id} className="flex flex-wrap items-center gap-2">
+                            <span>
+                              {e.source} → {e.target}
+                            </span>
+                            <Select
+                              value={e.type}
+                              onValueChange={(v) =>
+                                setEdgeType(e.id, v as SystemsConnectionType)
+                              }
+                            >
+                              <SelectTrigger className="h-8 w-44">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="depends_on">depends on</SelectItem>
+                                <SelectItem value="conflicts_with">conflicts with</SelectItem>
+                                <SelectItem value="enables">enables</SelectItem>
+                                <SelectItem value="risks">risks</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {systemsPhase === "compare" &&
+                  systemsSource.isGeopolitics &&
+                  systemsSource.perspectiveAName &&
+                  systemsSource.perspectiveBName &&
+                  systemsSource.intendedConnectionsB &&
+                  systemsSource.shockEventB ? (
+                    <div className="space-y-4">
+                      <SystemsPerspectiveCompare
+                        nodes={systemsSource.nodes}
+                        userEdges={userEdges}
+                        nodeImpact={nodeImpact}
+                        perspectiveAName={systemsSource.perspectiveAName}
+                        perspectiveBName={systemsSource.perspectiveBName}
+                        intendedConnectionsA={systemsSource.intendedConnections}
+                        intendedConnectionsB={systemsSource.intendedConnectionsB}
+                        shockEvent={systemsSource.shockEvent}
+                        shockEventB={systemsSource.shockEventB}
+                      />
+                      <div className="grid gap-2">
+                        <Label htmlFor="systems-perspective-b-notes">
+                          How would {systemsSource.perspectiveBName} see this differently than{" "}
+                          {systemsSource.perspectiveAName}?
+                        </Label>
+                        <Textarea
+                          id="systems-perspective-b-notes"
+                          rows={4}
+                          value={systemsPerspectiveBNotes}
+                          onChange={(e) => setSystemsPerspectiveBNotes(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
                 </>
               ) : null}
-              {bundle.preset === "full_analysis" && mechStep === 1 && systemsPhase === "connect" ? (
-                <div className="mt-4 space-y-2">
-                  <p className="text-sm font-medium">Edge types</p>
-                  <ul className="space-y-2 text-xs">
-                    {userEdges.map((e) => (
-                      <li key={e.id} className="flex flex-wrap items-center gap-2">
-                        <span>
-                          {e.source} → {e.target}
-                        </span>
-                        <Select
-                          value={e.type}
-                          onValueChange={(v) =>
-                            setEdgeType(e.id, v as SystemsConnectionType)
-                          }
-                        >
-                          <SelectTrigger className="h-8 w-44">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="depends_on">depends on</SelectItem>
-                            <SelectItem value="conflicts_with">conflicts with</SelectItem>
-                            <SelectItem value="enables">enables</SelectItem>
-                            <SelectItem value="risks">risks</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
+
               {bundle.preset === "full_analysis" && mechStep === 2 && matrixSource ? (
                 <EvaluativeMatrixBoard
                   axisX={matrixSource.axisX}
@@ -918,9 +1142,15 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
                 </div>
               ) : null}
 
-              {bundle.preset === "root_cause" && mechStep === 0 && bundle ? (
+              {(bundle.preset === "root_cause" || bundle.preset === "crisis_response") &&
+              mechStep === 0 ? (
                 <div className="space-y-3">
-                  <p className="text-sm font-medium">Order the steps (most causal first)</p>
+                  <p className="text-sm font-medium">
+                    Order the steps
+                    {bundle.preset === "crisis_response"
+                      ? ` (as ${bundle.perspectiveAName} would prioritize them)`
+                      : " (most causal first)"}
+                  </p>
                   <ol className="space-y-2">
                     {seqOrder.map((id, idx) => {
                       const st = bundle.sequential.steps.find((s) => s.id === id);
@@ -956,80 +1186,68 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
                   </ol>
                 </div>
               ) : null}
-              {bundle.preset === "root_cause" && mechStep === 1 && systemsSource ? (
-                <>
-                  {systemsPhase === "shock" ? (
-                    <div className="mb-3 space-y-1">
-                      <p className="text-sm font-medium">Shock</p>
-                      <p className="text-muted-foreground text-sm">
-                        {systemsSource.shockEvent.description}
-                      </p>
-                      <p className="text-muted-foreground text-xs">
-                        Click nodes to cycle impact: none → direct → indirect.
-                      </p>
+
+              {bundle.preset === "crisis_response" && mechStep === 2 && evaluativeUncertaintySource ? (
+                <div className="space-y-4">
+                  {uncertaintyPhase === "intuition" ? (
+                    <div className="space-y-3">
+                      {evaluativeUncertaintySource.options.map((o) => (
+                        <div key={o.id} className="rounded border p-2 text-sm">
+                          <p className="font-medium">{o.title}</p>
+                          <p className="text-muted-foreground text-xs">{o.description}</p>
+                        </div>
+                      ))}
+                      <div className="grid gap-2">
+                        <Label htmlFor="crisis-outcome-intuition">
+                          Before estimating probabilities, what's your gut read on how this plays out?
+                        </Label>
+                        <Textarea
+                          id="crisis-outcome-intuition"
+                          rows={3}
+                          value={outcomeIntuitionText}
+                          onChange={(e) => setOutcomeIntuitionText(e.target.value)}
+                        />
+                      </div>
                     </div>
                   ) : (
-                    <p className="text-muted-foreground mb-2 text-xs">
-                      Connect nodes and set edge types, then continue for shock impacts.
-                    </p>
+                    evaluativeUncertaintySource.options.map((o) => {
+                      const evEstimate = o.outcomes.reduce((sum, out) => {
+                        const p = userProbabilities[o.id]?.[out.id] ?? 0;
+                        const payoff = userPayoffs[o.id]?.[out.id] ?? 0;
+                        return sum + p * payoff;
+                      }, 0);
+                      return (
+                        <div key={o.id} className="space-y-2 rounded border p-3">
+                          <p className="text-sm font-medium">{o.title}</p>
+                          <p className="text-muted-foreground text-xs">{o.description}</p>
+                          {o.outcomes.map((out) => (
+                            <EvaluativeOutcomeInputRow
+                              key={out.id}
+                              outcome={out}
+                              userProbability={userProbabilities[o.id]?.[out.id]}
+                              userPayoff={userPayoffs[o.id]?.[out.id]}
+                              onProbabilityChange={(p) =>
+                                setUserProbabilities((prev) => ({
+                                  ...prev,
+                                  [o.id]: { ...prev[o.id], [out.id]: p },
+                                }))
+                              }
+                              onPayoffChange={(payoff) =>
+                                setUserPayoffs((prev) => ({
+                                  ...prev,
+                                  [o.id]: { ...prev[o.id], [out.id]: payoff },
+                                }))
+                              }
+                            />
+                          ))}
+                          <p className="text-muted-foreground text-xs">
+                            Your estimated EV: {evEstimate.toFixed(2)}
+                          </p>
+                        </div>
+                      );
+                    })
                   )}
-                  <SystemsFlowCanvas
-                    nodes={systemsSource.nodes}
-                    userEdges={userEdges}
-                    onUserEdgesChange={setUserEdges}
-                    mode={systemsPhase === "connect" ? "connect" : "shock"}
-                    nodeImpact={nodeImpact}
-                    onToggleNodeImpact={
-                      systemsPhase === "shock"
-                        ? (id) =>
-                            setNodeImpact((prev) => ({
-                              ...prev,
-                              [id]: cycleImpact(prev[id] ?? "none"),
-                            }))
-                        : undefined
-                    }
-                  />
-                </>
-              ) : null}
-              {bundle.preset === "root_cause" && mechStep === 1 && systemsPhase === "connect" ? (
-                <div className="mt-4 space-y-2">
-                  <p className="text-sm font-medium">Edge types</p>
-                  <ul className="space-y-2 text-xs">
-                    {userEdges.map((e) => (
-                      <li key={e.id} className="flex flex-wrap items-center gap-2">
-                        <span>
-                          {e.source} → {e.target}
-                        </span>
-                        <Select
-                          value={e.type}
-                          onValueChange={(v) =>
-                            setEdgeType(e.id, v as SystemsConnectionType)
-                          }
-                        >
-                          <SelectTrigger className="h-8 w-44">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="depends_on">depends on</SelectItem>
-                            <SelectItem value="conflicts_with">conflicts with</SelectItem>
-                            <SelectItem value="enables">enables</SelectItem>
-                            <SelectItem value="risks">risks</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
-              ) : null}
-              {bundle.preset === "root_cause" && mechStep === 2 && analyticalSource ? (
-                <HighlightTag
-                  passage={analyticalSource.passage}
-                  highlights={highlights}
-                  onChange={setHighlights}
-                  onSelectionOverlap={() =>
-                    setError("Selection overlaps an existing highlight. Remove or adjust first.")
-                  }
-                />
               ) : null}
             </CardContent>
           </Card>
@@ -1049,9 +1267,18 @@ export function ComboExerciseFlow({ resumeId: _resumeId }: { resumeId?: string }
             <Button type="button" onClick={() => nextMechanic()}>
               {bundle.preset !== "decision_sprint" && mechStep === 1 && systemsPhase === "connect"
                 ? "Continue to shock impacts"
-                : mechStep + 1 >= mechCount
-                  ? "Continue to journal"
-                  : "Next step"}
+                : bundle.preset !== "decision_sprint" &&
+                    mechStep === 1 &&
+                    systemsPhase === "shock" &&
+                    systemsSource?.isGeopolitics
+                  ? "Continue to compare perspectives"
+                  : bundle.preset === "crisis_response" &&
+                      mechStep === 2 &&
+                      uncertaintyPhase === "intuition"
+                    ? "Continue to estimates"
+                    : mechStep + 1 >= mechCount
+                      ? "Continue to journal"
+                      : "Next step"}
             </Button>
           </div>
         </div>

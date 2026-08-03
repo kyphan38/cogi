@@ -357,3 +357,68 @@ test.describe("Combo exercise - root_cause flow", () => {
     expect(firstItemTextBefore).not.toEqual(firstItemTextAfter);
   });
 });
+
+test.describe("Combo exercise - crisis_response flow", () => {
+  test.beforeEach(async ({ page }) => {
+    await bypassFirebaseAuth(page);
+    await stubFirestoreReads(page);
+  });
+
+  test("preset selector includes Crisis response", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/combo");
+    await exercisePresetCombobox(page).click();
+    await expect(page.getByRole("option", { name: /Crisis response/ })).toBeVisible();
+  });
+
+  test("crisis_response generates with 3 steps and shows dual-actor sequential ordering", async ({
+    page,
+  }) => {
+    await gotoAuthenticated(page, "/exercise/combo");
+    await page.getByLabel("Domain").fill("Geopolitics");
+
+    await selectComboPreset(page, /Crisis response/);
+    await page.getByRole("button", { name: "Generate combo" }).click();
+
+    await expect(page.getByText("Step 1 of 3")).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.getByRole("heading", { name: /Maritime Standoff Response/ }),
+    ).toBeVisible();
+
+    // Sequential ordering mechanic renders, framed by Actor A's name (Northland)
+    await expect(page.getByText(/Order the steps.*Northland/)).toBeVisible();
+
+    const upButtons = page.getByRole("button", { name: "Up" });
+    const downButtons = page.getByRole("button", { name: "Down" });
+    await expect(upButtons).toHaveCount(6);
+    await expect(downButtons).toHaveCount(6);
+  });
+
+  test("step 2 shows the systems connect canvas after ordering", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/combo");
+    await page.getByLabel("Domain").fill("Geopolitics");
+
+    await selectComboPreset(page, /Crisis response/);
+    await page.getByRole("button", { name: "Generate combo" }).click();
+
+    await expect(page.getByText("Step 1 of 3")).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Next step" }).click();
+
+    await expect(page.getByText("Step 2 of 3")).toBeVisible();
+    await expect(
+      page.getByText("Connect nodes, set edge types, then continue to mark shock impacts."),
+    ).toBeVisible();
+  });
+
+  test("abandon combo returns to setup phase", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/combo");
+    await page.getByLabel("Domain").fill("Geopolitics");
+
+    await selectComboPreset(page, /Crisis response/);
+    await page.getByRole("button", { name: "Generate combo" }).click();
+
+    await expect(page.getByText("Step 1 of 3")).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Abandon combo" }).click();
+
+    await expect(page.getByRole("heading", { name: "Combo exercise" })).toBeVisible();
+  });
+});

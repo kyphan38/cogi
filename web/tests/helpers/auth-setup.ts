@@ -165,9 +165,16 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
       case "generative":
         data = makeMockGenerativeAiPayload();
         break;
-      case "sequential":
-        data = makeMockSequentialAiPayload();
+      case "sequential": {
+        const sequentialTaskType = body.sequentialTaskType as string | undefined;
+        data =
+          sequentialTaskType === "geopolitics"
+            ? makeMockSequentialGeopoliticsAiPayload()
+            : sequentialTaskType === "triage"
+              ? makeMockSequentialTriageAiPayload()
+              : makeMockSequentialAiPayload();
         break;
+      }
       default:
         data = makeMockAnalyticalAiPayload(domain);
     }
@@ -256,7 +263,107 @@ const SHARED_SCENARIO =
 function makeMockComboBundle(preset: string) {
   if (preset === "decision_sprint") return decisionSprintBundle();
   if (preset === "root_cause") return rootCauseBundle();
+  if (preset === "crisis_response") return crisisResponseBundle();
   return fullAnalysisBundle();
+}
+
+const CRISIS_SCENARIO =
+  "Tensions have escalated in a disputed maritime region after a naval patrol vessel from " +
+  "Northland collided with a fishing fleet escorted by Southland's coast guard. Both nations " +
+  "have mobilized additional forces to the area, and regional allies are watching closely to " +
+  "see how each side responds. Diplomatic channels remain open but strained, and a miscalculated " +
+  "next move by either side risks a wider confrontation.";
+
+function crisisResponseBundle() {
+  const perspectiveAName = "Northland";
+  const perspectiveBName = "Southland";
+  const nodes = [
+    { id: "node_1", label: "Naval Command", description: "Northland's regional fleet HQ", x: 15, y: 25 },
+    { id: "node_2", label: "Coast Guard", description: "Southland's patrol authority", x: 50, y: 15 },
+    { id: "node_3", label: "Fishing Fleet", description: "Civilian vessels in dispute", x: 85, y: 25 },
+    { id: "node_4", label: "Regional Allies", description: "Neighboring states watching closely", x: 15, y: 75 },
+    { id: "node_5", label: "UN Envoy", description: "Mediator seeking de-escalation", x: 50, y: 85 },
+    { id: "node_6", label: "Domestic Press", description: "Shapes public pressure on both sides", x: 85, y: 75 },
+  ];
+  return {
+    preset: "crisis_response",
+    sharedTitle: "Maritime Standoff Response",
+    sharedScenario: CRISIS_SCENARIO,
+    perspectiveAName,
+    perspectiveBName,
+    sequential: {
+      title: "Response Sequence",
+      scenario: CRISIS_SCENARIO,
+      perspectiveAName,
+      perspectiveBName,
+      steps: Array.from({ length: 6 }, (_, i) => ({
+        id: `s${i + 1}`,
+        text: `Response step ${i + 1}`,
+        correctPosition: i,
+        correctPositionB: (i + 3) % 6,
+        dependencies: [],
+        isFlexible: false,
+        explanation: `Why step ${i + 1} matters`,
+      })),
+      criticalErrors: [
+        { description: `Escalating before ${perspectiveAName} secures allied backing`, severity: "catastrophic" },
+      ],
+      criticalErrorsB: [
+        { description: `${perspectiveBName} conceding before domestic audiences are briefed`, severity: "problematic" },
+      ],
+    },
+    systems: {
+      title: "Regional Actor Network",
+      scenario: CRISIS_SCENARIO,
+      nodes,
+      perspectiveAName,
+      perspectiveBName,
+      intendedConnections: [
+        { from: "node_1", to: "node_3", type: "risks", explanation: `${perspectiveAName} sees the fleet as provocation.` },
+        { from: "node_4", to: "node_1", type: "depends_on", explanation: "Allies expect restraint." },
+      ],
+      intendedConnectionsB: [
+        { from: "node_2", to: "node_3", type: "enables", explanation: `${perspectiveBName} sees the fleet as protected livelihood.` },
+        { from: "node_6", to: "node_2", type: "risks", explanation: "Domestic press pressures a firm response." },
+      ],
+      shockEvent: {
+        description: "A warning shot is fired near the fishing fleet",
+        directlyAffected: ["node_3", "node_1"],
+        indirectlyAffected: ["node_4", "node_5"],
+        explanation: `${perspectiveAName} must decide how allies interpret this escalation.`,
+      },
+      shockEventB: {
+        directlyAffected: ["node_3", "node_2"],
+        indirectlyAffected: ["node_6"],
+        explanation: `${perspectiveBName}'s domestic press amplifies the incident.`,
+      },
+    },
+    evaluativeUncertainty: {
+      variant: "uncertainty",
+      title: "Response Options Under Uncertainty",
+      scenario: CRISIS_SCENARIO,
+      options: [
+        {
+          id: "opt-1",
+          title: "De-escalate and withdraw patrol",
+          description: "Pull back naval assets and open backchannel talks.",
+          outcomes: [
+            { id: "out-1a", label: "Tensions cool", probability: 0.6, payoff: 50, explanation: "Both sides save face." },
+            { id: "out-1b", label: "Seen as weakness", probability: 0.4, payoff: -30, explanation: "Domestic backlash emboldens hardliners." },
+          ],
+        },
+        {
+          id: "opt-2",
+          title: "Hold position and demand apology",
+          description: "Maintain presence, escalate diplomatically only.",
+          outcomes: [
+            { id: "out-2a", label: "Apology secured", probability: 0.3, payoff: 40, explanation: "Southland backs down publicly." },
+            { id: "out-2b", label: "Standoff continues", probability: 0.7, payoff: -10, explanation: "Costly prolonged tension." },
+          ],
+        },
+      ],
+    },
+  };
 }
 
 function fullAnalysisBundle() {
@@ -669,6 +776,54 @@ function makeMockSequentialAiPayload() {
     ],
     criticalErrors: [
       { description: "Deploying a fix before identifying root cause", severity: "catastrophic" },
+    ],
+  };
+}
+
+function makeMockSequentialGeopoliticsAiPayload() {
+  return {
+    title: "Ceasefire Negotiation Sequence",
+    scenario:
+      "Two neighboring states are negotiating a ceasefire after a border skirmish. " +
+      "Actor Northland favors a diplomacy-first sequence to preserve alliance credibility, " +
+      "while Actor Southrim favors a deterrence-first sequence to protect its negotiating position.",
+    perspectiveAName: "Northland",
+    perspectiveBName: "Southrim",
+    steps: [
+      { id: "g1", text: "Issue a public statement calling for restraint", correctPosition: 0, correctPositionB: 2, dependencies: [], isFlexible: false, explanation: "Northland leads with diplomacy to reassure allies." },
+      { id: "g2", text: "Reinforce forward defensive positions", correctPosition: 3, correctPositionB: 0, dependencies: [], isFlexible: false, explanation: "Southrim leads with deterrence to avoid appearing weak." },
+      { id: "g3", text: "Open a back-channel with the other side's negotiators", correctPosition: 1, correctPositionB: 1, dependencies: ["g1"], isFlexible: true, explanation: "Both actors value early back-channel contact." },
+      { id: "g4", text: "Brief allied governments on the negotiating position", correctPosition: 2, correctPositionB: 4, dependencies: ["g1"], isFlexible: false, explanation: "Northland briefs allies before conceding anything publicly." },
+      { id: "g5", text: "Propose a monitored ceasefire line", correctPosition: 4, correctPositionB: 3, dependencies: ["g3"], isFlexible: false, explanation: "Requires back-channel contact first for either actor." },
+      { id: "g6", text: "Withdraw non-essential personnel from the border zone", correctPosition: 5, correctPositionB: 5, dependencies: ["g5"], isFlexible: false, explanation: "Only after a ceasefire line is proposed." },
+    ],
+    criticalErrors: [
+      { description: "Reinforcing positions before issuing a restraint statement undercuts Northland's alliance credibility", severity: "problematic" },
+    ],
+    criticalErrorsB: [
+      { description: "Opening back-channel talks before reinforcing positions weakens Southrim's negotiating leverage", severity: "problematic" },
+    ],
+  };
+}
+
+function makeMockSequentialTriageAiPayload() {
+  return {
+    title: "Payment Outage Triage",
+    scenario:
+      "A production outage has taken down payment processing during a flash sale. " +
+      "The on-call team has a limited window to restore service before the sale window closes.",
+    variantKind: "triage",
+    timeLimitMinutes: 15,
+    steps: [
+      { id: "t1", text: "Acknowledge the page and notify the incident channel", correctPosition: 0, dependencies: [], isFlexible: false, severity: "critical", explanation: "First response protocol; delay compounds every downstream step." },
+      { id: "t2", text: "Isolate the failing payment service from the load balancer", correctPosition: 1, dependencies: ["t1"], isFlexible: false, severity: "critical", explanation: "Stops cascading failures into healthy services." },
+      { id: "t3", text: "Check recent deploys for a rollback candidate", correctPosition: 2, dependencies: ["t2"], isFlexible: false, severity: "major", explanation: "Fastest path to recovery if a recent deploy is the cause." },
+      { id: "t4", text: "Roll back the suspect deploy", correctPosition: 3, dependencies: ["t3"], isFlexible: false, severity: "major", explanation: "Directly addresses the likely root cause." },
+      { id: "t5", text: "Gradually restore traffic and monitor error rates", correctPosition: 4, dependencies: ["t4"], isFlexible: true, severity: "major", explanation: "Verifies the fix before full restoration." },
+      { id: "t6", text: "Draft the customer-facing status page update", correctPosition: 5, dependencies: [], isFlexible: true, severity: "minor", explanation: "Important for trust, but does not block recovery." },
+    ],
+    criticalErrors: [
+      { description: "Rolling back before isolating the failing service risks re-triggering the cascade", severity: "catastrophic" },
     ],
   };
 }

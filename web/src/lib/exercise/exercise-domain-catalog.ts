@@ -44,6 +44,8 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
       "Experiment design & A/B testing",
       "AI safety & alignment",
       "Data privacy & governance",
+      "Prompt engineering & agent design",
+      "Vector search & retrieval systems",
     ],
   },
   {
@@ -59,6 +61,7 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
       "Mergers & acquisitions",
       "Pricing & monetization strategy",
       "Marketing & growth strategy",
+      "Corporate finance & valuation",
     ],
   },
   {
@@ -92,6 +95,8 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
       "Hiring & team design",
       "Performance management & feedback",
       "Vendor & contract negotiation",
+      "Crisis management & communications",
+      "Remote & hybrid team operations",
     ],
   },
   {
@@ -104,6 +109,58 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
       "Clinical trial design",
       "Climate & environmental science",
       "Public health policy",
+      "Meta-analysis & systematic review",
+      "Data reproducibility & open science",
+      "Grant strategy & research funding",
+      "Emerging technology forecasting",
+    ],
+  },
+  {
+    id: "health-medicine",
+    label: "Health & medicine",
+    domains: [
+      "Health policy & health systems",
+      "Clinical decision-making",
+      "Epidemiology & disease surveillance",
+      "Nutrition & wellness science",
+      "Mental health & therapy approaches",
+      "Medical ethics & informed consent",
+      "Health insurance & healthcare economics",
+      "Preventive care & screening decisions",
+      "Pharmaceutical & drug policy",
+      "Aging & long-term care planning",
+    ],
+  },
+  {
+    id: "law-governance",
+    label: "Law & governance",
+    domains: [
+      "Contract law & negotiation",
+      "Regulatory compliance",
+      "Intellectual property strategy",
+      "Constitutional & civil rights law",
+      "Criminal justice policy",
+      "Corporate governance",
+      "International law & treaties",
+      "Employment & labor law",
+      "Privacy & data protection law",
+      "Judicial reasoning & precedent",
+    ],
+  },
+  {
+    id: "education-learning",
+    label: "Education & learning",
+    domains: [
+      "Curriculum design & pedagogy",
+      "Standardized testing & assessment",
+      "Higher education strategy",
+      "Online & remote learning",
+      "Skill acquisition & mastery",
+      "Education policy & funding",
+      "Special education & accessibility",
+      "Lifelong learning & upskilling",
+      "Academic research supervision",
+      "School choice & admissions",
     ],
   },
   {
@@ -114,6 +171,11 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
       "Risk & uncertainty",
       "Critical reading & media literacy",
       "Legal reasoning & case analysis",
+      "Consumer decisions & purchases",
+      "Home & DIY projects",
+      "Technology adoption choices",
+      "Community & civic participation",
+      "Media & entertainment choices",
       "Custom domain",
     ],
   },
@@ -360,4 +422,25 @@ export function flattenVisibleTreeLeaves(
   };
   walk(tree);
   return out;
+}
+
+/**
+ * Pick a random domain from the full catalog (technology, business, health,
+ * geopolitics, etc). Used by the "surprise me" / randomize control on
+ * {@link DomainInput}. Avoids the current value and any dismissed domains
+ * when possible, but falls back to the full pool rather than returning
+ * nothing.
+ */
+export function getRandomDomainSuggestion(options?: {
+  exclude?: Set<string>;
+  avoid?: string;
+}): string | undefined {
+  const exclude = options?.exclude ?? new Set<string>();
+  const avoid = options?.avoid?.trim();
+  const pool = EXERCISE_DOMAIN_SUGGESTIONS.filter(
+    (d) => !exclude.has(d) && d !== avoid,
+  );
+  const source = pool.length > 0 ? pool : EXERCISE_DOMAIN_SUGGESTIONS;
+  if (source.length === 0) return undefined;
+  return source[Math.floor(Math.random() * source.length)];
 }
