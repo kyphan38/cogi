@@ -95,6 +95,34 @@ export async function advanceEvaluativeUncertaintyToEstimate(page: Page): Promis
   await page.getByRole("button", { name: "Continue to estimate" }).click();
 }
 
+export async function selectSystemsTaskType(
+  page: Page,
+  name: RegExp | string,
+): Promise<void> {
+  await comboboxBelowLabel(page, "Task type").click();
+  await page.getByRole("option", { name }).click();
+}
+
+/** Drag from one node's bottom (source) handle to another's top (target) handle on a
+ * SystemsFlowCanvas in "connect" mode, creating a single edge. */
+export async function addSystemsConnection(page: Page): Promise<void> {
+  const sourceHandles = page.locator(".react-flow__handle-bottom");
+  const targetHandles = page.locator(".react-flow__handle-top");
+  const sourceBox = await sourceHandles.first().boundingBox();
+  const targetBox = await targetHandles.nth(1).boundingBox();
+  if (!sourceBox || !targetBox) {
+    throw new Error("addSystemsConnection: react-flow handles not found");
+  }
+  await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    targetBox.x + targetBox.width / 2,
+    targetBox.y + targetBox.height / 2,
+    { steps: 10 },
+  );
+  await page.mouse.up();
+}
+
 export async function advanceSystemsToCanvas(page: Page): Promise<void> {
   const components = [
     "API Gateway",

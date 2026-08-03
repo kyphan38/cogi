@@ -27,6 +27,9 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
       "Security engineering",
       "Software delivery & CI/CD",
       "Site reliability & incident response",
+      "Systems design & scalability",
+      "Technical debt & refactoring tradeoffs",
+      "Open source strategy",
     ],
   },
   {
@@ -39,6 +42,8 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
       "LLM / AI product delivery",
       "Feature stores & model governance",
       "Experiment design & A/B testing",
+      "AI safety & alignment",
+      "Data privacy & governance",
     ],
   },
   {
@@ -51,6 +56,9 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
       "Entrepreneurship & product-market fit",
       "Supply chain & operations",
       "Personal finance & investing basics",
+      "Mergers & acquisitions",
+      "Pricing & monetization strategy",
+      "Marketing & growth strategy",
     ],
   },
   {
@@ -68,6 +76,8 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
       "Persuasion & stakeholder alignment",
       "Health & wellness tradeoffs",
       "Parenting & family logistics",
+      "Habit formation & behavior change",
+      "Travel & relocation planning",
     ],
   },
   {
@@ -80,6 +90,20 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
       "Policy & regulation (domestic)",
       "Ethics & professional judgment",
       "Hiring & team design",
+      "Performance management & feedback",
+      "Vendor & contract negotiation",
+    ],
+  },
+  {
+    id: "science-research",
+    label: "Science & research",
+    domains: [
+      "Research methodology & study design",
+      "Statistical inference & causal claims",
+      "Scientific publishing & peer review",
+      "Clinical trial design",
+      "Climate & environmental science",
+      "Public health policy",
     ],
   },
   {
@@ -89,6 +113,7 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
       "Everyday decisions",
       "Risk & uncertainty",
       "Critical reading & media literacy",
+      "Legal reasoning & case analysis",
       "Custom domain",
     ],
   },
@@ -287,7 +312,8 @@ export function getDomainPickerTree(options: {
     tree.push({ id: group.id, label: group.label, domains });
   }
 
-  const geoChildren: DomainPickerTreeGroup[] = [];
+  // Geopolitics groups are pushed as top-level entries (not nested under a
+  // wrapper) so the picker never exceeds 2 levels deep (group -> domain).
   for (const group of GEOPOLITICS_DOMAIN_GROUPS) {
     const domains = filterGroupDomains(
       group.domains,
@@ -296,19 +322,10 @@ export function getDomainPickerTree(options: {
       excludeFromCatalog,
     );
     if (domains.length === 0) continue;
-    geoChildren.push({
-      id: group.id,
-      label: group.label.replace(/^Geopolitics - /, ""),
-      domains,
-    });
-  }
-
-  if (geoChildren.length > 0) {
     tree.push({
-      id: "geopolitics-root",
-      label: "Geopolitics & international affairs",
-      domains: [],
-      children: geoChildren,
+      id: group.id,
+      label: group.label,
+      domains,
     });
   }
 

@@ -1,6 +1,7 @@
 import { buildPerspectiveClarityPreamble } from "@/lib/ai/prompts/perspective-clarity-directives";
 import type {
   SystemsIntendedConnection,
+  SystemsNodeCriticalityHint,
   SystemsNodeImpact,
   SystemsNodeSpec,
   SystemsShockEvent,
@@ -28,6 +29,10 @@ export function buildSystemsShockPerspectivePrompt(input: {
     explanation: string;
   };
   userPerspectiveBNotes?: string;
+  variantKind?: "resilience";
+  criticalityGroundTruth?: SystemsNodeCriticalityHint[];
+  userCriticalityRanking?: Record<string, number>;
+  secondShockEvent?: SystemsShockEvent;
 }): string {
   const ctx = input.userContext?.trim() || "(none)";
   const geoBlock =
@@ -47,6 +52,24 @@ ${JSON.stringify(input.shockEventB, null, 2)}
 ${(input.userPerspectiveBNotes?.trim() || "(none)").slice(0, 4000)}
 
 In your reflection, weave in both perspectives where relevant: acknowledge blind spots from mapping only A, comment on structural differences the user noted, and how shock ripples might read differently for ${input.perspectiveBName}. Quote user notes where relevant. Do not assign a second numeric accuracy score.`
+      : "";
+
+  const resilienceBlock =
+    input.variantKind === "resilience" &&
+    input.criticalityGroundTruth &&
+    input.userCriticalityRanking &&
+    input.secondShockEvent
+      ? `
+
+Resilience audit context (diagnostic - do not assign a second numeric accuracy score):
+- Ground-truth criticality ranking (1 = most critical, i.e. single point of failure):
+${JSON.stringify(input.criticalityGroundTruth, null, 2)}
+- User's own criticality ranking guess (node id -> rank):
+${JSON.stringify(input.userCriticalityRanking, null, 2)}
+- Second shock event (cascades from the first shock's indirectlyAffected ring one hop further):
+${JSON.stringify(input.secondShockEvent, null, 2)}
+
+In your reflection, comment on how accurate the user's criticality ranking was versus the ground truth (call out any nodes they under- or over-rated), and discuss whether the second shock's cascade path was anticipatable from their initial mapping. Tone: collaborative peer, not a judge.`
       : "";
 
   const clarity = buildPerspectiveClarityPreamble();
@@ -104,5 +127,5 @@ Rules:
 - One nodeCritiques row per node in the nodes list (all 6).
 - userContextSnippet must state the user's impact choice and any connection pattern affecting that node.
 - Compare userImpact to shockEvent.directlyAffected / indirectlyAffected; agree or disagree gently in critique.
-- Tone: collaborative peer, not a judge. Do not give a numeric score.${geoBlock}`;
+- Tone: collaborative peer, not a judge. Do not give a numeric score.${geoBlock}${resilienceBlock}`;
 }

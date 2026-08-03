@@ -7,6 +7,7 @@ import {
   ExerciseShell,
   GEOPOLITICS_SYSTEMS_STEP_LABELS,
   SYSTEMS_EXERCISE_STEP_LABELS,
+  SYSTEMS_RESILIENCE_STEP_LABELS,
 } from "@/components/shared/ExerciseShell";
 import { SystemsFlowCanvas } from "@/components/exercises/SystemsFlowCanvas";
 import { SystemsPerspectiveCompare } from "@/components/exercises/SystemsPerspectiveCompare";
@@ -40,6 +41,7 @@ import type {
   JournalDraft,
   SystemsExerciseRow,
   SystemsNodeImpact,
+  SystemsTaskType,
   SystemsUserEdge,
 } from "@/lib/types/exercise";
 import type { SystemsConnectionType } from "@/lib/ai/validators/systems";
@@ -47,8 +49,10 @@ import type { JournalEntry } from "@/lib/types/journal";
 import type { ActionBridge } from "@/lib/types/action";
 import {
   isGeopoliticsSystemsPayload,
+  isResilienceSystemsPayload,
   type GeopoliticsSystemsExercisePayload,
   type SystemsExercisePayload,
+  type SystemsResilienceExercisePayload,
 } from "@/lib/ai/validators/systems";
 import { isGeopoliticsAnalyticalDomain } from "@/lib/exercise/geopolitics-domains";
 import { buildAdaptiveHintsForRequest } from "@/lib/adaptive/adaptive-hints";
@@ -77,7 +81,7 @@ const EDGE_TYPES: SystemsConnectionType[] = [
   "risks",
 ];
 
-type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
 function isGeopoliticsSystemsExercise(ex: SystemsExerciseRow): boolean {
   return (
@@ -90,10 +94,46 @@ function isGeopoliticsSystemsExercise(ex: SystemsExerciseRow): boolean {
   );
 }
 
-function systemsShellStep(step: FlowStep, isGeo: boolean): number {
-  if (isGeo) return step;
-  if (step <= 4) return step;
-  return step - 1;
+function isResilienceSystemsExercise(ex: SystemsExerciseRow): boolean {
+  return ex.variantKind === "resilience";
+}
+
+function systemsShellStep(step: FlowStep): number {
+  // Base/geo/resilience each number their own FlowStep values as a 1:1 identity match against
+  // their respective *_STEP_LABELS array (see systemsVariantSteps), so no per-variant offset
+  // is needed here.
+  return step;
+}
+
+/** Resilience inserts a "Criticality" step after Connect and a "Cascade" step after the first
+ * shock; geopolitics inserts a "Perspective swap" step after the first shock. The two variants
+ * are mutually exclusive, so each row is at most one of isGeo/isResilience. */
+function systemsVariantSteps(ex: SystemsExerciseRow | null): {
+  isGeo: boolean;
+  isResilience: boolean;
+  criticalityStep: FlowStep;
+  confidenceStep: FlowStep;
+  shockStep: FlowStep;
+  cascadeStep: FlowStep;
+  perspectiveStep: FlowStep;
+  journalStep: FlowStep;
+  actionStep: FlowStep;
+  doneStep: FlowStep;
+} {
+  const isGeo = ex ? isGeopoliticsSystemsExercise(ex) : false;
+  const isResilience = ex ? isResilienceSystemsExercise(ex) : false;
+  return {
+    isGeo,
+    isResilience,
+    criticalityStep: 3,
+    confidenceStep: isResilience ? 4 : 3,
+    shockStep: isResilience ? 5 : 4,
+    cascadeStep: 6,
+    perspectiveStep: isResilience ? 7 : isGeo ? 6 : 5,
+    journalStep: isResilience ? 8 : isGeo ? 7 : 6,
+    actionStep: isResilience ? 9 : isGeo ? 8 : 7,
+    doneStep: isResilience ? 10 : isGeo ? 9 : 8,
+  };
 }
 
 function emptyImpact(nodeIds: string[]): Record<string, SystemsNodeImpact> {
@@ -125,9 +165,17 @@ export function SystemsExerciseFlow({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [systemsTaskType, setSystemsTaskType] = useState<SystemsTaskType>("auto");
+
   const [exercise, setExercise] = useState<SystemsExerciseRow | null>(null);
   const [userEdges, setUserEdges] = useState<SystemsUserEdge[]>([]);
   const [nodeImpact, setNodeImpact] = useState<Record<string, SystemsNodeImpact>>({});
+  const [userCriticalityRanking, setUserCriticalityRanking] = useState<Record<string, number>>(
+    {},
+  );
+  const [secondNodeImpact, setSecondNodeImpact] = useState<Record<string, SystemsNodeImpact>>(
+    {},
+  );
   const [userProposedComponents, setUserProposedComponents] = useState<string[]>(() =>
     Array.from({ length: 6 }, () => ""),
   );
@@ -170,6 +218,8 @@ export function SystemsExerciseFlow({
       setExercise(row);
       setUserEdges(row.userEdges ?? []);
       setNodeImpact(row.nodeImpact ?? {});
+      setUserCriticalityRanking(row.userCriticalityRanking ?? {});
+      setSecondNodeImpact(row.secondNodeImpact ?? {});
       if (row.userProposedComponents && row.userProposedComponents.length > 0) {
         setUserProposedComponents(
           row.userProposedComponents.length === 6
@@ -202,8 +252,7 @@ export function SystemsExerciseFlow({
 
   useEffect(() => {
     if (!exercise || !journalPrimed) return;
-    const isGeo = isGeopoliticsSystemsExercise(exercise);
-    const journalStep = isGeo ? 7 : 6;
+    const { journalStep } = systemsVariantSteps(exercise);
     if (step !== journalStep && step !== journalStep + 1) return;
     const timer = setTimeout(() => {
       const journalDraft: JournalDraft = {
@@ -219,13 +268,20 @@ export function SystemsExerciseFlow({
   }, [journalAnswers, actionText, emotionLabel, step]);
 
   useEffect(() => {
-    const isGeo = exercise ? isGeopoliticsSystemsExercise(exercise) : false;
-    if (!exercise || step === 0 || (isGeo ? step === 9 : step === 8)) return;
+    const { doneStep } = systemsVariantSteps(exercise);
+    if (!exercise || step === 0 || step === doneStep) return;
     const timer = setTimeout(() => {
-      void putExercise({ ...exercise, userEdges, nodeImpact, currentStep: step });
+      void putExercise({
+        ...exercise,
+        userEdges,
+        nodeImpact,
+        secondNodeImpact,
+        userCriticalityRanking,
+        currentStep: step,
+      });
     }, 2000);
     return () => clearTimeout(timer);
-  }, [userEdges, nodeImpact, step]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userEdges, nodeImpact, secondNodeImpact, userCriticalityRanking, step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startGenerate = useCallback(async (
     domainOverride?: string,
@@ -257,10 +313,17 @@ export function SystemsExerciseFlow({
           mode: effectiveSetupMode,
           customScenario: customScenarioOut,
           adaptiveHints,
+          systemsTaskType,
         }),
       });
       const json = await safeAiJson<
-        | { ok: true; data: SystemsExercisePayload | GeopoliticsSystemsExercisePayload }
+        | {
+            ok: true;
+            data:
+              | SystemsExercisePayload
+              | GeopoliticsSystemsExercisePayload
+              | SystemsResilienceExercisePayload;
+          }
         | { ok: false; error: string }
       >(res);
       if (!json.ok) {
@@ -268,8 +331,10 @@ export function SystemsExerciseFlow({
         return;
       }
       const data = json.data;
+      const resilienceData = isResilienceSystemsPayload(data) ? data : null;
       const isGeo =
-        isGeopoliticsSystemsPayload(data) || isGeopoliticsAnalyticalDomain(d);
+        !resilienceData &&
+        (isGeopoliticsSystemsPayload(data) || isGeopoliticsAnalyticalDomain(d));
       const geoData = isGeopoliticsSystemsPayload(data)
         ? (data as GeopoliticsSystemsExercisePayload)
         : null;
@@ -290,9 +355,14 @@ export function SystemsExerciseFlow({
         perspectiveBName: geoData?.perspectiveBName,
         intendedConnectionsB: geoData?.intendedConnectionsB,
         shockEventB: geoData?.shockEventB,
+        variantKind: resilienceData ? "resilience" : undefined,
+        criticalityGroundTruth: resilienceData?.criticalityGroundTruth,
+        secondShockEvent: resilienceData?.secondShockEvent,
         userProposedComponents: null,
         userEdges: [],
         nodeImpact: emptyImpact(ids),
+        secondNodeImpact: resilienceData ? emptyImpact(ids) : undefined,
+        userCriticalityRanking: resilienceData ? {} : undefined,
         confidenceBefore: null,
         aiPerspective: null,
         createdAt: new Date().toISOString(),
@@ -303,6 +373,8 @@ export function SystemsExerciseFlow({
       setExercise(row);
       setUserEdges([]);
       setNodeImpact(emptyImpact(ids));
+      setUserCriticalityRanking({});
+      setSecondNodeImpact(resilienceData ? emptyImpact(ids) : {});
       setUserProposedComponents(Array.from({ length: 6 }, () => ""));
       setDecomposePhase("input");
       setPerspectiveText(null);
@@ -319,7 +391,7 @@ export function SystemsExerciseFlow({
     } finally {
       setLoading(false);
     }
-  }, [domain, setupMode, customScenarioText]);
+  }, [domain, setupMode, customScenarioText, systemsTaskType]);
 
   const autoGenerateTriggered = useRef(false);
   const [autoGenerateReady, setAutoGenerateReady] = useState(false);
@@ -367,7 +439,7 @@ export function SystemsExerciseFlow({
   ): Promise<boolean> => {
     if (!exercise) return false;
     const userContext = await getUserContext();
-    const isGeo = isGeopoliticsSystemsExercise(exercise);
+    const { isResilience, perspectiveStep } = systemsVariantSteps(exercise);
     const res = await aiFetch("/api/ai/perspective", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -389,6 +461,10 @@ export function SystemsExerciseFlow({
         intendedConnectionsB: exercise.intendedConnectionsB,
         shockEventB: exercise.shockEventB,
         userPerspectiveBNotes: notes ?? exercise.userPerspectiveBNotes,
+        variantKind: isResilience ? exercise.variantKind : undefined,
+        criticalityGroundTruth: isResilience ? exercise.criticalityGroundTruth : undefined,
+        userCriticalityRanking: isResilience ? userCriticalityRanking : undefined,
+        secondShockEvent: isResilience ? exercise.secondShockEvent : undefined,
       }),
     });
     const json = await safeAiJson<unknown>(res);
@@ -407,11 +483,12 @@ export function SystemsExerciseFlow({
       userPerspectiveBNotes: notes ?? exercise.userPerspectiveBNotes,
       aiPerspective: parsed.text,
       aiPerspectiveStructured: parsed.structured,
-      currentStep: isGeo ? 6 : 5,
+      currentStep: perspectiveStep,
+      ...(isResilience ? { secondNodeImpact, userCriticalityRanking } : {}),
     };
     await putExercise(partial);
     setExercise(partial);
-    setStep(isGeo ? 6 : 5);
+    setStep(perspectiveStep);
     return true;
   };
 
@@ -424,12 +501,33 @@ export function SystemsExerciseFlow({
       nodeImpact,
       confidenceBefore: confidence,
     };
+    if (isResilienceSystemsExercise(exercise)) {
+      const { cascadeStep } = systemsVariantSteps(exercise);
+      await putExercise({ ...partial, currentStep: cascadeStep });
+      setExercise({ ...partial, currentStep: cascadeStep });
+      advance(cascadeStep, { ...partial, currentStep: cascadeStep });
+      return;
+    }
     if (isGeopoliticsSystemsExercise(exercise)) {
       await putExercise({ ...partial, currentStep: 5 });
       setExercise({ ...partial, currentStep: 5 });
       advance(5, { ...partial, currentStep: 5 });
       return;
     }
+    setLoading(true);
+    try {
+      const ok = await fetchSystemsPerspective();
+      if (!ok) return;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Perspective failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const finishCascadeStep = async () => {
+    if (!exercise) return;
+    setError(null);
     setLoading(true);
     try {
       const ok = await fetchSystemsPerspective();
@@ -474,8 +572,8 @@ export function SystemsExerciseFlow({
 
   useEffect(() => {
     if (!exercise || journalPrimed) return;
-    const isGeo = isGeopoliticsSystemsExercise(exercise);
-    if (isGeo ? step !== 7 : step !== 6) return;
+    const { journalStep } = systemsVariantSteps(exercise);
+    if (step !== journalStep) return;
     const effectId = ++journalEffectIdRef.current;
     let cancelled = false;
     (async () => {
@@ -580,6 +678,7 @@ export function SystemsExerciseFlow({
       weeklyFollowThrough: [{ weekKey: currentIsoWeekKey(), done: false }],
       createdAt: new Date().toISOString(),
     };
+    const isResilience = isResilienceSystemsExercise(exercise);
     const finalEx: SystemsExerciseRow = {
       ...exercise,
       userEdges,
@@ -589,6 +688,7 @@ export function SystemsExerciseFlow({
       aiPerspective: perspectiveText,
       aiPerspectiveStructured: perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null,
       completedAt: new Date().toISOString(),
+      ...(isResilience ? { secondNodeImpact, userCriticalityRanking } : {}),
     };
     try {
       await completeExerciseFlow({
@@ -598,20 +698,30 @@ export function SystemsExerciseFlow({
         action,
       });
       setExercise(finalEx);
-      setStep(exercise && isGeopoliticsSystemsExercise(exercise) ? 9 : 8);
+      setStep(systemsVariantSteps(exercise).doneStep);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     }
   };
 
   const isGeoExercise = exercise ? isGeopoliticsSystemsExercise(exercise) : false;
-  const shellStep = systemsShellStep(step, isGeoExercise);
-  const stepLabels = isGeoExercise
-    ? GEOPOLITICS_SYSTEMS_STEP_LABELS
-    : SYSTEMS_EXERCISE_STEP_LABELS;
-  const perspectiveStep: FlowStep = isGeoExercise ? 6 : 5;
-  const journalStep: FlowStep = isGeoExercise ? 7 : 6;
-  const actionStep: FlowStep = isGeoExercise ? 8 : 7;
+  const isResilienceExercise = exercise ? isResilienceSystemsExercise(exercise) : false;
+  const {
+    criticalityStep,
+    confidenceStep,
+    shockStep,
+    cascadeStep,
+    perspectiveStep,
+    journalStep,
+    actionStep,
+    doneStep,
+  } = systemsVariantSteps(exercise);
+  const shellStep = systemsShellStep(step);
+  const stepLabels = isResilienceExercise
+    ? SYSTEMS_RESILIENCE_STEP_LABELS
+    : isGeoExercise
+      ? GEOPOLITICS_SYSTEMS_STEP_LABELS
+      : SYSTEMS_EXERCISE_STEP_LABELS;
 
   return (
     <ExerciseShell stepIndex={shellStep} stepLabels={stepLabels}>
@@ -662,6 +772,23 @@ export function SystemsExerciseFlow({
               >
                 Type your own
               </Button>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Task type</Label>
+              <Select
+                value={systemsTaskType}
+                onValueChange={(v) => setSystemsTaskType((v as SystemsTaskType) ?? "auto")}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Auto</SelectItem>
+                  <SelectItem value="geopolitics">Geopolitical (dual perspective)</SelectItem>
+                  <SelectItem value="resilience">Resilience audit</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className={cn(entryMode !== "suggested" && "hidden")}>
@@ -932,7 +1059,101 @@ export function SystemsExerciseFlow({
         </Card>
       ) : null}
 
-      {step === 3 && exercise ? (
+      {step === criticalityStep && exercise && isResilienceExercise ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Criticality ranking</CardTitle>
+            <CardDescription>
+              Before either shock hits, rank each node by how critical it is to the system (1 =
+              most critical single point of failure, 6 = least critical).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <SystemsFlowCanvas
+              nodes={exercise.nodes}
+              userEdges={userEdges}
+              onUserEdgesChange={setUserEdges}
+              mode="readonly"
+              nodeImpact={nodeImpact}
+            />
+            <div className="grid gap-2">
+              {exercise.nodes.map((n) => (
+                <div
+                  key={n.id}
+                  className="flex items-center justify-between gap-3 rounded-md border p-2"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{n.label}</p>
+                    <p className="text-muted-foreground text-xs">{n.description}</p>
+                  </div>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={6}
+                    className="w-16"
+                    value={userCriticalityRanking[n.id] ?? ""}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setUserCriticalityRanking((prev) => {
+                        const next = { ...prev };
+                        if (raw === "") {
+                          delete next[n.id];
+                          return next;
+                        }
+                        const v = Number(raw);
+                        if (!Number.isFinite(v)) return prev;
+                        next[n.id] = v;
+                        return next;
+                      });
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  void putExercise({ ...exercise, userEdges, nodeImpact, currentStep: 2 });
+                  setStep(2);
+                }}
+              >
+                Back
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  const ranks = exercise.nodes.map((n) => userCriticalityRanking[n.id]);
+                  const valid =
+                    ranks.every(
+                      (r) => typeof r === "number" && Number.isInteger(r) && r >= 1 && r <= 6,
+                    ) && new Set(ranks).size === 6;
+                  if (!valid) {
+                    setError("Rank all 6 nodes 1-6, using each rank exactly once.");
+                    return;
+                  }
+                  const nextRow: SystemsExerciseRow = {
+                    ...exercise,
+                    userEdges,
+                    nodeImpact,
+                    userCriticalityRanking,
+                    currentStep: confidenceStep,
+                  };
+                  void putExercise(nextRow);
+                  setExercise(nextRow);
+                  setStep(confidenceStep);
+                }}
+              >
+                Continue to confidence
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {step === confidenceStep && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Confidence</CardTitle>
@@ -953,8 +1174,9 @@ export function SystemsExerciseFlow({
                 variant="secondary"
                 disabled={loading}
                 onClick={() => {
-                  void putExercise({ ...exercise, userEdges, nodeImpact, currentStep: 2 });
-                  setStep(2);
+                  const backStep = isResilienceExercise ? criticalityStep : 2;
+                  void putExercise({ ...exercise, userEdges, nodeImpact, currentStep: backStep });
+                  setStep(backStep);
                 }}
               >
                 Back
@@ -962,7 +1184,7 @@ export function SystemsExerciseFlow({
               <Button type="button" onClick={() => {
                 const updated = { ...exercise, userEdges, nodeImpact };
                 setExercise(updated);
-                advance(4, updated);
+                advance(shockStep, updated);
               }}>
                 Continue to shock
               </Button>
@@ -971,7 +1193,7 @@ export function SystemsExerciseFlow({
         </Card>
       ) : null}
 
-      {step === 4 && exercise ? (
+      {step === shockStep && exercise ? (
         <Card>
           <CardHeader>
             <CardTitle>Shock scenario</CardTitle>
@@ -997,8 +1219,8 @@ export function SystemsExerciseFlow({
             />
             <div className="flex gap-2">
               <Button type="button" variant="secondary" onClick={() => {
-                void putExercise({ ...exercise, userEdges, nodeImpact, currentStep: 3 });
-                setStep(3);
+                void putExercise({ ...exercise, userEdges, nodeImpact, currentStep: confidenceStep });
+                setStep(confidenceStep);
               }}>
                 Back
               </Button>
@@ -1007,8 +1229,95 @@ export function SystemsExerciseFlow({
                   <>
                     <InlineSpinner /> Loading…
                   </>
+                ) : isResilienceExercise ? (
+                  "Continue to cascade"
                 ) : isGeoExercise ? (
                   "Continue to perspective comparison"
+                ) : (
+                  "Submit impact and get AI reflection"
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {step === cascadeStep && exercise && isResilienceExercise && exercise.secondShockEvent ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Cascade</CardTitle>
+            <CardDescription>
+              A second shock cascades from the first. Mark impact, then compare your criticality
+              ranking to the model&apos;s.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm font-medium">{exercise.secondShockEvent.description}</p>
+            <SystemsFlowCanvas
+              nodes={exercise.nodes}
+              userEdges={userEdges}
+              onUserEdgesChange={setUserEdges}
+              mode="shock"
+              nodeImpact={secondNodeImpact}
+              onToggleNodeImpact={(id) => {
+                setSecondNodeImpact((prev) => ({
+                  ...prev,
+                  [id]: cycleImpact(prev[id] ?? "none"),
+                }));
+              }}
+            />
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Criticality ranking: you vs. the model</p>
+              <ul className="space-y-1.5">
+                {(exercise.criticalityGroundTruth ?? [])
+                  .slice()
+                  .sort((a, b) => a.criticalityRank - b.criticalityRank)
+                  .map((hint) => {
+                    const node = exercise.nodes.find((n) => n.id === hint.nodeId);
+                    const userRank = userCriticalityRanking[hint.nodeId];
+                    const match = userRank === hint.criticalityRank;
+                    return (
+                      <li
+                        key={hint.nodeId}
+                        className={cn(
+                          "rounded-md border p-2 text-sm",
+                          match
+                            ? "border-green-600 bg-green-600/10"
+                            : "border-amber-500 bg-amber-500/10",
+                        )}
+                      >
+                        <span className="font-medium">{node?.label ?? hint.nodeId}</span>
+                        {" — "}your rank: {userRank ?? "-"}, model rank: {hint.criticalityRank}
+                        <p className="text-muted-foreground mt-0.5 text-xs">{hint.rationale}</p>
+                      </li>
+                    );
+                  })}
+              </ul>
+            </div>
+            {loading ? <PerspectiveLoadingCard /> : null}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={loading}
+                onClick={() => {
+                  void putExercise({
+                    ...exercise,
+                    userEdges,
+                    nodeImpact,
+                    secondNodeImpact,
+                    currentStep: shockStep,
+                  });
+                  setStep(shockStep);
+                }}
+              >
+                Back
+              </Button>
+              <Button type="button" disabled={loading} onClick={() => void finishCascadeStep()}>
+                {loading ? (
+                  <>
+                    <InlineSpinner /> Loading…
+                  </>
                 ) : (
                   "Submit impact and get AI reflection"
                 )}
@@ -1211,7 +1520,7 @@ export function SystemsExerciseFlow({
         </Card>
       ) : null}
 
-      {step === (isGeoExercise ? 9 : 8) ? (
+      {step === doneStep ? (
         <Card>
           <CardHeader>
             <CardTitle>Exercise saved</CardTitle>

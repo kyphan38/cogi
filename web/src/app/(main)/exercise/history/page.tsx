@@ -898,12 +898,19 @@ function HistoryPageInner() {
                       ))}
                     </ul>
                   </div>
-                ) : (
+                ) : detailEx.variant === "scoring" ? (
                   <div>
                     <h3 className="mb-1 font-medium">Scoring (summary)</h3>
                     <p className="text-muted-foreground text-xs">
                       {detailEx.options.length} options × {detailEx.criteria.length} criteria (weights and
                       scores saved).
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <h3 className="mb-1 font-medium">Uncertainty (summary)</h3>
+                    <p className="text-muted-foreground text-xs">
+                      {detailEx.options.length} options with probability/payoff outcomes recorded.
                     </p>
                   </div>
                 )}

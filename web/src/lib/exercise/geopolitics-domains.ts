@@ -22,6 +22,7 @@ export const GEOPOLITICS_SUBDOMAINS = [
   "Technology competition (semiconductors, AI, space, cyber)",
   "Nuclear strategy, deterrence & arms control",
   "Global institutions (UN, WTO, IMF - reform & erosion)",
+  "Sanctions evasion & shadow fleets",
 
   // Thematic: Information, Gray-Zone & Legal Fronts
   "Information warfare & narrative competition",
@@ -32,6 +33,7 @@ export const GEOPOLITICS_SUBDOMAINS = [
   "Migration, demographics & political stability",
   "Violent non-state actors, insurgencies & proxy networks",
   "Transnational crime, cartels & shadow economies",
+  "Diaspora politics & soft power",
 
   // Analytical Frameworks & Lenses
   "Realist lens - power, security, self-interest",
@@ -79,6 +81,7 @@ export const GEOPOLITICS_DOMAIN_GROUPS = [
       "Technology competition (semiconductors, AI, space, cyber)",
       "Nuclear strategy, deterrence & arms control",
       "Global institutions (UN, WTO, IMF - reform & erosion)",
+      "Sanctions evasion & shadow fleets",
     ],
   },
   {
@@ -97,6 +100,7 @@ export const GEOPOLITICS_DOMAIN_GROUPS = [
       "Migration, demographics & political stability",
       "Violent non-state actors, insurgencies & proxy networks",
       "Transnational crime, cartels & shadow economies",
+      "Diaspora politics & soft power",
     ],
   },
   {

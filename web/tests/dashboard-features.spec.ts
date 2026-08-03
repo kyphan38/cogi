@@ -6,18 +6,56 @@ import {
   stubFirestoreReads,
 } from "./helpers/auth-setup";
 
-test.describe("Home page - exercise picker and navigation", () => {
+test.describe("Home page - resume and navigation", () => {
   test.beforeEach(async ({ page }) => {
     await bypassFirebaseAuth(page);
     await stubFirestoreReads(page);
   });
 
-  test("renders the home heading and exercise picker cards", async ({
-    page,
-  }) => {
+  test("renders the home heading", async ({ page }) => {
     await gotoAuthenticated(page, "/");
     await expect(
       page.getByRole("heading", { name: "Practice" }),
+    ).toBeVisible();
+  });
+
+  test("learning notes section shows empty state messages", async ({ page }) => {
+    await gotoAuthenticated(page, "/");
+    await expect(page.getByText("No open notes.")).toBeVisible();
+    await expect(page.getByText("No math notes yet.")).toBeVisible();
+  });
+
+  test("learning notes pagination arrows are disabled with no notes", async ({ page }) => {
+    await gotoAuthenticated(page, "/");
+    const prevButtons = page.getByRole("button", { name: "Previous notes" });
+    const nextButtons = page.getByRole("button", { name: "Next notes" });
+    await expect(prevButtons).toHaveCount(2);
+    await expect(nextButtons).toHaveCount(2);
+    await expect(prevButtons.first()).toBeDisabled();
+    await expect(prevButtons.last()).toBeDisabled();
+    await expect(nextButtons.first()).toBeDisabled();
+    await expect(nextButtons.last()).toBeDisabled();
+  });
+
+  test("reasoning and math practice tabs navigate correctly", async ({ page }) => {
+    await gotoAuthenticated(page, "/");
+    await page.getByRole("link", { name: "Reasoning", exact: true }).click();
+    await page.waitForURL("/reasoning", { timeout: 15_000 });
+  });
+});
+
+test.describe("Reasoning page - exercise picker and navigation", () => {
+  test.beforeEach(async ({ page }) => {
+    await bypassFirebaseAuth(page);
+    await stubFirestoreReads(page);
+  });
+
+  test("renders the reasoning heading and exercise picker cards", async ({
+    page,
+  }) => {
+    await gotoAuthenticated(page, "/reasoning");
+    await expect(
+      page.getByRole("heading", { name: "Reasoning" }),
     ).toBeVisible();
 
     const analyticalCard = page.getByRole("link", {
@@ -31,8 +69,8 @@ test.describe("Home page - exercise picker and navigation", () => {
     await expect(comboCard).toBeVisible();
   });
 
-  test("home page shows domain input and find-best-mode button", async ({ page }) => {
-    await gotoAuthenticated(page, "/");
+  test("reasoning page shows domain input and find-best-mode button", async ({ page }) => {
+    await gotoAuthenticated(page, "/reasoning");
     await expect(page.getByLabel("Domain")).toBeVisible();
     await expect(page.getByRole("button", { name: "Find best mode" })).toBeVisible();
   });
@@ -40,7 +78,7 @@ test.describe("Home page - exercise picker and navigation", () => {
   test("clicking an exercise picker card navigates to that exercise", async ({
     page,
   }) => {
-    await gotoAuthenticated(page, "/");
+    await gotoAuthenticated(page, "/reasoning");
     await page
       .getByRole("link", { name: /Sequential.*Order a messy process/ })
       .click();
@@ -50,16 +88,11 @@ test.describe("Home page - exercise picker and navigation", () => {
   test("clicking combo card navigates to /exercise/combo", async ({
     page,
   }) => {
-    await gotoAuthenticated(page, "/");
+    await gotoAuthenticated(page, "/reasoning");
     await page
       .getByRole("link", { name: /Combo.*Multi-step scenario chain/ })
       .click();
     await page.waitForURL("/exercise/combo", { timeout: 15_000 });
-  });
-
-  test("open actions section shows empty state message", async ({ page }) => {
-    await gotoAuthenticated(page, "/");
-    await expect(page.getByText("No open actions.")).toBeVisible();
   });
 });
 
@@ -73,6 +106,7 @@ test.describe("AppTopNav navigation", () => {
     await gotoAuthenticated(page, "/");
     const nav = page.getByRole("navigation", { name: "Main" });
     await expect(nav.getByRole("link", { name: "Home" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Guide" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Dashboard" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "History" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Settings" })).toBeVisible();
@@ -106,7 +140,7 @@ test.describe("AppTopNav navigation", () => {
     await clickMainNavLink(page, "Settings", "/settings");
     await expect(nav).toBeVisible();
 
-    await clickMainNavLink(page, "Dashboard", "/dashboard");
+    await clickMainNavLink(page, "History", "/exercise/history");
     await expect(nav).toBeVisible();
 
     await clickMainNavLink(page, "Home", "/");

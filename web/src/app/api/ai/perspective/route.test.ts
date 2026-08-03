@@ -245,6 +245,75 @@ describe("POST /api/ai/perspective - systems", () => {
     expect(res.status).toBe(200);
     expect((await res.json()).ok).toBe(true);
   });
+
+  it("threads resilience fields (variantKind, criticalityGroundTruth, userCriticalityRanking, secondShockEvent) into the prompt", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue(structuredPerspectiveJson());
+    const res = await POST(
+      makeRequest({
+        kind: "systems",
+        title: "Resilience Title",
+        scenario: "Resilience Scenario",
+        domain: "tech",
+        confidenceBefore: 65,
+        nodes: [{ id: "n1", label: "N1", description: "desc" }],
+        intendedConnections: [],
+        shockEvent: {
+          description: "shock",
+          directlyAffected: ["n1"],
+          indirectlyAffected: ["n2"],
+          explanation: "why",
+        },
+        userEdges: [],
+        nodeImpact: {},
+        variantKind: "resilience",
+        criticalityGroundTruth: [
+          { nodeId: "n1", criticalityRank: 1, rationale: "hub" },
+          { nodeId: "n2", criticalityRank: 2, rationale: "leaf" },
+        ],
+        userCriticalityRanking: { n1: 2, n2: 1 },
+        secondShockEvent: {
+          description: "cascade",
+          directlyAffected: ["n2"],
+          indirectlyAffected: [],
+          explanation: "cascades from n2",
+        },
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect((await res.json()).ok).toBe(true);
+    expect(mockGenerateRaw).toHaveBeenCalledTimes(1);
+    const prompt = mockGenerateRaw.mock.calls[0][0] as string;
+    expect(prompt).toContain("Resilience audit context");
+    expect(prompt).toContain("Ground-truth criticality ranking");
+    expect(prompt).toContain("cascades from n2");
+  });
+
+  it("omits the resilience block when variantKind is not resilience", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue(structuredPerspectiveJson());
+    await POST(
+      makeRequest({
+        kind: "systems",
+        title: "Sys Title",
+        scenario: "Sys Scenario",
+        domain: "tech",
+        confidenceBefore: 65,
+        nodes: [{ id: "n1", label: "N1", description: "desc" }],
+        intendedConnections: [],
+        shockEvent: {
+          description: "shock",
+          directlyAffected: ["n1"],
+          indirectlyAffected: [],
+          explanation: "why",
+        },
+        userEdges: [],
+        nodeImpact: {},
+      }),
+    );
+    const prompt = mockGenerateRaw.mock.calls[0][0] as string;
+    expect(prompt).not.toContain("Resilience audit context");
+  });
 });
 
 describe("POST /api/ai/perspective - evaluative-matrix", () => {

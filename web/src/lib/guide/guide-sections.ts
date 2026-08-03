@@ -31,9 +31,9 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     id: "getting-started",
     title: "Getting started",
     summary:
-      "After login, use the top navigation to move around. Home is where you start new practice; Dashboard and History help you see patterns over time.",
+      "After login, use the top navigation to move around. Home is where you start new practice; History helps you see patterns over time.",
     bullets: [
-      "Home - pick an exercise type or resume something in progress.",
+      "Home - pick a Reasoning or Math mode, or resume something in progress.",
       "Dashboard - trends, calibration gap, weekly insights, delayed recall, and optional geopolitics progression.",
       "History - filter past work, heatmap activity, streak, and read-only review of any completed exercise.",
       "Guide - this page; full reference for everything in the app.",
@@ -44,7 +44,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       {
         title: "Suggested first session",
         bullets: [
-          "Open Analytical from Home, open the domain field to browse grouped suggestions (DevOps / SRE, MLOps, financial planning, life strategy, …) or type your own, then tap Generate exercise.",
+          "Open Analytical from the Reasoning page, open the domain field to browse grouped suggestions (DevOps / SRE, MLOps, financial planning, life strategy, …) or type your own, then tap Generate exercise.",
           "Complete at least one highlight, move through confidence and AI perspective, finish journal and action so the run is saved.",
         ],
       },
@@ -58,13 +58,24 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     id: "home",
     title: "Home",
     summary:
-      "Home is your launch pad: six thinking modes plus Combo, optional resume list, open actions from past sessions, and a link to this guide.",
+      "Home is your resume point: Reasoning and Math tab buttons to start new practice, plus separate Reasoning/Math subsections for resuming in-progress work and reviewing past commitments.",
     bullets: [
-      "Exercise cards - Analytical (marked suggested today as a soft nudge), Sequential, Systems, Evaluative, Generative, and Combo spanning two columns on wide screens.",
-      "Continue where you left off - appears when you have incomplete exercises; opens the same flow with your saved step via resumeId.",
-      "Open actions - commitments you wrote at the end of past exercises; tick follow-through for the current ISO week.",
+      "Reasoning / Math tabs - jump to the Reasoning mode picker (/reasoning) or the Math & Scenarios hub (/math).",
+      "Continue where you left off - one card with separate Reasoning and Math subsections for in-progress exercises and scenarios (opens the same flow with your saved step via resumeId).",
+      "Learning Notes - open actions from past sessions, split into a Reasoning card and a Math card, 3 per page with prev/next arrows to page through older notes (read-only; no follow-through checkbox).",
     ],
     links: [{ label: "Home", href: "/" }],
+  },
+  {
+    id: "reasoning",
+    title: "Reasoning",
+    summary:
+      "The Reasoning page (/reasoning) is where you start a new reasoning exercise: a domain/source picker plus six thinking modes.",
+    bullets: [
+      "Domain and Source - type or pick a recent domain, choose AI-generated / your own text / custom scenario, then tap Find best mode for a ranked suggestion.",
+      "Exercise cards - Analytical (marked suggested today as a soft nudge), Sequential, Systems, Evaluative, Generative, and Combo spanning two columns on wide screens.",
+    ],
+    links: [{ label: "Reasoning", href: "/reasoning" }],
   },
   {
     id: "exercise-flow",

@@ -49,6 +49,70 @@ Return a single JSON object with this exact shape:
 nodes array must have exactly 6 entries with ids node_1 through node_6.${adapt ? `\n\n${adapt}` : ""}`;
 }
 
+export function buildSystemsResilienceGenerationPrompt(input: {
+  domain: string;
+  userContext?: string;
+  adaptationAppendix?: string;
+  customScenario?: string;
+}): string {
+  const ctx = input.userContext?.trim() || "(none provided)";
+  const adapt = input.adaptationAppendix?.trim();
+  const scenarioBlock = formatUserScenarioBlock(input.customScenario);
+  const domainHint = buildDomainHint(input.domain);
+  const topicIntro = scenarioBlock
+    ? `${scenarioBlock}\n\nDesign a resilience-focused systems exercise whose scenario and node labels reflect THIS situation (teams, tools, stakeholders may be renamed for clarity but keep the same tensions).`
+    : `Generate a resilience-focused systems-thinking exercise about **${input.domain}**.`;
+
+  return `You are generating a systems-resilience thinking exercise. Return ONLY valid JSON (no markdown, no prose).
+
+USER context: ${ctx}${domainHint}
+
+${topicIntro}
+
+This exercise tests whether the user can spot single points of failure BEFORE a shock hits, then reason about second-order cascades.
+
+Requirements:
+- Exactly **6 nodes** (not more). Node IDs MUST be exactly: "node_1", "node_2", "node_3", "node_4", "node_5", "node_6"
+- Each node: label max 20 characters, description max 50 characters
+- x and y are **percentage positions** from 10 to 90 (avoid edges). Nodes must be spread so every pair is at least **15 units** apart in (x,y) Euclidean distance on the percentage plane (prevents overlap).
+- Design the connection graph so criticality is genuinely uneven: at least one node should be a structural single point of failure (high in-degree/out-degree, a hub other nodes depend on), and at least one node should be a true leaf with minimal impact if removed. Do NOT reveal this ranking anywhere in labels, descriptions, or scenario text - it must only be discoverable by reasoning about the graph.
+- intendedConnections: clear dependency-style relationships; include at least **one circular dependency or feedback loop** among these 6 nodes
+- Each connection: type is one of "depends_on", "conflicts_with", "enables", "risks", plus explanation string
+- criticalityGroundTruth: exactly 6 entries (one per node), each with a criticalityRank from 1 (most critical / most damaging if it fails) to 6 (least critical), all ranks unique, plus a short internal-only explanation (never shown verbatim to the user as a "ranking")
+- shockEvent: a plausible first "what-if" ripple scenario with directlyAffected and indirectlyAffected node id arrays (subset of the 6 ids), plus explanation of the chain
+- secondShockEvent: a SECOND, later shock that genuinely cascades FROM the consequences of the first shock - its directlyAffected or indirectlyAffected nodes MUST overlap with the first shock's indirectlyAffected nodes (proving it's a downstream second-order effect, not an unrelated event). Include description, directlyAffected, indirectlyAffected, and explanation.
+
+Return a single JSON object with this exact shape:
+{
+  "title": string,
+  "scenario": string,
+  "variantKind": "resilience",
+  "nodes": [
+    { "id": "node_1", "label": string, "description": string, "x": number, "y": number }
+  ],
+  "intendedConnections": [
+    { "from": "node_1", "to": "node_2", "type": "depends_on", "explanation": string }
+  ],
+  "criticalityGroundTruth": [
+    { "nodeId": "node_1", "criticalityRank": 1, "rationale": string }
+  ],
+  "shockEvent": {
+    "description": string,
+    "directlyAffected": ["node_3"],
+    "indirectlyAffected": ["node_1"],
+    "explanation": string
+  },
+  "secondShockEvent": {
+    "description": string,
+    "directlyAffected": ["node_1"],
+    "indirectlyAffected": ["node_2"],
+    "explanation": string
+  }
+}
+
+nodes array must have exactly 6 entries with ids node_1 through node_6. criticalityGroundTruth must have exactly 6 entries, one per node, with unique criticalityRank values 1-6.${adapt ? `\n\n${adapt}` : ""}`;
+}
+
 export function buildGeopoliticsSystemsPrompt(input: {
   domain: string;
   userContext?: string;

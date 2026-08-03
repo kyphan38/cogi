@@ -1,109 +1,31 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import {
   Card,
+  CardAction,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { InlineSpinner } from "@/components/ui/inline-spinner";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   listActionsWithExerciseMeta,
   subscribeActionsWithExerciseMeta,
-  toggleActionFollowThroughWeek,
 } from "@/lib/db/actions";
 import type { ActionBridge } from "@/lib/types/action";
-import { currentIsoWeekKey } from "@/lib/db/actions";
-import { ChevronRight, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
-import { ExercisePickerCard } from "@/components/dashboard/ExercisePickerCard";
-import { DomainInput } from "@/components/shared/DomainInput";
-import { listIncompleteExercises, listRecentDomains, deleteCompletedExerciseAndRelatedRecords } from "@/lib/db/exercises";
+import { listIncompleteExercises, deleteCompletedExerciseAndRelatedRecords } from "@/lib/db/exercises";
 import { deleteActiveMathSession, listActiveMathSessions } from "@/lib/db/math-sessions";
-import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import type { Exercise } from "@/lib/types/exercise";
 import type { ActiveMathSession } from "@/lib/types/math-session";
+import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
 
 type ActionRow = ActionBridge & {
   exerciseTitle: string;
   exerciseCreatedAt: string;
-};
-
-const ALL_EXERCISE_CARDS: {
-  type: string;
-  href: string;
-  label: string;
-  title: string;
-  desc?: string;
-  trailingIcon?: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
-  className?: string;
-}[] = [
-  {
-    type: "analytical",
-    href: "/exercise/analytical",
-    label: "Analytical",
-    title: "Spot flawed reasoning",
-    desc: "Find embedded issues and decoys in a short passage.",
-  },
-  {
-    type: "sequential",
-    href: "/exercise/sequential",
-    label: "Sequential",
-    title: "Order a messy process",
-    desc: "Drag steps into a defensible sequence with traps.",
-  },
-  {
-    type: "systems",
-    href: "/exercise/systems",
-    label: "Systems",
-    title: "Map feedback loops",
-    desc: "Draw nodes and edges, then trace a shock ripple.",
-  },
-  {
-    type: "evaluative",
-    href: "/exercise/evaluative",
-    label: "Evaluative",
-    title: "Compare options fairly",
-    desc: "Matrix or weighted scoring against hidden tradeoffs.",
-  },
-  {
-    type: "generative",
-    href: "/exercise/generative",
-    label: "Generative",
-    title: "Write, then stress-test your thinking",
-    desc: "Scaffolded prompts, short debate with the model, and a rubric snapshot.",
-  },
-  {
-    type: "combo",
-    href: "/exercise/combo",
-    label: "Combo",
-    title: "Multi-step scenario chain",
-    trailingIcon: ChevronRight,
-    className: "sm:col-span-2",
-  },
-];
-
-const TYPE_LABEL: Record<string, string> = {
-  analytical: "Analytical",
-  sequential: "Sequential",
-  systems: "Systems",
-  evaluative: "Evaluative",
-  generative: "Generative",
-  combo: "Combo",
 };
 
 function resumeHref(ex: Exercise): string {
@@ -120,23 +42,48 @@ const MATH_TOPIC_LABEL: Record<string, string> = {
   exponential_power_law: "Exponential & Power Law",
 };
 
-type ModeRecommendation = { mode: string; reason: string };
+const NOTES_PAGE_SIZE = 3;
 
-/** SessionStorage key for passing source text from Home → exercise flow. */
-export const HOME_SOURCE_TEXT_KEY = "cogi:home-source-text";
+function NotesPageControls({
+  page,
+  totalPages,
+  onPrev,
+  onNext,
+}: {
+  page: number;
+  totalPages: number;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        aria-label="Previous notes"
+        disabled={page === 0}
+        onClick={onPrev}
+        className="rounded p-1 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+      >
+        <ChevronLeft className="size-4" aria-hidden />
+      </button>
+      <button
+        type="button"
+        aria-label="Next notes"
+        disabled={page >= totalPages - 1}
+        onClick={onNext}
+        className="rounded p-1 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+      >
+        <ChevronRight className="size-4" aria-hidden />
+      </button>
+    </div>
+  );
+}
 
 export function HomeContent() {
   const [actions, setActions] = useState<ActionRow[]>([]);
   const [incompleteExercises, setIncompleteExercises] = useState<Exercise[]>([]);
   const [activeMathSessions, setActiveMathSessions] = useState<ActiveMathSession[]>([]);
-  const [topic, setTopic] = useState("");
-  const [source, setSource] = useState<"generated" | "real_data" | "custom_scenario">("generated");
-  const [customScenarioText, setCustomScenarioText] = useState("");
-  const [realDataText, setRealDataText] = useState("");
-  const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
-  const [recommendations, setRecommendations] = useState<ModeRecommendation[] | null>(null);
-  const [recLoading, setRecLoading] = useState(false);
-  const weekKey = currentIsoWeekKey();
+  const [reasoningNotesPage, setReasoningNotesPage] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -175,12 +122,6 @@ export function HomeContent() {
 
   useEffect(() => {
     let cancelled = false;
-    void listRecentDomains(20).then((d) => { if (!cancelled) setDomainSuggestions(d); }).catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
     void (async () => {
       try {
         const rows = await listActiveMathSessions();
@@ -191,51 +132,6 @@ export function HomeContent() {
     })();
     return () => { cancelled = true; };
   }, []);
-
-  const recMap = useMemo(() => {
-    if (!recommendations) return null;
-    const map = new Map<string, string>();
-    for (const r of recommendations) map.set(r.mode, r.reason);
-    return map;
-  }, [recommendations]);
-
-  const orderedCards = useMemo(() => {
-    if (!recMap) return ALL_EXERCISE_CARDS;
-    const ranked = ALL_EXERCISE_CARDS
-      .filter((c) => c.type !== "combo")
-      .sort((a, b) => {
-        const idxA = recommendations!.findIndex((r) => r.mode === a.type);
-        const idxB = recommendations!.findIndex((r) => r.mode === b.type);
-        return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
-      });
-    const combo = ALL_EXERCISE_CARDS.find((c) => c.type === "combo");
-    return combo ? [...ranked, combo] : ranked;
-  }, [recMap, recommendations]);
-
-  const fetchRecommendation = useCallback(async () => {
-    const trimmed = topic.trim();
-    if (!trimmed) return;
-    setRecLoading(true);
-    try {
-      const res = await aiFetch("/api/ai/recommend-mode", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: trimmed }),
-      });
-      const json = await safeAiJson<{ ok: boolean; recommendations?: ModeRecommendation[] }>(res);
-      if (json.ok && json.recommendations) {
-        setRecommendations(json.recommendations);
-      }
-    } catch {
-      // silently fall back to default order
-    } finally {
-      setRecLoading(false);
-    }
-  }, [topic]);
-
-  const toggleWeek = async (row: ActionBridge) => {
-    await toggleActionFollowThroughWeek(row, weekKey);
-  };
 
   const discardIncomplete = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
@@ -263,253 +159,154 @@ export function HomeContent() {
     }
   };
 
+  const reasoningTotalPages = Math.max(1, Math.ceil(actions.length / NOTES_PAGE_SIZE));
+  const reasoningPage = Math.min(reasoningNotesPage, reasoningTotalPages - 1);
+  const pagedActions = actions.slice(
+    reasoningPage * NOTES_PAGE_SIZE,
+    reasoningPage * NOTES_PAGE_SIZE + NOTES_PAGE_SIZE,
+  );
+
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
       <div className="space-y-1">
         <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Practice</h1>
-      </div>
-
-      {incompleteExercises.length > 0 ? (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Continue where you left off</CardTitle>
-            <CardDescription>In-progress exercises - pick up where you stopped.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {incompleteExercises.map((ex) => (
-              <div key={ex.id} className="group/item flex items-center gap-1">
-                <Link
-                  href={resumeHref(ex)}
-                  className="flex min-w-0 flex-1 items-center justify-between rounded-md border bg-muted/20 px-3 py-2 text-sm hover:bg-muted/40 transition-colors"
-                >
-                  <div className="min-w-0">
-                    <span className="text-muted-foreground mr-2 text-xs font-medium uppercase">
-                      {TYPE_LABEL[ex.type] ?? ex.type}
-                    </span>
-                    <span className="font-medium truncate">{ex.title}</span>
-                    {ex.domain ? (
-                      <span className="text-muted-foreground ml-2 text-xs">· {ex.domain}</span>
-                    ) : null}
-                  </div>
-                  <ChevronRight className="ml-3 size-4 shrink-0 text-muted-foreground" aria-hidden />
-                </Link>
-                <button
-                  type="button"
-                  aria-label="Discard exercise"
-                  onClick={(e) => void discardIncomplete(e, ex.id)}
-                  className="shrink-0 rounded p-1.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 hover:text-destructive focus:opacity-100"
-                >
-                  <Trash2 className="size-3.5" aria-hidden />
-                </button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {activeMathSessions.length > 0 ? (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Continue a Math scenario</CardTitle>
-            <CardDescription>In-progress scenarios - pick up where you stopped.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {activeMathSessions.map((s) => (
-              <div key={s.id} className="group/item flex items-center gap-1">
-                <Link
-                  href={`/math/${s.id}`}
-                  className="flex min-w-0 flex-1 items-center justify-between rounded-md border bg-muted/20 px-3 py-2 text-sm hover:bg-muted/40 transition-colors"
-                >
-                  <div className="min-w-0">
-                    <span className="text-muted-foreground mr-2 text-xs font-medium uppercase">
-                      {MATH_TOPIC_LABEL[s.topic] ?? s.topic}
-                    </span>
-                    <span className="font-medium truncate">{s.title}</span>
-                  </div>
-                  <ChevronRight className="ml-3 size-4 shrink-0 text-muted-foreground" aria-hidden />
-                </Link>
-                <button
-                  type="button"
-                  aria-label="Discard scenario"
-                  onClick={(e) => void discardMathSession(e, s.id)}
-                  className="shrink-0 rounded p-1.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 hover:text-destructive focus:opacity-100"
-                >
-                  <Trash2 className="size-3.5" aria-hidden />
-                </button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <div className="space-y-3">
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
-          <div className="min-w-0">
-            <Label className="mb-1.5 block text-sm font-medium">Domain</Label>
-            <DomainInput
-              value={topic}
-              onChange={(v) => {
-                setTopic(v);
-                if (!v.trim()) setRecommendations(null);
-              }}
-              suggestions={domainSuggestions}
-              placeholder="e.g. Information Warfare, DevOps / SRE"
-            />
-          </div>
-          <div className="min-w-0">
-            <Label className="mb-1.5 block text-sm font-medium">Source</Label>
-            <Select
-              value={source}
-              onValueChange={(v) =>
-                setSource((v as "generated" | "real_data" | "custom_scenario") ?? "generated")
-              }
-            >
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="generated">AI-generated</SelectItem>
-                <SelectItem value="real_data">Use my own text</SelectItem>
-                <SelectItem value="custom_scenario">My scenario</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button
-            type="button"
-            disabled={recLoading || !topic.trim()}
-            onClick={() => void fetchRecommendation()}
+        <div className="flex gap-2">
+          <Link
+            href="/reasoning"
+            className="rounded-md border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50"
           >
-            {recLoading ? (
-              <>
-                <InlineSpinner /> Finding…
-              </>
-            ) : (
-              "Find best mode"
-            )}
-          </Button>
+            Reasoning
+          </Link>
+          <Link
+            href="/math"
+            className="rounded-md border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50"
+          >
+            Math
+          </Link>
         </div>
-        {source === "custom_scenario" ? (
-          <div>
-            <Label className="mb-1.5 block text-sm font-medium" htmlFor="home-custom-scenario">
-              Describe your situation - AI will design the exercise around it
-            </Label>
-            <Textarea
-              id="home-custom-scenario"
-              rows={4}
-              value={customScenarioText}
-              onChange={(e) => setCustomScenarioText(e.target.value)}
-              placeholder="Paste context, stakeholders, and the tension you want to practice..."
-              className="min-h-[4rem]"
-            />
-          </div>
-        ) : null}
-        {source === "real_data" ? (
-          <div>
-            <Label className="mb-1.5 block text-sm font-medium" htmlFor="home-real-data">
-              Paste your own content (up to 2,000 words)
-            </Label>
-            <Textarea
-              id="home-real-data"
-              rows={4}
-              value={realDataText}
-              onChange={(e) => setRealDataText(e.target.value)}
-              placeholder="Paste an email, plan, or article you want to analyze..."
-              className="min-h-[4rem]"
-            />
-          </div>
-        ) : null}
-        {recommendations && topic.trim() ? (
-          <p className="text-muted-foreground text-xs">
-            Recommended order for <span className="font-medium text-zinc-700">{topic.trim()}</span> - pick any mode, or{" "}
-            <button
-              type="button"
-              className="underline hover:text-zinc-900"
-              onClick={() => {
-                setRecommendations(null);
-                setTopic("");
-              }}
-            >
-              clear
-            </button>
-          </p>
-        ) : null}
-      </div>
-
-      <div className="grid gap-2.5 sm:grid-cols-2">
-        {orderedCards.map((c, i) => {
-          const isTopRec = recMap !== null && i === 0 && c.type !== "combo";
-          const domainParam = topic.trim() ? `?domain=${encodeURIComponent(topic.trim())}` : "";
-          const sourceParam = domainParam && source !== "generated" ? `&source=${source}` : "";
-          const autoParam = isTopRec && domainParam ? "&autoGenerate=1" : "";
-          const href = c.type === "combo" ? c.href : `${c.href}${domainParam}${sourceParam}${autoParam}`;
-          const needsSessionData = isTopRec && domainParam && source !== "generated";
-          return (
-            <ExercisePickerCard
-              key={c.type}
-              href={href}
-              label={c.label}
-              title={c.title}
-              desc={c.desc}
-              recommended={isTopRec}
-              reason={isTopRec ? recMap?.get(c.type) : undefined}
-              trailingIcon={c.trailingIcon}
-              className={c.className}
-              onClick={needsSessionData ? () => {
-                try {
-                  sessionStorage.setItem(
-                    HOME_SOURCE_TEXT_KEY,
-                    JSON.stringify({
-                      source,
-                      customScenarioText: source === "custom_scenario" ? customScenarioText : undefined,
-                      realDataText: source === "real_data" ? realDataText : undefined,
-                    }),
-                  );
-                } catch {
-                  // sessionStorage unavailable -- exercise flow will fall back to step 0
-                }
-              } : undefined}
-            />
-          );
-        })}
       </div>
 
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Open actions</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Continue where you left off</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {actions.length === 0 ? (
-            <p className="text-muted-foreground text-sm italic">
-              No open actions.
-            </p>
-          ) : (
-            <ul className="space-y-4">
-              {actions.map((a) => {
-                const w = a.weeklyFollowThrough.find((x) => x.weekKey === weekKey);
-                const done = w?.done ?? false;
-                return (
-                  <li key={a.id} className="rounded-lg border border-border bg-muted/10 p-3 text-sm">
-                    <p className="font-medium">{a.exerciseTitle}</p>
-                    <p className="text-muted-foreground mt-1">{a.oneAction}</p>
-                    <div className="mt-3 flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id={`wk-${a.id}`}
-                        checked={done}
-                        onChange={() => void toggleWeek(a)}
-                        className="size-4 accent-primary"
-                      />
-                      <Label htmlFor={`wk-${a.id}`} className="font-normal">
-                        Follow-through this week
-                      </Label>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+        <CardContent className="space-y-5">
+          <div className="space-y-2">
+            <p className="section-label">Reasoning</p>
+            {incompleteExercises.length > 0 ? (
+              <div className="space-y-2">
+                {incompleteExercises.map((ex) => (
+                  <div key={ex.id} className="group/item flex items-center gap-1">
+                    <Link
+                      href={resumeHref(ex)}
+                      className="flex min-w-0 flex-1 items-center justify-between rounded-md border bg-muted/20 px-3 py-2 text-sm hover:bg-muted/40 transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <span className="text-muted-foreground mr-2 text-xs font-medium uppercase">
+                          {TYPE_LABEL[ex.type] ?? ex.type}
+                        </span>
+                        <span className="font-medium truncate">{ex.title}</span>
+                        {ex.domain ? (
+                          <span className="text-muted-foreground ml-2 text-xs">· {ex.domain}</span>
+                        ) : null}
+                      </div>
+                      <ChevronRight className="ml-3 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                    </Link>
+                    <button
+                      type="button"
+                      aria-label="Discard exercise"
+                      onClick={(e) => void discardIncomplete(e, ex.id)}
+                      className="shrink-0 rounded p-1.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 hover:text-destructive focus:opacity-100"
+                    >
+                      <Trash2 className="size-3.5" aria-hidden />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm italic">No in-progress reasoning exercises.</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <p className="section-label">Math</p>
+            {activeMathSessions.length > 0 ? (
+              <div className="space-y-2">
+                {activeMathSessions.map((s) => (
+                  <div key={s.id} className="group/item flex items-center gap-1">
+                    <Link
+                      href={`/math/${s.id}`}
+                      className="flex min-w-0 flex-1 items-center justify-between rounded-md border bg-muted/20 px-3 py-2 text-sm hover:bg-muted/40 transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <span className="text-muted-foreground mr-2 text-xs font-medium uppercase">
+                          {MATH_TOPIC_LABEL[s.topic] ?? s.topic}
+                        </span>
+                        <span className="font-medium truncate">{s.title}</span>
+                      </div>
+                      <ChevronRight className="ml-3 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                    </Link>
+                    <button
+                      type="button"
+                      aria-label="Discard scenario"
+                      onClick={(e) => void discardMathSession(e, s.id)}
+                      className="shrink-0 rounded p-1.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 hover:text-destructive focus:opacity-100"
+                    >
+                      <Trash2 className="size-3.5" aria-hidden />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm italic">No in-progress math scenarios.</p>
+            )}
+          </div>
         </CardContent>
       </Card>
+
+      <div className="space-y-3">
+        <p className="section-label">Learning Notes</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Reasoning</CardTitle>
+              <CardAction>
+                <NotesPageControls
+                  page={reasoningPage}
+                  totalPages={reasoningTotalPages}
+                  onPrev={() => setReasoningNotesPage((p) => Math.max(0, p - 1))}
+                  onNext={() => setReasoningNotesPage((p) => Math.min(reasoningTotalPages - 1, p + 1))}
+                />
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              {pagedActions.length === 0 ? (
+                <p className="text-muted-foreground text-sm italic">No open notes.</p>
+              ) : (
+                <ul className="space-y-4">
+                  {pagedActions.map((a) => (
+                    <li key={a.id} className="rounded-lg border border-border bg-muted/10 p-3 text-sm">
+                      <p className="font-medium">{a.exerciseTitle}</p>
+                      <p className="text-muted-foreground mt-1">{a.oneAction}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Math</CardTitle>
+              <CardAction>
+                <NotesPageControls page={0} totalPages={1} onPrev={() => {}} onNext={() => {}} />
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm italic">No math notes yet.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </main>
   );
 }

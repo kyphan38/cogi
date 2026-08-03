@@ -4,9 +4,12 @@ import {
   sanitizeSystemsNodesInPlace,
   validateSystemsExerciseSemantics,
   validateGeopoliticsSystemsSemantics,
+  validateResilienceSystemsSemantics,
   isGeopoliticsSystemsPayload,
+  isResilienceSystemsPayload,
   type SystemsExercisePayload,
   type GeopoliticsSystemsExercisePayload,
+  type SystemsResilienceExercisePayload,
 } from "./systems";
 
 function makeNodes() {
@@ -187,5 +190,95 @@ describe("validateGeopoliticsSystemsSemantics", () => {
     };
     const errors = validateGeopoliticsSystemsSemantics(withLoops as GeopoliticsSystemsExercisePayload);
     expect(errors.filter((e) => e.includes("feedback loop"))).toEqual([]);
+  });
+});
+
+function makeCriticalityGroundTruth() {
+  return [
+    { nodeId: "node_1" as const, criticalityRank: 2, rationale: "Central hub" },
+    { nodeId: "node_2" as const, criticalityRank: 5, rationale: "Peripheral" },
+    { nodeId: "node_3" as const, criticalityRank: 1, rationale: "Single point of failure" },
+    { nodeId: "node_4" as const, criticalityRank: 4, rationale: "Minor" },
+    { nodeId: "node_5" as const, criticalityRank: 6, rationale: "Isolated" },
+    { nodeId: "node_6" as const, criticalityRank: 3, rationale: "Moderate" },
+  ];
+}
+
+const resiliencePayload: SystemsResilienceExercisePayload = {
+  ...validPayload,
+  variantKind: "resilience" as const,
+  criticalityGroundTruth: makeCriticalityGroundTruth(),
+  // shockEvent.indirectlyAffected includes node_1 (from validPayload), so the second shock must
+  // touch node_1 to count as a genuine cascade.
+  secondShockEvent: {
+    description: "Second-order fallout",
+    directlyAffected: ["node_1" as const],
+    indirectlyAffected: ["node_4" as const],
+    explanation: "Ripples from the first shock's indirect ring",
+  },
+} as SystemsResilienceExercisePayload;
+
+describe("parseSystemsExerciseJson (resilience)", () => {
+  it("parses a valid resilience payload and detects the variant", () => {
+    const result = parseSystemsExerciseJson(JSON.stringify(resiliencePayload));
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(isResilienceSystemsPayload(result.data)).toBe(true);
+      if (isResilienceSystemsPayload(result.data)) {
+        expect(result.data.criticalityGroundTruth).toHaveLength(6);
+      }
+    }
+  });
+
+  it("fails when a criticalityGroundTruth entry is missing", () => {
+    const bad = {
+      ...resiliencePayload,
+      criticalityGroundTruth: makeCriticalityGroundTruth().slice(0, 5),
+    };
+    const result = parseSystemsExerciseJson(JSON.stringify(bad));
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("validateResilienceSystemsSemantics", () => {
+  it("returns no errors for a valid resilience payload", () => {
+    expect(validateResilienceSystemsSemantics(resiliencePayload)).toEqual([]);
+  });
+
+  it("catches duplicate criticalityRank values", () => {
+    const bad: SystemsResilienceExercisePayload = {
+      ...resiliencePayload,
+      criticalityGroundTruth: makeCriticalityGroundTruth().map((h, i) =>
+        i === 1 ? { ...h, criticalityRank: 2 } : h,
+      ),
+    };
+    const errors = validateResilienceSystemsSemantics(bad);
+    expect(errors.some((e) => e.includes("criticalityRank"))).toBe(true);
+  });
+
+  it("catches secondShockEvent referencing an unknown node id", () => {
+    const bad: SystemsResilienceExercisePayload = {
+      ...resiliencePayload,
+      secondShockEvent: {
+        ...resiliencePayload.secondShockEvent,
+        directlyAffected: ["node_99" as never],
+      },
+    };
+    const errors = validateResilienceSystemsSemantics(bad);
+    expect(errors.some((e) => e.includes("unknown node"))).toBe(true);
+  });
+
+  it("catches a second shock that doesn't cascade from the first shock's indirect ring", () => {
+    const bad: SystemsResilienceExercisePayload = {
+      ...resiliencePayload,
+      secondShockEvent: {
+        description: "Unrelated event",
+        directlyAffected: ["node_2" as const],
+        indirectlyAffected: ["node_6" as const],
+        explanation: "Doesn't touch node_1",
+      },
+    };
+    const errors = validateResilienceSystemsSemantics(bad);
+    expect(errors.some((e) => e.includes("cascade"))).toBe(true);
   });
 });

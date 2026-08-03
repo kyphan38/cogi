@@ -133,6 +133,81 @@ function validSystemsJson() {
   });
 }
 
+function validGeopoliticsSystemsJson() {
+  return JSON.stringify({
+    title: "Geopolitics Systems Exercise",
+    scenario: "A geopolitical systems scenario",
+    nodes: [
+      { id: "node_1", label: "Node 1", description: "desc 1", x: 20, y: 20 },
+      { id: "node_2", label: "Node 2", description: "desc 2", x: 40, y: 20 },
+      { id: "node_3", label: "Node 3", description: "desc 3", x: 60, y: 20 },
+      { id: "node_4", label: "Node 4", description: "desc 4", x: 20, y: 60 },
+      { id: "node_5", label: "Node 5", description: "desc 5", x: 40, y: 60 },
+      { id: "node_6", label: "Node 6", description: "desc 6", x: 60, y: 60 },
+    ],
+    intendedConnections: [
+      { from: "node_1", to: "node_2", type: "depends_on", explanation: "why" },
+      { from: "node_2", to: "node_1", type: "enables", explanation: "cycle" },
+    ],
+    shockEvent: {
+      description: "A shock event",
+      directlyAffected: ["node_1"],
+      indirectlyAffected: ["node_2"],
+      explanation: "why",
+    },
+    perspectiveAName: "United States",
+    perspectiveBName: "China",
+    intendedConnectionsB: [
+      { from: "node_3", to: "node_4", type: "risks", explanation: "why B" },
+      { from: "node_4", to: "node_3", type: "depends_on", explanation: "cycle B" },
+    ],
+    shockEventB: {
+      directlyAffected: ["node_3"],
+      indirectlyAffected: ["node_4"],
+      explanation: "why B",
+    },
+  });
+}
+
+function validResilienceSystemsJson() {
+  return JSON.stringify({
+    title: "Resilience Systems Exercise",
+    scenario: "A resilience systems scenario",
+    variantKind: "resilience",
+    nodes: [
+      { id: "node_1", label: "Node 1", description: "desc 1", x: 20, y: 20 },
+      { id: "node_2", label: "Node 2", description: "desc 2", x: 40, y: 20 },
+      { id: "node_3", label: "Node 3", description: "desc 3", x: 60, y: 20 },
+      { id: "node_4", label: "Node 4", description: "desc 4", x: 20, y: 60 },
+      { id: "node_5", label: "Node 5", description: "desc 5", x: 40, y: 60 },
+      { id: "node_6", label: "Node 6", description: "desc 6", x: 60, y: 60 },
+    ],
+    intendedConnections: [
+      { from: "node_1", to: "node_2", type: "depends_on", explanation: "why" },
+    ],
+    criticalityGroundTruth: [
+      { nodeId: "node_1", criticalityRank: 1, rationale: "hub" },
+      { nodeId: "node_2", criticalityRank: 2, rationale: "r2" },
+      { nodeId: "node_3", criticalityRank: 3, rationale: "r3" },
+      { nodeId: "node_4", criticalityRank: 4, rationale: "r4" },
+      { nodeId: "node_5", criticalityRank: 5, rationale: "r5" },
+      { nodeId: "node_6", criticalityRank: 6, rationale: "r6" },
+    ],
+    shockEvent: {
+      description: "A shock event",
+      directlyAffected: ["node_1"],
+      indirectlyAffected: ["node_2"],
+      explanation: "why",
+    },
+    secondShockEvent: {
+      description: "A second, cascading shock",
+      directlyAffected: ["node_2"],
+      indirectlyAffected: ["node_3"],
+      explanation: "cascades from node_2",
+    },
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("GEMINI_API_KEY", "test-key");
@@ -330,6 +405,67 @@ describe("POST /api/ai - systems", () => {
     );
     expect(res.status).toBe(422);
     expect(mockGenerateRaw).toHaveBeenCalledTimes(2);
+  });
+
+  it("systemsTaskType: 'geopolitics' forces the dual-perspective payload regardless of domain", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue(validGeopoliticsSystemsJson());
+    const res = await POST(
+      makeRequest({ domain: "tech", exerciseType: "systems", systemsTaskType: "geopolitics" }),
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.ok).toBe(true);
+    expect(data.data.perspectiveAName).toBe("United States");
+    expect(mockGenerateRaw).toHaveBeenCalledTimes(1);
+    expect(mockGenerateRaw.mock.calls[0][0]).toContain("perspectiveAName");
+  });
+
+  it("systemsTaskType: 'resilience' dispatches to the resilience prompt and validator", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue(validResilienceSystemsJson());
+    const res = await POST(
+      makeRequest({ domain: "tech", exerciseType: "systems", systemsTaskType: "resilience" }),
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.ok).toBe(true);
+    expect(data.data.variantKind).toBe("resilience");
+    expect(data.data.criticalityGroundTruth).toHaveLength(6);
+    expect(mockGenerateRaw).toHaveBeenCalledTimes(1);
+    expect(mockGenerateRaw.mock.calls[0][0]).toContain("criticalityGroundTruth");
+  });
+
+  it("retries resilience generation with the resilience retry suffix on semantic failure", async () => {
+    authOk();
+    const badCascade = JSON.parse(validResilienceSystemsJson());
+    badCascade.secondShockEvent = {
+      description: "Unrelated",
+      directlyAffected: ["node_5"],
+      indirectlyAffected: ["node_6"],
+      explanation: "does not cascade from node_2",
+    };
+    mockGenerateRaw
+      .mockResolvedValueOnce(JSON.stringify(badCascade))
+      .mockResolvedValueOnce(validResilienceSystemsJson());
+    const res = await POST(
+      makeRequest({ domain: "tech", exerciseType: "systems", systemsTaskType: "resilience" }),
+    );
+    expect(res.status).toBe(200);
+    expect(mockGenerateRaw).toHaveBeenCalledTimes(2);
+    expect(mockGenerateRaw.mock.calls[1][0]).toContain("resilience systems JSON failed validation");
+  });
+
+  it("defaults systemsTaskType to 'auto' and ignores an unknown value", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue(validSystemsJson());
+    const res = await POST(
+      makeRequest({ domain: "tech", exerciseType: "systems", systemsTaskType: "bogus" }),
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.ok).toBe(true);
+    expect(data.data.variantKind).toBeUndefined();
   });
 });
 
