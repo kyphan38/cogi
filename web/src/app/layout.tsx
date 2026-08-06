@@ -37,7 +37,31 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{window.addEventListener("unhandledrejection",function(e){var r=e.reason;if(r&&typeof r==="object"&&r.name==="AbortError")e.preventDefault();},{capture:true});}catch(_){}})();`,
+            __html: `(function(){
+  /* Patch window.fetch so AbortError rejections (from real page navigations
+     cancelling in-flight requests, incl. Next.js's own internal RSC/prefetch
+     fetches) are marked "handled" before the microtask checkpoint, so they
+     never become unhandledrejection noise in the console/devtools. A
+     window-level unhandledrejection listener alone is NOT enough here:
+     Next's dev error overlay attaches its own unhandledrejection listener
+     that logs regardless of event.preventDefault(), so the only reliable
+     fix is to keep the promise from ever going unhandled in the first place. */
+  try{
+    var f=window.fetch;
+    if(f&&!f.__cogiAbortPatched){
+      var orig=f.bind(window);
+      var patched=function(){
+        var p=orig.apply(this,arguments);
+        p.catch(function(e){if(e&&typeof e==="object"&&e.name==="AbortError")return;throw e;});
+        return p;
+      };
+      patched.__cogiAbortPatched=true;
+      window.fetch=patched;
+    }
+  }catch(_){}
+  /* Fallback for any non-fetch AbortError sources. */
+  try{window.addEventListener("unhandledrejection",function(e){var r=e.reason;if(r&&typeof r==="object"&&r.name==="AbortError")e.preventDefault();},{capture:true});}catch(_){}
+})();`,
           }}
         />
       </head>

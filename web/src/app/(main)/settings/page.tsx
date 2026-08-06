@@ -13,14 +13,24 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
 import {
   getAppSettings,
   getUserContext,
   setAdaptiveDifficultyEnabled,
   setDelayedRecallEnabled,
   setGeopoliticsProgressionEpoch,
+  setLanguageLevel,
+  setManualDifficultyEnabled,
+  setManualDifficultyTier,
   setUserContext,
 } from "@/lib/db/settings";
+import { DIFFICULTY_TIERS } from "@/lib/adaptive/difficulty-tier";
+import {
+  DEFAULT_LANGUAGE_LEVEL,
+  LANGUAGE_LEVEL_DESCRIPTIONS,
+  LANGUAGE_LEVELS,
+} from "@/lib/adaptive/language-level";
 import {
   exportAllJsonString,
   exportJournalMarkdown,
@@ -31,6 +41,11 @@ export default function SettingsPage() {
   const [ctx, setCtx] = useState("");
   const [recallOn, setRecallOn] = useState(true);
   const [adaptiveOn, setAdaptiveOn] = useState(false);
+  const [manualDifficultyOn, setManualDifficultyOn] = useState(false);
+  const [difficultyTierIndex, setDifficultyTierIndex] = useState(0);
+  const [languageLevelIndex, setLanguageLevelIndex] = useState(
+    LANGUAGE_LEVELS.indexOf(DEFAULT_LANGUAGE_LEVEL),
+  );
   const [geoEpoch, setGeoEpoch] = useState<string | undefined>();
   const [saved, setSaved] = useState(false);
   const [backupMsg, setBackupMsg] = useState<string | null>(null);
@@ -42,6 +57,11 @@ export default function SettingsPage() {
       setCtx(text);
       setRecallOn(s.delayedRecallEnabled !== false);
       setAdaptiveOn(s.adaptiveDifficultyEnabled === true);
+      setManualDifficultyOn(s.manualDifficultyEnabled === true);
+      const tierIdx = s.manualDifficultyTier ? DIFFICULTY_TIERS.indexOf(s.manualDifficultyTier) : 0;
+      setDifficultyTierIndex(tierIdx >= 0 ? tierIdx : 0);
+      const levelIdx = LANGUAGE_LEVELS.indexOf(s.languageLevel ?? DEFAULT_LANGUAGE_LEVEL);
+      setLanguageLevelIndex(levelIdx >= 0 ? levelIdx : LANGUAGE_LEVELS.indexOf(DEFAULT_LANGUAGE_LEVEL));
       setGeoEpoch(s.geopoliticsProgressionEpoch);
     })();
   }, []);
@@ -74,6 +94,21 @@ export default function SettingsPage() {
   const toggleAdaptive = async (checked: boolean) => {
     setAdaptiveOn(checked);
     await setAdaptiveDifficultyEnabled(checked);
+  };
+
+  const toggleManualDifficulty = async (checked: boolean) => {
+    setManualDifficultyOn(checked);
+    await setManualDifficultyEnabled(checked);
+  };
+
+  const onDifficultyTierChange = (index: number) => {
+    setDifficultyTierIndex(index);
+    void setManualDifficultyTier(DIFFICULTY_TIERS[index]);
+  };
+
+  const onLanguageLevelChange = (index: number) => {
+    setLanguageLevelIndex(index);
+    void setLanguageLevel(LANGUAGE_LEVELS[index]);
   };
 
   const downloadText = (filename: string, content: string, mime: string) => {
@@ -179,6 +214,77 @@ export default function SettingsPage() {
               Adaptive difficulty
             </Label>
           </div>
+
+          {adaptiveOn ? (
+            <div className="ml-6 grid gap-3 border-l border-border pl-4">
+              <div className="flex items-center gap-2">
+                <input
+                  id="manual-difficulty"
+                  type="checkbox"
+                  checked={manualDifficultyOn}
+                  onChange={(e) => void toggleManualDifficulty(e.target.checked)}
+                  className="size-4"
+                />
+                <Label htmlFor="manual-difficulty" className="font-normal">
+                  Manually set difficulty (overrides accuracy-based tier)
+                </Label>
+              </div>
+              {manualDifficultyOn ? (
+                <div className="grid max-w-md gap-3">
+                  <Label htmlFor="difficulty-tier">
+                    Difficulty: {DIFFICULTY_TIERS[difficultyTierIndex]} (
+                    {difficultyTierIndex + 1}/{DIFFICULTY_TIERS.length})
+                  </Label>
+                  <Slider
+                    id="difficulty-tier"
+                    min={0}
+                    max={DIFFICULTY_TIERS.length - 1}
+                    step={1}
+                    value={[difficultyTierIndex]}
+                    onValueChange={(v) => {
+                      const n = Array.isArray(v) ? v[0] : v;
+                      onDifficultyTierChange(typeof n === "number" ? n : 0);
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    {DIFFICULTY_TIERS.map((t) => (
+                      <span key={t}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="grid max-w-md gap-3">
+            <Label htmlFor="language-level">
+              Language level: {LANGUAGE_LEVELS[languageLevelIndex]} (
+              {LANGUAGE_LEVEL_DESCRIPTIONS[LANGUAGE_LEVELS[languageLevelIndex]]})
+            </Label>
+            <Slider
+              id="language-level"
+              min={0}
+              max={LANGUAGE_LEVELS.length - 1}
+              step={1}
+              value={[languageLevelIndex]}
+              onValueChange={(v) => {
+                const n = Array.isArray(v) ? v[0] : v;
+                onLanguageLevelChange(typeof n === "number" ? n : 0);
+              }}
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              {LANGUAGE_LEVELS.map((l) => (
+                <span key={l}>{l}</span>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Controls sentence complexity and vocabulary in generated exercises, independent of
+              difficulty. Your current real-world level is roughly IELTS 6.0-6.5, so
+              &quot;Intermediate&quot; is the default. Raise this over time as your English
+              improves.
+            </p>
+          </div>
+
           <div className="grid gap-2">
             <Label htmlFor="ctx">Personal context</Label>
             <Textarea

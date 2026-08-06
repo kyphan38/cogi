@@ -93,6 +93,11 @@ import {
   buildAdaptationAppendix,
   normalizeAdaptiveHints,
 } from "@/lib/adaptive/adaptive-appendix";
+import {
+  buildLanguageLevelAppendix,
+  DEFAULT_LANGUAGE_LEVEL,
+  isLanguageLevel,
+} from "@/lib/adaptive/language-level";
 import type { AdaptiveExerciseType } from "@/lib/adaptive/types";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 import {
@@ -200,6 +205,21 @@ export async function POST(req: Request) {
   const rawHints = (body as { adaptiveHints?: unknown }).adaptiveHints;
   const adaptiveHints = normalizeAdaptiveHints(rawHints);
 
+  // Language-complexity bar (Settings) - independent axis from adaptive difficulty.
+  // Always tolerant of missing/malformed values: falls back to the default level.
+  const rawLanguageLevel = (body as { languageLevel?: unknown }).languageLevel;
+  const languageLevel = isLanguageLevel(rawLanguageLevel) ? rawLanguageLevel : DEFAULT_LANGUAGE_LEVEL;
+  const languageAppendix = buildLanguageLevelAppendix(languageLevel);
+
+  // Shared helper: combines the per-exercise-type adaptive-difficulty appendix with the
+  // language-level appendix into a single opaque block passed as `adaptationAppendix`.
+  const appendixFor = (t: AdaptiveExerciseType): string | undefined => {
+    const parts = [buildAdaptationAppendix(adaptiveHints, t), languageAppendix].filter(
+      (s): s is string => Boolean(s?.trim()),
+    );
+    return parts.length > 0 ? parts.join("\n\n") : undefined;
+  };
+
   try {
     if (exerciseType === "evaluative") {
       const rawEvaluativeTaskType = (body as { evaluativeTaskType?: unknown })
@@ -219,27 +239,27 @@ export async function POST(req: Request) {
           ? buildEvaluativeDealbreakerPrompt({
               domain: effectiveDomain,
               userContext,
-              adaptationAppendix: buildAdaptationAppendix(adaptiveHints, "evaluative"),
+              adaptationAppendix: appendixFor("evaluative"),
               customScenario: scenarioForPrompt,
             })
           : evaluativeTaskType === "uncertainty"
             ? buildEvaluativeUncertaintyPrompt({
                 domain: effectiveDomain,
                 userContext,
-                adaptationAppendix: buildAdaptationAppendix(adaptiveHints, "evaluative"),
+                adaptationAppendix: appendixFor("evaluative"),
                 customScenario: scenarioForPrompt,
               })
             : isGeoEval
               ? buildGeopoliticsEvaluativePrompt({
                   domain: effectiveDomain,
                   userContext,
-                  adaptationAppendix: buildAdaptationAppendix(adaptiveHints, "evaluative"),
+                  adaptationAppendix: appendixFor("evaluative"),
                   customScenario: scenarioForPrompt,
                 })
               : buildEvaluativeGenerationPrompt({
                   domain: effectiveDomain,
                   userContext,
-                  adaptationAppendix: buildAdaptationAppendix(adaptiveHints, "evaluative"),
+                  adaptationAppendix: appendixFor("evaluative"),
                   customScenario: scenarioForPrompt,
                 });
 
@@ -323,7 +343,7 @@ export async function POST(req: Request) {
           : "argue_debate";
       const regional = getGeopoliticsRegionalAppendix(effectiveDomain);
       const adaptParts = [
-        buildAdaptationAppendix(adaptiveHints, "generative"),
+        appendixFor("generative"),
         regional,
       ].filter((s): s is string => Boolean(s?.trim()));
       const adaptationAppendix = adaptParts.join("\n\n");
@@ -426,8 +446,6 @@ export async function POST(req: Request) {
       (sequentialTaskType === "geopolitics" ||
         (sequentialTaskType === "auto" && isGeopoliticsAnalyticalDomain(effectiveDomain)));
 
-    const appendixFor = (t: AdaptiveExerciseType) =>
-      buildAdaptationAppendix(adaptiveHints, t);
     const useSteelman =
       exerciseType === "analytical" && analyticalVariant === "steelman" && mode !== "real_data";
     const basePrompt =
