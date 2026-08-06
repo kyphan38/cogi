@@ -42,7 +42,10 @@ import type {
 import type { GenerativeExercisePayload } from "@/lib/ai/validators/generative";
 import type { JournalEntry } from "@/lib/types/journal";
 import type { ActionBridge } from "@/lib/types/action";
-import { buildAdaptiveHintsForRequest } from "@/lib/adaptive/adaptive-hints";
+import {
+  buildAdaptiveHintsForRequest,
+  getLanguageLevelForRequest,
+} from "@/lib/adaptive/adaptive-hints";
 import { countCompletedByType, putExercise, getExercise } from "@/lib/db/exercises";
 import { getUserContext } from "@/lib/db/settings";
 import { completeExerciseFlow } from "@/lib/db/complete-exercise";
@@ -296,6 +299,7 @@ export function GenerativeExerciseFlow({
       const generativeStage = getGenerativeStageFromCompletedCount(completed);
       const userContext = await getUserContext();
       const adaptiveHints = await buildAdaptiveHintsForRequest("generative");
+      const languageLevel = await getLanguageLevelForRequest();
       const res = await aiFetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -308,6 +312,7 @@ export function GenerativeExerciseFlow({
           mode: effectiveSetupMode,
           customScenario: customScenarioOut,
           adaptiveHints,
+          languageLevel,
         }),
       });
       const json = await safeAiJson<

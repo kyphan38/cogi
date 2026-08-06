@@ -73,7 +73,10 @@ import {
   type SequentialGeopoliticsExercisePayload,
   type SequentialTriageExercisePayload,
 } from "@/lib/ai/validators/sequential";
-import { buildAdaptiveHintsForRequest } from "@/lib/adaptive/adaptive-hints";
+import {
+  buildAdaptiveHintsForRequest,
+  getLanguageLevelForRequest,
+} from "@/lib/adaptive/adaptive-hints";
 import { putExercise, getExercise } from "@/lib/db/exercises";
 import { getUserContext } from "@/lib/db/settings";
 import { completeExerciseFlow } from "@/lib/db/complete-exercise";
@@ -430,6 +433,7 @@ export function SequentialExerciseFlow({
     try {
       const userContext = await getUserContext();
       const adaptiveHints = await buildAdaptiveHintsForRequest("sequential");
+      const languageLevel = await getLanguageLevelForRequest();
       const res = await aiFetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -441,6 +445,7 @@ export function SequentialExerciseFlow({
           mode: effectiveSetupMode,
           customScenario: customScenarioOut,
           adaptiveHints,
+          languageLevel,
         }),
       });
       const json = await safeAiJson<

@@ -44,7 +44,10 @@ import type { JournalEntry } from "@/lib/types/journal";
 import type { ActionBridge } from "@/lib/types/action";
 import type { AnalyticalExercise } from "@/lib/ai/validators/common";
 import { AdaptiveSetupHint } from "@/components/adaptive/AdaptiveSetupHint";
-import { buildAdaptiveHintsForRequest } from "@/lib/adaptive/adaptive-hints";
+import {
+  buildAdaptiveHintsForRequest,
+  getLanguageLevelForRequest,
+} from "@/lib/adaptive/adaptive-hints";
 import { putExercise, getExercise } from "@/lib/db/exercises";
 import { getUserContext } from "@/lib/db/settings";
 import { completeExerciseFlow } from "@/lib/db/complete-exercise";
@@ -276,6 +279,7 @@ export function AnalyticalExerciseFlow({
       const userContext = await getUserContext();
       const userTextForReal = effectiveMode === "real_data" ? sanitizedUserText : undefined;
       const adaptiveHints = await buildAdaptiveHintsForRequest("analytical");
+      const languageLevel = await getLanguageLevelForRequest();
       const res = await aiFetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -288,6 +292,7 @@ export function AnalyticalExerciseFlow({
           userText: effectiveMode === "real_data" ? userTextForReal : undefined,
           customScenario: customScenarioBody,
           adaptiveHints,
+          languageLevel,
         }),
       });
       const json = await safeAiJson<

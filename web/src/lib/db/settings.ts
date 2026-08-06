@@ -1,6 +1,9 @@
 import { Unsubscribe, getDoc, setDoc } from "firebase/firestore";
 import { COGI_COLLECTIONS, subscribeCollectionRows, userDocRef } from "@/lib/db/firestore";
 import { e2eGetDoc, e2eSetDoc, isE2EAuthBypass } from "@/lib/db/e2e-firestore-memory";
+import { stripUndefinedDeep } from "@/lib/db/strip-undefined-deep";
+import type { DifficultyTierLabel } from "@/lib/adaptive/types";
+import { DEFAULT_LANGUAGE_LEVEL, type LanguageLevel } from "@/lib/adaptive/language-level";
 
 export interface AppSettingsRow {
   id: "app";
@@ -8,6 +11,12 @@ export interface AppSettingsRow {
   delayedRecallEnabled?: boolean;
   weeklyReviewLastCompletedCount?: number;
   adaptiveDifficultyEnabled?: boolean;
+  /** Nested sub-toggle - only meaningful when `adaptiveDifficultyEnabled` is true. */
+  manualDifficultyEnabled?: boolean;
+  /** Manual difficulty bar value; overrides the computed accuracy-based tier when `manualDifficultyEnabled` is true. */
+  manualDifficultyTier?: DifficultyTierLabel | null;
+  /** Manual language-complexity bar value (independent axis from difficulty). */
+  languageLevel?: LanguageLevel;
   /** ISO timestamp - geopolitics progression ignores completions before this. */
   geopoliticsProgressionEpoch?: string;
 }
@@ -23,11 +32,12 @@ async function getRow(): Promise<AppSettingsRow | undefined> {
 }
 
 async function saveRow(row: AppSettingsRow): Promise<void> {
+  const clean = stripUndefinedDeep(row);
   if (isE2EAuthBypass()) {
-    await e2eSetDoc(COGI_COLLECTIONS.settings, SETTINGS_ID, row as unknown as Record<string, unknown>);
+    await e2eSetDoc(COGI_COLLECTIONS.settings, SETTINGS_ID, clean as unknown as Record<string, unknown>);
     return;
   }
-  await setDoc(userDocRef<AppSettingsRow>(COGI_COLLECTIONS.settings, SETTINGS_ID), row);
+  await setDoc(userDocRef<AppSettingsRow>(COGI_COLLECTIONS.settings, SETTINGS_ID), clean);
 }
 
 /** Defaults when fields missing (Dexie v1 rows). */
@@ -39,6 +49,9 @@ export async function getAppSettings(): Promise<AppSettingsRow> {
     delayedRecallEnabled: row?.delayedRecallEnabled !== false,
     weeklyReviewLastCompletedCount: row?.weeklyReviewLastCompletedCount,
     adaptiveDifficultyEnabled: row?.adaptiveDifficultyEnabled === true,
+    manualDifficultyEnabled: row?.manualDifficultyEnabled === true,
+    manualDifficultyTier: row?.manualDifficultyTier ?? null,
+    languageLevel: row?.languageLevel ?? DEFAULT_LANGUAGE_LEVEL,
     geopoliticsProgressionEpoch: row?.geopoliticsProgressionEpoch,
   };
 }
@@ -56,6 +69,9 @@ export async function setUserContext(userContext: string): Promise<void> {
     delayedRecallEnabled: prev?.delayedRecallEnabled !== false,
     weeklyReviewLastCompletedCount: prev?.weeklyReviewLastCompletedCount,
     adaptiveDifficultyEnabled: prev?.adaptiveDifficultyEnabled === true,
+    manualDifficultyEnabled: prev?.manualDifficultyEnabled === true,
+    manualDifficultyTier: prev?.manualDifficultyTier ?? null,
+    languageLevel: prev?.languageLevel ?? DEFAULT_LANGUAGE_LEVEL,
     geopoliticsProgressionEpoch: prev?.geopoliticsProgressionEpoch,
   };
   await saveRow(row);
@@ -93,6 +109,30 @@ export async function setAdaptiveDifficultyEnabled(enabled: boolean): Promise<vo
   });
 }
 
+export async function setManualDifficultyEnabled(enabled: boolean): Promise<void> {
+  const prev = await getAppSettings();
+  await saveRow({
+    ...prev,
+    manualDifficultyEnabled: enabled,
+  });
+}
+
+export async function setManualDifficultyTier(tier: DifficultyTierLabel): Promise<void> {
+  const prev = await getAppSettings();
+  await saveRow({
+    ...prev,
+    manualDifficultyTier: tier,
+  });
+}
+
+export async function setLanguageLevel(level: LanguageLevel): Promise<void> {
+  const prev = await getAppSettings();
+  await saveRow({
+    ...prev,
+    languageLevel: level,
+  });
+}
+
 export function subscribeAppSettings(
   onData: (settings: AppSettingsRow) => void,
   onError?: (error: unknown) => void,
@@ -107,6 +147,9 @@ export function subscribeAppSettings(
         delayedRecallEnabled: row?.delayedRecallEnabled !== false,
         weeklyReviewLastCompletedCount: row?.weeklyReviewLastCompletedCount,
         adaptiveDifficultyEnabled: row?.adaptiveDifficultyEnabled === true,
+        manualDifficultyEnabled: row?.manualDifficultyEnabled === true,
+        manualDifficultyTier: row?.manualDifficultyTier ?? null,
+        languageLevel: row?.languageLevel ?? DEFAULT_LANGUAGE_LEVEL,
         geopoliticsProgressionEpoch: row?.geopoliticsProgressionEpoch,
       });
     },

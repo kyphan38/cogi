@@ -55,7 +55,10 @@ import {
   type SystemsResilienceExercisePayload,
 } from "@/lib/ai/validators/systems";
 import { isGeopoliticsAnalyticalDomain } from "@/lib/exercise/geopolitics-domains";
-import { buildAdaptiveHintsForRequest } from "@/lib/adaptive/adaptive-hints";
+import {
+  buildAdaptiveHintsForRequest,
+  getLanguageLevelForRequest,
+} from "@/lib/adaptive/adaptive-hints";
 import { getUserContext } from "@/lib/db/settings";
 import { completeExerciseFlow } from "@/lib/db/complete-exercise";
 import {
@@ -303,6 +306,7 @@ export function SystemsExerciseFlow({
     try {
       const userContext = await getUserContext();
       const adaptiveHints = await buildAdaptiveHintsForRequest("systems");
+      const languageLevel = await getLanguageLevelForRequest();
       const res = await aiFetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -313,6 +317,7 @@ export function SystemsExerciseFlow({
           mode: effectiveSetupMode,
           customScenario: customScenarioOut,
           adaptiveHints,
+          languageLevel,
           systemsTaskType,
         }),
       });

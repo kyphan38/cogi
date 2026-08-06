@@ -103,4 +103,17 @@ describe("setAdaptiveDifficultyEnabled", () => {
     const written = mockSetDoc.mock.calls[0][1];
     expect(written.adaptiveDifficultyEnabled).toBe(true);
   });
+
+  it("never writes undefined fields (Firestore rejects them)", async () => {
+    // No weeklyReviewLastCompletedCount / geopoliticsProgressionEpoch stored yet -
+    // spreading `prev?.field` straight through would otherwise leave `undefined`.
+    mockSnapshot({ userContext: "test" });
+    await setAdaptiveDifficultyEnabled(true);
+    const written = mockSetDoc.mock.calls[0][1];
+    for (const [key, value] of Object.entries(written)) {
+      expect(value, `field "${key}" must not be undefined`).not.toBeUndefined();
+    }
+    expect("weeklyReviewLastCompletedCount" in written).toBe(false);
+    expect("geopoliticsProgressionEpoch" in written).toBe(false);
+  });
 });
