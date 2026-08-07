@@ -6,6 +6,7 @@ import {
 } from "@/lib/ai/prompts/generative-debate";
 import { generatePlainTextRaw } from "@/lib/ai/gemini";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
+import { buildLanguageLevelAppendix, resolveLanguageLevel } from "@/lib/adaptive/language-level";
 
 export const maxDuration = 60;
 
@@ -35,6 +36,7 @@ export async function POST(req: Request) {
   }
   const b = body as Record<string, unknown>;
   const mode = b.mode === "continue" ? "continue" : "start";
+  const languageAppendix = buildLanguageLevelAppendix(resolveLanguageLevel(b));
 
   const domain = typeof b.domain === "string" ? b.domain : "";
   const title = typeof b.title === "string" ? b.title : "";
@@ -66,7 +68,7 @@ export async function POST(req: Request) {
         if (id && question) qa.push({ id, question, answer });
       }
       const isGeopolitics = b.isGeopolitics === true;
-      const prompt = buildGenerativeDebateStartPrompt({
+      const basePrompt = buildGenerativeDebateStartPrompt({
         domain: domain.trim(),
         title: title.trim(),
         scenario: scenario.trim() || title.trim(),
@@ -75,6 +77,7 @@ export async function POST(req: Request) {
         isGeopolitics,
         generativeVariant: parseGenerativeVariant(b.generativeVariant),
       });
+      const prompt = [basePrompt, languageAppendix].filter(Boolean).join("\n\n");
       const text = await generatePlainTextRaw(prompt, "thinking");
       return NextResponse.json({ ok: true, text });
     }
@@ -98,7 +101,7 @@ export async function POST(req: Request) {
       }
     }
     const isGeopolitics = b.isGeopolitics === true;
-    const prompt = buildGenerativeDebateContinuePrompt({
+    const basePrompt = buildGenerativeDebateContinuePrompt({
       domain: domain.trim(),
       title: title.trim(),
       history,
@@ -106,6 +109,7 @@ export async function POST(req: Request) {
       isGeopolitics,
       generativeVariant: parseGenerativeVariant(b.generativeVariant),
     });
+    const prompt = [basePrompt, languageAppendix].filter(Boolean).join("\n\n");
     const text = await generatePlainTextRaw(prompt, "thinking");
     return NextResponse.json({ ok: true, text });
   } catch (e) {

@@ -31,6 +31,7 @@ function makeSystems() {
   return {
     title: "System", scenario: "System scenario",
     nodes: makeNodes(),
+    componentCandidates: ["A", "B", "C", "D", "E", "F", "G", "H", "I"],
     intendedConnections: [{ from: "node_1", to: "node_2", type: "depends_on", explanation: "Why" }],
     shockEvent: { description: "Shock", directlyAffected: ["node_1"], indirectlyAffected: ["node_3"], explanation: "Impact" },
   };

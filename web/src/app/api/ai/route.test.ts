@@ -121,6 +121,10 @@ function validSystemsJson() {
       { id: "node_5", label: "Node 5", description: "desc 5", x: 40, y: 60 },
       { id: "node_6", label: "Node 6", description: "desc 6", x: 60, y: 60 },
     ],
+    componentCandidates: [
+      "Node 1", "Node 2", "Node 3", "Node 4", "Node 5", "Node 6",
+      "Distractor A", "Distractor B", "Distractor C",
+    ],
     intendedConnections: [
       { from: "node_1", to: "node_2", type: "depends_on", explanation: "why" },
     ],
@@ -144,6 +148,10 @@ function validGeopoliticsSystemsJson() {
       { id: "node_4", label: "Node 4", description: "desc 4", x: 20, y: 60 },
       { id: "node_5", label: "Node 5", description: "desc 5", x: 40, y: 60 },
       { id: "node_6", label: "Node 6", description: "desc 6", x: 60, y: 60 },
+    ],
+    componentCandidates: [
+      "Node 1", "Node 2", "Node 3", "Node 4", "Node 5", "Node 6",
+      "Distractor A", "Distractor B", "Distractor C",
     ],
     intendedConnections: [
       { from: "node_1", to: "node_2", type: "depends_on", explanation: "why" },
@@ -181,6 +189,10 @@ function validResilienceSystemsJson() {
       { id: "node_4", label: "Node 4", description: "desc 4", x: 20, y: 60 },
       { id: "node_5", label: "Node 5", description: "desc 5", x: 40, y: 60 },
       { id: "node_6", label: "Node 6", description: "desc 6", x: 60, y: 60 },
+    ],
+    componentCandidates: [
+      "Node 1", "Node 2", "Node 3", "Node 4", "Node 5", "Node 6",
+      "Distractor A", "Distractor B", "Distractor C",
     ],
     intendedConnections: [
       { from: "node_1", to: "node_2", type: "depends_on", explanation: "why" },

@@ -179,9 +179,7 @@ export function SystemsExerciseFlow({
   const [secondNodeImpact, setSecondNodeImpact] = useState<Record<string, SystemsNodeImpact>>(
     {},
   );
-  const [userProposedComponents, setUserProposedComponents] = useState<string[]>(() =>
-    Array.from({ length: 6 }, () => ""),
-  );
+  const [userProposedComponents, setUserProposedComponents] = useState<string[]>([]);
   const [decomposePhase, setDecomposePhase] = useState<"input" | "compare">("input");
 
   const [confidence, setConfidence] = useState(50);
@@ -224,11 +222,7 @@ export function SystemsExerciseFlow({
       setUserCriticalityRanking(row.userCriticalityRanking ?? {});
       setSecondNodeImpact(row.secondNodeImpact ?? {});
       if (row.userProposedComponents && row.userProposedComponents.length > 0) {
-        setUserProposedComponents(
-          row.userProposedComponents.length === 6
-            ? row.userProposedComponents
-            : [...row.userProposedComponents, ...Array.from({ length: Math.max(0, 6 - row.userProposedComponents.length) }, () => "")],
-        );
+        setUserProposedComponents(row.userProposedComponents);
         setDecomposePhase("compare");
       }
       setConfidence(row.confidenceBefore ?? 50);
@@ -355,6 +349,7 @@ export function SystemsExerciseFlow({
         nodes: data.nodes,
         intendedConnections: data.intendedConnections,
         shockEvent: data.shockEvent,
+        componentCandidates: data.componentCandidates,
         isGeopolitics: isGeo,
         perspectiveAName: geoData?.perspectiveAName,
         perspectiveBName: geoData?.perspectiveBName,
@@ -380,7 +375,7 @@ export function SystemsExerciseFlow({
       setNodeImpact(emptyImpact(ids));
       setUserCriticalityRanking({});
       setSecondNodeImpact(resilienceData ? emptyImpact(ids) : {});
-      setUserProposedComponents(Array.from({ length: 6 }, () => ""));
+      setUserProposedComponents([]);
       setDecomposePhase("input");
       setPerspectiveText(null);
       setPerspectiveStructured(null);
@@ -891,26 +886,61 @@ export function SystemsExerciseFlow({
             {decomposePhase === "input" ? (
               <div className="space-y-3">
                 <p className="text-muted-foreground text-sm">
-                  Before you see any nodes, what are the 6 most important components or factors in this
-                  scenario?
+                  Before you see any nodes, pick the 6 components or factors you think matter most in this
+                  scenario.
                 </p>
-                <div className="grid gap-2">
-                  {userProposedComponents.map((v, i) => (
-                    <Input
-                      key={i}
-                      value={v}
-                      maxLength={30}
-                      placeholder={`Component ${i + 1}`}
-                      onChange={(e) =>
-                        setUserProposedComponents((prev) => {
-                          const next = [...prev];
-                          next[i] = e.target.value;
-                          return next;
-                        })
-                      }
-                    />
-                  ))}
-                </div>
+                {exercise.componentCandidates && exercise.componentCandidates.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {exercise.componentCandidates.map((c) => {
+                        const selected = userProposedComponents.includes(c);
+                        return (
+                          <button
+                            key={c}
+                            type="button"
+                            aria-pressed={selected}
+                            onClick={() =>
+                              setUserProposedComponents((prev) => {
+                                if (prev.includes(c)) return prev.filter((s) => s !== c);
+                                if (prev.length >= 6) return prev;
+                                return [...prev, c];
+                              })
+                            }
+                            className={cn(
+                              "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                              selected
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "hover:bg-accent",
+                            )}
+                          >
+                            {c}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-muted-foreground text-xs">
+                      {userProposedComponents.length}/6 selected
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-2">
+                    {Array.from({ length: 6 }, (_, i) => userProposedComponents[i] ?? "").map((v, i) => (
+                      <Input
+                        key={i}
+                        value={v}
+                        maxLength={30}
+                        placeholder={`Component ${i + 1}`}
+                        onChange={(e) =>
+                          setUserProposedComponents((prev) => {
+                            const next = [...prev];
+                            next[i] = e.target.value;
+                            return next;
+                          })
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <Button type="button" variant="secondary" onClick={() => {
                     const updated = { ...exercise, userEdges, nodeImpact, currentStep: 1 as const };
@@ -925,7 +955,7 @@ export function SystemsExerciseFlow({
                     onClick={() => {
                       const cleaned = userProposedComponents.map((s) => s.trim()).filter(Boolean);
                       if (cleaned.length !== 6) {
-                        setError("Enter 6 components.");
+                        setError("Choose 6 components.");
                         return;
                       }
                       setError(null);

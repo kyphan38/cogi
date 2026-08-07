@@ -20,6 +20,7 @@ import {
   CUSTOM_DOMAIN_PLACEHOLDER,
   CUSTOM_SCENARIO_MAX_LEN,
 } from "@/lib/ai/prompts/scenario-steering";
+import { buildLanguageLevelAppendix, resolveLanguageLevel } from "@/lib/adaptive/language-level";
 
 export const maxDuration = 60;
 
@@ -117,13 +118,17 @@ export async function POST(req: Request) {
     }
   }
 
-  const prompt = buildComboGenerationPrompt({
+  const basePrompt = buildComboGenerationPrompt({
     preset,
     domain: effectiveDomain,
     userContext,
     customScenario: scenarioForPrompt,
     generativeVariant,
   });
+  const languageAppendix = buildLanguageLevelAppendix(
+    resolveLanguageLevel(body as Record<string, unknown>),
+  );
+  const prompt = [basePrompt, languageAppendix].filter(Boolean).join("\n\n");
 
   try {
     const raw = await generateAnalyticalExerciseRaw(prompt, "thinking");

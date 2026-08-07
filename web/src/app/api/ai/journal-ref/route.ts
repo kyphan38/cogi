@@ -4,6 +4,7 @@ import { buildJournalReferencePrompt } from "@/lib/ai/prompts/journal-ref";
 import { generatePlainTextRaw } from "@/lib/ai/gemini";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 import { getFirebaseAdminFirestore, getUserDocPath } from "@/lib/firebaseAdminFirestore";
+import { buildLanguageLevelAppendix, resolveLanguageLevel } from "@/lib/adaptive/language-level";
 
 export const maxDuration = 60;
 
@@ -69,7 +70,11 @@ export async function POST(req: Request) {
     }
   }
 
-  const prompt = buildJournalReferencePrompt({ domain, snippets });
+  const basePrompt = buildJournalReferencePrompt({ domain, snippets });
+  const languageAppendix = buildLanguageLevelAppendix(
+    resolveLanguageLevel(body as Record<string, unknown>),
+  );
+  const prompt = [basePrompt, languageAppendix].filter(Boolean).join("\n\n");
   try {
     const raw = (await generatePlainTextRaw(prompt)).trim();
     const line =

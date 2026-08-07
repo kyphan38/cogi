@@ -1187,25 +1187,75 @@ export function EvaluativeExerciseFlow({
                   What 2–4 criteria would you use to evaluate these options? For each, give a short
                   name and explain why it matters (up to ~500 words).
                 </p>
+                {exercise.criteriaCandidates && exercise.criteriaCandidates.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {exercise.criteriaCandidates.map((c) => {
+                        const selected = userProposedCriteria.some((r) => r.name === c);
+                        return (
+                          <button
+                            key={c}
+                            type="button"
+                            aria-pressed={selected}
+                            onClick={() =>
+                              setUserProposedCriteria((prev) => {
+                                const idx = prev.findIndex((r) => r.name === c);
+                                if (idx >= 0) {
+                                  const next = [...prev];
+                                  next[idx] = { name: "", rationale: "" };
+                                  return next;
+                                }
+                                const emptyIdx = prev.findIndex((r) => !r.name.trim());
+                                if (emptyIdx === -1) return prev;
+                                const next = [...prev];
+                                next[emptyIdx] = { name: c, rationale: next[emptyIdx]!.rationale };
+                                return next;
+                              })
+                            }
+                            className={cn(
+                              "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                              selected
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "hover:bg-accent",
+                            )}
+                          >
+                            {c}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-muted-foreground text-xs">
+                      {userProposedCriteria.filter((r) => r.name.trim()).length}/4 selected
+                    </p>
+                  </div>
+                ) : null}
                 <div className="grid gap-4">
                   {userProposedCriteria.map((row, idx) => {
+                    const hasCandidates = Boolean(
+                      exercise.criteriaCandidates && exercise.criteriaCandidates.length > 0,
+                    );
+                    if (hasCandidates && !row.name.trim()) return null;
                     const wordCount = row.rationale.trim()
                       ? row.rationale.trim().split(/\s+/).filter(Boolean).length
                       : 0;
                     return (
                       <div key={idx} className="grid gap-2">
-                        <Input
-                          value={row.name}
-                          placeholder={`Criterion ${idx + 1} name`}
-                          maxLength={40}
-                          onChange={(e) =>
-                            setUserProposedCriteria((prev) => {
-                              const next = [...prev];
-                              next[idx] = { ...next[idx]!, name: e.target.value };
-                              return next;
-                            })
-                          }
-                        />
+                        {hasCandidates ? (
+                          <p className="text-sm font-medium">{row.name}</p>
+                        ) : (
+                          <Input
+                            value={row.name}
+                            placeholder={`Criterion ${idx + 1} name`}
+                            maxLength={40}
+                            onChange={(e) =>
+                              setUserProposedCriteria((prev) => {
+                                const next = [...prev];
+                                next[idx] = { ...next[idx]!, name: e.target.value };
+                                return next;
+                              })
+                            }
+                          />
+                        )}
                         <Textarea
                           value={row.rationale}
                           placeholder="Why it matters (up to ~500 words)"

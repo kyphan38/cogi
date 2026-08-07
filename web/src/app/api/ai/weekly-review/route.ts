@@ -5,6 +5,7 @@ import { generatePlainTextRaw } from "@/lib/ai/gemini";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 import { getFirebaseAdminFirestore, getUserDocPath } from "@/lib/firebaseAdminFirestore";
 import type { WeeklyReviewRow } from "@/lib/types/insights";
+import { buildLanguageLevelAppendix, resolveLanguageLevel } from "@/lib/adaptive/language-level";
 
 const exerciseSliceSchema = z.object({
   type: z.string(),
@@ -84,7 +85,11 @@ export async function POST(req: Request) {
     });
   }
 
-  const prompt = buildWeeklyReviewPrompt(promptPayload);
+  const basePrompt = buildWeeklyReviewPrompt(promptPayload);
+  const languageAppendix = buildLanguageLevelAppendix(
+    resolveLanguageLevel(body as Record<string, unknown>),
+  );
+  const prompt = [basePrompt, languageAppendix].filter(Boolean).join("\n\n");
   try {
     const markdown = await generatePlainTextRaw(prompt, "thinking");
     const row: WeeklyReviewRow = {

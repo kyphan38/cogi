@@ -61,7 +61,7 @@ test.describe("Systems exercise - generation and canvas", () => {
 
     await expect(page.getByText(/latency spikes/)).toBeVisible();
     await expect(
-      page.getByText(/6 most important components/),
+      page.getByText(/pick the 6 components or factors/),
     ).toBeVisible();
   });
 

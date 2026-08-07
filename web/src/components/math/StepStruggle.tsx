@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
+import { getLanguageLevelForRequest } from "@/lib/adaptive/adaptive-hints";
 import { cn } from "@/lib/utils";
 
 export interface StepStruggleMessage {
@@ -57,6 +58,7 @@ export function StepStruggle({
     setLoading(true);
 
     try {
+      const languageLevel = await getLanguageLevelForRequest();
       const res = await fetch("/api/math/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -68,6 +70,7 @@ export function StepStruggle({
           keyTraps: scenario.keyTraps,
           hintLadder: scenario.hintLadder,
           conversationHistory: updatedHistory,
+          languageLevel,
         }),
       });
 

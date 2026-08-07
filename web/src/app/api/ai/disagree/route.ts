@@ -8,6 +8,7 @@ import {
   getUserCollectionPath,
   getUserDocPath,
 } from "@/lib/firebaseAdminFirestore";
+import { buildLanguageLevelAppendix, resolveLanguageLevel } from "@/lib/adaptive/language-level";
 import type { PerspectiveDisagreementRow, PerspectiveKind, PerspectiveSectionKey } from "@/lib/types/disagreement";
 
 const bodySchema = z.object({
@@ -111,7 +112,7 @@ export async function POST(req: Request) {
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
     .map((r) => ({ userReason: r.userReason, aiReply: r.aiReply }));
 
-  const prompt = buildPerspectiveDisagreePrompt({
+  const basePrompt = buildPerspectiveDisagreePrompt({
     kind: kind as PerspectiveKind,
     exerciseTitle,
     domain: domain || undefined,
@@ -121,6 +122,10 @@ export async function POST(req: Request) {
     userReason,
     priorTurns,
   });
+  const languageAppendix = buildLanguageLevelAppendix(
+    resolveLanguageLevel(body as Record<string, unknown>),
+  );
+  const prompt = [basePrompt, languageAppendix].filter(Boolean).join("\n\n");
 
   try {
     const text = await generatePlainTextRaw(prompt, "thinking");

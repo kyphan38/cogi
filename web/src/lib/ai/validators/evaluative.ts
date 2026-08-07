@@ -18,6 +18,8 @@ const matrixOptionSchema = z.object({
   explanation: z.string().min(1).max(600),
 });
 
+const criteriaCandidatesSchema = z.array(z.string().min(1).max(40)).min(6).max(10).optional();
+
 const matrixPayloadSchema = z.object({
   variant: z.literal("matrix"),
   title: z.string().min(1).max(200),
@@ -25,6 +27,7 @@ const matrixPayloadSchema = z.object({
   axisX: axisSchema,
   axisY: axisSchema,
   options: z.array(matrixOptionSchema).min(4).max(6),
+  criteriaCandidates: criteriaCandidatesSchema,
 });
 
 const criterionSchema = z.object({
@@ -55,10 +58,14 @@ const scoringPayloadSchema = z.object({
   criteria: z.array(criterionSchema).min(3).max(12),
   options: z.array(scoringOptionSchema).min(2).max(8),
   hiddenCriteria: z.array(hiddenCriterionSchema).min(1).max(8),
+  criteriaCandidates: criteriaCandidatesSchema,
 });
+
+const stakeholderCandidatesSchema = z.array(z.string().min(1).max(40)).min(6).max(10).optional();
 
 export const geopoliticsScoringPayloadSchema = scoringPayloadSchema.extend({
   stakeholderNote: z.string().min(1).max(2000),
+  stakeholderCandidates: stakeholderCandidatesSchema,
   criteria: z.array(criterionSchema).min(4).max(12),
   options: z.array(scoringOptionSchema).min(3).max(8),
   hiddenCriteria: z.array(hiddenCriterionSchema).min(2).max(8),
@@ -114,6 +121,7 @@ export const EVALUATIVE_RETRY_SUFFIX = `
 IMPORTANT: Your previous JSON failed validation. Return ONLY valid JSON matching the schema:
 - matrix: variant "matrix", exactly 4-6 options, unique option ids, valid intendedQuadrant values.
 - scoring: variant "scoring", at least 3 criteria with unique ids, each option.suggestedScores must include every criterion id with integer 1-5, at least one hiddenCriteria entry.
+- both variants: criteriaCandidates must be 6-10 short (<=40 char) unique candidate criterion-name strings the user could pick from when proposing their own criteria.
 `;
 
 export const GEOPOLITICS_EVALUATIVE_RETRY_SUFFIX = `
@@ -125,6 +133,8 @@ IMPORTANT: Your previous JSON failed geopolitics evaluative validation. Return O
 - at least 3 options with unique ids
 - at least 2 hiddenCriteria
 - every option.suggestedScores key must exactly match a criterion id
+- criteriaCandidates: 6-10 short (<=40 char) unique candidate criterion-name strings
+- stakeholderCandidates: 6-10 short (<=40 char) unique candidate actor/stakeholder-name strings
 `;
 
 export const EVALUATIVE_DEALBREAKER_RETRY_SUFFIX = `
@@ -213,15 +223,30 @@ function validateUncertaintyOutcomes(
   }
 }
 
+function validateCriteriaCandidates(candidates: string[] | undefined, errors: string[]): void {
+  if (!candidates) return;
+  const normalized = candidates.map((c) => c.trim().toLowerCase());
+  if (new Set(normalized).size !== normalized.length) {
+    errors.push("criteriaCandidates must not contain duplicates");
+  }
+  if (candidates.some((c) => !c.trim())) {
+    errors.push("criteriaCandidates entries must be non-empty");
+  }
+}
+
 export function validateEvaluativeSemantics(data: EvaluativeExercisePayload): string[] {
   const errors: string[] = [];
   if (data.variant === "matrix") {
     const ids = data.options.map((o) => o.id);
     if (new Set(ids).size !== ids.length) errors.push("Matrix options must have unique ids");
+    validateCriteriaCandidates(data.criteriaCandidates, errors);
   } else if (data.variant === "uncertainty") {
     validateUncertaintyOutcomes(data, errors);
-  } else if (!isGeopoliticsEvaluativePayload(data)) {
-    validateScoringSuggestedScores(data, errors);
+  } else {
+    validateCriteriaCandidates(data.criteriaCandidates, errors);
+    if (!isGeopoliticsEvaluativePayload(data)) {
+      validateScoringSuggestedScores(data, errors);
+    }
   }
   return errors;
 }
@@ -253,6 +278,7 @@ export function validateGeopoliticsEvaluativeSemantics(
   if (!data.stakeholderNote.trim()) {
     errors.push("stakeholderNote must be non-empty");
   }
+  validateCriteriaCandidates(data.stakeholderCandidates, errors);
   if (data.criteria.length < 4) {
     errors.push("Geopolitics evaluative requires at least 4 criteria");
   }
