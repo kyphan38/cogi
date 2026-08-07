@@ -200,6 +200,36 @@ describe("validateEvaluativeSemantics", () => {
     const errors = validateEvaluativeSemantics(bad as never);
     expect(errors.some((e) => e.includes("unknown suggestedScores key"))).toBe(true);
   });
+
+  it("returns no errors when matrix criteriaCandidates are valid", () => {
+    const withCandidates = {
+      ...validMatrix,
+      criteriaCandidates: ["Cost", "Talent", "Location", "Culture", "Growth", "Risk"],
+    };
+    expect(validateEvaluativeSemantics(withCandidates as never)).toEqual([]);
+  });
+
+  it("catches duplicate criteriaCandidates", () => {
+    const dup = {
+      ...validMatrix,
+      criteriaCandidates: ["Cost", "Talent", "Location", "Culture", "Growth", "cost"],
+    };
+    const errors = validateEvaluativeSemantics(dup as never);
+    expect(errors.some((e) => e.includes("criteriaCandidates must not contain duplicates"))).toBe(
+      true,
+    );
+  });
+
+  it("catches empty criteriaCandidates entries", () => {
+    const empty = {
+      ...validScoring,
+      criteriaCandidates: ["Cost", "Talent", "Location", "Culture", "Growth", "   "],
+    };
+    const errors = validateEvaluativeSemantics(empty as never);
+    expect(errors.some((e) => e.includes("criteriaCandidates entries must be non-empty"))).toBe(
+      true,
+    );
+  });
 });
 
 describe("validateGeopoliticsEvaluativeSemantics", () => {
@@ -220,6 +250,38 @@ describe("validateGeopoliticsEvaluativeSemantics", () => {
     if (result.success) {
       const errors = validateGeopoliticsEvaluativeSemantics(result.data);
       expect(errors.some((e) => e.includes("whose interest"))).toBe(true);
+    }
+  });
+
+  it("catches duplicate stakeholderCandidates", () => {
+    const geo = {
+      ...validScoring,
+      stakeholderNote: "PM is primary decision maker here",
+      criteria: [
+        ...validScoring.criteria,
+        { id: "c4", label: "Sec", description: "Security and compliance requirements for government", suggestedWeight: 4 },
+      ].map((c) => ({
+        ...c,
+        description: "Long enough description naming whose interest it serves",
+      })),
+      options: [
+        ...validScoring.options,
+        { id: "v3", title: "Azure", description: "MS cloud", suggestedScores: { c1: 3, c2: 4, c3: 5, c4: 4 }, explanation: "Good compliance" },
+      ],
+      hiddenCriteria: [
+        ...validScoring.hiddenCriteria,
+        { label: "X", description: "Extra hidden criterion for testing" },
+      ],
+      stakeholderCandidates: ["PM", "Engineer", "Sales", "Finance", "Legal", "pm"],
+    };
+    const result = parseEvaluativeExerciseJson(JSON.stringify(geo));
+    if (result.success) {
+      const errors = validateGeopoliticsEvaluativeSemantics(result.data);
+      expect(
+        errors.some((e) => e.includes("criteriaCandidates must not contain duplicates")),
+      ).toBe(true);
+    } else {
+      throw new Error(`expected parse to succeed, got errors: ${result.error}`);
     }
   });
 });

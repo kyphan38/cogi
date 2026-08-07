@@ -154,6 +154,30 @@ describe("validateSystemsExerciseSemantics", () => {
     const errors = validateSystemsExerciseSemantics(bad as SystemsExercisePayload);
     expect(errors.some((e) => e.includes("unknown node"))).toBe(true);
   });
+
+  it("catches duplicate componentCandidates", () => {
+    const dup = {
+      ...validPayload,
+      componentCandidates: [...validPayload.componentCandidates.slice(0, -1), "economy"],
+    };
+    const errors = validateSystemsExerciseSemantics(dup as SystemsExercisePayload);
+    expect(errors.some((e) => e.includes("componentCandidates must not contain duplicates"))).toBe(
+      true,
+    );
+  });
+
+  it("catches componentCandidates missing a real node label", () => {
+    const missing = {
+      ...validPayload,
+      componentCandidates: validPayload.componentCandidates.map((c) =>
+        c === "Energy" ? "Water" : c,
+      ),
+    };
+    const errors = validateSystemsExerciseSemantics(missing as SystemsExercisePayload);
+    expect(
+      errors.some((e) => e.includes("componentCandidates is missing a real node label")),
+    ).toBe(true);
+  });
 });
 
 describe("validateGeopoliticsSystemsSemantics", () => {
