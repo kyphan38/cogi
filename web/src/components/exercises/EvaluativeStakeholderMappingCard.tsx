@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import type { EvaluativeScoringRow } from "@/lib/types/exercise";
 
 export interface EvaluativeStakeholderMappingCardProps {
@@ -25,53 +26,112 @@ export function EvaluativeStakeholderMappingCard({
   onBack,
   onContinue,
 }: EvaluativeStakeholderMappingCardProps) {
+  const hasCandidates = Boolean(
+    exercise.stakeholderCandidates && exercise.stakeholderCandidates.length > 0,
+  );
+
   if (!revealed) {
     return (
       <div className="space-y-3">
         <p className="text-muted-foreground text-sm">
           Before scoring, list the stakeholders affected by this decision and what each one wants.
         </p>
-        <div className="grid gap-3">
-          {rows.map((row, idx) => (
-            <div key={idx} className="grid gap-2 sm:grid-cols-2">
-              <Input
-                value={row.name}
-                placeholder={`Stakeholder ${idx + 1}`}
-                maxLength={80}
-                onChange={(e) => {
-                  const next = [...rows];
-                  next[idx] = { ...next[idx]!, name: e.target.value };
-                  onRowsChange(next);
-                }}
-              />
-              <Input
-                value={row.wants}
-                placeholder="What they want"
-                maxLength={200}
-                onChange={(e) => {
-                  const next = [...rows];
-                  next[idx] = { ...next[idx]!, wants: e.target.value };
-                  onRowsChange(next);
-                }}
-              />
+        {hasCandidates ? (
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {exercise.stakeholderCandidates!.map((c) => {
+                const selected = rows.some((r) => r.name === c);
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      const idx = rows.findIndex((r) => r.name === c);
+                      if (idx >= 0) {
+                        const next = [...rows];
+                        next[idx] = { name: "", wants: "" };
+                        onRowsChange(next);
+                        return;
+                      }
+                      const emptyIdx = rows.findIndex((r) => !r.name.trim());
+                      if (emptyIdx >= 0) {
+                        const next = [...rows];
+                        next[emptyIdx] = { name: c, wants: next[emptyIdx]!.wants };
+                        onRowsChange(next);
+                        return;
+                      }
+                      if (rows.length < 5) {
+                        onRowsChange([...rows, { name: c, wants: "" }]);
+                      }
+                    }}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                      selected
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "hover:bg-accent",
+                    )}
+                  >
+                    {c}
+                  </button>
+                );
+              })}
             </div>
-          ))}
+            <p className="text-muted-foreground text-xs">
+              {rows.filter((r) => r.name.trim()).length}/5 selected
+            </p>
+          </div>
+        ) : null}
+        <div className="grid gap-3">
+          {rows.map((row, idx) => {
+            if (hasCandidates && !row.name.trim()) return null;
+            return (
+              <div key={idx} className="grid gap-2 sm:grid-cols-2">
+                {hasCandidates ? (
+                  <p className="flex items-center text-sm font-medium">{row.name}</p>
+                ) : (
+                  <Input
+                    value={row.name}
+                    placeholder={`Stakeholder ${idx + 1}`}
+                    maxLength={80}
+                    onChange={(e) => {
+                      const next = [...rows];
+                      next[idx] = { ...next[idx]!, name: e.target.value };
+                      onRowsChange(next);
+                    }}
+                  />
+                )}
+                <Input
+                  value={row.wants}
+                  placeholder="What they want"
+                  maxLength={200}
+                  onChange={(e) => {
+                    const next = [...rows];
+                    next[idx] = { ...next[idx]!, wants: e.target.value };
+                    onRowsChange(next);
+                  }}
+                />
+              </div>
+            );
+          })}
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="secondary" onClick={onBack}>
             Back
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              rows.length < 5 ? onRowsChange([...rows, { name: "", wants: "" }]) : undefined
-            }
-            disabled={rows.length >= 5}
-          >
-            Add row
-          </Button>
+          {hasCandidates ? null : (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                rows.length < 5 ? onRowsChange([...rows, { name: "", wants: "" }]) : undefined
+              }
+              disabled={rows.length >= 5}
+            >
+              Add row
+            </Button>
+          )}
           <Button
             type="button"
             onClick={() => {

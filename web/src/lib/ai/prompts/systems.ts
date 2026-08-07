@@ -27,6 +27,7 @@ Requirements:
 - intendedConnections: clear dependency-style relationships; include at least **one circular dependency or feedback loop** among these 6 nodes
 - Each connection: type is one of "depends_on", "conflicts_with", "enables", "risks", plus explanation string
 - shockEvent: a plausible "what-if" ripple scenario with directlyAffected and indirectlyAffected node id arrays (subset of the 6 ids), plus explanation of the chain
+- componentCandidates: 9-14 short labels (each ≤20 chars, matching the node label style) the user will pick their "before I see the AI's answer" guesses from. MUST include the exact 6 node labels used above (verbatim strings, not ids) plus 3-8 plausible-but-wrong distractor labels for the same scenario/domain (same tone and length, no giveaway markers like asterisks). Shuffle the order so the correct 6 are NOT grouped together or in the same order as the nodes array. No duplicates.
 
 Return a single JSON object with this exact shape:
 {
@@ -35,6 +36,7 @@ Return a single JSON object with this exact shape:
   "nodes": [
     { "id": "node_1", "label": string, "description": string, "x": number, "y": number }
   ],
+  "componentCandidates": [string, string, string, string, string, string, string, string, string],
   "intendedConnections": [
     { "from": "node_1", "to": "node_2", "type": "depends_on", "explanation": string }
   ],
@@ -81,6 +83,7 @@ Requirements:
 - criticalityGroundTruth: exactly 6 entries (one per node), each with a criticalityRank from 1 (most critical / most damaging if it fails) to 6 (least critical), all ranks unique, plus a short internal-only explanation (never shown verbatim to the user as a "ranking")
 - shockEvent: a plausible first "what-if" ripple scenario with directlyAffected and indirectlyAffected node id arrays (subset of the 6 ids), plus explanation of the chain
 - secondShockEvent: a SECOND, later shock that genuinely cascades FROM the consequences of the first shock - its directlyAffected or indirectlyAffected nodes MUST overlap with the first shock's indirectlyAffected nodes (proving it's a downstream second-order effect, not an unrelated event). Include description, directlyAffected, indirectlyAffected, and explanation.
+- componentCandidates: 9-14 short labels (each ≤20 chars, matching the node label style) the user will pick their "before I see the AI's answer" guesses from. MUST include the exact 6 node labels used above (verbatim strings, not ids) plus 3-8 plausible-but-wrong distractor labels for the same scenario/domain (same tone and length, no giveaway markers). Shuffle the order so the correct 6 are NOT grouped together or in the same order as the nodes array. No duplicates. Do NOT let this list hint at criticality.
 
 Return a single JSON object with this exact shape:
 {
@@ -90,6 +93,7 @@ Return a single JSON object with this exact shape:
   "nodes": [
     { "id": "node_1", "label": string, "description": string, "x": number, "y": number }
   ],
+  "componentCandidates": [string, string, string, string, string, string, string, string, string],
   "intendedConnections": [
     { "from": "node_1", "to": "node_2", "type": "depends_on", "explanation": string }
   ],
@@ -143,12 +147,14 @@ Requirements:
 - Each connection: type is "depends_on" | "conflicts_with" | "enables" | "risks", plus explanation
 - shockEvent: shared what-if description plus directlyAffected, indirectlyAffected, explanation from Actor A's view
 - shockEventB: same shock (do NOT repeat description) - only directlyAffected, indirectlyAffected, explanation from Actor B's view
+- componentCandidates: 9-14 short labels (each ≤20 chars, matching the node label style) the user will pick their "before I see the AI's answer" guesses from. MUST include the exact 6 node labels used above (verbatim strings, not ids) plus 3-8 plausible-but-wrong distractor labels for the same scenario (same tone and length, no giveaway markers). Shuffle the order so the correct 6 are NOT grouped together or in the same order as the nodes array. No duplicates.
 
 Return a single JSON object with this exact shape:
 {
   "title": string,
   "scenario": string,
   "nodes": [ { "id": "node_1", "label": string, "description": string, "x": number, "y": number } ],
+  "componentCandidates": [string, string, string, string, string, string, string, string, string],
   "perspectiveAName": string,
   "perspectiveBName": string,
   "intendedConnections": [ { "from": "node_1", "to": "node_2", "type": "depends_on", "explanation": string } ],

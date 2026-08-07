@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
+import { getLanguageLevelForRequest } from "@/lib/adaptive/adaptive-hints";
 import { cn } from "@/lib/utils";
 
 function newBranchId(): string {
@@ -47,10 +48,11 @@ export default function MathSandboxPage() {
     setStructuring(true);
     setStructureError(null);
     try {
+      const languageLevel = await getLanguageLevelForRequest();
       const res = await fetch("/api/math/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "sandbox_structure", decisionText: decisionText.trim() }),
+        body: JSON.stringify({ role: "sandbox_structure", decisionText: decisionText.trim(), languageLevel }),
       });
       const data = await res.json();
       if (data.ok && data.proposal) {
@@ -106,6 +108,7 @@ export default function MathSandboxPage() {
     setChallengeInput("");
     setChallengeLoading(true);
     try {
+      const languageLevel = await getLanguageLevelForRequest();
       const res = await fetch("/api/math/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -121,6 +124,7 @@ export default function MathSandboxPage() {
           ruinReason: result.ruinReason,
           userMessage: newMsg.message,
           conversationHistory: updatedHistory,
+          languageLevel,
         }),
       });
       const data = await res.json();

@@ -1,4 +1,5 @@
 import { getFirebaseAuth } from "@/lib/auth/firebase-client";
+import { getLanguageLevelForRequest } from "@/lib/adaptive/adaptive-hints";
 
 function isE2EAuthBypass(): boolean {
   return (
@@ -8,15 +9,41 @@ function isE2EAuthBypass(): boolean {
 }
 
 /**
+ * Merge the current Language Level setting into a JSON request body, unless the
+ * caller already set it explicitly. This lets every `/api/ai/*` call stay
+ * language-aware without each call site having to fetch and thread the setting
+ * itself.
+ */
+async function withLanguageLevel(
+  body: BodyInit | null | undefined,
+): Promise<BodyInit | null | undefined> {
+  if (typeof body !== "string") return body;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return body;
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return body;
+  const obj = parsed as Record<string, unknown>;
+  if ("languageLevel" in obj) return body;
+  const languageLevel = await getLanguageLevelForRequest();
+  return JSON.stringify({ ...obj, languageLevel });
+}
+
+/**
  * POST (or other) to `/api/ai/...` with Firebase ID token when available.
  */
 export async function aiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const body = await withLanguageLevel(init?.body);
+  const resolvedInit: RequestInit | undefined = init ? { ...init, body } : init;
+
   if (isE2EAuthBypass()) {
-    const headers = new Headers(init?.headers);
-    if (init?.body != null && !headers.has("Content-Type")) {
+    const headers = new Headers(resolvedInit?.headers);
+    if (resolvedInit?.body != null && !headers.has("Content-Type")) {
       headers.set("Content-Type", "application/json");
     }
-    return fetch(path, { ...init, headers });
+    return fetch(path, { ...resolvedInit, headers });
   }
 
   const auth = getFirebaseAuth();
@@ -24,7 +51,7 @@ export async function aiFetch(path: string, init?: RequestInit): Promise<Respons
   if (!user) {
     return Promise.reject(new Error("Not signed in - please refresh and sign in again."));
   }
-  const headers = new Headers(init?.headers);
+  const headers = new Headers(resolvedInit?.headers);
   let idToken: string;
   try {
     idToken = await user.getIdToken();
@@ -34,10 +61,10 @@ export async function aiFetch(path: string, init?: RequestInit): Promise<Respons
     );
   }
   headers.set("Authorization", `Bearer ${idToken}`);
-  if (init?.body != null && !headers.has("Content-Type")) {
+  if (resolvedInit?.body != null && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  return fetch(path, { ...init, headers });
+  return fetch(path, { ...resolvedInit, headers });
 }
 
 /**

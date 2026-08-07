@@ -3,6 +3,7 @@ import { buildRecommendModePrompt } from "@/lib/ai/prompts/recommend-mode";
 import { EXERCISE_MODE_DESCRIPTIONS } from "@/lib/ai/prompts/exercise-mode-catalog";
 import { generateAnalyticalExerciseRaw } from "@/lib/ai/gemini";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
+import { buildLanguageLevelAppendix, resolveLanguageLevel } from "@/lib/adaptive/language-level";
 
 export const maxDuration = 30;
 
@@ -63,7 +64,9 @@ export async function POST(req: Request) {
     );
   }
 
-  const prompt = buildRecommendModePrompt(topic);
+  const basePrompt = buildRecommendModePrompt(topic);
+  const languageAppendix = buildLanguageLevelAppendix(resolveLanguageLevel(b));
+  const prompt = [basePrompt, languageAppendix].filter(Boolean).join("\n\n");
   try {
     const raw = await generateAnalyticalExerciseRaw(prompt);
     const recommendations = parseRecommendations(raw);

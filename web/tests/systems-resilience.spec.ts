@@ -63,7 +63,7 @@ test.describe("Systems exercise - resilience variant flow", () => {
   }) => {
     await generateResilienceExercise(page);
     await expect(page.getByText(/single points of failure/)).toBeVisible();
-    await expect(page.getByText(/6 most important components/)).toBeVisible();
+    await expect(page.getByText(/pick the 6 components or factors/)).toBeVisible();
   });
 
   test("criticality step renders read-only canvas and a 1-6 ranking input per node", async ({

@@ -48,6 +48,9 @@ export const systemsExerciseSchema = z.object({
   title: z.string(),
   scenario: z.string(),
   nodes: z.array(nodeSchema).length(6),
+  /** Pool the user picks their 6 "before I see the AI's nodes" guesses from: the 6 real
+   * node labels plus plausible distractors, order shuffled so correct ones aren't grouped. */
+  componentCandidates: z.array(z.string().min(1).max(20)).min(9).max(14),
   intendedConnections: z.array(intendedConnectionSchema).min(1),
   shockEvent: shockEventSchema,
 });
@@ -343,6 +346,18 @@ export function validateSystemsExerciseSemantics(
     ),
   );
 
+  const normalizedCandidates = data.componentCandidates.map((c) => c.trim().toLowerCase());
+  if (new Set(normalizedCandidates).size !== normalizedCandidates.length) {
+    errors.push("componentCandidates must not contain duplicates");
+  }
+  const candidateSet = new Set(normalizedCandidates);
+  const nodeLabels = new Set(data.nodes.map((n) => n.label.trim().toLowerCase()));
+  for (const label of nodeLabels) {
+    if (!candidateSet.has(label)) {
+      errors.push(`componentCandidates is missing a real node label ("${label}")`);
+    }
+  }
+
   return errors;
 }
 
@@ -457,6 +472,7 @@ IMPORTANT: Your previous JSON failed validation. Fix ALL issues:
 - no duplicate (from,to) pairs
 - any two nodes must be at least 15 apart in (x,y) percent space (Euclidean distance)
 - shockEvent.directlyAffected and indirectlyAffected must only reference existing node ids
+- componentCandidates must have 9-14 unique entries and include all 6 node labels verbatim, plus plausible distractor labels for the same scenario, shuffled so the real ones aren't grouped together
 Return ONLY corrected valid JSON with the same shape as before.`;
 
 export const GEOPOLITICS_SYSTEMS_RETRY_SUFFIX = `
@@ -465,6 +481,7 @@ IMPORTANT: Your previous geopolitics systems JSON failed validation. Fix ALL iss
 - perspectives must name different actors
 - both connection sets need valid node ids, no duplicate (from,to) pairs, and at least one feedback loop each
 - shockEventB only varies directlyAffected, indirectlyAffected, explanation (shared shock description is in shockEvent)
+- componentCandidates must have 9-14 unique entries and include all 6 node labels verbatim, plus plausible distractor labels for the same scenario, shuffled so the real ones aren't grouped together
 Return ONLY corrected valid JSON with the same shape as before.`;
 
 export const SYSTEMS_RESILIENCE_RETRY_SUFFIX = `
@@ -475,4 +492,5 @@ IMPORTANT: Your previous resilience systems JSON failed validation. Fix ALL issu
 - secondShockEvent.directlyAffected and indirectlyAffected must only reference existing node ids
 - secondShockEvent must genuinely cascade: at least one of its directlyAffected/indirectlyAffected nodes must also appear in the first shockEvent's indirectlyAffected set
 - do not reveal criticality ranking or which nodes are single points of failure inside scenario or node description text
+- componentCandidates must have 9-14 unique entries and include all 6 node labels verbatim, plus plausible distractor labels for the same scenario, shuffled so the real ones aren't grouped together
 Return ONLY corrected valid JSON with the same shape as before.`;

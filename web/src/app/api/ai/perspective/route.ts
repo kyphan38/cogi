@@ -37,6 +37,7 @@ import type {
 } from "@/lib/types/exercise";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
+import { buildLanguageLevelAppendix, resolveLanguageLevel } from "@/lib/adaptive/language-level";
 
 export const maxDuration = 60;
 
@@ -45,6 +46,7 @@ type PerspectiveRouteKind = ClarityPerspectiveKind | "sequential";
 async function generateStructuredPerspective(
   prompt: string,
   kind: PerspectiveRouteKind,
+  languageAppendix?: string,
 ): Promise<{
   structured: AIPerspectiveStructured;
   text: string;
@@ -59,13 +61,15 @@ async function generateStructuredPerspective(
       ? `Your previous answer was not valid JSON. Return ONLY a single JSON object with keys: embedded, userFound, additional, openQuestions.`
       : structuredPerspectiveRetrySuffix(kind);
 
+  const fullPrompt = [prompt, languageAppendix].filter(Boolean).join("\n\n");
+
   const run = async (p: string) => {
     const raw = await generateAnalyticalExerciseRaw(p, "thinking");
     return parse(raw);
   };
-  let parsed = await run(prompt);
+  let parsed = await run(fullPrompt);
   if (!parsed.success) {
-    parsed = await run(`${prompt}\n${retrySuffix}\nReason: ${parsed.error}`);
+    parsed = await run(`${fullPrompt}\n${retrySuffix}\nReason: ${parsed.error}`);
   }
   if (!parsed.success) {
     throw new Error(parsed.error);
@@ -98,6 +102,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Body must be object" }, { status: 400 });
   }
   const b = body as Record<string, unknown>;
+  const languageAppendix = buildLanguageLevelAppendix(resolveLanguageLevel(b));
   const kind =
     b.kind === "systems"
       ? "systems"
@@ -151,6 +156,7 @@ export async function POST(req: Request) {
       const { structured, text } = await generateStructuredPerspective(
         prompt,
         "evaluative-matrix",
+        languageAppendix,
       );
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
@@ -205,6 +211,7 @@ export async function POST(req: Request) {
       const { structured, text } = await generateStructuredPerspective(
         prompt,
         "evaluative-scoring",
+        languageAppendix,
       );
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
@@ -260,6 +267,7 @@ export async function POST(req: Request) {
       const { structured, text } = await generateStructuredPerspective(
         prompt,
         "evaluative-uncertainty",
+        languageAppendix,
       );
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
@@ -300,7 +308,11 @@ export async function POST(req: Request) {
       userContext,
     });
     try {
-      const { structured, text } = await generateStructuredPerspective(prompt, "generative");
+      const { structured, text } = await generateStructuredPerspective(
+        prompt,
+        "generative",
+        languageAppendix,
+      );
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
       const isTimeout =
@@ -418,7 +430,11 @@ export async function POST(req: Request) {
       secondShockEvent,
     });
     try {
-      const { structured, text } = await generateStructuredPerspective(prompt, "systems");
+      const { structured, text } = await generateStructuredPerspective(
+        prompt,
+        "systems",
+        languageAppendix,
+      );
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
       const isTimeout =
@@ -500,7 +516,11 @@ export async function POST(req: Request) {
       elapsedSeconds,
     });
     try {
-      const { structured, text } = await generateStructuredPerspective(prompt, "sequential");
+      const { structured, text } = await generateStructuredPerspective(
+        prompt,
+        "sequential",
+        languageAppendix,
+      );
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
       const isTimeout =
@@ -549,7 +569,11 @@ export async function POST(req: Request) {
       userContext,
     });
     try {
-      const { structured, text } = await generateStructuredPerspective(prompt, "analytical");
+      const { structured, text } = await generateStructuredPerspective(
+        prompt,
+        "analytical",
+        languageAppendix,
+      );
       return NextResponse.json({ ok: true, structured, text });
     } catch (e) {
       const isTimeout =
@@ -621,7 +645,11 @@ export async function POST(req: Request) {
   });
 
   try {
-    const { structured, text } = await generateStructuredPerspective(prompt, "analytical");
+    const { structured, text } = await generateStructuredPerspective(
+      prompt,
+      "analytical",
+      languageAppendix,
+    );
     return NextResponse.json({ ok: true, structured, text });
   } catch (e) {
     const isTimeout =

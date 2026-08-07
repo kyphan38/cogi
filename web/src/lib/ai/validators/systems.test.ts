@@ -27,6 +27,17 @@ const validPayload = {
   title: "Geopolitical System",
   scenario: "Analyze regional dynamics",
   nodes: makeNodes(),
+  componentCandidates: [
+    "Economy",
+    "Military",
+    "Trade",
+    "Diplomacy",
+    "Tech",
+    "Energy",
+    "Agriculture",
+    "Media",
+    "Infrastructure",
+  ],
   intendedConnections: [
     { from: "node_1" as const, to: "node_2" as const, type: "depends_on" as const, explanation: "Funding" },
     { from: "node_3" as const, to: "node_1" as const, type: "enables" as const, explanation: "Revenue" },

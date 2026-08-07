@@ -4,6 +4,7 @@ import { buildEvaluativeCriteriaFeedbackPrompt } from "@/lib/ai/prompts/evaluati
 import { generatePlainTextRaw } from "@/lib/ai/gemini";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 import { getFirebaseAdminFirestore, getUserDocPath } from "@/lib/firebaseAdminFirestore";
+import { buildLanguageLevelAppendix, resolveLanguageLevel } from "@/lib/adaptive/language-level";
 
 export const maxDuration = 60;
 
@@ -95,7 +96,7 @@ export async function POST(req: Request) {
     }
   }
 
-  const prompt = buildEvaluativeCriteriaFeedbackPrompt({
+  const basePrompt = buildEvaluativeCriteriaFeedbackPrompt({
     title,
     domain,
     scenario,
@@ -105,6 +106,10 @@ export async function POST(req: Request) {
         ? { kind: "axes", axisX: parsed.data.axisX, axisY: parsed.data.axisY }
         : { kind: "criteria", criteria: parsed.data.criteria },
   });
+  const languageAppendix = buildLanguageLevelAppendix(
+    resolveLanguageLevel(body as Record<string, unknown>),
+  );
+  const prompt = [basePrompt, languageAppendix].filter(Boolean).join("\n\n");
 
   try {
     const text = (await generatePlainTextRaw(prompt)).trim();

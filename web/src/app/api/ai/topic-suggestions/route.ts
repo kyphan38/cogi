@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { buildTopicSuggestionsPrompt } from "@/lib/ai/prompts/topic-suggestions";
 import { generateAnalyticalExerciseRaw } from "@/lib/ai/gemini";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
+import { buildLanguageLevelAppendix, resolveLanguageLevel } from "@/lib/adaptive/language-level";
 
 export const maxDuration = 30;
 
@@ -91,7 +92,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: `Unknown area "${area}" for kind "${kind}"` }, { status: 400 });
   }
 
-  const prompt = buildTopicSuggestionsPrompt({ area, kind, excludeTitles, userContext });
+  const basePrompt = buildTopicSuggestionsPrompt({ area, kind, excludeTitles, userContext });
+  const languageAppendix = buildLanguageLevelAppendix(resolveLanguageLevel(b));
+  const prompt = [basePrompt, languageAppendix].filter(Boolean).join("\n\n");
   try {
     const raw = await generateAnalyticalExerciseRaw(prompt, "fast");
     const suggestions = parseTopicSuggestions(raw, excludeTitles);

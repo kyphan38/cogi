@@ -203,6 +203,8 @@ export interface SystemsExerciseRow {
   nodes: SystemsNodeSpec[];
   intendedConnections: SystemsIntendedConnection[];
   shockEvent: SystemsShockEvent;
+  /** AI-generated pool (real node labels + distractors) the user picks their "before I see the AI's answer" guesses from. */
+  componentCandidates?: string[];
   /** Geopolitics: dual-perspective systems generation. */
   isGeopolitics?: boolean;
   perspectiveAName?: string;
@@ -268,6 +270,8 @@ export interface EvaluativeMatrixRow {
   scenario: string;
   /** User's proposed criteria before seeing AI framework. */
   userProposedCriteria?: { name: string; rationale: string }[] | null;
+  /** AI-suggested criterion name candidates to ease blank-page entry (optional pick list, not graded). */
+  criteriaCandidates?: string[];
   /** AI feedback on the user's proposed criteria. */
   criteriaFeedback?: EvaluativeCriteriaFeedback | null;
   axisX: EvaluativeAxisSpec;
@@ -328,8 +332,12 @@ export interface EvaluativeScoringRow {
   /** User stakeholder mapping before scoring (geo only). */
   userStakeholderMapping?: EvaluativeStakeholderMappingEntry[] | null;
   stakeholderMappingRevealed?: boolean;
+  /** AI-suggested stakeholder/actor name candidates to ease blank-page entry (geo only; optional pick list, not graded). */
+  stakeholderCandidates?: string[];
   /** User's proposed criteria before seeing AI framework. */
   userProposedCriteria?: { name: string; rationale: string }[] | null;
+  /** AI-suggested criterion name candidates to ease blank-page entry (optional pick list, not graded). */
+  criteriaCandidates?: string[];
   /** AI feedback on the user's proposed criteria. */
   criteriaFeedback?: EvaluativeCriteriaFeedback | null;
   criteria: EvaluativeCriterion[];

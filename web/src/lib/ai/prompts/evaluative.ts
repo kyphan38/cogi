@@ -41,7 +41,8 @@ Matrix shape:
       "intendedQuadrant": "top-left" | "top-right" | "bottom-left" | "bottom-right",
       "explanation": "string"
     }
-  ]
+  ],
+  "criteriaCandidates": [ "string", "..." ]
 }
 Use 4 to 6 options with unique ids.
 
@@ -62,7 +63,8 @@ Scoring shape:
       "explanation": "string"
     }
   ],
-  "hiddenCriteria": [ { "label": "string", "description": "string" } ]
+  "hiddenCriteria": [ { "label": "string", "description": "string" } ],
+  "criteriaCandidates": [ "string", "..." ]
 }
 
 Rules for scoring:
@@ -70,6 +72,7 @@ Rules for scoring:
 - At least 2 options, unique ids.
 - Every option.suggestedScores must include EVERY criterion id with integer 1-5.
 - At least one hiddenCriteria entry.
+- criteriaCandidates: 6-10 short (<=40 char) unique candidate criterion-name strings the user could pick from before proposing their own criteria. Include your real criteria's labels (verbatim) plus 3-6 plausible-but-wrong distractor labels of similar tone and length, no giveaway markers. Shuffle the order so the correct ones are NOT grouped together or first.
 ${adapt ? `\n${adapt}` : ""}`;
 }
 
@@ -116,11 +119,15 @@ Return scoring variant JSON:
   "stakeholderNote": string (primary decision-maker and 2–3 other affected stakeholders),
   "criteria": [ { "id", "label", "description", "suggestedWeight": 1-5 } ],
   "options": [ { "id", "title", "description", "suggestedScores": { "<criterion id>": 1-5, ... }, "explanation" } ],
-  "hiddenCriteria": [ { "label", "description" } ]
+  "hiddenCriteria": [ { "label", "description" } ],
+  "criteriaCandidates": [ "string", "..." ],
+  "stakeholderCandidates": [ "string", "..." ]
 }
 
 Minimums: at least 4 criteria, at least 3 options, at least 2 hiddenCriteria.
-Every option.suggestedScores must include every criterion id with integer 1–5.${adapt ? `\n\n${adapt}` : ""}`;
+Every option.suggestedScores must include every criterion id with integer 1–5.
+criteriaCandidates: 6-10 short (<=40 char) unique candidate criterion-name strings the user could pick from before proposing their own criteria. Include your real criteria's labels (verbatim) plus 3-6 plausible-but-wrong distractor labels of similar tone and length, no giveaway markers. Shuffle the order.
+stakeholderCandidates: 6-10 short (<=40 char) unique candidate actor/stakeholder-name strings the user could pick from before mapping stakeholders. Include the real stakeholders named in stakeholderNote (verbatim) plus 3-6 plausible-but-uninvolved distractor actors, shuffled.${adapt ? `\n\n${adapt}` : ""}`;
 }
 
 export function buildEvaluativeDealbreakerPrompt(input: {
@@ -162,7 +169,8 @@ Return ONLY a single JSON object (no markdown fences):
       "explanation": "string"
     }
   ],
-  "hiddenCriteria": [ { "label": "string", "description": "string" } ]
+  "hiddenCriteria": [ { "label": "string", "description": "string" } ],
+  "criteriaCandidates": [ "string", "..." ]
 }
 
 Rules:
@@ -172,6 +180,7 @@ Rules:
 - At least 2 options, unique ids.
 - Every option.suggestedScores must include EVERY criterion id with integer 1-5.
 - At least one hiddenCriteria entry.
+- criteriaCandidates: 6-10 short (<=40 char) unique candidate criterion-name strings the user could pick from before proposing their own criteria. Include your real criteria's labels (verbatim, including the dealbreaker ones) plus 3-6 plausible-but-wrong distractor labels of similar tone and length, no giveaway markers. Shuffle the order.
 ${adapt ? `\n${adapt}` : ""}`;
 }
 

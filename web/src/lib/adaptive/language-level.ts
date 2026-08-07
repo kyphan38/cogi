@@ -62,3 +62,8 @@ export function buildLanguageLevelAppendix(level: LanguageLevel | undefined | nu
     guidance,
   ].join("\n");
 }
+
+/** Read `languageLevel` off a parsed request body, falling back to the default. */
+export function resolveLanguageLevel(body: Record<string, unknown>): LanguageLevel {
+  return isLanguageLevel(body.languageLevel) ? body.languageLevel : DEFAULT_LANGUAGE_LEVEL;
+}

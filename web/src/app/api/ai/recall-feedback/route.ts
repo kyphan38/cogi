@@ -4,6 +4,7 @@ import { buildRecallFeedbackPrompt } from "@/lib/ai/prompts/recall-feedback";
 import { generatePlainTextRaw } from "@/lib/ai/gemini";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 import { getFirebaseAdminFirestore, getUserDocPath } from "@/lib/firebaseAdminFirestore";
+import { buildLanguageLevelAppendix, resolveLanguageLevel } from "@/lib/adaptive/language-level";
 
 const bodySchema = z.object({
   requestId: z.string().uuid(),
@@ -61,7 +62,11 @@ export async function POST(req: Request) {
     }
   }
 
-  const prompt = buildRecallFeedbackPrompt(promptInput);
+  const basePrompt = buildRecallFeedbackPrompt(promptInput);
+  const languageAppendix = buildLanguageLevelAppendix(
+    resolveLanguageLevel(body as Record<string, unknown>),
+  );
+  const prompt = [basePrompt, languageAppendix].filter(Boolean).join("\n\n");
   try {
     const text = await generatePlainTextRaw(prompt);
     const createdAt = new Date().toISOString();
