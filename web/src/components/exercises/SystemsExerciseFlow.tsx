@@ -1322,7 +1322,7 @@ export function SystemsExerciseFlow({
                         )}
                       >
                         <span className="font-medium">{node?.label ?? hint.nodeId}</span>
-                        {" — "}your rank: {userRank ?? "-"}, model rank: {hint.criticalityRank}
+                        {" - "}your rank: {userRank ?? "-"}, model rank: {hint.criticalityRank}
                         <p className="text-muted-foreground mt-0.5 text-xs">{hint.rationale}</p>
                       </li>
                     );
