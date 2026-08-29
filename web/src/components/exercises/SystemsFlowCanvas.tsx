@@ -380,7 +380,7 @@ export function SystemsFlowCanvas({
         // All 4 handles per node are declared type="source" so any side can
         // both start and receive a drag (see SystemFlowNode). ReactFlow's
         // default "strict" connectionMode only allows source->target handle
-        // pairs, which silently rejects most same-type combinations here —
+        // pairs, which silently rejects most same-type combinations here -
         // that's what caused connections to intermittently fail (e.g. "top
         // to top") and made it look like only ~2 connections per node were
         // possible. "loose" allows any handle to connect to any other.

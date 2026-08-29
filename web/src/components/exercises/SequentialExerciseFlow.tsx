@@ -989,7 +989,7 @@ export function SequentialExerciseFlow({
             <CardTitle>{exercise.title}</CardTitle>
             <CardDescription>
               Domain: {exercise.domain}
-              {isGeo ? ` — order steps from ${exercise.perspectiveAName}'s perspective` : null}
+              {isGeo ? ` - order steps from ${exercise.perspectiveAName}'s perspective` : null}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1113,7 +1113,7 @@ export function SequentialExerciseFlow({
           <CardHeader>
             <CardTitle>{exercise.title}</CardTitle>
             <CardDescription>
-              Now order the same steps from {exercise.perspectiveBName}&apos;s perspective — the ideal
+              Now order the same steps from {exercise.perspectiveBName}&apos;s perspective - the ideal
               order may differ from what you chose for {exercise.perspectiveAName}.
             </CardDescription>
           </CardHeader>

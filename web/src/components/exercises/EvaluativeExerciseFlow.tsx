@@ -1460,7 +1460,7 @@ export function EvaluativeExerciseFlow({
                         />
                       ))}
                       <p className="text-sm font-medium">
-                        Your expected value: {ev === null ? "—" : `$${ev.toFixed(2)}`}
+                        Your expected value: {ev === null ? "-" : `$${ev.toFixed(2)}`}
                       </p>
                     </div>
                   );
