@@ -20,8 +20,6 @@ service cloud.firestore {
         "delayedRecallQueue",
         "exercises",
         "journalEntries",
-        "lessons",
-        "sidebarFolders",
         "perspectiveDisagreements",
         "practicedTopics",
         "settings",

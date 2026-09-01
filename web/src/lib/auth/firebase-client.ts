@@ -9,6 +9,7 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
 } from "firebase/firestore";
+import { DB_ID } from "@/lib/firebase-db-id";
 
 function readFirebaseConfig(): FirebaseOptions {
   const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.trim();
@@ -56,16 +57,20 @@ export function getFirebaseFirestore(): Firestore {
   const app = getFirebaseApp();
   if (typeof window !== "undefined") {
     try {
-      cachedFirestore = initializeFirestore(app, {
-        localCache: persistentLocalCache({
-          tabManager: persistentMultipleTabManager(),
-        }),
-      });
+      cachedFirestore = initializeFirestore(
+        app,
+        {
+          localCache: persistentLocalCache({
+            tabManager: persistentMultipleTabManager(),
+          }),
+        },
+        DB_ID,
+      );
     } catch {
-      cachedFirestore = getFirestore(app);
+      cachedFirestore = getFirestore(app, DB_ID);
     }
   } else {
-    cachedFirestore = getFirestore(app);
+    cachedFirestore = getFirestore(app, DB_ID);
   }
   return cachedFirestore;
 }
