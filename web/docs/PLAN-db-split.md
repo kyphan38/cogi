@@ -298,4 +298,4 @@ nguyên, không bước nào xoá nó.
 - [x] Chạy khô, chép thật, chạy lại đối chiếu
 - [x] typecheck / lint / test / build
 - [ ] Deploy, thử nút recommendation
-- [ ] Sửa `catch` im lặng ở `reasoning/page.tsx:76` (việc riêng)
+- [x] Sửa `catch` im lặng ở `reasoning/page.tsx:76` (việc riêng)
