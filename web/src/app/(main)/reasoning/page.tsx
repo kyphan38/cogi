@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toast";
 import { ExercisePickerCard } from "@/components/dashboard/ExercisePickerCard";
 import { DomainInput } from "@/components/shared/DomainInput";
 import { listRecentDomains } from "@/lib/db/exercises";
@@ -25,6 +26,7 @@ type ModeRecommendation = { mode: string; reason: string };
 const HOME_SOURCE_TEXT_KEY = "cogi:home-source-text";
 
 export default function ReasoningPage() {
+  const { show: showToast } = useToast();
   const [topic, setTopic] = useState("");
   const [source, setSource] = useState<"generated" | "real_data" | "custom_scenario">("generated");
   const [customScenarioText, setCustomScenarioText] = useState("");
@@ -72,13 +74,20 @@ export default function ReasoningPage() {
       const json = await safeAiJson<{ ok: boolean; recommendations?: ModeRecommendation[] }>(res);
       if (json.ok && json.recommendations) {
         setRecommendations(json.recommendations);
+      } else {
+        throw new Error("No recommendations came back. Showing the default order.");
       }
-    } catch {
-      // silently fall back to default order
+    } catch (error) {
+      // Keep the default card order, but never fail silently: a swallowed error
+      // here made a broken Firestore rule look like a dead button.
+      const message =
+        error instanceof Error ? error.message : "Could not rank the modes. Please try again.";
+      console.error("[recommend-mode]", error);
+      showToast(message, "error");
     } finally {
       setRecLoading(false);
     }
-  }, [topic]);
+  }, [topic, showToast]);
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
