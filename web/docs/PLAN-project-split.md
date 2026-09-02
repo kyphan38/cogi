@@ -13,6 +13,36 @@ Thứ tự trong 4 app: **làm cogi thứ hai**, sau logi. logi làm mẫu vì �
 
 ---
 
+## Bài học từ lần tách logi (bổ sung 2026-09-02)
+
+logi đã tách xong sang `kyphan38-logi-app` và chạy production ổn. Đây là những
+chỗ vấp lúc làm logi. Từng mục đã được vá thẳng vào bước tương ứng bên dưới.
+
+1. **Đừng tạo Firestore database bằng CLI.** API `firestore.googleapis.com`
+   chưa bật nên trả 403, rồi còn phải chờ vài phút cho nó lan. Tạo tay trong
+   Console nhanh hơn hẳn. → bước 1
+
+2. **Giữ `kyphan38-apps` ở gói Blaze cho tới khi copy xong.** `cogi-db` là
+   named database, mà Admin SDK đọc named database thì đòi billing. Nếu project
+   cũ bị hạ xuống Spark, script copy chết với lỗi *"This API method requires
+   billing to be enabled"*. Lúc làm logi đã dính đúng lỗi này. Đừng hạ cả sau
+   khi cogi xong — `noda-db` vẫn nằm đó. → bước 6
+
+3. **Vercel CLI không nhận biến `NEXT_PUBLIC_*` kiểu secret** (lỗi
+   `public_prefix_requires_type`). Dùng `--type config` cho `NEXT_PUBLIC_*`,
+   `--type secret` cho biến server. → bước 7
+
+4. **Authorized domains phải thêm đủ**, thiếu là Google sign-in trả
+   `auth/unauthorized-domain` ngay trên production. → bước 7
+
+5. **Deploy "Ready" không có nghĩa là bundle đã đúng.** Phải grep chunk JS của
+   bản production để chắc nó dùng project mới. → bước 8
+
+6. **Gom hết việc Console thành một danh sách** rồi đưa người dùng làm một
+   lượt. Hỏi lắt nhắt từng bước rất mất thời gian của cả hai bên.
+
+---
+
 ## 0. Hiện trạng cogi
 
 | Mục | Giá trị hiện tại |
@@ -26,6 +56,21 @@ Thứ tự trong 4 app: **làm cogi thứ hai**, sau logi. logi làm mẫu vì �
 | FCM | không dùng |
 | Hosting | Vercel (`web/vercel.json`, `maxDuration: 60` cho `/api/ai/**`) |
 | Indexes | 3 composite: `exercises`, `delayedRecallQueue`, `weaknesses` |
+
+Số doc từng subcollection, đọc thật từ `cogi-db` ngày 2026-09-02. Dùng bảng này
+để đối chiếu khi chạy dry-run bước 6:
+
+| subcollection | doc |
+| --- | --- |
+| `actions` | 1 |
+| `aiArtifacts` | 3 |
+| `confidenceRecords` | 1 |
+| `delayedRecallQueue` | 1 |
+| `exercises` | 9 |
+| `journalEntries` | 1 |
+| `perspectiveDisagreements` | 1 |
+| `settings` | 1 |
+| **tổng** | **18** |
 
 Điểm sướng: không Storage, không Cloud Functions. Chỉ có Firestore + Auth.
 
@@ -45,8 +90,16 @@ app sẽ tự đăng xuất bạn ngay sau khi đăng nhập.
 4. Project settings → Your apps → Add app → **Web**, tên `cogi`. Chép 6 giá trị config.
 5. Project settings → Service accounts → **Generate new private key** → file JSON.
 
-**Không cần** Blaze: cogi không có Cloud Functions, không có Storage. Spark là đủ.
+Làm hết 5 bước trên bằng tay trong Console. **Đừng tạo database bằng CLI** —
+`firestore.googleapis.com` chưa bật nên nó trả 403, bật xong còn phải chờ lan
+vài phút. Console tự bật API giùm.
+
+**Không cần** Blaze cho `kyphan38-cogi-app`: cogi không có Cloud Functions,
+không có Storage, database là `(default)`. Spark là đủ.
 (Nếu Console vẫn đòi Blaze khi tạo Firestore thì cứ nâng, dùng ít không mất tiền.)
+
+Nhưng **`kyphan38-apps` thì phải còn Blaze** cho tới lúc copy xong ở bước 6 —
+xem bài học số 2 ở đầu file.
 
 ---
 
@@ -193,8 +246,29 @@ Chạy lại dry-run sau khi commit. Tổng phải là **18 doc** (số đếm n
 - Cập nhật 9 biến Firebase + `NEXT_PUBLIC_ALLOWED_USER_UID`, cho **cả 3 môi trường**
   Production / Preview / Development.
 - Redeploy, **bỏ tick** "use existing build cache".
-- Firebase Console mới → Authentication → Settings → **Authorized domains** →
-  thêm domain Vercel. Quên là đăng nhập trên web hỏng ngay.
+- Firebase Console mới → Authentication → Settings → **Authorized domains**.
+  Quên là đăng nhập trên web hỏng ngay.
+
+Nếu đẩy biến bằng CLI: `vercel env add` **từ chối** biến `NEXT_PUBLIC_*` kiểu
+secret, báo `public_prefix_requires_type`. Chia hai loại:
+
+- `NEXT_PUBLIC_*` → `--type config` (giá trị vốn đã nằm công khai trong bundle)
+- `FIREBASE_ADMIN_*`, `GEMINI_API_KEY`, cookie… → `--type secret`
+
+Chạy `vercel link` trước, nếu không thì mỗi lệnh phải kèm `--scope`.
+
+Authorized domains cần đủ 4 loại, thiếu một là `auth/unauthorized-domain`:
+`localhost`, domain thật, `*.vercel.app` của project, và domain git-branch
+(`<project>-git-main-<team>.vercel.app`). Bấm tay trong Console thì lâu; gọi
+Identity Toolkit API nhanh hơn, dùng service account scope `cloud-platform`:
+
+```
+PATCH https://identitytoolkit.googleapis.com/admin/v2/projects/kyphan38-cogi-app/config
+     ?updateMask=authorizedDomains
+```
+
+Đọc `authorizedDomains` hiện có trước, gộp thêm, rồi mới PATCH — API này ghi đè
+cả mảng chứ không cộng dồn.
 
 ---
 
@@ -223,6 +297,36 @@ Bằng chứng thật là kiểm tra tay:
 
 `npm run gate:phase0` cần `GATE_ID_TOKEN` mới — lấy lại token từ project mới nếu muốn chạy.
 
+Deploy báo **Ready** cũng chưa chắc bundle đã đúng: build cache cũ hoặc biến env
+thiếu ở đúng môi trường đó đều cho ra Ready. Kiểm tra thẳng bundle production:
+
+```bash
+URL="https://<domain production>"
+
+# 1. lấy danh sách chunk JS từ trang login (trang này không cần đăng nhập)
+curl -sL "$URL/login" \
+  | grep -oE 'src="[^"]+\.js"' | sed 's/src="//; s/"$//' | sort -u > /tmp/srcs.txt
+wc -l < /tmp/srcs.txt
+
+# 2. tải từng chunk, tìm project id
+NEW=0; OLD=0
+while read -r c; do
+  curl -s "$URL$c" -o /tmp/c.js
+  if grep -q "kyphan38-cogi-app" /tmp/c.js; then NEW=1; fi
+  if grep -q "kyphan38-apps"     /tmp/c.js; then OLD=1; fi
+done < /tmp/srcs.txt
+echo "cogi-app: $NEW   (phải là 1)"
+echo "apps:     $OLD   (phải là 0)"
+```
+
+Hai chỗ dễ sai khi tự chế lệnh kiểm tra:
+
+- Trang production hay trả **302** về `/login`. Thiếu `-L` là chỉ nhận được
+  body rỗng rồi tưởng "không tìm thấy project mới".
+- Đừng viết `grep -q A && echo OK || echo FAIL` lồng trong vòng lặp — thứ tự
+  `&&`/`||` cho kết quả ngược. Lúc làm logi đã báo nhầm "còn project cũ" đúng
+  vì lỗi này. Dùng `if` cho chắc.
+
 ---
 
 ## 9. Dọn dẹp (sau 30 ngày chạy ổn)
@@ -232,7 +336,9 @@ Bằng chứng thật là kiểm tra tay:
 - [ ] Xoá `/tmp/cogi.env.bak` (có private key)
 - [ ] Xoá file JSON service account đã tải
 
-**Không** xoá project `kyphan38-apps` cho tới khi cả logi và noda cũng xong.
+**Không** xoá project `kyphan38-apps` cho tới khi noda cũng xong (logi đã xong
+ngày 2026-09-02, `logi-db` đã xoá). Và **đừng hạ nó xuống Spark**: `noda-db` là
+named database, hạ xuống là Admin SDK hết đọc được, chặn luôn đợt tách noda.
 
 ---
 
