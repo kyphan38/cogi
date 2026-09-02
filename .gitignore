@@ -5,3 +5,11 @@ web/.cursor/
 .cursor/debug-*.log
 web/playwright-report/
 web/test-results/
+
+# vercel
+.vercel
+
+# secrets - never commit
+.env.local
+*firebase-adminsdk*.json
+firebaseconfig.txt

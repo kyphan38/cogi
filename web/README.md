@@ -66,10 +66,15 @@ Serverless routes under `src/app/api/ai/*` use **`export const maxDuration = 60`
 
 ## Firestore Index & Rules Rollout
 
+Firestore lives in project **`kyphan38-cogi-app`**, database `(default)`.
+
 When query patterns are upgraded to `where/orderBy/limit`, deploy index/rules together:
 
 ```bash
-firebase deploy --only firestore:indexes,firestore:rules
+firebase deploy --only firestore
 ```
+
+Use plain `--only firestore`, not `--only firestore:rules` (firebase-tools #10447
+can silently skip the rules deploy).
 
 If you see `failed-precondition` with index hint URL in browser console, follow the troubleshooting flow in `docs/FIRESTORE_READINESS.md`.
