@@ -273,7 +273,20 @@ báo cũ), build production đạt. Gọi Gemini thật cho bài Guided: 4/4 đ�
 - ~~Bài cũ: tính `result` khi mở; feedback cũ vẫn hiện như trước.~~ Đã làm ở Phase 2.
 - ~~Còn lại: hiện cấp đã làm (sau Phase 4).~~ Đã làm ở Phase 4. **Phase 5 xong.**
 
-## Phase 6 - Systems và Evaluative
+## Phase 6 - Systems và Evaluative - XONG
+
+**Xong (2026-10-03)**, branch `analytical/phase-6`. Gọi Gemini thật: nhận xét Systems
+(bản đồ tài chính cá nhân) và Evaluative (bảng chọn đầu tư) giữ đúng kết luận của
+code, giải thích bằng chi tiết trong tình huống, không nói "sai" với phần đánh giá
+chủ quan; 3/3 bài Evaluative cấp Guided ra matrix.
+
+- Đã làm thêm: xóa luật cũ (`CLARITY_BLUEPRINT_RULE`, `suitableFor`, luật debate)
+  khỏi `perspective-clarity-directives.ts`, chỉ giữ `NO_INDEX_REFERENCE_RULE`. Cả 3
+  prompt coaching cấm viết mã (`node_3`, `o1`) trong lời nhận xét.
+- History hiện bảng so sánh cho Systems và Evaluative (thay danh sách thô).
+- Test chống tràn 390px mở rộng sang bảng kết quả Systems và Evaluative.
+- Còn lại (ngoài phạm vi): màu cam/đỏ/xanh trong bước cú sốc và xếp hạng mức quan
+  trọng của Systems chưa đổi sang đơn sắc.
 
 Ngày 2026-10-03 chủ app chọn làm ngay cả 6a và 6b (không chờ 1-2 tuần như đề xuất ban
 đầu). Lý do tách: kiểm tra code cho thấy Systems và Evaluative vẫn dùng feedback cũ
