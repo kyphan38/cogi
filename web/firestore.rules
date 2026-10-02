@@ -10,21 +10,13 @@ service cloud.firestore {
     }
 
     function isAllowedCollection(collectionName) {
+      // Client-side collections only (see COGI_COLLECTIONS in src/lib/db/firestore.ts).
+      // aiArtifacts is written by the server with the Admin SDK, which bypasses rules.
       return collectionName in [
-        "actions",
-        "activeMathSessions",
-        "aiArtifacts",
         "cachedTopicLists",
-        "confidenceRecords",
-        "decisions",
-        "delayedRecallQueue",
         "exercises",
-        "journalEntries",
-        "perspectiveDisagreements",
         "practicedTopics",
-        "settings",
-        "weaknesses",
-        "weeklyReviews"
+        "settings"
       ];
     }
 
