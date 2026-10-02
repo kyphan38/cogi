@@ -76,7 +76,7 @@ test.describe("Evaluative exercise - dealbreaker task type", () => {
     await advanceEvaluativeToMatrix(page);
 
     await expect(
-      page.getByRole("button", { name: "Continue to confidence" }),
+      page.getByRole("button", { name: "Get AI feedback" }),
     ).toBeVisible();
     await expect(page.getByText("Deal-breaker disqualifications")).not.toBeVisible();
 
@@ -134,7 +134,7 @@ test.describe("Evaluative exercise - uncertainty task type", () => {
     await expect(page.getByText(/Your probability/).first()).toBeVisible();
     await expect(page.getByText("Your payoff").first()).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Continue to confidence" }),
+      page.getByRole("button", { name: "Get AI feedback" }),
     ).toBeDisabled();
   });
 });

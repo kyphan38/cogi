@@ -5,6 +5,8 @@ import Link from "next/link";
 import { AdaptiveSetupHint } from "@/components/adaptive/AdaptiveSetupHint";
 import {
   ExerciseShell,
+  practicePhase,
+  practiceStepLabels,
   EVALUATIVE_EXERCISE_STEP_LABELS,
   GEOPOLITICS_EVALUATIVE_STEP_LABELS,
   EVALUATIVE_UNCERTAINTY_STEP_LABELS,
@@ -18,7 +20,8 @@ import { EvaluativeDealbreakerAlerts } from "@/components/exercises/EvaluativeDe
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { PracticeFinishCard } from "@/components/shared/PracticeFinishCard";
+import { Button } from "@/components/ui/button";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { cn } from "@/lib/utils";
 import {
@@ -41,15 +44,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
 import type {
-  ConfidenceRecord,
-  EmotionLabel,
   EvaluativeCriteriaFeedback,
   EvaluativeExerciseRow,
   EvaluativeMatrixRow,
   EvaluativeQuadrant,
   EvaluativeScoringRow,
   EvaluativeUncertaintyRow,
-  JournalDraft,
 } from "@/lib/types/exercise";
 import {
   isGeopoliticsEvaluativePayload,
@@ -58,25 +58,16 @@ import {
 } from "@/lib/ai/validators/evaluative";
 import {
   computeOptionEv,
-  computeEvaluativeAccuracy,
   EVALUATIVE_UNCERTAINTY_PROBABILITY_EPSILON,
 } from "@/lib/analytics/calibration-evaluative";
 import { computeDisqualifiedOptions } from "@/lib/analytics/evaluative-dealbreaker";
-import type { JournalEntry } from "@/lib/types/journal";
-import type { ActionBridge } from "@/lib/types/action";
 import {
   buildAdaptiveHintsForRequest,
   getLanguageLevelForRequest,
 } from "@/lib/adaptive/adaptive-hints";
 import { putExercise, getExercise } from "@/lib/db/exercises";
 import { getUserContext } from "@/lib/db/settings";
-import { completeExerciseFlow } from "@/lib/db/complete-exercise";
-import {
-  getPromptIdsUsedInLastNCompleted,
-  getRecentJournalSnippetsForDomain,
-} from "@/lib/db/journal";
-import { pickJournalPrompts, type JournalPromptItem } from "@/lib/ai/prompts/journal-pool";
-import { currentIsoWeekKey } from "@/lib/db/actions";
+import { completePracticeExercise } from "@/lib/db/complete-exercise";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type {
@@ -90,6 +81,21 @@ import { isEvaluativeExercise } from "@/lib/types/exercise";
 import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+/** Internal step that shows AI feedback (the 3rd practice phase). */
+const FEEDBACK_STEP = 4;
+
+/**
+ * Where an unfinished exercise reopens. Saved before the 3-step loop, it may sit on
+ * steps that no longer exist: confidence (3) is now part of the work step (2), and
+ * journal / action (5, 6) fold into feedback (4).
+ */
+function resumeStep(saved: number | undefined): FlowStep {
+  const s = saved ?? 1;
+  if (s === 3) return 2;
+  if (s >= 5) return 4;
+  return s as FlowStep;
+}
 
 function isGeopoliticsEvaluativeExercise(ex: EvaluativeExerciseRow): boolean {
   return (
@@ -228,15 +234,8 @@ export function EvaluativeExerciseFlow({
   const [perspectiveStructured, setPerspectiveStructured] =
     useState<AIPerspectiveStructured | null>(null);
 
-  const [journalPrompts, setJournalPrompts] = useState<JournalPromptItem[]>([]);
-  const [journalAnswers, setJournalAnswers] = useState<Record<string, string>>({});
-  const [aiRefLine, setAiRefLine] = useState<string | null>(null);
-  const [journalPrimed, setJournalPrimed] = useState(false);
-  const journalEffectIdRef = useRef(0);
-
-  const [actionText, setActionText] = useState("");
-
-  const [emotionLabel, setEmotionLabel] = useState<EmotionLabel>("neutral");
+  const [takeaway, setTakeaway] = useState("");
+  const [finishing, setFinishing] = useState(false);
 
   useEffect(() => {
     void listRecentDomains(20).then(setDomainSuggestions);
@@ -287,15 +286,8 @@ export function EvaluativeExerciseFlow({
       setConfidence(row.confidenceBefore ?? 50);
       if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
       if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
-      if (row.journalDraft) {
-        setJournalPrompts(row.journalDraft.prompts);
-        setJournalAnswers(row.journalDraft.responses);
-        setAiRefLine(row.journalDraft.aiReferenceLine);
-        setEmotionLabel(row.journalDraft.emotionLabel ?? "neutral");
-        setJournalPrimed(true);
-      }
-      if (row.actionDraftText) setActionText(row.actionDraftText);
-      setStep((row.currentStep ?? 1) as FlowStep);
+      setTakeaway(row.takeaway ?? "");
+      setStep(resumeStep(row.currentStep));
     })();
   }, [resumeId]);
 
@@ -304,21 +296,6 @@ export function EvaluativeExerciseFlow({
     const d = initialDomain?.trim();
     if (d) setDomain(d);
   }, [initialDomain, resumeId]);
-
-  useEffect(() => {
-    if (!exercise || (step !== 5 && step !== 6) || !journalPrimed) return;
-    const timer = setTimeout(() => {
-      const journalDraft: JournalDraft = {
-        prompts: journalPrompts,
-        responses: journalAnswers,
-        aiReferenceLine: aiRefLine,
-        emotionLabel,
-      };
-      void putExercise({ ...exercise, journalDraft, actionDraftText: actionText, currentStep: step });
-    }, 2000);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journalAnswers, actionText, emotionLabel, step]);
 
   useEffect(() => {
     if (!exercise || step === 0 || step === 7) return;
@@ -439,11 +416,7 @@ export function EvaluativeExerciseFlow({
       }
       setPerspectiveText(null);
       setPerspectiveStructured(null);
-      setJournalAnswers({});
-      setAiRefLine(null);
-      setJournalPrimed(false);
-      setActionText("");
-      setEmotionLabel("neutral");
+      setTakeaway("");
       setUserProposedCriteria(Array.from({ length: 4 }, () => ({ name: "", rationale: "" })));
       setCriteriaPhase("input");
       setCriteriaFeedback(null);
@@ -723,69 +696,6 @@ export function EvaluativeExerciseFlow({
     }
   };
 
-  useEffect(() => {
-    if (step !== 5 || journalPrimed || !exercise) return;
-    const effectId = ++journalEffectIdRef.current;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const excluded = await getPromptIdsUsedInLastNCompleted(5);
-        const forAccuracy: EvaluativeExerciseRow =
-          exercise.variant === "matrix"
-            ? { ...exercise, placements }
-            : exercise.variant === "uncertainty"
-              ? { ...exercise, userProbabilities, userPayoffs }
-              : { ...exercise, criterionWeights, scores };
-        const accuracy = computeEvaluativeAccuracy(forAccuracy);
-        const picks = pickJournalPrompts(excluded, {
-          exerciseType: "evaluative",
-          accuracy,
-          confidenceBefore: confidence,
-          overconfident: confidence - accuracy > 20,
-          underconfident: accuracy - confidence > 20,
-        });
-        if (cancelled || effectId !== journalEffectIdRef.current) return;
-        setJournalPrompts(picks);
-        const init: Record<string, string> = {};
-        picks.forEach((p) => {
-          init[p.id] = "";
-        });
-        setJournalAnswers(init);
-        setJournalPrimed(true);
-
-        const snippets = await getRecentJournalSnippetsForDomain(exercise.domain, 3);
-        if (cancelled || effectId !== journalEffectIdRef.current) return;
-        if (snippets.length === 0) {
-          setAiRefLine(null);
-          return;
-        }
-        const res = await aiFetch("/api/ai/journal-ref", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            requestId: crypto.randomUUID(),
-            domain: exercise.domain,
-            snippets,
-          }),
-        });
-        const j = await safeAiJson<{ ok: true; line: string | null }>(res);
-        if (cancelled || effectId !== journalEffectIdRef.current) return;
-        if (j.ok && j.line) setAiRefLine(j.line);
-      } catch {
-        if (!cancelled && effectId === journalEffectIdRef.current) setAiRefLine(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [step, journalPrimed, exercise]);
-
-  const journalValid = () => {
-    const vals = Object.values(journalAnswers);
-    const long = vals.filter((v) => v.trim().length > 10);
-    return long.length >= 2;
-  };
-
   const weightedRowTotal = (optionId: string) => {
     const ex = exercise;
     if (!ex || ex.variant !== "scoring") return 0;
@@ -801,60 +711,15 @@ export function EvaluativeExerciseFlow({
     return num / den;
   };
 
+  /** Finish the 3-step loop: save the exercise with the optional takeaway (P2.2). */
   const finishExercise = async () => {
-    if (!exercise || !perspectiveText) return;
-    if (!journalValid()) {
-      setError("Answer at least two prompts with more than 10 characters each.");
-      return;
-    }
-    if (actionText.trim().length < 15) {
-      setError("Action must be at least 15 characters.");
-      return;
-    }
+    if (!exercise || !perspectiveText || finishing) return;
     setError(null);
-    const forAccuracy: EvaluativeExerciseRow =
-      exercise.variant === "matrix"
-        ? { ...exercise, placements }
-        : exercise.variant === "uncertainty"
-          ? { ...exercise, userProbabilities, userPayoffs }
-          : { ...exercise, criterionWeights, scores };
-    const accuracy = computeEvaluativeAccuracy(forAccuracy);
-    const confidenceRecord: ConfidenceRecord = {
-      id: crypto.randomUUID(),
-      exerciseId: exercise.id,
-      confidenceBefore: confidence,
-      actualAccuracy: accuracy,
-      gap: confidence - accuracy,
-      createdAt: new Date().toISOString(),
-    };
-    const journalEntry: JournalEntry = {
-      id: crypto.randomUUID(),
-      exerciseId: exercise.id,
-      promptIds: journalPrompts.map((p) => p.id),
-      aiReferenceLine: aiRefLine,
-      responses: { ...journalAnswers },
-      emotionLabel,
-      createdAt: new Date().toISOString(),
-    };
-    const action: ActionBridge = {
-      id: crypto.randomUUID(),
-      exerciseId: exercise.id,
-      oneAction: actionText.trim(),
-      weeklyFollowThrough: [{ weekKey: currentIsoWeekKey(), done: false }],
-      createdAt: new Date().toISOString(),
-    };
-    const struct =
-      perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null;
+    setFinishing(true);
+    const struct = perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null;
     const finalEx: EvaluativeExerciseRow =
       exercise.variant === "matrix"
-        ? {
-            ...exercise,
-            placements,
-            confidenceBefore: confidence,
-            aiPerspective: perspectiveText,
-            aiPerspectiveStructured: struct,
-            completedAt: new Date().toISOString(),
-          }
+        ? { ...exercise, placements, confidenceBefore: confidence, aiPerspective: perspectiveText, aiPerspectiveStructured: struct }
         : exercise.variant === "uncertainty"
           ? {
               ...exercise,
@@ -864,32 +729,26 @@ export function EvaluativeExerciseFlow({
               confidenceBefore: confidence,
               aiPerspective: perspectiveText,
               aiPerspectiveStructured: struct,
-              completedAt: new Date().toISOString(),
             }
           : {
               ...exercise,
               criterionWeights,
               scores,
               userStakeholderMapping:
-                mergedScoringExercise()?.userStakeholderMapping ??
-                exercise.userStakeholderMapping,
+                mergedScoringExercise()?.userStakeholderMapping ?? exercise.userStakeholderMapping,
               stakeholderMappingRevealed,
               confidenceBefore: confidence,
               aiPerspective: perspectiveText,
               aiPerspectiveStructured: struct,
-              completedAt: new Date().toISOString(),
             };
     try {
-      await completeExerciseFlow({
-        exercise: finalEx,
-        journal: journalEntry,
-        confidence: confidenceRecord,
-        action,
-      });
-      setExercise(finalEx);
+      const saved = await completePracticeExercise({ exercise: finalEx, takeaway });
+      setExercise(saved as EvaluativeExerciseRow);
       setStep(7);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setFinishing(false);
     }
   };
 
@@ -922,15 +781,18 @@ export function EvaluativeExerciseFlow({
   }, [exercise]);
 
   const isGeoExercise = exercise ? isGeopoliticsEvaluativeExercise(exercise) : false;
-  const stepLabels =
+  // Internal steps 1-2 are the two parts of the work; 4 is AI feedback, 7 saved.
+  const partLabels =
     exercise?.variant === "uncertainty"
       ? EVALUATIVE_UNCERTAINTY_STEP_LABELS
       : isGeoExercise
         ? GEOPOLITICS_EVALUATIVE_STEP_LABELS
         : EVALUATIVE_EXERCISE_STEP_LABELS;
+  const phase = practicePhase(step, FEEDBACK_STEP);
+  const partLabel = phase === 1 ? `Part ${step} of 2 · ${partLabels[step]}` : undefined;
 
   return (
-    <ExerciseShell stepIndex={step} stepLabels={stepLabels}>
+    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Evaluate")} partLabel={partLabel}>
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -1555,6 +1417,12 @@ export function EvaluativeExerciseFlow({
                 </div>
               </div>
             )}
+            <ConfidenceSlider
+              value={confidence}
+              onChange={setConfidence}
+              label="How confident are you in your evaluation?"
+            />
+            {loading ? <PerspectiveLoadingCard /> : null}
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="secondary" onClick={() => {
                 const updated =
@@ -1569,7 +1437,7 @@ export function EvaluativeExerciseFlow({
               }}>
                 Back
               </Button>
-              <Button type="button" variant="secondary" onClick={regenerate}>
+              <Button type="button" variant="secondary" onClick={regenerate} disabled={loading}>
                 Regenerate
               </Button>
               <Button
@@ -1582,55 +1450,20 @@ export function EvaluativeExerciseFlow({
                         ? { ...exercise, userProbabilities, userPayoffs }
                         : { ...exercise, criterionWeights, scores };
                   setExercise(updated);
-                  advance(3, updated);
+                  void submitPerspective();
                 }}
                 disabled={
+                  loading ||
                   (exercise.variant === "matrix" && !matrixReady()) ||
                   (exercise.variant === "uncertainty" && !uncertaintyReady())
                 }
               >
-                Continue to confidence
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {step === 3 && exercise ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Confidence</CardTitle>
-            <CardDescription>
-              How confident are you that your evaluation matches strong judgment (before the
-              detailed AI comparison)?
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <ConfidenceSlider
-              value={confidence}
-              onChange={setConfidence}
-              label="How confident are you in your evaluation?"
-            />
-            {loading ? <PerspectiveLoadingCard /> : null}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={loading}
-                onClick={() => {
-                  void putExercise({ ...exercise, currentStep: 2 as const });
-                  setStep(2);
-                }}
-              >
-                Back
-              </Button>
-              <Button type="button" disabled={loading} onClick={() => void submitPerspective()}>
                 {loading ? (
                   <>
                     <InlineSpinner /> Loading…
                   </>
                 ) : (
-                  "Show AI perspective"
+                  "Get AI feedback"
                 )}
               </Button>
             </div>
@@ -1638,7 +1471,7 @@ export function EvaluativeExerciseFlow({
         </Card>
       ) : null}
 
-      {step === 4 && exercise && perspectiveText ? (
+      {(step === 4 || step === 7) && exercise && perspectiveText ? (
         <Card>
           <CardHeader>
             <CardTitle>AI perspective</CardTitle>
@@ -1672,120 +1505,20 @@ export function EvaluativeExerciseFlow({
               evaluativeScoringBreakdown={exercise.variant === "scoring" ? scoringBreakdown : undefined}
               highlightTerms={perspectiveHighlightTerms}
             />
-            <Button type="button" onClick={() => advance(5)}>
-              Continue to journal
-            </Button>
           </CardContent>
         </Card>
       ) : null}
 
-      {step === 5 && exercise ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Journal</CardTitle>
-            <CardDescription>
-              Reflect on how you weighed trade-offs. At least two answers need more than 10
-              characters.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <Label>What emotion might be influencing your thinking right now?</Label>
-              <Select
-                value={emotionLabel}
-                onValueChange={(v) =>
-                  setEmotionLabel(
-                    (v as
-                      | "anxious"
-                      | "excited"
-                      | "frustrated"
-                      | "confident"
-                      | "uncertain"
-                      | "defensive"
-                      | "neutral") ?? "neutral",
-                  )
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="anxious">Anxious</SelectItem>
-                  <SelectItem value="excited">Excited</SelectItem>
-                  <SelectItem value="frustrated">Frustrated</SelectItem>
-                  <SelectItem value="confident">Confident</SelectItem>
-                  <SelectItem value="uncertain">Uncertain</SelectItem>
-                  <SelectItem value="defensive">Defensive</SelectItem>
-                  <SelectItem value="neutral">Neutral</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {aiRefLine ? (
-              <p className="text-muted-foreground border-l-2 pl-3 text-sm italic">{aiRefLine}</p>
-            ) : null}
-            {journalPrompts.map((p) => (
-              <div key={p.id} className="grid gap-2">
-                <Label>{p.text}</Label>
-                <Textarea
-                  value={journalAnswers[p.id] ?? ""}
-                  onChange={(e) =>
-                    setJournalAnswers((prev) => ({ ...prev, [p.id]: e.target.value }))
-                  }
-                  rows={3}
-                />
-              </div>
-            ))}
-            <Button type="button" variant="secondary" onClick={() => setStep(4)}>
-              Back
-            </Button>
-            <Button type="button" onClick={() => advance(6)}>
-              Continue to action
-            </Button>
-          </CardContent>
-        </Card>
+      {(step === 4 || step === 7) && exercise && perspectiveText ? (
+        <PracticeFinishCard
+          takeaway={takeaway}
+          onTakeawayChange={setTakeaway}
+          onFinish={finishExercise}
+          saving={finishing}
+          finished={step === 7}
+        />
       ) : null}
 
-      {step === 6 && exercise ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Action bridge</CardTitle>
-            <CardDescription>One concrete action you will take (min. 15 characters).</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              value={actionText}
-              onChange={(e) => setActionText(e.target.value)}
-              rows={3}
-              placeholder="e.g. I will revisit the weight on risk next sprint planning…"
-            />
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(5)}>
-                Back
-              </Button>
-              <Button type="button" onClick={() => void finishExercise()}>
-                Finish exercise
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {step === 7 && exercise ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Exercise saved</CardTitle>
-            <CardDescription>Saved to your account (Firebase) in exercise history.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            <Link href="/" className={cn(buttonVariants({ variant: "secondary" }))}>
-              Home
-            </Link>
-            <Link href="/exercise/history" className={cn(buttonVariants({ variant: "outline" }))}>
-              History
-            </Link>
-          </CardContent>
-        </Card>
-      ) : null}
     </ExerciseShell>
   );
 }
