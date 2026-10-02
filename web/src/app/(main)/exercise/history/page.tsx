@@ -25,17 +25,14 @@ import { useToast } from "@/components/ui/toast";
 import { HistoryExerciseListSkeleton } from "@/components/ui/history-exercise-list-skeleton";
 import {
   getExercise,
-  deleteCompletedExerciseAndRelatedRecords,
+  deleteExercise,
   subscribeCompletedExercises,
   type CompletedExerciseFilter,
 } from "@/lib/db/exercises";
-import type { Exercise } from "@/lib/types/exercise";
+import type { Exercise, ThinkingType } from "@/lib/types/exercise";
 import {
   isAnalyticalExercise,
-  isComboExercise,
   isEvaluativeExercise,
-  isGenerativeExercise,
-  isSequentialExercise,
   isSystemsExercise,
 } from "@/lib/types/exercise";
 import {
@@ -50,14 +47,7 @@ import { logFirestoreQueryError } from "@/lib/db/firestore";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { computeStreak } from "@/lib/exercise/streak";
 
-type ThinkingTypeFilter =
-  | "all"
-  | "analytical"
-  | "sequential"
-  | "systems"
-  | "evaluative"
-  | "generative"
-  | "combo";
+type ThinkingTypeFilter = "all" | ThinkingType;
 
 function perspectiveKindForExercise(ex: Exercise): ClarityPerspectiveKind | null {
   if (isAnalyticalExercise(ex)) return "analytical";
@@ -65,7 +55,6 @@ function perspectiveKindForExercise(ex: Exercise): ClarityPerspectiveKind | null
   if (isEvaluativeExercise(ex)) {
     return ex.variant === "matrix" ? "evaluative-matrix" : "evaluative-scoring";
   }
-  if (isGenerativeExercise(ex)) return "generative";
   return null;
 }
 
@@ -167,16 +156,10 @@ function typeSwatchClass(t: Exercise["type"]): string {
   switch (t) {
     case "analytical":
       return "bg-zinc-700";
-    case "sequential":
-      return "bg-zinc-600";
     case "systems":
       return "bg-zinc-500";
     case "evaluative":
       return "bg-zinc-800";
-    case "generative":
-      return "bg-zinc-400";
-    case "combo":
-      return "bg-zinc-300";
     default:
       return "bg-zinc-400";
   }
@@ -235,11 +218,8 @@ function HistoryActivityHeatmap({ rows }: { rows: Exercise[] }) {
 
   const legend: { type: Exercise["type"]; label: string }[] = [
     { type: "analytical", label: "Analytical" },
-    { type: "sequential", label: "Sequential" },
     { type: "systems", label: "Systems" },
     { type: "evaluative", label: "Evaluative" },
-    { type: "generative", label: "Generative" },
-    { type: "combo", label: "Combo" },
   ];
 
   return (
@@ -425,7 +405,7 @@ function HistoryPageInner() {
     setDeleteErr(null);
     setDeleteSubmitting(true);
     try {
-      await deleteCompletedExerciseAndRelatedRecords(pendingDelete.id);
+      await deleteExercise(pendingDelete.id);
       if (selectedId === pendingDelete.id) {
         setSelectedId(null);
       }
@@ -492,11 +472,8 @@ function HistoryPageInner() {
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
                 <SelectItem value="analytical">Analytical</SelectItem>
-                <SelectItem value="sequential">Sequential</SelectItem>
                 <SelectItem value="systems">Systems</SelectItem>
                 <SelectItem value="evaluative">Evaluative</SelectItem>
-                <SelectItem value="generative">Generative</SelectItem>
-                <SelectItem value="combo">Combo</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -620,22 +597,6 @@ function HistoryPageInner() {
                   )}
                 </div>
               </>
-            ) : isSequentialExercise(detailEx) ? (
-              <>
-                <div>
-                  <h3 className="mb-1 font-medium">Scenario</h3>
-                  <p className="leading-relaxed">{detailEx.scenario}</p>
-                </div>
-                <div>
-                  <h3 className="mb-1 font-medium">Your order</h3>
-                  <ol className="list-inside list-decimal space-y-1">
-                    {detailEx.userOrderedStepIds.map((id) => {
-                      const s = detailEx.steps.find((x) => x.id === id);
-                      return <li key={id}>{s?.text ?? id}</li>;
-                    })}
-                  </ol>
-                </div>
-              </>
             ) : isSystemsExercise(detailEx) ? (
               <>
                 <div>
@@ -712,74 +673,11 @@ function HistoryPageInner() {
                   </div>
                 )}
               </>
-            ) : isGenerativeExercise(detailEx) ? (
-              <>
-                <div>
-                  <h3 className="mb-1 font-medium">Scenario</h3>
-                  <p className="leading-relaxed">{detailEx.scenario}</p>
-                </div>
-                <div>
-                  <h3 className="mb-1 font-medium">Scaffold</h3>
-                  <p className="text-xs">Stage at start: {detailEx.stageAtStart}</p>
-                </div>
-                <div>
-                  <h3 className="mb-1 font-medium">Answers (short)</h3>
-                  <ul className="space-y-2 text-xs">
-                    {detailEx.prompts.map((p) => (
-                      <li key={p.id}>
-                        <span className="font-medium">{p.question}</span>
-                        <p className="text-muted-foreground mt-1 line-clamp-3 whitespace-pre-wrap">
-                          {detailEx.answers[p.id]?.trim() || "-"}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="mb-1 font-medium">Debate</h3>
-                  <p className="text-muted-foreground text-xs">
-                    {detailEx.debateTurns.length} reply round(s) recorded
-                    {detailEx.rubricScore != null ? ` · rubric ${detailEx.rubricScore}` : ""}
-                  </p>
-                </div>
-              </>
-            ) : isComboExercise(detailEx) ? (
-              <>
-                <div>
-                  <h3 className="mb-1 font-medium">Combo preset</h3>
-                  <p className="text-xs">{detailEx.preset.replace(/_/g, " ")}</p>
-                </div>
-                <div>
-                  <h3 className="mb-1 font-medium">Shared scenario</h3>
-                  <p className="leading-relaxed whitespace-pre-wrap">{detailEx.scenario}</p>
-                </div>
-                <div>
-                  <h3 className="mb-1 font-medium">Sub-results</h3>
-                  <ol className="list-inside list-decimal space-y-2 text-xs">
-                    {detailEx.subExercises.map((sub, i) => (
-                      <li key={`${sub.id}-${i}`}>
-                        <span className="font-medium">{sub.type}</span>
-                        {sub.type === "analytical" ? <span> - {sub.userHighlights.length} highlight(s)</span> : null}
-                        {sub.type === "sequential" ? <span> - {sub.userOrderedStepIds.length} steps ordered</span> : null}
-                        {sub.type === "systems" ? <span> - {sub.userEdges.length} edge(s)</span> : null}
-                        {sub.type === "evaluative" && sub.variant === "matrix" ? (
-                          <span> - {Object.keys(sub.placements).length} placement(s)</span>
-                        ) : null}
-                        {sub.type === "generative" ? <span> - {Object.keys(sub.answers).length} answer field(s)</span> : null}
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              </>
             ) : null}
 
             <div>
               <h3 className="mb-1 font-medium">AI perspective</h3>
-              {isComboExercise(detailEx) ? (
-                <p className="text-muted-foreground leading-relaxed">
-                  Combined exercise - see sub-results above. No separate AI perspective for this entry.
-                </p>
-              ) : detailEx.aiPerspectiveStructured ? (
+              {detailEx.aiPerspectiveStructured ? (
                 <HistoryPerspectiveBody
                   structured={detailEx.aiPerspectiveStructured}
                   kind={perspectiveKindForExercise(detailEx)}

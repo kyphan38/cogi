@@ -53,6 +53,8 @@ export function FirebaseAuthGate({ children }: FirebaseAuthGateProps) {
       typeof window !== "undefined" &&
       (window as unknown as Record<string, unknown>).__E2E_AUTH_BYPASS__
     ) {
+      // E2E only: there is no auth listener to wait for, so mark ready once on mount.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStatus("ready");
       return;
     }

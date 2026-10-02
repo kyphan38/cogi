@@ -56,10 +56,10 @@ describe("parsePerspectiveFetchJson", () => {
     if (!r.ok) expect(r.error).toContain("structured");
   });
 
-  it("returns error for sequential kind without structured (no reparse path)", () => {
+  it("returns error when there is no structured field and the text is not JSON", () => {
     const r = parsePerspectiveFetchJson(
       { ok: true, text: "some text" },
-      "sequential",
+      "analytical",
     );
     expect(r.ok).toBe(false);
   });

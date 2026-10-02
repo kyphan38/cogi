@@ -60,10 +60,7 @@ import {
   EVALUATIVE_UNCERTAINTY_PROBABILITY_EPSILON,
 } from "@/lib/analytics/calibration-evaluative";
 import { computeDisqualifiedOptions } from "@/lib/analytics/evaluative-dealbreaker";
-import {
-  buildAdaptiveHintsForRequest,
-  getLanguageLevelForRequest,
-} from "@/lib/adaptive/adaptive-hints";
+import { getLanguageLevelForRequest } from "@/lib/db/settings";
 import { putExercise, getExercise } from "@/lib/db/exercises";
 import { getUserContext } from "@/lib/db/settings";
 import { completePracticeExercise } from "@/lib/db/complete-exercise";
@@ -340,6 +337,8 @@ export function EvaluativeExerciseFlow({
       save();
     }, 2000);
     return () => clearTimeout(timer);
+    // Saves on edits only; `exercise` and `pendingSave` are read fresh inside.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     placements,
     scores,
@@ -350,7 +349,7 @@ export function EvaluativeExerciseFlow({
     userPayoffs,
     outcomeIntuitionText,
     step,
-  ]); // eslint-disable-line react-hooks/exhaustive-deps
+  ]);
 
   const startGenerate = useCallback(async (
     domainOverride?: string,
@@ -371,7 +370,6 @@ export function EvaluativeExerciseFlow({
     setLoading(true);
     try {
       const userContext = await getUserContext();
-      const adaptiveHints = await buildAdaptiveHintsForRequest("evaluative");
       const languageLevel = await getLanguageLevelForRequest();
       const res = await aiFetch("/api/ai", {
         method: "POST",
@@ -382,7 +380,6 @@ export function EvaluativeExerciseFlow({
           exerciseType: "evaluative",
           mode: effectiveSetupMode,
           customScenario: customScenarioOut,
-          adaptiveHints,
           languageLevel,
           evaluativeTaskType,
         }),
@@ -1501,7 +1498,6 @@ export function EvaluativeExerciseFlow({
             <AIPerspective
               text={perspectiveText}
               structured={perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null}
-              exerciseId={exercise.id}
               perspectiveKind={
                 exercise.variant === "matrix"
                   ? "evaluative-matrix"
@@ -1509,8 +1505,6 @@ export function EvaluativeExerciseFlow({
                     ? "evaluative-uncertainty"
                     : "evaluative-scoring"
               }
-              exerciseTitle={exercise.title}
-              domain={exercise.domain}
               evaluativeScoringBreakdown={exercise.variant === "scoring" ? scoringBreakdown : undefined}
               highlightTerms={perspectiveHighlightTerms}
             />

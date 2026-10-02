@@ -18,15 +18,11 @@
     "test:e2e:features": "npx playwright test --reporter=list",
     "test:e2e:ui": "npx playwright test --ui",
     "test:layout": "npx playwright test tests/ui-ux/layout-architecture.spec.ts",
-    "check:geopolitics-progression": "node scripts/geopolitics-progression-check.mjs",
     "check:exercise-domains": "node scripts/exercise-domains-check.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
     "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/sortable": "^10.0.0",
-    "@dnd-kit/utilities": "^3.2.2",
-    "@google-cloud/vertexai": "^1.12.0",
     "@google/genai": "^2.26.0",
     "@xyflow/react": "^12.10.2",
     "class-variance-authority": "^0.7.1",

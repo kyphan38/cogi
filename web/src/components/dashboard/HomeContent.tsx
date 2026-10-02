@@ -7,7 +7,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronRight, Plus, Trash2 } from "lucide-react";
 import {
-  deleteCompletedExerciseAndRelatedRecords,
+  deleteExercise,
   listCompletedExercises,
   listIncompleteExercises,
 } from "@/lib/db/exercises";
@@ -21,7 +21,6 @@ import { cn } from "@/lib/utils";
 const HOME_LIST_SIZE = 5;
 
 function resumeHref(ex: Exercise): string {
-  if (ex.type === "combo") return `/exercise/combo?resumeId=${ex.id}`;
   return `/exercise/${ex.type}?resumeId=${ex.id}`;
 }
 
@@ -72,7 +71,7 @@ export function HomeContent() {
     e.stopPropagation();
     setIncompleteExercises((prev) => prev.filter((ex) => ex.id !== id));
     try {
-      await deleteCompletedExerciseAndRelatedRecords(id);
+      await deleteExercise(id);
     } catch {
       // restore on failure
       const rows = await listIncompleteExercises();

@@ -7,8 +7,8 @@ vi.mock("@/lib/firebaseAdmin", () => ({
   getFirebaseAdminAuth: vi.fn(() => ({ verifyIdToken: mockVerifyIdToken })),
 }));
 
-const mockHasAllowlist = vi.fn(() => false);
-const mockIsAllowed = vi.fn(() => true);
+const mockHasAllowlist = vi.fn<(...a: unknown[]) => boolean>(() => false);
+const mockIsAllowed = vi.fn<(...a: unknown[]) => boolean>(() => true);
 vi.mock("@/lib/auth/server-auth", () => ({
   AUTH_SESSION_COOKIE_NAME: "session",
   AUTH_SESSION_TTL_SECONDS: 3600,

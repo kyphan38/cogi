@@ -189,11 +189,11 @@ export default function ReasoningPage() {
 
       <div className="grid gap-2.5 sm:grid-cols-2">
         {orderedCards.map((c, i) => {
-          const isTopRec = recMap !== null && i === 0 && c.type !== "combo";
+          const isTopRec = recMap !== null && i === 0;
           const domainParam = topic.trim() ? `?domain=${encodeURIComponent(topic.trim())}` : "";
           const sourceParam = domainParam && source !== "generated" ? `&source=${source}` : "";
           const autoParam = isTopRec && domainParam ? "&autoGenerate=1" : "";
-          const href = c.type === "combo" ? c.href : `${c.href}${domainParam}${sourceParam}${autoParam}`;
+          const href = `${c.href}${domainParam}${sourceParam}${autoParam}`;
           const needsSessionData = isTopRec && domainParam && source !== "generated";
           return (
             <ExercisePickerCard
@@ -204,8 +204,6 @@ export default function ReasoningPage() {
               desc={c.desc}
               recommended={isTopRec}
               reason={isTopRec ? recMap?.get(c.type) : undefined}
-              trailingIcon={c.trailingIcon}
-              className={c.className}
               onClick={needsSessionData ? () => {
                 try {
                   sessionStorage.setItem(

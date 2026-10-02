@@ -3,8 +3,6 @@ import { bypassFirebaseAuth, gotoAuthenticated, stubFirestoreReads } from "./hel
 import {
   addPassageHighlight,
   generateExercise,
-  fillExerciseDomain,
-  advanceSystemsToCanvas,
 } from "./helpers/exercise-flow";
 
 test.describe("State preservation - Analytical", () => {
@@ -83,50 +81,6 @@ test.describe("State preservation - Analytical", () => {
   });
 });
 
-test.describe("State preservation - Sequential", () => {
-  test.beforeEach(async ({ page }) => {
-    await bypassFirebaseAuth(page);
-    await stubFirestoreReads(page);
-  });
-
-  test("shows Continue existing exercise button after clicking Back from step 1", async ({
-    page,
-  }) => {
-    await gotoAuthenticated(page, "/exercise/sequential");
-    await generateExercise(page, "DevOps");
-
-    // Wait for the drag-and-drop step
-    await expect(
-      page.getByText("Incident Response Sequence"),
-    ).toBeVisible({ timeout: 15_000 });
-
-    // Click Back
-    await page.getByRole("button", { name: "Back", exact: true }).click();
-
-    await expect(
-      page.getByRole("button", { name: "Continue existing exercise" }),
-    ).toBeVisible();
-  });
-
-  test("Continue existing exercise returns to the exercise", async ({
-    page,
-  }) => {
-    await gotoAuthenticated(page, "/exercise/sequential");
-    await generateExercise(page, "DevOps");
-
-    await expect(
-      page.getByText("Incident Response Sequence"),
-    ).toBeVisible({ timeout: 15_000 });
-
-    await page.getByRole("button", { name: "Back", exact: true }).click();
-    await page.getByRole("button", { name: "Continue existing exercise" }).click();
-
-    await expect(
-      page.getByText("Incident Response Sequence"),
-    ).toBeVisible();
-  });
-});
-
 test.describe("State preservation - Systems", () => {
   test.beforeEach(async ({ page }) => {
     await bypassFirebaseAuth(page);
@@ -177,44 +131,3 @@ test.describe("State preservation - Evaluative", () => {
   });
 });
 
-test.describe("State preservation - Generative", () => {
-  test.beforeEach(async ({ page }) => {
-    await bypassFirebaseAuth(page);
-    await stubFirestoreReads(page);
-  });
-
-  test("shows Continue existing exercise button after clicking Back from step 1", async ({
-    page,
-  }) => {
-    await gotoAuthenticated(page, "/exercise/generative");
-    await generateExercise(page, "DevOps");
-
-    await expect(
-      page.getByText("AI Ethics Policy Framework"),
-    ).toBeVisible({ timeout: 15_000 });
-
-    await page.getByRole("button", { name: "Back", exact: true }).click();
-
-    await expect(
-      page.getByRole("button", { name: "Continue existing exercise" }),
-    ).toBeVisible();
-  });
-
-  test("Continue existing exercise returns to the exercise", async ({
-    page,
-  }) => {
-    await gotoAuthenticated(page, "/exercise/generative");
-    await generateExercise(page, "DevOps");
-
-    await expect(
-      page.getByText("AI Ethics Policy Framework"),
-    ).toBeVisible({ timeout: 15_000 });
-
-    await page.getByRole("button", { name: "Back", exact: true }).click();
-    await page.getByRole("button", { name: "Continue existing exercise" }).click();
-
-    await expect(
-      page.getByText("AI Ethics Policy Framework"),
-    ).toBeVisible();
-  });
-});

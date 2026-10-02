@@ -1,49 +1,16 @@
 import type { AnalyticalExercise } from "@/lib/ai/validators/common";
 import type { EvaluativeQuadrant } from "@/lib/ai/validators/evaluative";
-import type { GenerativeStage } from "@/lib/ai/validators/generative";
-import type { SequentialTaskType } from "@/lib/ai/validators/sequential";
 import type { SystemsConnectionType } from "@/lib/ai/validators/systems";
 import type { SystemsExercisePayload } from "@/lib/ai/validators/systems";
 import type { SystemsResilienceExercisePayload } from "@/lib/ai/validators/systems";
 import type { SystemsTaskType } from "@/lib/ai/validators/systems";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
-import type { JournalPromptItem } from "@/lib/ai/prompts/journal-pool";
 
-export type EmotionLabel =
-  | "anxious"
-  | "excited"
-  | "frustrated"
-  | "confident"
-  | "uncertain"
-  | "defensive"
-  | "neutral";
-
-/** In-progress journal step state, autosaved so it survives an abandoned session. */
-export interface JournalDraft {
-  prompts: JournalPromptItem[];
-  responses: Record<string, string>;
-  aiReferenceLine: string | null;
-  emotionLabel?: EmotionLabel;
-}
-
-export type ThinkingType =
-  | "analytical"
-  | "sequential"
-  | "systems"
-  | "evaluative"
-  | "generative"
-  | "combo";
+/** The exercise types the app offers. Old rows of removed types may still exist in Firestore. */
+export type ThinkingType = "analytical" | "systems" | "evaluative";
 
 /** Pre-defined combo chains (Phase 6.5). */
-export type ComboPresetId =
-  | "full_analysis"
-  | "decision_sprint"
-  | "root_cause"
-  | "crisis_response";
-
-export type { EvaluativeQuadrant, GenerativeStage };
-
-export type { SequentialTaskType };
+export type { EvaluativeQuadrant };
 
 export type { SystemsConnectionType };
 
@@ -110,12 +77,6 @@ export interface AnalyticalExerciseRow {
   userPerspectiveGuess?: string;
   userMissingActorsGuess?: string[];
   metaGuessScore?: number;
-  /** Task type: highlight & tag embedded issues (default/legacy), or steelman a position. Absent = "highlight_tag". */
-  analyticalVariant?: "highlight_tag" | "steelman";
-  /** User's free-text steelman of `passage` (steelman variant only). */
-  steelmanText?: string | null;
-  /** AI-rubric score for the steelman variant (no span-based ground truth to score against). */
-  rubricScore?: number | null;
   embeddedIssues: EmbeddedIssue[];
   validPoints: ValidPoint[];
   userHighlights: UserHighlight[];
@@ -125,64 +86,8 @@ export interface AnalyticalExerciseRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
-  /** Optional one-line "what I take away", written at the end (replaces journal + action). */
+  /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
-  journalDraft?: JournalDraft;
-  actionDraftText?: string;
-}
-
-export type CriticalErrorSeverity = "catastrophic" | "problematic" | "suboptimal";
-
-export interface SequentialCriticalError {
-  description: string;
-  severity: CriticalErrorSeverity;
-}
-
-export type SequentialStepSeverity = "critical" | "major" | "minor";
-
-export interface SequentialStepSpec {
-  id: string;
-  text: string;
-  correctPosition: number;
-  dependencies: string[];
-  isFlexible: boolean;
-  explanation: string;
-  /** Geopolitics dual-actor variant: Actor B's correct position for this same step id. */
-  correctPositionB?: number;
-  /** Crisis-triage variant: how costly it is to misorder this step. */
-  severity?: SequentialStepSeverity;
-}
-
-/** Persisted sequential exercise (ordering mechanic + user state). */
-export interface SequentialExerciseRow {
-  id: string;
-  type: "sequential";
-  domain: string;
-  customScenario?: string;
-  title: string;
-  scenario: string;
-  steps: SequentialStepSpec[];
-  criticalErrors: SequentialCriticalError[];
-  /** Left-to-right process order (user answer). */
-  userOrderedStepIds: string[];
-  /** Which new-mechanic variant generated this exercise, if any. */
-  variantKind?: "geopolitics" | "triage";
-  /** Geopolitics dual-actor variant. */
-  perspectiveAName?: string;
-  perspectiveBName?: string;
-  /** User's order for Perspective B (same step ids, second pass). */
-  userOrderedStepIdsB?: string[];
-  criticalErrorsB?: SequentialCriticalError[];
-  /** Crisis-triage variant: time budget given at generation time. */
-  timeLimitMinutes?: number;
-  confidenceBefore: number | null;
-  aiPerspective: string | null;
-  aiPerspectiveStructured?: AIPerspectiveStructured | null;
-  createdAt: string;
-  completedAt: string | null;
-  currentStep?: number;
-  journalDraft?: JournalDraft;
-  actionDraftText?: string;
 }
 
 export interface SystemsUserEdge {
@@ -237,10 +142,8 @@ export interface SystemsExerciseRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
-  /** Optional one-line "what I take away", written at the end (replaces journal + action). */
+  /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
-  journalDraft?: JournalDraft;
-  actionDraftText?: string;
 }
 
 export interface EvaluativeAxisSpec {
@@ -289,10 +192,8 @@ export interface EvaluativeMatrixRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
-  /** Optional one-line "what I take away", written at the end (replaces journal + action). */
+  /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
-  journalDraft?: JournalDraft;
-  actionDraftText?: string;
 }
 
 export interface EvaluativeCriterion {
@@ -357,10 +258,8 @@ export interface EvaluativeScoringRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
-  /** Optional one-line "what I take away", written at the end (replaces journal + action). */
+  /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
-  journalDraft?: JournalDraft;
-  actionDraftText?: string;
 }
 
 export interface EvaluativeUncertaintyOutcome {
@@ -399,95 +298,16 @@ export interface EvaluativeUncertaintyRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
-  /** Optional one-line "what I take away", written at the end (replaces journal + action). */
+  /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
-  journalDraft?: JournalDraft;
-  actionDraftText?: string;
 }
 
 export type EvaluativeExerciseRow = EvaluativeMatrixRow | EvaluativeScoringRow | EvaluativeUncertaintyRow;
 
-export interface GenerativePromptPersisted {
-  id: string;
-  question: string;
-  draftText?: string;
-  hints?: string[];
-  spareHint?: string;
-}
-
-/** Structured write + debate (Phase 4.2). */
-export interface GenerativeExerciseRow {
-  id: string;
-  type: "generative";
-  domain: string;
-  customScenario?: string;
-  /** True when exercise used geopolitics scenario-planning generation. */
-  isGeopolitics?: boolean;
-  /** Task type: argue & defend (default/legacy), reframing, or inversion/pre-mortem. Absent = "argue_debate". */
-  generativeVariant?: "argue_debate" | "reframing" | "inversion";
-  title: string;
-  scenario: string;
-  /** Scaffold stage locked when exercise was generated. */
-  stageAtStart: GenerativeStage;
-  prompts: GenerativePromptPersisted[];
-  answers: Record<string, string>;
-  steelmanText?: string | null;
-  /** Initial drafts for edit-stage edit detection (empty if not edit). */
-  draftBaseline: Record<string, string>;
-  debateOpening: string | null;
-  debateTurns: { userText: string; assistantText: string }[];
-  rubricScore: number | null;
-  confidenceBefore: number | null;
-  aiPerspective: string | null;
-  aiPerspectiveStructured?: AIPerspectiveStructured | null;
-  createdAt: string;
-  completedAt: string | null;
-  currentStep?: number;
-  journalDraft?: JournalDraft;
-  actionDraftText?: string;
-}
-
-export type ComboSubExercise =
-  | AnalyticalExerciseRow
-  | SequentialExerciseRow
-  | SystemsExerciseRow
-  | EvaluativeExerciseRow
-  | GenerativeExerciseRow;
-
-/** One history row with multiple completed mechanics on the same scenario. */
-export interface ComboExerciseRow {
-  id: string;
-  type: "combo";
-  preset: ComboPresetId;
-  domain: string;
-  customScenario?: string;
-  title: string;
-  scenario: string;
-  subExercises: ComboSubExercise[];
-  confidenceBefore: number | null;
-  aiPerspective: string | null;
-  aiPerspectiveStructured?: AIPerspectiveStructured | null;
-  createdAt: string;
-  completedAt: string | null;
-  currentStep?: number;
-  journalDraft?: JournalDraft;
-  actionDraftText?: string;
-}
-
-export type Exercise =
-  | AnalyticalExerciseRow
-  | SequentialExerciseRow
-  | SystemsExerciseRow
-  | EvaluativeExerciseRow
-  | GenerativeExerciseRow
-  | ComboExerciseRow;
+export type Exercise = AnalyticalExerciseRow | SystemsExerciseRow | EvaluativeExerciseRow;
 
 export function isAnalyticalExercise(ex: Exercise): ex is AnalyticalExerciseRow {
   return ex.type === "analytical";
-}
-
-export function isSequentialExercise(ex: Exercise): ex is SequentialExerciseRow {
-  return ex.type === "sequential";
 }
 
 export function isSystemsExercise(ex: Exercise): ex is SystemsExerciseRow {
@@ -513,14 +333,6 @@ export function isEvaluativeUncertainty(ex: Exercise): ex is EvaluativeUncertain
 /** Scoring exercise using the non-compensatory dealbreaker prompt (>=1 isDealbreaker criterion). */
 export function isDealbreakerEvaluativeExercise(ex: EvaluativeExerciseRow): boolean {
   return ex.variant === "scoring" && ex.criteria.some((c) => c.isDealbreaker === true);
-}
-
-export function isGenerativeExercise(ex: Exercise): ex is GenerativeExerciseRow {
-  return ex.type === "generative";
-}
-
-export function isComboExercise(ex: Exercise): ex is ComboExerciseRow {
-  return ex.type === "combo";
 }
 
 export interface ConfidenceRecord {

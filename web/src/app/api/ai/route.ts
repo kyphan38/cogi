@@ -3,7 +3,6 @@ import {
   buildAnalyticalGenerationPrompt,
   buildAnalyticalFromUserTextPrompt,
   buildAnalyticalSoundReasoningPrompt,
-  buildAnalyticalSteelmanPrompt,
   buildGeopoliticsAnalyticalPrompt,
   buildGeopoliticsFromUserTextPrompt,
 } from "@/lib/ai/prompts/analytical";
@@ -14,19 +13,6 @@ import {
   buildEvaluativeUncertaintyPrompt,
   buildGeopoliticsEvaluativePrompt,
 } from "@/lib/ai/prompts/evaluative";
-import {
-  buildGenerativeGenerationPrompt,
-  buildGeopoliticsGenerativePrompt,
-  buildReframingGenerativePrompt,
-  buildInversionGenerativePrompt,
-  GEOPOLITICS_GENERATIVE_RETRY_SUFFIX,
-} from "@/lib/ai/prompts/generative";
-import { getGeopoliticsRegionalAppendix } from "@/lib/exercise/geopolitics-regional-appendix";
-import {
-  buildGeopoliticsSequentialPrompt,
-  buildSequentialGenerationPrompt,
-  buildSequentialTriagePrompt,
-} from "@/lib/ai/prompts/sequential";
 import {
   buildGeopoliticsSystemsPrompt,
   buildSystemsGenerationPrompt,
@@ -42,12 +28,9 @@ import {
   systemsResponseSchema,
 } from "@/lib/ai/response-schemas";
 import {
-  ANALYTICAL_STEELMAN_RETRY_SUFFIX,
   GEOPOLITICS_ANALYTICAL_RETRY_SUFFIX,
   parseAnalyticalExerciseJson,
-  validateAnalyticalSteelmanSemantics,
   validateGeopoliticsAnalyticalSemantics,
-  type AnalyticalVariant,
 } from "@/lib/ai/validators/common";
 import { repairAnalyticalSegments } from "@/lib/text/segment-match";
 import {
@@ -63,28 +46,6 @@ import {
   type EvaluativeTaskType,
 } from "@/lib/ai/validators/evaluative";
 import {
-  parseGenerativeExerciseJson,
-  validateGenerativeSemantics,
-  validateGeopoliticsGenerativeSemantics,
-  validateReframingGenerativeSemantics,
-  validateInversionGenerativeSemantics,
-  GENERATIVE_RETRY_SUFFIX,
-  REFRAMING_GENERATIVE_RETRY_SUFFIX,
-  INVERSION_GENERATIVE_RETRY_SUFFIX,
-  type GenerativeStage,
-  type GenerativeVariant,
-} from "@/lib/ai/validators/generative";
-import {
-  GEOPOLITICS_SEQUENTIAL_RETRY_SUFFIX,
-  SEQUENTIAL_TRIAGE_RETRY_SUFFIX,
-  isGeopoliticsSequentialPayload,
-  isTriageSequentialPayload,
-  parseSequentialExerciseJson,
-  validateGeopoliticsSequentialSemantics,
-  validateSequentialTriageSemantics,
-  type SequentialTaskType,
-} from "@/lib/ai/validators/sequential";
-import {
   GEOPOLITICS_SYSTEMS_RETRY_SUFFIX,
   isGeopoliticsSystemsPayload,
   isResilienceSystemsPayload,
@@ -98,15 +59,10 @@ import {
 } from "@/lib/ai/validators/systems";
 import { sanitizeRealDataText } from "@/lib/text/sanitizeRealData";
 import {
-  buildAdaptationAppendix,
-  normalizeAdaptiveHints,
-} from "@/lib/adaptive/adaptive-appendix";
-import {
   buildLanguageLevelAppendix,
   DEFAULT_LANGUAGE_LEVEL,
   isLanguageLevel,
 } from "@/lib/adaptive/language-level";
-import type { AdaptiveExerciseType } from "@/lib/adaptive/types";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 import {
   CUSTOM_DOMAIN_PLACEHOLDER,
@@ -125,7 +81,7 @@ function parseAndRepairAnalytical(raw: string) {
 
 function parseSetupMode(
   raw: unknown,
-  exerciseType: "analytical" | "sequential" | "systems" | "evaluative" | "generative",
+  exerciseType: "analytical" | "systems" | "evaluative",
 ): "generated" | "real_data" | "custom_scenario" {
   const m =
     raw === "real_data" || raw === "generated" || raw === "custom_scenario" ? raw : "generated";
@@ -178,22 +134,10 @@ export async function POST(req: Request) {
 
   const rawType = (body as { exerciseType?: unknown }).exerciseType;
   const exerciseType =
-    rawType === "sequential"
-      ? "sequential"
-      : rawType === "systems"
-        ? "systems"
-        : rawType === "evaluative"
-          ? "evaluative"
-          : rawType === "generative"
-            ? "generative"
-            : "analytical";
+    rawType === "systems" ? "systems" : rawType === "evaluative" ? "evaluative" : "analytical";
 
   const rawMode = (body as { mode?: unknown }).mode;
   const mode = parseSetupMode(rawMode, exerciseType);
-
-  const rawAnalyticalVariant = (body as { analyticalVariant?: unknown }).analyticalVariant;
-  const analyticalVariant: AnalyticalVariant =
-    rawAnalyticalVariant === "steelman" ? "steelman" : "highlight_tag";
 
   if (!domainTrimmed && !customScenarioRaw) {
     return NextResponse.json(
@@ -218,23 +162,14 @@ export async function POST(req: Request) {
   const effectiveDomain = domainTrimmed || CUSTOM_DOMAIN_PLACEHOLDER;
   const scenarioForPrompt = mode === "custom_scenario" ? customScenarioRaw : undefined;
 
-  const rawHints = (body as { adaptiveHints?: unknown }).adaptiveHints;
-  const adaptiveHints = normalizeAdaptiveHints(rawHints);
-
-  // Language-complexity bar (Settings) - independent axis from adaptive difficulty.
-  // Always tolerant of missing/malformed values: falls back to the default level.
+  // Language-complexity bar (Settings). Always tolerant of missing/malformed values:
+  // falls back to the default level.
   const rawLanguageLevel = (body as { languageLevel?: unknown }).languageLevel;
   const languageLevel = isLanguageLevel(rawLanguageLevel) ? rawLanguageLevel : DEFAULT_LANGUAGE_LEVEL;
   const languageAppendix = buildLanguageLevelAppendix(languageLevel);
 
-  // Shared helper: combines the per-exercise-type adaptive-difficulty appendix with the
-  // language-level appendix into a single opaque block passed as `adaptationAppendix`.
-  const appendixFor = (t: AdaptiveExerciseType): string | undefined => {
-    const parts = [buildAdaptationAppendix(adaptiveHints, t), languageAppendix].filter(
-      (s): s is string => Boolean(s?.trim()),
-    );
-    return parts.length > 0 ? parts.join("\n\n") : undefined;
-  };
+  // Passed to every prompt builder as its `adaptationAppendix`.
+  const adaptationAppendix = languageAppendix?.trim() ? languageAppendix : undefined;
 
   try {
     if (exerciseType === "evaluative") {
@@ -255,27 +190,27 @@ export async function POST(req: Request) {
           ? buildEvaluativeDealbreakerPrompt({
               domain: effectiveDomain,
               userContext,
-              adaptationAppendix: appendixFor("evaluative"),
+              adaptationAppendix,
               customScenario: scenarioForPrompt,
             })
           : evaluativeTaskType === "uncertainty"
             ? buildEvaluativeUncertaintyPrompt({
                 domain: effectiveDomain,
                 userContext,
-                adaptationAppendix: appendixFor("evaluative"),
+                adaptationAppendix,
                 customScenario: scenarioForPrompt,
               })
             : isGeoEval
               ? buildGeopoliticsEvaluativePrompt({
                   domain: effectiveDomain,
                   userContext,
-                  adaptationAppendix: appendixFor("evaluative"),
+                  adaptationAppendix,
                   customScenario: scenarioForPrompt,
                 })
               : buildEvaluativeGenerationPrompt({
                   domain: effectiveDomain,
                   userContext,
-                  adaptationAppendix: appendixFor("evaluative"),
+                  adaptationAppendix,
                   customScenario: scenarioForPrompt,
                 });
 
@@ -310,182 +245,73 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, data: r.data });
     }
 
-    if (exerciseType === "generative") {
-    const rawStage = (body as { generativeStage?: unknown }).generativeStage;
-      const generativeStage: GenerativeStage | null =
-        rawStage === "edit" || rawStage === "hint" || rawStage === "independent"
-          ? rawStage
-          : null;
-      if (!generativeStage) {
-        return NextResponse.json(
-          {
-            ok: false,
-            error: 'generativeStage is required for generative exercises ("edit" | "hint" | "independent")',
-          },
-          { status: 400 },
-        );
-      }
-      const isGeoGen = isGeopoliticsAnalyticalDomain(effectiveDomain);
-      const rawVariant = (body as { generativeVariant?: unknown }).generativeVariant;
-      const generativeVariant: GenerativeVariant =
-        rawVariant === "reframing" || rawVariant === "inversion" || rawVariant === "argue_debate"
-          ? rawVariant
-          : "argue_debate";
-      const regional = getGeopoliticsRegionalAppendix(effectiveDomain);
-      const adaptParts = [
-        appendixFor("generative"),
-        regional,
-      ].filter((s): s is string => Boolean(s?.trim()));
-      const adaptationAppendix = adaptParts.join("\n\n");
-      const genPromptInput = {
-        domain: effectiveDomain,
-        userContext,
-        generativeStage,
-        adaptationAppendix,
-        customScenario: scenarioForPrompt,
-      };
-      const basePrompt = isGeoGen
-        ? buildGeopoliticsGenerativePrompt(genPromptInput)
-        : generativeVariant === "reframing"
-          ? buildReframingGenerativePrompt(genPromptInput)
-          : generativeVariant === "inversion"
-            ? buildInversionGenerativePrompt(genPromptInput)
-            : buildGenerativeGenerationPrompt(genPromptInput);
-      const r = await generateValidatedJson({
-        prompt: basePrompt,
-        parse: parseGenerativeExerciseJson,
-        validate: (data) => [
-          ...validateGenerativeSemantics(data, generativeStage),
-          ...(isGeoGen ? validateGeopoliticsGenerativeSemantics(data) : []),
-          ...(!isGeoGen && generativeVariant === "reframing"
-            ? validateReframingGenerativeSemantics(data)
-            : []),
-          ...(!isGeoGen && generativeVariant === "inversion"
-            ? validateInversionGenerativeSemantics(data)
-            : []),
-        ],
-        retrySuffix: isGeoGen
-          ? GEOPOLITICS_GENERATIVE_RETRY_SUFFIX
-          : generativeVariant === "reframing"
-            ? REFRAMING_GENERATIVE_RETRY_SUFFIX
-            : generativeVariant === "inversion"
-              ? INVERSION_GENERATIVE_RETRY_SUFFIX
-              : GENERATIVE_RETRY_SUFFIX,
-      });
-      if (!r.ok) return validatedJsonFailureResponse(r);
-      return NextResponse.json({ ok: true, data: r.data });
-    }
-
     const rawSystemsTaskType = (body as { systemsTaskType?: unknown }).systemsTaskType;
     const systemsTaskType: SystemsTaskType =
       rawSystemsTaskType === "geopolitics" || rawSystemsTaskType === "resilience"
         ? rawSystemsTaskType
         : "auto";
     // Geopolitics domain auto-detect only applies on the "auto" path - resilience never checks it
-    // (parity with evaluativeTaskType/generativeVariant handling above).
+    // (parity with evaluativeTaskType handling above).
     const isGeoSystems =
       exerciseType === "systems" &&
       (systemsTaskType === "geopolitics" ||
         (systemsTaskType === "auto" && isGeopoliticsAnalyticalDomain(effectiveDomain)));
 
-    const rawSequentialTaskType = (body as { sequentialTaskType?: unknown }).sequentialTaskType;
-    const sequentialTaskType: SequentialTaskType =
-      rawSequentialTaskType === "geopolitics" || rawSequentialTaskType === "triage"
-        ? rawSequentialTaskType
-        : "auto";
-    // Geopolitics domain auto-detect only applies on the "auto" path - triage never checks it
-    // (parity with systemsTaskType/evaluativeTaskType handling above).
-    const isGeoSequential =
-      exerciseType === "sequential" &&
-      (sequentialTaskType === "geopolitics" ||
-        (sequentialTaskType === "auto" && isGeopoliticsAnalyticalDomain(effectiveDomain)));
-
-    const useSteelman =
-      exerciseType === "analytical" && analyticalVariant === "steelman" && mode !== "real_data";
     const useGeopoliticsAnalytical =
       exerciseType === "analytical" &&
       (mode === "generated" || mode === "custom_scenario") &&
       isGeopoliticsAnalyticalDomain(effectiveDomain);
     const basePrompt =
-      exerciseType === "sequential"
-        ? sequentialTaskType === "triage"
-          ? buildSequentialTriagePrompt({
+      exerciseType === "systems"
+        ? systemsTaskType === "resilience"
+          ? buildSystemsResilienceGenerationPrompt({
               domain: effectiveDomain,
               userContext,
-              adaptationAppendix: appendixFor("sequential"),
+              adaptationAppendix,
               customScenario: scenarioForPrompt,
             })
-          : isGeoSequential
-            ? buildGeopoliticsSequentialPrompt({
+          : isGeoSystems
+            ? buildGeopoliticsSystemsPrompt({
                 domain: effectiveDomain,
                 userContext,
-                adaptationAppendix: appendixFor("sequential"),
+                adaptationAppendix,
                 customScenario: scenarioForPrompt,
               })
-            : buildSequentialGenerationPrompt({
+            : buildSystemsGenerationPrompt({
                 domain: effectiveDomain,
                 userContext,
-                adaptationAppendix: appendixFor("sequential"),
+                adaptationAppendix,
                 customScenario: scenarioForPrompt,
               })
-        : exerciseType === "systems"
-          ? systemsTaskType === "resilience"
-            ? buildSystemsResilienceGenerationPrompt({
+        : (() => {
+            if (useGeopoliticsAnalytical) {
+              return buildGeopoliticsAnalyticalPrompt({
                 domain: effectiveDomain,
                 userContext,
-                adaptationAppendix: appendixFor("systems"),
+                adaptationAppendix,
                 customScenario: scenarioForPrompt,
-              })
-            : isGeoSystems
-              ? buildGeopoliticsSystemsPrompt({
+              });
+            }
+            const useSoundReasoning =
+              exerciseType === "analytical" &&
+              mode === "generated" &&
+              !scenarioForPrompt &&
+              Math.random() < 0.2;
+            const base = useSoundReasoning
+              ? buildAnalyticalSoundReasoningPrompt({
                   domain: effectiveDomain,
                   userContext,
-                  adaptationAppendix: appendixFor("systems"),
+                  adaptationAppendix,
                   customScenario: scenarioForPrompt,
                 })
-              : buildSystemsGenerationPrompt({
+              : buildAnalyticalGenerationPrompt({
                   domain: effectiveDomain,
                   userContext,
-                  adaptationAppendix: appendixFor("systems"),
-                  customScenario: scenarioForPrompt,
-                })
-          : (() => {
-              if (useSteelman) {
-                return buildAnalyticalSteelmanPrompt({
-                  domain: effectiveDomain,
-                  userContext,
-                  adaptationAppendix: appendixFor("analytical"),
+                  adaptationAppendix,
                   customScenario: scenarioForPrompt,
                 });
-              }
-              if (useGeopoliticsAnalytical) {
-                return buildGeopoliticsAnalyticalPrompt({
-                  domain: effectiveDomain,
-                  userContext,
-                  adaptationAppendix: appendixFor("analytical"),
-                  customScenario: scenarioForPrompt,
-                });
-              }
-              const useSoundReasoning =
-                exerciseType === "analytical" &&
-                mode === "generated" &&
-                !scenarioForPrompt &&
-                Math.random() < 0.2;
-              const base = useSoundReasoning
-                ? buildAnalyticalSoundReasoningPrompt({
-                    domain: effectiveDomain,
-                    userContext,
-                    adaptationAppendix: appendixFor("analytical"),
-                    customScenario: scenarioForPrompt,
-                  })
-                : buildAnalyticalGenerationPrompt({
-                    domain: effectiveDomain,
-                    userContext,
-                    adaptationAppendix: appendixFor("analytical"),
-                    customScenario: scenarioForPrompt,
-                  });
-              return base;
-            })();
+            return base;
+          })();
 
     if (exerciseType === "systems") {
       const r = await generateValidatedJson({
@@ -511,26 +337,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, data: r.data });
     }
 
-    if (exerciseType === "sequential") {
-      const r = await generateValidatedJson({
-        prompt: basePrompt,
-        parse: parseSequentialExerciseJson,
-        validate: (data) =>
-          isTriageSequentialPayload(data)
-            ? validateSequentialTriageSemantics(data)
-            : isGeopoliticsSequentialPayload(data)
-              ? validateGeopoliticsSequentialSemantics(data)
-              : [],
-        retrySuffix:
-          sequentialTaskType === "triage"
-            ? SEQUENTIAL_TRIAGE_RETRY_SUFFIX
-            : isGeoSequential
-              ? GEOPOLITICS_SEQUENTIAL_RETRY_SUFFIX
-              : undefined,
-      });
-      if (!r.ok) return validatedJsonFailureResponse(r);
-      return NextResponse.json({ ok: true, data: r.data });
-    }
     // Analytical (generated, custom_scenario, or real_data based on mode).
     if (mode === "real_data") {
       const rawUserText = (body as { userText?: unknown }).userText;
@@ -562,13 +368,13 @@ export async function POST(req: Request) {
             domain: effectiveDomain,
             userContext,
             userText: sanitized,
-            adaptationAppendix: appendixFor("analytical"),
+            adaptationAppendix,
           })
         : buildAnalyticalFromUserTextPrompt({
             domain: effectiveDomain,
             userContext,
             userText: sanitized,
-            adaptationAppendix: appendixFor("analytical"),
+            adaptationAppendix,
           });
       const rReal = await generateValidatedJson({
         prompt: fromTextPrompt,
@@ -590,14 +396,9 @@ export async function POST(req: Request) {
     const r = await generateValidatedJson({
       prompt: basePrompt,
       parse: parseAndRepairAnalytical,
-      validate: useSteelman
-        ? validateAnalyticalSteelmanSemantics
-        : validateGeopoliticsAnalyticalSemantics,
-      retrySuffix: useSteelman
-        ? ANALYTICAL_STEELMAN_RETRY_SUFFIX
-        : GEOPOLITICS_ANALYTICAL_RETRY_SUFFIX,
-      // Steelman is hidden and returns a different shape; it keeps plain JSON mode.
-      responseJsonSchema: useSteelman ? undefined : analyticalResponseSchema(useGeopoliticsAnalytical),
+      validate: validateGeopoliticsAnalyticalSemantics,
+      retrySuffix: GEOPOLITICS_ANALYTICAL_RETRY_SUFFIX,
+      responseJsonSchema: analyticalResponseSchema(useGeopoliticsAnalytical),
     });
     if (!r.ok) return validatedJsonFailureResponse(r);
     return NextResponse.json({ ok: true, data: r.data });

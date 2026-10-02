@@ -19,7 +19,7 @@ export interface SeedSuggestion {
 
 interface TopicSuggestionPickerProps {
   area: PracticedTopicArea;
-  kind: "exercise" | "math";
+  kind: "exercise";
   /** Non-AI options shown before the AI-generated ones (e.g. Math's real, verified scenarios). */
   seedSuggestions?: SeedSuggestion[];
   onPick: (suggestion: { title: string; scenarioId?: string }) => void | Promise<void>;
@@ -112,10 +112,10 @@ export function TopicSuggestionPicker({ area, kind, seedSuggestions, onPick }: T
               <Card className={cn("h-full gap-2 transition-colors hover:border-zinc-300", pickingTitle === s.title && "border-zinc-400")}>
                 <CardContent className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    {kind === "math" ? <Badge variant="attention">AI draft, unverified</Badge> : <Badge variant="secondary">AI suggested</Badge>}
+                    <Badge variant="secondary">AI suggested</Badge>
                     {pickingTitle === s.title ? (
                       <span className="text-muted-foreground flex items-center gap-1 text-[11px]">
-                        <InlineSpinner /> {kind === "math" ? "Generating scenario…" : "Starting…"}
+                        <InlineSpinner /> Starting…
                       </span>
                     ) : null}
                   </div>

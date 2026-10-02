@@ -54,14 +54,6 @@ const criterionCritiqueSchema = z.object({
   aiEvaluationText: z.string().min(1),
 });
 
-const stepCritiqueSchema = z.object({
-  phaseId: z.string().min(1),
-  promptQuestion: z.string().min(1),
-  userResponseSnippet: z.string().min(1),
-  critique: z.string().min(1),
-  remediationAlternative: z.string().min(1),
-});
-
 const outcomeCritiqueSchema = z.object({
   optionId: z.string().min(1),
   optionTitle: z.string().min(1),
@@ -84,10 +76,6 @@ export const evaluativeMatrixPerspectiveSchema = clarityBaseSchema.extend({
 
 export const evaluativeScoringPerspectiveSchema = clarityBaseSchema.extend({
   critiqueMatrix: z.array(criterionCritiqueSchema).min(1),
-});
-
-export const generativePerspectiveSchema = clarityBaseSchema.extend({
-  stepCritiques: z.array(stepCritiqueSchema).min(1),
 });
 
 export const evaluativeUncertaintyPerspectiveSchema = clarityBaseSchema.extend({
@@ -114,7 +102,6 @@ export const aiPerspectiveStructuredSchema = z.union([
   evaluativeMatrixPerspectiveSchema,
   evaluativeScoringPerspectiveSchema,
   evaluativeUncertaintyPerspectiveSchema,
-  generativePerspectiveSchema,
   legacyPerspectiveStructuredSchema,
 ]);
 
@@ -130,8 +117,6 @@ function schemaForKind(kind: ClarityPerspectiveKind) {
       return evaluativeScoringPerspectiveSchema;
     case "evaluative-uncertainty":
       return evaluativeUncertaintyPerspectiveSchema;
-    case "generative":
-      return generativePerspectiveSchema;
   }
 }
 
@@ -145,28 +130,6 @@ function stripJsonFences(text: string): string {
 export type ParseStructuredPerspectiveResult =
   | { success: true; data: AIPerspectiveStructured; format: "clarity_v2" | "legacy" }
   | { success: false; error: string };
-
-export function parseLegacyPerspectiveJson(text: string): ParseStructuredPerspectiveResult {
-  const stripped = stripJsonFences(text);
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(stripped);
-  } catch {
-    return { success: false, error: "Invalid JSON from model" };
-  }
-  const legacyResult = legacyPerspectiveStructuredSchema.safeParse(parsed);
-  if (legacyResult.success) {
-    return {
-      success: true,
-      data: legacyResult.data as LegacyPerspectiveStructured,
-      format: "legacy",
-    };
-  }
-  return {
-    success: false,
-    error: legacyResult.error.issues.map((i) => i.message).join("; "),
-  };
-}
 
 export function parseStructuredPerspectiveJson(
   text: string,
@@ -226,9 +189,6 @@ Required keys: title, suitableFor, critiqueMatrix[{ criterionId, criterionLabel,
     case "evaluative-uncertainty":
       return `${base}
 Required keys: title, suitableFor, outcomeCritiques[{ optionId, optionTitle, userImpliedEv, aiEv, critique }], optional openQuestions.`;
-    case "generative":
-      return `${base}
-Required keys: title, suitableFor, stepCritiques[{ phaseId, promptQuestion, userResponseSnippet, critique, remediationAlternative }], optional openQuestions.`;
   }
 }
 
