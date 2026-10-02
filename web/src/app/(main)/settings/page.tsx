@@ -308,15 +308,6 @@ export default function SettingsPage() {
             >
               Home
             </Link>
-            <Link
-              href="/dashboard"
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                "inline-flex items-center justify-center",
-              )}
-            >
-              Dashboard
-            </Link>
           </div>
           {saved ? (
             <p className="text-muted-foreground text-sm">Saved.</p>

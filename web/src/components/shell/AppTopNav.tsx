@@ -8,19 +8,24 @@ import { getFirebaseAuth } from "@/lib/auth/firebase-client";
 import { awaitRouterReplace } from "@/lib/nav/await-router-replace";
 import { cn } from "@/lib/utils";
 
+// Guide, Dashboard and Decisions are hidden (PLAN-simplify.md); their routes still work.
 const links = [
-  { href: "/", label: "Home" },
-  { href: "/guide", label: "Guide" },
-  { href: "/dashboard", label: "Dashboard" },
+  { href: "/", label: "Practice" },
   { href: "/exercise/history", label: "History" },
   { href: "/settings", label: "Settings" },
-  { href: "/decisions", label: "Decisions" },
 ] as const;
+
+/** Practice covers the start page, the exercise picker and exercises in progress. */
+function isPracticePath(pathname: string | null): boolean {
+  if (!pathname || pathname === "/") return true;
+  if (pathname === "/reasoning") return true;
+  return pathname.startsWith("/exercise/") && !pathname.startsWith("/exercise/history");
+}
 
 function navLinkClass(href: string, pathname: string | null) {
   const active =
     href === "/"
-      ? pathname === "/" || pathname === ""
+      ? isPracticePath(pathname)
       : pathname === href || (pathname?.startsWith(href + "/") ?? false);
   return cn(
     "shrink-0 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground",
@@ -52,7 +57,7 @@ export function AppTopNav() {
       )}
     >
       <nav
-        className="mx-auto flex max-w-5xl flex-wrap items-center gap-1 px-4 py-2 sm:gap-2"
+        className="mx-auto flex max-w-5xl items-center gap-1 px-4 py-2 sm:gap-2"
         aria-label="Main"
       >
         {links.map(({ href, label }) => (
