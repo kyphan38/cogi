@@ -273,33 +273,66 @@ báo cũ), build production đạt. Gọi Gemini thật cho bài Guided: 4/4 đ�
 - ~~Bài cũ: tính `result` khi mở; feedback cũ vẫn hiện như trước.~~ Đã làm ở Phase 2.
 - ~~Còn lại: hiện cấp đã làm (sau Phase 4).~~ Đã làm ở Phase 4. **Phase 5 xong.**
 
-## Phase 6 - Mở rộng cấp độ sang Systems và Evaluative `[QUYẾT ĐỊNH]`
+## Phase 6 - Systems và Evaluative
 
-Làm sau khi dùng Analytical có cấp độ khoảng 1-2 tuần. Mỗi loại cần: hàm chấm bằng
-code, hàm `rate`, bảng cấp độ, và áp dụng nguyên tắc feedback mới (Why / Clue /
-Next time).
+Ngày 2026-10-03 chủ app chọn làm ngay cả 6a và 6b (không chờ 1-2 tuần như đề xuất ban
+đầu). Lý do tách: kiểm tra code cho thấy Systems và Evaluative vẫn dùng feedback cũ
+(Systems bắt buộc `remediationAlternative`; Evaluative dùng `CLARITY_BLUEPRINT_RULE`
+với "stronger alternative"), tức là đúng vấn đề số 2 người dùng gặp ở Analytical.
 
-**Systems** (đáp án: `intendedConnections`, `shockEvent`):
+### 6a - Feedback mới (Systems, Evaluative)
+
+Cùng nguyên tắc với Phase 2: code so sánh với đáp án, AI chỉ giải thích (Why / Clue /
+Next time, ask), không bắt buộc "cách tốt hơn", có 1-2 bài học mang theo.
+
+- **Format chung `coaching_v3`** (cùng dạng `analytical_v3`): `items[{ ref, why, clue,
+  nextTimeAsk }]`, `takeaways`, `metaNote` tùy chọn. Parser chung kiểm tra đủ ref bắt
+  buộc. Feedback cũ (`clarity_v2`) vẫn hiển thị.
+- **Systems** (`lib/exercise/systems-score.ts`): mỗi kết nối của model: tìm được /
+  ngược chiều / khác loại / thiếu; kết nối thừa; mỗi node: mức ảnh hưởng bạn đánh dấu
+  so với model. Ref: `node_<id>`, `conn_<n>`, `extra_<n>`. Bắt buộc giải thích: node
+  sai, kết nối thiếu (tối đa 4), kết nối thừa (tối đa 2). Geopolitics và resilience:
+  `metaNote` bắt buộc (góc nhìn B, xếp hạng mức quan trọng).
+- **Evaluative** (`lib/exercise/evaluative-score.ts`):
+  - Matrix: mỗi phương án đúng/khác ô so với model.
+  - Scoring: độ lệch trọng số từng tiêu chí, ô điểm lệch từ 2 trở lên, phương án tốt
+    nhất của bạn có trùng với model không. Đây là đánh giá chủ quan, nên dùng từ
+    "gần / khác", không dùng "đúng / sai". `metaNote` bắt buộc: tiêu chí bạn nêu so với
+    tiêu chí ẩn.
+  - Uncertainty: EV của bạn so với model cho từng phương án, thứ hạng có trùng không.
+- **Giao diện:** bảng kết quả cho từng loại (số liệu, từng dòng kèm nhận xét AI,
+  takeaways), dùng trong bài và trong History.
+
+### 6b - Cấp độ cho Systems và Evaluative
+
+Dùng khung chung của Phase 4 (`lib/exercise/levels.ts`, cấp riêng cho từng loại, gợi
+ý lên/xuống cấp sau khi xong bài).
+
+**Systems** (bài sinh ra giống nhau; cấp chỉ đổi phần hỗ trợ và loại bài được chọn):
 
 | | Guided | Standard | Expert |
 |---|---|---|---|
-| Loại bài | auto | auto | auto, resilience, geopolitics |
-| Gợi ý thành phần | Có (`componentCandidates`, đã có) | Có | Tự đề xuất |
-| Cho biết số kết nối | Có | Không | Không |
-| Giải thích loại kết nối | Luôn hiện | Mở khi cần | Ẩn |
+| Loại bài | Auto | Auto | Auto, resilience, geopolitics |
+| Gợi ý thành phần | Có | Có | Tự viết 6 thành phần |
+| Cho biết số kết nối của model | Có | Không | Không |
+| Giải thích 4 loại kết nối | Luôn hiện | Mở khi cần | Ẩn |
+| Gợi ý số node bị ảnh hưởng khi có cú sốc | Có | Không | Không |
 
-Chấm: số kết nối khớp `intendedConnections`; số node đánh giá đúng direct/indirect.
+Đánh giá: tốt = trung bình (tỉ lệ kết nối tìm được, tỉ lệ node đúng) từ 0,75; yếu = từ
+0,35 trở xuống.
 
-**Evaluative** (cấp chủ yếu chọn biến thể):
+**Evaluative:**
 
 | | Guided | Standard | Expert |
 |---|---|---|---|
-| Biến thể | matrix | scoring | dealbreaker, uncertainty |
-| Gợi ý tiêu chí | Có (`criteriaCandidates`, đã có) | Có | Không |
+| Biến thể | Chỉ matrix (2 tiêu chí) | Auto (matrix hoặc scoring) | Auto, dealbreaker, uncertainty |
+| Gợi ý tiêu chí | Có | Có | Tự viết |
 
-Chấm: matrix có đáp án (`intendedQuadrant`). Scoring và uncertainty là đánh giá chủ
-quan, nên chỉ đo **khoảng cách** so với gợi ý của AI. Không gọi là đúng/sai. Gợi ý
-lên cấp với hai biến thể này nên dè dặt hơn.
+Đánh giá: matrix theo tỉ lệ ô đúng (tốt từ 0,75, yếu từ 0,25 trở xuống). Scoring và
+uncertainty là chủ quan: tốt khi phương án tốt nhất trùng model, còn lại "được", không
+bao giờ "yếu" (gợi ý xuống cấp chỉ dựa trên matrix).
+
+Geopolitics (cả hai loại) luôn là Expert, như Analytical.
 
 ## Ngoài phạm vi
 
