@@ -217,6 +217,8 @@ export interface HighlightTagProps {
    * "free": select any text, then tap the selection to tag it.
    */
   selectionMode?: "sentence" | "free";
+  /** Show the check question under each tag in the picker (hidden at Expert). */
+  showQuestions?: boolean;
 }
 
 export function HighlightTag({
@@ -226,6 +228,7 @@ export function HighlightTag({
   onSelectionOverlap,
   tagOptions = ANALYTICAL_TAG_OPTIONS,
   selectionMode = "free",
+  showQuestions = true,
 }: HighlightTagProps) {
   const ref = useRef<HTMLDivElement>(null);
   const anchorElRef = useRef<HTMLElement | null>(null);
@@ -460,6 +463,7 @@ export function HighlightTag({
           options={tagOptions}
           onSelect={applyTag}
           selected={editing?.tag}
+          showQuestions={showQuestions}
           autoFocusFirst
           className="max-h-none"
         />

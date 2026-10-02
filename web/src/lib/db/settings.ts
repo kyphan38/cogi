@@ -3,12 +3,22 @@ import { COGI_COLLECTIONS, userDocRef } from "@/lib/db/firestore";
 import { e2eGetDoc, e2eSetDoc, isE2EAuthBypass } from "@/lib/db/e2e-firestore-memory";
 import { stripUndefinedDeep } from "@/lib/db/strip-undefined-deep";
 import { DEFAULT_LANGUAGE_LEVEL, type LanguageLevel } from "@/lib/adaptive/language-level";
+import {
+  DEFAULT_PRACTICE_LEVEL,
+  isPracticeLevel,
+  type LevelledExerciseType,
+  type PracticeLevel,
+} from "@/lib/exercise/levels";
 
 export interface AppSettingsRow {
   id: "app";
   userContext: string;
   /** Language-complexity bar for generated exercises and feedback. */
   languageLevel?: LanguageLevel;
+  /** Practice level per exercise type, chosen by the user. */
+  practiceLevels?: Partial<Record<LevelledExerciseType, PracticeLevel>>;
+  /** When the user last said "Not now" to a level suggestion, per type (ISO time). */
+  levelSuggestionDismissedAt?: Partial<Record<LevelledExerciseType, string>>;
 }
 
 const SETTINGS_ID = "app" as const;
@@ -37,6 +47,8 @@ export async function getAppSettings(): Promise<AppSettingsRow> {
     id: SETTINGS_ID,
     userContext: row?.userContext ?? "",
     languageLevel: row?.languageLevel ?? DEFAULT_LANGUAGE_LEVEL,
+    practiceLevels: row?.practiceLevels ?? {},
+    levelSuggestionDismissedAt: row?.levelSuggestionDismissedAt ?? {},
   };
 }
 
@@ -59,4 +71,24 @@ export async function setLanguageLevel(level: LanguageLevel): Promise<void> {
 export async function getLanguageLevelForRequest(): Promise<LanguageLevel> {
   const s = await getAppSettings();
   return s.languageLevel ?? DEFAULT_LANGUAGE_LEVEL;
+}
+
+export async function getPracticeLevel(type: LevelledExerciseType): Promise<PracticeLevel> {
+  const s = await getAppSettings();
+  const level = s.practiceLevels?.[type];
+  return isPracticeLevel(level) ? level : DEFAULT_PRACTICE_LEVEL;
+}
+
+export async function setPracticeLevel(type: LevelledExerciseType, level: PracticeLevel): Promise<void> {
+  const prev = await getAppSettings();
+  await saveRow({ ...prev, practiceLevels: { ...prev.practiceLevels, [type]: level } });
+}
+
+/** "Not now" on a level suggestion: wait for a fresh streak after this moment. */
+export async function dismissLevelSuggestion(type: LevelledExerciseType): Promise<void> {
+  const prev = await getAppSettings();
+  await saveRow({
+    ...prev,
+    levelSuggestionDismissedAt: { ...prev.levelSuggestionDismissedAt, [type]: new Date().toISOString() },
+  });
 }

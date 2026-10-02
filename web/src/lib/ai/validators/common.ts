@@ -22,6 +22,12 @@ const embeddedIssueSchema = z.object({
   explanation: z.string(),
 });
 
+const mainClaimQuizSchema = z.object({
+  options: z.array(z.string()),
+  answerIndex: z.number().int(),
+  explanation: z.string(),
+});
+
 const validPointSchema = z.object({
   textSegment: z.string(),
   explanation: z.string(),
@@ -34,6 +40,8 @@ export const analyticalExerciseSchema = z.object({
   // No .min(1): count requirements are enforced by the semantic validators below.
   validPoints: z.array(validPointSchema),
   isSoundReasoning: z.boolean().optional(),
+  /** Guided level only: pick the main claim before looking for problems. */
+  mainClaimQuiz: mainClaimQuizSchema.optional(),
   hiddenPerspective: z.string().optional(),
   missingActors: z.array(z.string()).min(1).max(3).optional(),
 });
@@ -103,9 +111,9 @@ const PLAIN_ISSUE_TYPES = [
  */
 export function validateAnalyticalSemantics(
   data: AnalyticalExercise,
-  opts: { expectSound?: boolean } = {},
+  opts: { expectSound?: boolean; expectMainClaimQuiz?: boolean } = {},
 ): string[] {
-  const errors: string[] = [];
+  const errors: string[] = opts.expectMainClaimQuiz ? mainClaimQuizErrors(data) : [];
 
   if (opts.expectSound) {
     if (data.embeddedIssues.length !== 0) {
@@ -134,6 +142,23 @@ export function validateAnalyticalSemantics(
   errors.push(...severityErrors(data));
 
   return [...errors, ...segmentErrors(data)];
+}
+
+function mainClaimQuizErrors(data: AnalyticalExercise): string[] {
+  const q = data.mainClaimQuiz;
+  if (!q) return ["mainClaimQuiz is required"];
+  const errors: string[] = [];
+  const options = q.options.map((o) => o.trim());
+  if (options.length !== 3 || options.some((o) => !o)) {
+    errors.push("mainClaimQuiz.options must have exactly 3 non-empty statements");
+  } else if (new Set(options.map((o) => o.toLowerCase())).size !== 3) {
+    errors.push("mainClaimQuiz.options must be different from each other");
+  }
+  if (q.answerIndex < 0 || q.answerIndex > 2) {
+    errors.push("mainClaimQuiz.answerIndex must be 0, 1 or 2");
+  }
+  if (!q.explanation.trim()) errors.push("mainClaimQuiz.explanation is required");
+  return errors;
 }
 
 function severityErrors(data: AnalyticalExercise): string[] {

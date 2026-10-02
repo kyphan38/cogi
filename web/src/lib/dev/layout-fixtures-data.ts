@@ -24,6 +24,15 @@ export function makeMockAnalyticalAiPayload(domain: string) {
       },
     ],
     validPoints: [],
+    mainClaimQuiz: {
+      options: [
+        "Analysts wrongly reduce the dispute to two choices and skip middle powers.",
+        "Containment always works better than engagement.",
+        "Domestic legislatures have already approved the summit deal.",
+      ],
+      answerIndex: 0,
+      explanation: "The passage is mainly about how the framing leaves out options and actors.",
+    },
     isGeopolitics,
   };
 }

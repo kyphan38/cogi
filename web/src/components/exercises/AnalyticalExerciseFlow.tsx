@@ -60,6 +60,23 @@ import { ANALYTICAL_TAG_OPTIONS, GEOPOLITICS_TAG_OPTIONS } from "@/lib/exercise/
 import { computeMetaGuessScore } from "@/lib/analytics/geopolitics-meta-guess";
 import { analyticalResultOf, scoreAnalytical } from "@/lib/exercise/analytical-score";
 import { AnalyticalAnswerKey } from "@/components/exercises/AnalyticalAnswerKey";
+import { CheckQuestions } from "@/components/exercises/CheckQuestions";
+import {
+  GuidedWalkthrough,
+  guidedCandidatesFor,
+  guidedPart,
+} from "@/components/exercises/GuidedWalkthrough";
+import { LevelPicker } from "@/components/exercises/LevelPicker";
+import { LevelSuggestionCard } from "@/components/shared/LevelSuggestionCard";
+import { ANALYTICAL_LEVELS } from "@/lib/exercise/analytical-levels";
+import {
+  DEFAULT_PRACTICE_LEVEL,
+  LEVEL_LABELS,
+  type LevelSuggestion,
+  type PracticeLevel,
+} from "@/lib/exercise/levels";
+import { analyticalLevelSuggestion } from "@/lib/exercise/level-suggestion";
+import { dismissLevelSuggestion, getPracticeLevel, setPracticeLevel } from "@/lib/db/settings";
 import { isAnalyticalCoachingStructured } from "@/lib/types/perspective";
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -101,6 +118,8 @@ export function AnalyticalExerciseFlow({
     useState<AIPerspectiveStructured | null>(null);
 
   const [takeaway, setTakeaway] = useState("");
+  const [level, setLevel] = useState<PracticeLevel>(DEFAULT_PRACTICE_LEVEL);
+  const [levelSuggestion, setLevelSuggestion] = useState<LevelSuggestion>(null);
   const [finishing, setFinishing] = useState(false);
   const pendingSave = useSaveOnLeave();
   const [userPerspectiveGuess, setUserPerspectiveGuess] = useState("");
@@ -119,7 +138,13 @@ export function AnalyticalExerciseFlow({
 
   useEffect(() => {
     void listRecentDomains(20).then(setDomainSuggestions);
+    void getPracticeLevel("analytical").then(setLevel);
   }, []);
+
+  const chooseLevel = (next: PracticeLevel) => {
+    setLevel(next);
+    void setPracticeLevel("analytical", next);
+  };
 
   const advance = useCallback(
     (next: FlowStep, updatedRow?: AnalyticalExerciseRow) => {
@@ -241,6 +266,9 @@ export function AnalyticalExerciseFlow({
       const userContext = await getUserContext();
       const userTextForReal = effectiveMode === "real_data" ? sanitizedUserText : undefined;
       const languageLevel = await getLanguageLevelForRequest();
+      // Geopolitics passages have no guided form yet, so they always run at Expert.
+      const isGeopolitics = isGeopoliticsAnalyticalDomain(effectiveDomain);
+      const exerciseLevel: PracticeLevel = isGeopolitics ? "expert" : level;
       const res = await aiFetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -252,6 +280,7 @@ export function AnalyticalExerciseFlow({
           userText: effectiveMode === "real_data" ? userTextForReal : undefined,
           customScenario: customScenarioBody,
           languageLevel,
+          level: exerciseLevel,
         }),
       });
       const json = await safeAiJson<
@@ -263,7 +292,6 @@ export function AnalyticalExerciseFlow({
         return;
       }
       const data = json.data;
-      const isGeopolitics = isGeopoliticsAnalyticalDomain(effectiveDomain);
       const id = crypto.randomUUID();
       const row: AnalyticalExerciseRow = {
         id,
@@ -281,6 +309,10 @@ export function AnalyticalExerciseFlow({
         embeddedIssues: data.embeddedIssues,
         validPoints: data.validPoints,
         userHighlights: [],
+        level: exerciseLevel,
+        mainClaimQuiz: data.mainClaimQuiz,
+        mainClaimAnswer: null,
+        guidedIndex: 0,
         confidenceBefore: null,
         aiPerspective: null,
         createdAt: new Date().toISOString(),
@@ -302,7 +334,7 @@ export function AnalyticalExerciseFlow({
     } finally {
       setLoading(false);
     }
-  }, [domain, mode, realText, customScenarioText]);
+  }, [domain, mode, realText, customScenarioText, level]);
 
   const autoGenerateTriggered = useRef(false);
   const [autoGenerateReady, setAutoGenerateReady] = useState(false);
@@ -354,10 +386,8 @@ export function AnalyticalExerciseFlow({
       advance(4);
       return;
     }
-    if (highlights.length < 1) {
-      setError("Add at least one highlight before continuing.");
-      return;
-    }
+    // Zero highlights is a real answer for a passage the user finds sound; the
+    // highlight step confirms it before getting here.
     setError(null);
     setLoading(true);
     try {
@@ -430,6 +460,11 @@ export function AnalyticalExerciseFlow({
       const saved = await completePracticeExercise({ exercise: finalEx, takeaway });
       setExercise(saved as AnalyticalExerciseRow);
       setStep(7);
+      if (!finalEx.isGeopolitics && finalEx.level) {
+        void analyticalLevelSuggestion(finalEx.level)
+          .then(setLevelSuggestion)
+          .catch(() => setLevelSuggestion(null));
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {
@@ -469,6 +504,34 @@ export function AnalyticalExerciseFlow({
   };
 
   const phase = practicePhase(step, FEEDBACK_STEP);
+  // Older rows have no level: they were made before levels, with sentence taps.
+  const exerciseLevel: PracticeLevel | null = exercise
+    ? exercise.isGeopolitics
+      ? "expert"
+      : (exercise.level ?? "standard")
+    : null;
+  const levelConfig = exerciseLevel ? ANALYTICAL_LEVELS[exerciseLevel] : null;
+  const walkCandidates = useMemo(
+    () => (exercise && levelConfig?.walkthrough ? guidedCandidatesFor(exercise) : []),
+    [exercise, levelConfig?.walkthrough],
+  );
+  const walkPart =
+    exercise && levelConfig?.walkthrough ? guidedPart(exercise, walkCandidates.length) : null;
+  /** Save walkthrough progress (and the answer it just recorded) right away. */
+  const onWalkProgress = (
+    patch: { mainClaimAnswer?: number; guidedIndex?: number },
+    nextHighlights?: UserHighlight[],
+  ) => {
+    if (!exercise) return;
+    if (nextHighlights) setHighlights(nextHighlights);
+    const updated: AnalyticalExerciseRow = {
+      ...exercise,
+      ...patch,
+      userHighlights: nextHighlights ?? highlights,
+    };
+    setExercise(updated);
+    void putExercise(updated);
+  };
   const feedbackStructured = perspectiveStructured ?? exercise?.aiPerspectiveStructured ?? null;
   const feedbackResult = useMemo(
     () => (exercise ? analyticalResultOf({ ...exercise, userHighlights: highlights }) : null),
@@ -480,7 +543,11 @@ export function AnalyticalExerciseFlow({
       ? step === 1
         ? "Part 1 of 2 · Highlight & tag"
         : "Part 2 of 2 · Perspective guess"
-      : undefined;
+      : phase === 1 && walkPart
+        ? walkPart === "main-claim"
+          ? "Part 1 of 2 · Main claim"
+          : "Part 2 of 2 · Check each sentence"
+        : undefined;
 
   return (
     <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Highlight & tag")} partLabel={partLabel}>
@@ -511,6 +578,16 @@ export function AnalyticalExerciseFlow({
           title="Analytical exercise"
           description="Generate a passage, then highlight and tag issues before reflecting."
         >
+            <LevelPicker
+              value={level}
+              onChange={chooseLevel}
+              descriptions={{
+                guided: ANALYTICAL_LEVELS.guided.description,
+                standard: ANALYTICAL_LEVELS.standard.description,
+                expert: ANALYTICAL_LEVELS.expert.description,
+              }}
+              note="Geopolitics topics always use Expert for now."
+            />
             <div className="flex gap-1.5">
               <Button
                 type="button"
@@ -724,28 +801,42 @@ export function AnalyticalExerciseFlow({
           description={
             <>
               Domain: {exercise.domain}
-              {exercise.isSoundReasoning === true ? (
-                <span className={EXERCISE_STEP_META_BADGE}>Sound reasoning</span>
+              {exerciseLevel ? (
+                <span className={EXERCISE_STEP_META_BADGE}>{LEVEL_LABELS[exerciseLevel]}</span>
               ) : null}
             </>
           }
           bodyClassName="space-y-4"
         >
-            <HighlightTag
-              passage={exercise.passage}
-              highlights={highlights}
-              onChange={setHighlights}
-              tagOptions={
-                exercise.isGeopolitics ? GEOPOLITICS_TAG_OPTIONS : ANALYTICAL_TAG_OPTIONS
-              }
-              // Geopolitics stays at the expert level (free selection) for now.
-              selectionMode={exercise.isGeopolitics ? "free" : "sentence"}
-              onSelectionOverlap={() =>
-                setError("Selection overlaps an existing highlight. Remove or adjust first.")
-              }
-            />
-            {/* Geopolitics asks for confidence after the perspective guess instead. */}
-            {!exercise.isGeopolitics ? (
+            {levelConfig?.walkthrough ? (
+              <GuidedWalkthrough ex={exercise} highlights={highlights} onProgress={onWalkProgress} />
+            ) : (
+              <>
+                {levelConfig?.countHint === "issues" && !exercise.isSoundReasoning ? (
+                  <p className="text-sm text-zinc-900" data-testid="issue-count-hint">
+                    This passage has <span className="font-medium">{exercise.embeddedIssues.length} issues</span>{" "}
+                    to find.
+                  </p>
+                ) : null}
+                {levelConfig?.checkQuestions === "toggle" ? <CheckQuestions mode="toggle" /> : null}
+                <HighlightTag
+                  passage={exercise.passage}
+                  highlights={highlights}
+                  onChange={setHighlights}
+                  tagOptions={
+                    exercise.isGeopolitics ? GEOPOLITICS_TAG_OPTIONS : ANALYTICAL_TAG_OPTIONS
+                  }
+                  selectionMode={levelConfig?.selectionMode ?? "sentence"}
+                  showQuestions={levelConfig?.checkQuestions !== "hidden"}
+                  onSelectionOverlap={() =>
+                    setError("Selection overlaps an existing highlight. Remove or adjust first.")
+                  }
+                />
+              </>
+            )}
+            {/* Geopolitics asks for confidence after the perspective guess instead; the
+                guided walkthrough asks once every suggested sentence is checked. */}
+            {!exercise.isGeopolitics && (walkPart == null || walkPart === "done") ? (
               <>
                 <ConfidenceSlider value={confidence} onChange={setConfidence} />
                 {loading ? <PerspectiveLoadingCard /> : null}
@@ -763,13 +854,20 @@ export function AnalyticalExerciseFlow({
               <Button type="button" variant="secondary" onClick={regenerate}>
                 Regenerate
               </Button>
+              {walkPart == null || walkPart === "done" ? (
               <Button
                 type="button"
                 onClick={() => {
                   setError(null);
                   if (highlights.length < 1) {
-                    setError("Add at least one highlight.");
-                    return;
+                    if (exercise.isGeopolitics) {
+                      setError("Add at least one highlight.");
+                      return;
+                    }
+                    // A passage can be sound; saying so is a valid answer.
+                    if (!window.confirm("You found no problems in this passage. Get feedback anyway?")) {
+                      return;
+                    }
                   }
                   const updated = { ...exercise, userHighlights: highlights };
                   setExercise(updated);
@@ -784,6 +882,7 @@ export function AnalyticalExerciseFlow({
                     ? "Loading…"
                     : "Get AI feedback"}
               </Button>
+              ) : null}
             </div>
         </ExerciseStepCard>
       ) : null}
@@ -894,6 +993,20 @@ export function AnalyticalExerciseFlow({
               text={perspectiveText}
               structured={feedbackStructured}
               perspectiveKind="analytical"
+            />
+          ) : null}
+          {step === 7 && levelSuggestion ? (
+            <LevelSuggestionCard
+              suggestion={levelSuggestion}
+              onAccept={() => {
+                chooseLevel(levelSuggestion.to);
+                showToast(`Level set to ${LEVEL_LABELS[levelSuggestion.to]} for your next exercise.`);
+                setLevelSuggestion(null);
+              }}
+              onDismiss={() => {
+                void dismissLevelSuggestion("analytical");
+                setLevelSuggestion(null);
+              }}
             />
           ) : null}
           <PracticeFinishCard

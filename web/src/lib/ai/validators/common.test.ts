@@ -247,3 +247,24 @@ describe("validateAnalyticalSemantics", () => {
     expect(errors).toContain("embeddedIssues must be empty for a sound-reasoning passage");
   });
 });
+
+describe("validateAnalyticalSemantics - main-claim quiz", () => {
+  const quiz = { options: ["Main claim", "A detail", "Not said"], answerIndex: 1, explanation: "Because." };
+
+  it("accepts a valid quiz when one is expected", () => {
+    expect(validateAnalyticalSemantics({ ...validAnalytical, mainClaimQuiz: quiz }, { expectMainClaimQuiz: true })).toEqual([]);
+  });
+
+  it("requires the quiz when expected, and ignores it otherwise", () => {
+    expect(validateAnalyticalSemantics(validAnalytical, { expectMainClaimQuiz: true })).toContain("mainClaimQuiz is required");
+    expect(validateAnalyticalSemantics(validAnalytical)).toEqual([]);
+  });
+
+  it("rejects a wrong number of options, duplicates and a bad answer index", () => {
+    const check = (q: typeof quiz) =>
+      validateAnalyticalSemantics({ ...validAnalytical, mainClaimQuiz: q }, { expectMainClaimQuiz: true });
+    expect(check({ ...quiz, options: ["a", "b"] })).toContain("mainClaimQuiz.options must have exactly 3 non-empty statements");
+    expect(check({ ...quiz, options: ["a", "A", "b"] })).toContain("mainClaimQuiz.options must be different from each other");
+    expect(check({ ...quiz, answerIndex: 3 })).toContain("mainClaimQuiz.answerIndex must be 0, 1 or 2");
+  });
+});

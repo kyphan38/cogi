@@ -53,10 +53,13 @@ const analyticalIssue = analyticalExerciseSchema.shape.embeddedIssues.element;
  * mark a payload as geopolitics. Offering those fields on a plain passage makes the
  * model fill them in, which then fails the geopolitics checks - so each gets its own.
  */
-export function analyticalResponseSchema(isGeopolitics: boolean): Record<string, unknown> {
+export function analyticalResponseSchema(
+  isGeopolitics: boolean,
+  opts: { withMainClaimQuiz?: boolean } = {},
+): Record<string, unknown> {
   if (isGeopolitics) {
     return toGeminiSchema(
-      analyticalExerciseSchema.omit({ isSoundReasoning: true }).extend({
+      analyticalExerciseSchema.omit({ isSoundReasoning: true, mainClaimQuiz: true }).extend({
         embeddedIssues: z.array(
           analyticalIssue.extend({
             type: z.enum(["framing_bias", "missing_actor", "assumed_causation", "analogy_misuse"]),
@@ -67,13 +70,19 @@ export function analyticalResponseSchema(isGeopolitics: boolean): Record<string,
       }),
     );
   }
-  return toGeminiSchema(
-    analyticalExerciseSchema.omit({ hiddenPerspective: true, missingActors: true }).extend({
+  const plain = analyticalExerciseSchema
+    .omit({ hiddenPerspective: true, missingActors: true, mainClaimQuiz: true })
+    .extend({
       embeddedIssues: z.array(
         analyticalIssue.extend({
           type: z.enum(["logical_fallacy", "hidden_assumption", "weak_evidence", "bias"]),
         }),
       ),
-    }),
+    });
+  // Only the guided level asks for the quiz; offering it elsewhere invites the model to fill it.
+  return toGeminiSchema(
+    opts.withMainClaimQuiz
+      ? plain.extend({ mainClaimQuiz: analyticalExerciseSchema.shape.mainClaimQuiz.unwrap() })
+      : plain,
   );
 }

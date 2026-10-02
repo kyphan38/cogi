@@ -143,6 +143,12 @@ export function AnalyticalAnswerKey({
   );
   const byId = useMemo(() => new Map(userHighlights.map((h) => [h.id, h])), [userHighlights]);
   const calibration = calibrationLine(exercise.confidenceBefore, result);
+  // Extra highlights marked Valid Point or Unclear agree that a plain sentence is fine
+  // (common in the guided walkthrough), so only problem-tagged extras are listed. The
+  // `extra_<n>` ref keeps its index into `result.extraHighlightIds`.
+  const extras = result.extraHighlightIds
+    .map((id, i) => ({ h: byId.get(id), ref: `extra_${i + 1}` }))
+    .filter((e) => e.h && e.h.tag !== "valid_point" && e.h.tag !== "unclear");
   const found = result.issues.filter((i) => i.found).length;
 
   return (
@@ -256,17 +262,13 @@ export function AnalyticalAnswerKey({
           </Section>
         ) : null}
 
-        {result.extraHighlightIds.length > 0 ? (
+        {extras.length > 0 ? (
           <Section title="Your other highlights" hint="Not one of the planned cases. Some may still be fair points.">
-            {result.extraHighlightIds.map((id, i) => {
-              const h = byId.get(id);
-              if (!h) return null;
-              return (
-                <Row key={id} status="neutral" heading={`Your tag: ${tagName(h.tag)}`} quote={h.text}>
-                  <Coaching item={items.get(`extra_${i + 1}`)} fallback="Not one of the planned issues." />
-                </Row>
-              );
-            })}
+            {extras.map(({ h, ref }) => (
+              <Row key={h!.id} status="neutral" heading={`Your tag: ${tagName(h!.tag)}`} quote={h!.text}>
+                <Coaching item={items.get(ref)} fallback="Not one of the planned issues." />
+              </Row>
+            ))}
           </Section>
         ) : null}
 

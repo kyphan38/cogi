@@ -16,10 +16,13 @@ vi.mock("@/lib/db/firestore", () => ({
 }));
 
 import {
+  dismissLevelSuggestion,
   getAppSettings,
+  getPracticeLevel,
   getLanguageLevelForRequest,
   getUserContext,
   setLanguageLevel,
+  setPracticeLevel,
   setUserContext,
 } from "./settings";
 
@@ -36,7 +39,7 @@ describe("getAppSettings", () => {
   it("returns defaults when no settings exist", async () => {
     mockSnapshot(null);
     const s = await getAppSettings();
-    expect(s).toEqual({ id: "app", userContext: "", languageLevel: "Intermediate" });
+    expect(s).toEqual({ id: "app", userContext: "", languageLevel: "Intermediate", practiceLevels: {}, levelSuggestionDismissedAt: {} });
   });
 
   it("reads stored values and drops fields of removed features", async () => {
@@ -47,7 +50,13 @@ describe("getAppSettings", () => {
       adaptiveDifficultyEnabled: true,
     });
     const s = await getAppSettings();
-    expect(s).toEqual({ id: "app", userContext: "senior analyst", languageLevel: "Advanced" });
+    expect(s).toEqual({
+      id: "app",
+      userContext: "senior analyst",
+      languageLevel: "Advanced",
+      practiceLevels: {},
+      levelSuggestionDismissedAt: {},
+    });
   });
 });
 
@@ -72,6 +81,8 @@ describe("setUserContext", () => {
       id: "app",
       userContext: "new context",
       languageLevel: "Advanced",
+      practiceLevels: {},
+      levelSuggestionDismissedAt: {},
     });
   });
 });
@@ -81,7 +92,13 @@ describe("setLanguageLevel", () => {
     mockSnapshot({ userContext: "test" });
     await setLanguageLevel("Foundation");
     const written = mockSetDoc.mock.calls[0][1];
-    expect(written).toEqual({ id: "app", userContext: "test", languageLevel: "Foundation" });
+    expect(written).toEqual({
+      id: "app",
+      userContext: "test",
+      languageLevel: "Foundation",
+      practiceLevels: {},
+      levelSuggestionDismissedAt: {},
+    });
     for (const [key, value] of Object.entries(written)) {
       expect(value, `field "${key}" must not be undefined`).not.toBeUndefined();
     }
@@ -92,5 +109,27 @@ describe("getLanguageLevelForRequest", () => {
   it("falls back to the default level", async () => {
     mockSnapshot({ userContext: "x" });
     expect(await getLanguageLevelForRequest()).toBe("Intermediate");
+  });
+});
+
+describe("practice levels", () => {
+  it("defaults to Guided and ignores unknown values", async () => {
+    mockSnapshot(null);
+    expect(await getPracticeLevel("analytical")).toBe("guided");
+    mockSnapshot({ practiceLevels: { analytical: "hard" } });
+    expect(await getPracticeLevel("analytical")).toBe("guided");
+  });
+
+  it("saves a level per type and keeps the others", async () => {
+    mockSnapshot({ userContext: "x", practiceLevels: { systems: "expert" } });
+    await setPracticeLevel("analytical", "standard");
+    expect(mockSetDoc.mock.calls[0][1].practiceLevels).toEqual({ systems: "expert", analytical: "standard" });
+  });
+
+  it("records when a suggestion was dismissed", async () => {
+    mockSnapshot({ userContext: "x" });
+    await dismissLevelSuggestion("analytical");
+    const at = mockSetDoc.mock.calls[0][1].levelSuggestionDismissedAt.analytical;
+    expect(Number.isNaN(Date.parse(at))).toBe(false);
   });
 });
