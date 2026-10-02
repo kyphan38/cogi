@@ -161,17 +161,35 @@ export const GEOPOLITICS_GENERATIVE_STEP_LABELS = [
 
 export type ExerciseShellStepLabels = readonly string[];
 
+/**
+ * The 3-step practice loop (PLAN-simplify.md): setup, the type's own work, AI feedback.
+ * Multi-part work (e.g. systems: decompose, connect, shock) shows its part under the
+ * bar via `partLabel` instead of adding more steps.
+ */
+export function practiceStepLabels(workLabel: string): ExerciseShellStepLabels {
+  return ["Setup", workLabel, "AI feedback"];
+}
+
+/** Practice-loop phase for a flow's internal step: 0 setup, 1 work, 2 feedback and done. */
+export function practicePhase(step: number, feedbackStep: number): 0 | 1 | 2 {
+  if (step <= 0) return 0;
+  return step < feedbackStep ? 1 : 2;
+}
+
 export interface ExerciseShellProps {
   stepIndex: number;
   children: ReactNode;
   /** Defaults to analytical labels (highlight & tag). */
   stepLabels?: ExerciseShellStepLabels;
+  /** Shown under the bar, e.g. "Part 2 of 3 · Connect". */
+  partLabel?: string;
 }
 
 export function ExerciseShell({
   stepIndex,
   children,
   stepLabels = ANALYTICAL_EXERCISE_STEP_LABELS,
+  partLabel,
 }: ExerciseShellProps) {
   return (
     <div className="mx-auto flex min-h-full max-w-3xl flex-col gap-8 px-4 py-6 sm:px-6">
@@ -192,6 +210,7 @@ export function ExerciseShell({
           </span>
         ))}
       </nav>
+      {partLabel ? <p className="-mt-5 text-xs text-muted-foreground">{partLabel}</p> : null}
       <div className="flex-1">{children}</div>
     </div>
   );

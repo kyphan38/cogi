@@ -125,6 +125,8 @@ export interface AnalyticalExerciseRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
+  /** Optional one-line "what I take away", written at the end (replaces journal + action). */
+  takeaway?: string | null;
   journalDraft?: JournalDraft;
   actionDraftText?: string;
 }
@@ -235,6 +237,8 @@ export interface SystemsExerciseRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
+  /** Optional one-line "what I take away", written at the end (replaces journal + action). */
+  takeaway?: string | null;
   journalDraft?: JournalDraft;
   actionDraftText?: string;
 }
@@ -285,6 +289,8 @@ export interface EvaluativeMatrixRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
+  /** Optional one-line "what I take away", written at the end (replaces journal + action). */
+  takeaway?: string | null;
   journalDraft?: JournalDraft;
   actionDraftText?: string;
 }
@@ -351,6 +357,8 @@ export interface EvaluativeScoringRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
+  /** Optional one-line "what I take away", written at the end (replaces journal + action). */
+  takeaway?: string | null;
   journalDraft?: JournalDraft;
   actionDraftText?: string;
 }
@@ -391,6 +399,8 @@ export interface EvaluativeUncertaintyRow {
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
+  /** Optional one-line "what I take away", written at the end (replaces journal + action). */
+  takeaway?: string | null;
   journalDraft?: JournalDraft;
   actionDraftText?: string;
 }
