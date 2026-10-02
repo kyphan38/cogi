@@ -1,16 +1,112 @@
-import { buildPerspectiveClarityPreamble } from "@/lib/ai/prompts/perspective-clarity-directives";
-import type { EmbeddedIssue } from "@/lib/types/exercise";
-import type { UserHighlight } from "@/lib/types/exercise";
+import type {
+  AnalyticalResult,
+  EmbeddedIssue,
+  TagType,
+  UserHighlight,
+  ValidPoint,
+} from "@/lib/types/exercise";
+import { TAG_CHECK_QUESTIONS, TAG_LABELS } from "@/lib/exercise/tag-labels";
+
+const SEVERITY_WORDS: Record<EmbeddedIssue["severity"], string> = {
+  obvious: "easy to spot",
+  moderate: "medium",
+  subtle: "hard to spot",
+};
+
+function tagName(tag: TagType): string {
+  return TAG_LABELS[tag].label;
+}
+
+function issueVerdict(
+  outcome: AnalyticalResult["issues"][number],
+  issue: EmbeddedIssue,
+): string {
+  if (outcome.tagCorrect) return `CORRECT - found it and tagged it "${tagName(issue.type)}".`;
+  if (outcome.found) {
+    return `FOUND, DIFFERENT TAG - found it but tagged it "${tagName(outcome.userTag!)}"; the planned tag is "${tagName(issue.type)}".`;
+  }
+  if (outcome.userTag === "valid_point") {
+    return "MISSED - highlighted it but marked it as Valid Point (thought it was fine).";
+  }
+  if (outcome.userTag === "unclear") return "MISSED - highlighted it but marked it as Unclear.";
+  return "MISSED - did not highlight it.";
+}
+
+function decoyVerdict(outcome: AnalyticalResult["decoys"][number]): string {
+  if (outcome.trapped) {
+    return `TRAPPED - tagged this sound statement as "${tagName(outcome.userTag!)}".`;
+  }
+  if (outcome.userTag === "valid_point") return "CORRECT - marked it as Valid Point.";
+  if (outcome.userTag === "unclear") return "NEUTRAL - marked it as Unclear.";
+  return "NOT TOUCHED - did not highlight it.";
+}
+
+/**
+ * The cases the AI must explain, one line block per ref. Verdicts come from code
+ * (`scoreAnalytical`), so the AI never judges right or wrong itself.
+ */
+export function buildAnalyticalCoachingCases(input: {
+  embeddedIssues: EmbeddedIssue[];
+  validPoints: ValidPoint[];
+  highlights: UserHighlight[];
+  result: AnalyticalResult;
+}): string {
+  const byId = new Map(input.highlights.map((h) => [h.id, h]));
+  const blocks: string[] = [];
+  for (const o of input.result.issues) {
+    const issue = input.embeddedIssues[o.index]!;
+    blocks.push(
+      [
+        `issue_${o.index + 1} - planned issue, ${SEVERITY_WORDS[issue.severity]}, tag "${tagName(issue.type)}"`,
+        `  Passage text: "${issue.textSegment}"`,
+        `  Author's note: ${issue.explanation}`,
+        `  User: ${issueVerdict(o, issue)}`,
+      ].join("\n"),
+    );
+  }
+  for (const o of input.result.decoys) {
+    const vp = input.validPoints[o.index]!;
+    blocks.push(
+      [
+        `decoy_${o.index + 1} - sound statement that only looks suspicious`,
+        `  Passage text: "${vp.textSegment}"`,
+        `  Author's note: ${vp.explanation}`,
+        `  User: ${decoyVerdict(o)}`,
+      ].join("\n"),
+    );
+  }
+  input.result.extraHighlightIds.forEach((id, i) => {
+    const h = byId.get(id);
+    if (!h) return;
+    blocks.push(
+      [
+        `extra_${i + 1} - the user's own highlight, not one of the planned cases`,
+        `  User highlighted: "${h.text}" and tagged it "${tagName(h.tag)}".`,
+      ].join("\n"),
+    );
+  });
+  return blocks.join("\n\n");
+}
+
+function checkQuestionLines(tags: TagType[]): string {
+  return tags
+    .filter((t) => TAG_CHECK_QUESTIONS[t])
+    .map((t) => `- ${tagName(t)}: ${TAG_CHECK_QUESTIONS[t]}`)
+    .join("\n");
+}
 
 export function buildAnalyticalPerspectivePrompt(input: {
   title: string;
   passage: string;
   embeddedIssues: EmbeddedIssue[];
-  validPoints: { textSegment: string; explanation: string }[];
+  validPoints: ValidPoint[];
   userHighlights: UserHighlight[];
+  result: AnalyticalResult;
+  requiredRefs: string[];
   confidenceBefore: number;
   domain: string;
   userContext?: string;
+  tagOptions: TagType[];
   hiddenPerspective?: string;
   missingActors?: string[];
   userPerspectiveGuess?: string;
@@ -18,26 +114,30 @@ export function buildAnalyticalPerspectivePrompt(input: {
   metaGuessScore?: number;
 }): string {
   const ctx = input.userContext?.trim() || "(none)";
-  const geoBlock =
-    input.hiddenPerspective?.trim()
-      ? `
+  const isGeo = Boolean(input.hiddenPerspective?.trim());
+  const problemTags = input.tagOptions.filter((t) => t !== "valid_point" && t !== "unclear");
+  const cases = buildAnalyticalCoachingCases({
+    embeddedIssues: input.embeddedIssues,
+    validPoints: input.validPoints,
+    highlights: input.userHighlights,
+    result: input.result,
+  });
+  const r = input.result;
 
-Geopolitics meta-analysis (ground truth - user has now attempted identification):
+  const geoBlock = isGeo
+    ? `
+
+PERSPECTIVE GUESS (geopolitics):
 - Hidden perspective: ${input.hiddenPerspective}
-- Missing actors/perspectives absent from passage: ${JSON.stringify(input.missingActors ?? [])}
+- Missing actors: ${JSON.stringify(input.missingActors ?? [])}
 - User's perspective guess: ${input.userPerspectiveGuess?.trim() || "(none)"}
 - User's missing-actor guesses: ${JSON.stringify(input.userMissingActorsGuess ?? [])}
-- Light meta-guess score (0-100): ${input.metaGuessScore ?? "n/a"}
+Write "metaNote": 2-3 short sentences on how close the guesses were and one clue in the text that reveals the viewpoint.`
+    : "";
 
-In your debrief, explicitly discuss framing bias, missing stakeholders, and whether the user identified the unstated viewpoint. Reference their meta guesses with quoted snippets, not harsh judgment.`
-      : "";
-
-  const clarity = buildPerspectiveClarityPreamble();
-
-  return `You are a thoughtful peer helping someone practice analytical reading in the domain: ${input.domain}.
+  return `You are a friendly coach helping a learner practice analytical reading in the domain: ${input.domain}.
+The learner is still building this skill. Your job is to help them see WHY, and to spot it themselves next time.
 User context (may be empty): ${ctx}
-
-${clarity}
 
 Exercise title: ${input.title}
 Passage:
@@ -45,37 +145,51 @@ Passage:
 ${input.passage}
 ---
 
-What the model author intentionally embedded (ground truth issues):
-${JSON.stringify(input.embeddedIssues, null, 2)}
+The four problem tags and the question behind each (a "yes" means the tag fits):
+${checkQuestionLines(problemTags)}
 
-Decoy valid points (look suspicious but are actually fine):
-${JSON.stringify(input.validPoints, null, 2)}
+SCORE (already decided by code - final, do not change or argue with it):
+- Found ${r.found} of ${r.total} planned issues; ${r.tagsCorrect} with the planned tag.
+- Tagged ${r.trapsHit} of ${r.decoyTotal} sound statements as problems.
+- Confidence before feedback: ${input.confidenceBefore}%.
 
-User's highlights (offsets are character indices into the passage above):
-${JSON.stringify(input.userHighlights, null, 2)}
-
-User self-reported confidence before seeing your notes: ${input.confidenceBefore}%
+CASES (each verdict is final):
+${cases}
 ${geoBlock}
 
 Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
 {
-  "perspectiveFormat": "clarity_v2",
-  "title": string (echo exercise title above),
-  "suitableFor": "Suitable for <concrete audience derived from domain and scenario>",
-  "highlightCritiques": [
+  "perspectiveFormat": "analytical_v3",
+  "title": string (echo the exercise title),
+  "items": [
     {
-      "id": "hc_1",
-      "userTextSnippet": "exact quoted substring from passage the user highlighted or a key phrase they focused on",
-      "critique": "You highlighted '[snippet]'... However, ...",
-      "remediationAlternative": "An analyst looking for high-fidelity alternatives would have noted..."
+      "ref": string (a ref from CASES, e.g. "issue_1"),
+      "why": string,
+      "clue": string,
+      "nextTimeAsk": string,
+      "subtypeName": string (optional)
     }
   ],
-  "openQuestions": ["optional 1-3 strings about what remains uncertain"]
+  "takeaways": [string] (1-2 items)${isGeo ? `,
+  "metaNote": string` : ""}
 }
 
-Rules:
-- Produce one highlightCritiques row per meaningful user highlight OR embedded issue comparison (at least 3, at most 8).
-- Include at least one row whose critique engages a debatable highlight: start critique with "Your highlight of '...' is interesting - here's why that's debatable:"
-- For highlights with no matching embedded issue, still quote their selected text in userTextSnippet.
-- Tone: collaborative peer, not a judge. Do not give a numeric score for the exercise.`;
+Write one item for each of these refs: ${input.requiredRefs.join(", ") || "(none)"}. You may add items for other refs in CASES, but keep it short.
+
+How to write each item:
+- "why": at most 2 short sentences. Follow the verdict:
+  - CORRECT: confirm it plainly ("Yes - ..."), then say why it is a problem. Do not suggest a "better" tag.
+  - FOUND, DIFFERENT TAG: say the planned tag fits better and why, using that tag's question. Be kind - they found the problem.
+  - MISSED: explain what the problem is, in simple words.
+  - TRAPPED: explain why the statement is actually sound.
+  - NOT TOUCHED / NEUTRAL decoy: explain briefly why it looks suspicious but holds up.
+  - extra: judge fairly whether the concern holds up. If it is reasonable, say so; if not, say gently why not.
+- "clue": the words in the passage that signal it (quote 2-6 words), and what kind of signal they are.
+- "nextTimeAsk": one question to ask yourself next time, at most 15 words.
+- "subtypeName": only when a well-known, more specific name helps (e.g. "False dilemma"). It is shown as "a type of <tag>", so never repeat the tag name and never invent new tags.
+- Only use the tag names listed above.
+
+"takeaways": 1-2 short lessons to carry to the next exercise. Focus on MISSED issues and TRAPPED statements first. If everything was correct, say what to keep doing.
+
+Tone: warm and direct, like a patient coach. No numeric scores. No "stronger alternative". No academic words when a simple one works.`;
 }

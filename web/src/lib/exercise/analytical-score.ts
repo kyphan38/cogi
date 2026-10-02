@@ -157,3 +157,34 @@ export function analyticalResultOf(row: {
     })
   );
 }
+
+/** How many unplanned highlights the AI must explain; more are allowed but optional. */
+const MAX_REQUIRED_EXTRAS = 3;
+
+/**
+ * Refs the AI feedback uses: `issue_<n>` / `decoy_<n>` follow the answer-key arrays,
+ * `extra_<n>` follows `result.extraHighlightIds`. Required: every issue, every decoy
+ * the user tagged, and the first few extras tagged as a problem.
+ */
+export function analyticalCoachingRefs(
+  result: AnalyticalResult,
+  highlights: UserHighlight[],
+): { required: string[]; allowed: string[] } {
+  const byId = new Map(highlights.map((h) => [h.id, h]));
+  const issueRefs = result.issues.map((i) => `issue_${i.index + 1}`);
+  const decoyRefs = result.decoys.map((d) => `decoy_${d.index + 1}`);
+  const extraRefs = result.extraHighlightIds.map((_, i) => `extra_${i + 1}`);
+  const requiredExtras = result.extraHighlightIds
+    .map((id, i) => ({ ref: extraRefs[i]!, tag: byId.get(id)?.tag }))
+    .filter((e) => e.tag != null && isIssueTag(e.tag))
+    .slice(0, MAX_REQUIRED_EXTRAS)
+    .map((e) => e.ref);
+  return {
+    required: [
+      ...issueRefs,
+      ...result.decoys.filter((d) => d.userTag != null).map((d) => `decoy_${d.index + 1}`),
+      ...requiredExtras,
+    ],
+    allowed: [...issueRefs, ...decoyRefs, ...extraRefs],
+  };
+}
