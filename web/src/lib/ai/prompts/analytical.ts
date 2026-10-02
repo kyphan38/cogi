@@ -21,6 +21,8 @@ const ANALYTICAL_ISSUE_SHAPE_BLOCK = `Return a single JSON object with this exac
   ]
 }`;
 
+const PARAGRAPH_RULE = `Split the passage into 2-4 short paragraphs separated by a blank line ("\\n\\n"), so it is easy to read.`;
+
 const ANALYTICAL_ISSUE_COUNT_FOOTER = `embeddedIssues must have exactly 4 items (1 obvious, 2 moderate, 1 subtle severities).
 validPoints must have exactly 2 items (the decoys).`;
 
@@ -90,6 +92,7 @@ Write an analysis passage (250-350 words) clearly grounded in the scenario above
 
 The passage should read naturally as part of that situation (memo, internal brief, stakeholder letter, etc., as fits).
 Do NOT make issues cartoonishly obvious.
+${PARAGRAPH_RULE}
 
 ${ANALYTICAL_ISSUE_SHAPE_BLOCK}
 
@@ -108,6 +111,7 @@ Generate a ${input.domain} analysis passage (250-350 words) that contains exactl
 
 The passage should read naturally, like a real ${input.domain} analysis or plan.
 Do NOT make issues cartoonishly obvious.
+${PARAGRAPH_RULE}
 
 ${ANALYTICAL_ISSUE_SHAPE_BLOCK}
 
@@ -142,6 +146,7 @@ The passage should:
 - Read naturally within that situation
 
 The exercise tests whether the user can distinguish good reasoning from bad - the correct answer here is "this reasoning is mostly sound."
+${PARAGRAPH_RULE}
 
 ${SOUND_REASONING_SHAPE_BLOCK}
 
@@ -161,6 +166,7 @@ The passage should:
 - Read naturally, like a real ${input.domain} analysis
 
 The exercise tests whether the user can distinguish good reasoning from bad - the correct answer here is "this reasoning is mostly sound."
+${PARAGRAPH_RULE}
 
 ${SOUND_REASONING_SHAPE_BLOCK}
 
@@ -219,6 +225,7 @@ Also include:
 - 2 "decoy" statements that LOOK biased but are actually well-supported claims
 
 ${TEXT_SEGMENT_RULE}
+${PARAGRAPH_RULE}
 
 ${GEOPOLITICS_ISSUE_SHAPE_PREFIX}
   "hiddenPerspective": string (whose viewpoint is this written from - revealed after user attempts),

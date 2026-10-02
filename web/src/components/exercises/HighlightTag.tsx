@@ -423,7 +423,7 @@ export function HighlightTag({
       <div
         ref={ref}
         data-testid="text-passage"
-        className="select-text cursor-text touch-manipulation rounded-2xl border border-zinc-200 bg-white p-4 text-base leading-relaxed text-zinc-900 [-webkit-user-select:text]"
+        className="select-text cursor-text touch-manipulation whitespace-pre-wrap rounded-2xl border border-zinc-200 bg-white p-4 text-base leading-relaxed text-zinc-900 [-webkit-user-select:text]"
         onPointerUp={onPointerUp}
         onKeyDown={(e) => {
           if (e.key === "Escape") clearAll();
