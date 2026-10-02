@@ -37,7 +37,9 @@ Action, Done). Dashboard có 9 khung, phần lớn trống. Menu có 7 mục.
 
 ---
 
-## Phase 1 - Gọn menu, Home, các thẻ chọn bài (ít rủi ro, không đổi logic)
+## Phase 1 - Gọn menu, Home, các thẻ chọn bài (ít rủi ro, không đổi logic) - XONG
+
+**Xong (2026-10-02)**, branch `simplify/phase-1`. E2E 169/169, unit 963/963, build đạt.
 
 - **P1.1** `components/shell/AppTopNav.tsx`: chỉ còn Practice (`/`), History,
   Settings. Trên điện thoại menu nằm một dòng.
@@ -113,7 +115,7 @@ AI perspective, Journal, Action.
 
 ## Thứ tự
 
-1. Phase 1 (nhanh, thấy ngay khác biệt)
+1. ~~Phase 1 (nhanh, thấy ngay khác biệt)~~ - xong
 2. Phase 2 (lớn nhất, nhiều quyết định)
 3. Phase 3
 4. Phase 4
