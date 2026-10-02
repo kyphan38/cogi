@@ -97,6 +97,21 @@ export const TAG_LABELS: Record<
   },
 };
 
+/**
+ * The question behind each problem tag: a "yes" answer means the tag fits. Shown when
+ * tagging and used by the AI feedback, so both speak the same words.
+ */
+export const TAG_CHECK_QUESTIONS: Partial<Record<TagType, string>> = {
+  weak_evidence: "Is there real evidence here, or only a claim?",
+  hidden_assumption: "Does this quietly assume something that was never shown to be true?",
+  logical_fallacy: "Does the logic jump? (only two options, a conclusion too far from the facts)",
+  bias: "Does the writer see only one side, or gain from this view?",
+  framing_bias: "Does the text treat one side's interests as the normal, reasonable view?",
+  missing_actor: "Who is affected but never mentioned?",
+  assumed_causation: "Does it say A caused B only because B came after A?",
+  analogy_misuse: "Does the historical comparison really fit this case?",
+};
+
 /** Tags shown when highlighting plain analytical passages (the issue types they embed). */
 export const ANALYTICAL_TAG_OPTIONS: TagType[] = [
   "logical_fallacy",

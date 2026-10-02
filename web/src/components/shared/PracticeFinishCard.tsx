@@ -13,6 +13,8 @@ export interface PracticeFinishCardProps {
   onFinish: () => void | Promise<void>;
   saving: boolean;
   finished: boolean;
+  /** Overrides the default hint, e.g. to point at what the user missed. */
+  takeawayPlaceholder?: string;
 }
 
 /**
@@ -25,6 +27,7 @@ export function PracticeFinishCard({
   onFinish,
   saving,
   finished,
+  takeawayPlaceholder,
 }: PracticeFinishCardProps) {
   if (finished) {
     return (
@@ -62,7 +65,7 @@ export function PracticeFinishCard({
           id="practice-takeaway"
           value={takeaway}
           onChange={(e) => onTakeawayChange(e.target.value)}
-          placeholder="One line is enough."
+          placeholder={takeawayPlaceholder ?? "One line is enough."}
           rows={2}
           disabled={saving}
         />
