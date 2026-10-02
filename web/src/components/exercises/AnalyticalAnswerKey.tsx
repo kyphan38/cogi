@@ -179,7 +179,7 @@ export function AnalyticalAnswerKey({
               <span key={i}>
                 <span
                   className={cn(
-                    p.user && "bg-muted rounded-sm",
+                    p.user && "bg-foreground/10 rounded-sm",
                     p.issue && "decoration-foreground underline decoration-2 underline-offset-4",
                     !p.issue && p.decoy && "decoration-muted-foreground underline decoration-dashed underline-offset-4",
                   )}
