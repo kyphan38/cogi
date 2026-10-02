@@ -60,8 +60,7 @@ test.describe("Analytical exercise - setup phase", () => {
       name: "Exercise progress",
     });
     await expect(progressNav).toBeVisible();
-    await expect(progressNav.getByText("1. Setup")).toBeVisible();
-    await expect(progressNav.getByText(/Done/)).toBeVisible();
+    await expect(progressNav.getByText(/^\d\. /)).toHaveText(["1. Setup", "2. Highlight & tag", "3. AI feedback"]);
   });
 
   test("has a settings link for personal context", async ({ page }) => {
@@ -105,7 +104,7 @@ test.describe("Analytical exercise - generate and highlight phase", () => {
     );
   });
 
-  test("can advance past highlight step and reach confidence slider", async ({
+  test("highlight with confidence -> AI feedback -> takeaway -> saved", async ({
     page,
   }) => {
     await gotoAuthenticated(page, "/exercise/analytical");
@@ -117,10 +116,12 @@ test.describe("Analytical exercise - generate and highlight phase", () => {
     ).toBeVisible({ timeout: 15_000 });
 
     await addPassageHighlight(page);
-    await page.getByRole("button", { name: "Continue to confidence" }).click();
-    await expect(page.getByRole("heading", { name: "Confidence" })).toBeVisible({
-      timeout: 10_000,
-    });
+    // Confidence is part of the highlight step now.
+    await expect(page.getByRole("slider")).toBeVisible();
+    await page.getByRole("button", { name: "Get AI feedback" }).click();
+    await expect(page.getByLabel(/What will you take away/)).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Finish" }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 15_000 });
   });
 });
 

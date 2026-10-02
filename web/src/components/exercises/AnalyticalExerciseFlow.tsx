@@ -2,16 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  ANALYTICAL_EXERCISE_STEP_LABELS,
-  ANALYTICAL_STEELMAN_STEP_LABELS,
-  ExerciseShell,
-  GEOPOLITICS_ANALYTICAL_STEP_LABELS,
-} from "@/components/shared/ExerciseShell";
+import { ExerciseShell, practicePhase, practiceStepLabels } from "@/components/shared/ExerciseShell";
 import { HighlightTag } from "@/components/exercises/HighlightTag";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -35,13 +30,8 @@ import { useToast } from "@/components/ui/toast";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
 import type {
   AnalyticalExerciseRow,
-  ConfidenceRecord,
-  EmotionLabel,
-  JournalDraft,
   UserHighlight,
 } from "@/lib/types/exercise";
-import type { JournalEntry } from "@/lib/types/journal";
-import type { ActionBridge } from "@/lib/types/action";
 import type { AnalyticalExercise } from "@/lib/ai/validators/common";
 import { AdaptiveSetupHint } from "@/components/adaptive/AdaptiveSetupHint";
 import {
@@ -50,16 +40,7 @@ import {
 } from "@/lib/adaptive/adaptive-hints";
 import { putExercise, getExercise } from "@/lib/db/exercises";
 import { getUserContext } from "@/lib/db/settings";
-import { completeExerciseFlow } from "@/lib/db/complete-exercise";
-import {
-  getPromptIdsUsedInLastNCompleted,
-  getRecentJournalSnippetsForDomain,
-} from "@/lib/db/journal";
-import { pickJournalPrompts, type JournalPromptItem } from "@/lib/ai/prompts/journal-pool";
-import { computeAnalyticalAccuracy } from "@/lib/analytics/calibration-analytical";
-import { generativeRubricToAccuracy } from "@/lib/analytics/calibration-generative";
-import { scoreEmbeddedIssueCatch } from "@/lib/analytics/analytical-per-issue";
-import { currentIsoWeekKey } from "@/lib/db/actions";
+import { completePracticeExercise } from "@/lib/db/complete-exercise";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
@@ -71,6 +52,7 @@ import { listRecentDomains } from "@/lib/db/exercises";
 import { isAnalyticalExercise } from "@/lib/types/exercise";
 import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
+import { PracticeFinishCard } from "@/components/shared/PracticeFinishCard";
 import { isGeopoliticsAnalyticalDomain } from "@/lib/exercise/geopolitics-domains";
 import { GeopoliticsRealDataHints } from "@/components/exercises/GeopoliticsRealDataHints";
 import {
@@ -82,9 +64,20 @@ import { computeMetaGuessScore } from "@/lib/analytics/geopolitics-meta-guess";
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
-function analyticalShellStep(step: FlowStep, isGeopolitics: boolean): number {
-  if (!isGeopolitics && step >= 2) return step - 1;
-  return step;
+/** Internal step that shows AI feedback (the 3rd practice phase); 7 is "saved". */
+const FEEDBACK_STEP = 4;
+
+/**
+ * Where an unfinished exercise reopens. Saved before the 3-step loop it may sit on a
+ * step that no longer exists: confidence (3) now lives in the last work part (the
+ * perspective guess for geopolitics, else the highlight step), and journal / action
+ * (5, 6) fold into AI feedback (4).
+ */
+function analyticalResumeStep(saved: number | undefined, isGeopolitics: boolean): FlowStep {
+  const s = saved ?? 1;
+  if (s === 3) return isGeopolitics ? 2 : 1;
+  if (s >= 5) return 4;
+  return s as FlowStep;
 }
 
 export function AnalyticalExerciseFlow({
@@ -112,14 +105,8 @@ export function AnalyticalExerciseFlow({
   const [perspectiveStructured, setPerspectiveStructured] =
     useState<AIPerspectiveStructured | null>(null);
 
-  const [journalPrompts, setJournalPrompts] = useState<JournalPromptItem[]>([]);
-  const [journalAnswers, setJournalAnswers] = useState<Record<string, string>>({});
-  const [aiRefLine, setAiRefLine] = useState<string | null>(null);
-  const [journalPrimed, setJournalPrimed] = useState(false);
-  const journalEffectIdRef = useRef(0);
-  const [emotionLabel, setEmotionLabel] = useState<EmotionLabel>("neutral");
-
-  const [actionText, setActionText] = useState("");
+  const [takeaway, setTakeaway] = useState("");
+  const [finishing, setFinishing] = useState(false);
   const [userPerspectiveGuess, setUserPerspectiveGuess] = useState("");
   const [missingActorGuess1, setMissingActorGuess1] = useState("");
   const [missingActorGuess2, setMissingActorGuess2] = useState("");
@@ -172,15 +159,8 @@ export function AnalyticalExerciseFlow({
         setMode("custom_scenario");
         setCustomScenarioText(row.customScenario);
       }
-      if (row.journalDraft) {
-        setJournalPrompts(row.journalDraft.prompts);
-        setJournalAnswers(row.journalDraft.responses);
-        setAiRefLine(row.journalDraft.aiReferenceLine);
-        setEmotionLabel(row.journalDraft.emotionLabel ?? "neutral");
-        setJournalPrimed(true);
-      }
-      if (row.actionDraftText) setActionText(row.actionDraftText);
-      setStep((row.currentStep ?? 1) as FlowStep);
+      setTakeaway(row.takeaway ?? "");
+      setStep(analyticalResumeStep(row.currentStep, row.isGeopolitics === true));
     })();
   }, [resumeId]);
 
@@ -201,21 +181,6 @@ export function AnalyticalExerciseFlow({
     }, 2000);
     return () => clearTimeout(timer);
   }, [highlights, steelmanText, step]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!exercise || (step !== 5 && step !== 6) || !journalPrimed) return;
-    const timer = setTimeout(() => {
-      const journalDraft: JournalDraft = {
-        prompts: journalPrompts,
-        responses: journalAnswers,
-        aiReferenceLine: aiRefLine,
-        emotionLabel,
-      };
-      void putExercise({ ...exercise, journalDraft, actionDraftText: actionText, currentStep: step });
-    }, 2000);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journalAnswers, actionText, emotionLabel, step]);
 
   const startGenerate = useCallback(async (
     domainOverride?: string,
@@ -339,11 +304,7 @@ export function AnalyticalExerciseFlow({
       setRubricScore(null);
       setPerspectiveText(null);
       setPerspectiveStructured(null);
-      setJournalAnswers({});
-      setAiRefLine(null);
-      setJournalPrimed(false);
-      setEmotionLabel("neutral");
-      setActionText("");
+      setTakeaway("");
       setUserPerspectiveGuess("");
       setMissingActorGuess1("");
       setMissingActorGuess2("");
@@ -399,8 +360,10 @@ export function AnalyticalExerciseFlow({
     void startGenerate();
   };
 
-  const submitHighlightsAndConfidence = async () => {
-    if (!exercise) return;
+  /** `base` lets a caller pass a row it just updated, before state catches up. */
+  const submitHighlightsAndConfidence = async (base?: AnalyticalExerciseRow) => {
+    const ex = base ?? exercise;
+    if (!ex) return;
     if (perspectiveText != null) {
       advance(4);
       return;
@@ -417,19 +380,19 @@ export function AnalyticalExerciseFlow({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: exercise.title,
-          passage: exercise.passage,
-          embeddedIssues: exercise.embeddedIssues,
-          validPoints: exercise.validPoints,
+          title: ex.title,
+          passage: ex.passage,
+          embeddedIssues: ex.embeddedIssues,
+          validPoints: ex.validPoints,
           userHighlights: highlights,
           confidenceBefore: confidence,
-          domain: exercise.domain,
+          domain: ex.domain,
           userContext: userContext || undefined,
-          hiddenPerspective: exercise.hiddenPerspective,
-          missingActors: exercise.missingActors,
-          userPerspectiveGuess: exercise.userPerspectiveGuess,
-          userMissingActorsGuess: exercise.userMissingActorsGuess,
-          metaGuessScore: exercise.metaGuessScore,
+          hiddenPerspective: ex.hiddenPerspective,
+          missingActors: ex.missingActors,
+          userPerspectiveGuess: ex.userPerspectiveGuess,
+          userMissingActorsGuess: ex.userMissingActorsGuess,
+          metaGuessScore: ex.metaGuessScore,
         }),
       });
       const json = await safeAiJson<unknown>(res);
@@ -441,7 +404,7 @@ export function AnalyticalExerciseFlow({
       setPerspectiveText(parsed.text);
       setPerspectiveStructured(parsed.structured);
       const partial: AnalyticalExerciseRow = {
-        ...exercise,
+        ...ex,
         userHighlights: highlights,
         confidenceBefore: confidence,
         aiPerspective: parsed.text,
@@ -525,122 +488,11 @@ export function AnalyticalExerciseFlow({
     }
   };
 
-  const computeAccuracy = useCallback(
-    (ex: AnalyticalExerciseRow) =>
-      ex.analyticalVariant === "steelman"
-        ? generativeRubricToAccuracy(rubricScore ?? 0)
-        : computeAnalyticalAccuracy(
-            ex.passage,
-            ex.embeddedIssues,
-            ex.validPoints,
-            highlights,
-            ex.isSoundReasoning === true,
-          ),
-    [highlights, rubricScore],
-  );
-
-  useEffect(() => {
-    if (step !== 5 || journalPrimed || !exercise) return;
-    const effectId = ++journalEffectIdRef.current;
-    let cancelled = false;
-    (async () => {
-      try {
-        const excluded = await getPromptIdsUsedInLastNCompleted(5);
-        const accuracy = computeAccuracy(exercise);
-        const missedIssueTypes = exercise.embeddedIssues
-          .filter((issue) => scoreEmbeddedIssueCatch(exercise.passage, issue, highlights) < 58)
-          .map((issue) => issue.type);
-        const picks = pickJournalPrompts(excluded, {
-          exerciseType: "analytical",
-          missedIssueTypes,
-          accuracy,
-          confidenceBefore: confidence,
-          overconfident: confidence - accuracy > 20,
-          underconfident: accuracy - confidence > 20,
-        });
-        if (cancelled || effectId !== journalEffectIdRef.current) return;
-        setJournalPrompts(picks);
-        const init: Record<string, string> = {};
-        picks.forEach((p) => {
-          init[p.id] = "";
-        });
-        setJournalAnswers(init);
-        setJournalPrimed(true);
-
-        const snippets = await getRecentJournalSnippetsForDomain(
-          exercise.domain,
-          3,
-        );
-        if (cancelled || effectId !== journalEffectIdRef.current) return;
-        if (snippets.length === 0) {
-          setAiRefLine(null);
-          return;
-        }
-        const res = await aiFetch("/api/ai/journal-ref", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            requestId: crypto.randomUUID(),
-            domain: exercise.domain,
-            snippets,
-          }),
-        });
-        const j = await safeAiJson<{ ok: true; line: string | null }>(res);
-        if (cancelled || effectId !== journalEffectIdRef.current) return;
-        if (j.ok && j.line) setAiRefLine(j.line);
-      } catch {
-        if (!cancelled && effectId === journalEffectIdRef.current) setAiRefLine(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [step, journalPrimed, exercise]);
-
-  const journalValid = () => {
-    const vals = Object.values(journalAnswers);
-    const long = vals.filter((v) => v.trim().length > 10);
-    return long.length >= 2;
-  };
-
+  /** Finish the 3-step loop: save the exercise with the optional takeaway (P2.2). */
   const finishExercise = async () => {
-    if (!exercise || !perspectiveText) return;
-    if (!journalValid()) {
-      setError("Answer at least two prompts with more than 10 characters each.");
-      return;
-    }
-    if (actionText.trim().length < 15) {
-      setError("Action must be at least 15 characters.");
-      return;
-    }
+    if (!exercise || !perspectiveText || finishing) return;
     setError(null);
-    const accuracy = computeAccuracy(exercise);
-    const confidenceRecord: ConfidenceRecord = {
-      id: crypto.randomUUID(),
-      exerciseId: exercise.id,
-      confidenceBefore: confidence,
-      actualAccuracy: accuracy,
-      gap: confidence - accuracy,
-      createdAt: new Date().toISOString(),
-    };
-    const journalEntry: JournalEntry = {
-      id: crypto.randomUUID(),
-      exerciseId: exercise.id,
-      promptIds: journalPrompts.map((p) => p.id),
-      aiReferenceLine: aiRefLine,
-      responses: { ...journalAnswers },
-      emotionLabel,
-      createdAt: new Date().toISOString(),
-    };
-    const action: ActionBridge = {
-      id: crypto.randomUUID(),
-      exerciseId: exercise.id,
-      oneAction: actionText.trim(),
-      weeklyFollowThrough: [
-        { weekKey: currentIsoWeekKey(), done: false },
-      ],
-      createdAt: new Date().toISOString(),
-    };
+    setFinishing(true);
     const finalEx: AnalyticalExerciseRow = {
       ...exercise,
       ...(exercise.analyticalVariant === "steelman"
@@ -649,19 +501,15 @@ export function AnalyticalExerciseFlow({
       confidenceBefore: confidence,
       aiPerspective: perspectiveText,
       aiPerspectiveStructured: perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null,
-      completedAt: new Date().toISOString(),
     };
     try {
-      await completeExerciseFlow({
-        exercise: finalEx,
-        journal: journalEntry,
-        confidence: confidenceRecord,
-        action,
-      });
-      setExercise(finalEx);
+      const saved = await completePracticeExercise({ exercise: finalEx, takeaway });
+      setExercise(saved as AnalyticalExerciseRow);
       setStep(7);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setFinishing(false);
     }
   };
 
@@ -691,23 +539,22 @@ export function AnalyticalExerciseFlow({
       userPerspectiveGuess: perspective,
       userMissingActorsGuess: actors,
       metaGuessScore: score,
-      currentStep: 3,
     };
-    await putExercise(partial);
     setExercise(partial);
-    advance(3, partial);
+    await submitHighlightsAndConfidence(partial);
   };
 
-  const shellStep = analyticalShellStep(step, exercise?.isGeopolitics === true);
-  const stepLabels =
-    exercise?.analyticalVariant === "steelman"
-      ? ANALYTICAL_STEELMAN_STEP_LABELS
-      : exercise?.isGeopolitics
-        ? GEOPOLITICS_ANALYTICAL_STEP_LABELS
-        : ANALYTICAL_EXERCISE_STEP_LABELS;
+  const phase = practicePhase(step, FEEDBACK_STEP);
+  // Geopolitics splits the work into highlight + perspective guess.
+  const partLabel =
+    phase === 1 && exercise?.isGeopolitics
+      ? step === 1
+        ? "Part 1 of 2 · Highlight & tag"
+        : "Part 2 of 2 · Perspective guess"
+      : undefined;
 
   return (
-    <ExerciseShell stepIndex={shellStep} stepLabels={stepLabels}>
+    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Highlight & tag")} partLabel={partLabel}>
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -778,25 +625,6 @@ export function AnalyticalExerciseFlow({
                     : undefined
                 }
               />
-            </div>
-            <div className="grid gap-2">
-              <Label>Task type</Label>
-              <Select
-                value={analyticalVariant}
-                onValueChange={(v) => {
-                  const next = (v as "highlight_tag" | "steelman") ?? "highlight_tag";
-                  setAnalyticalVariant(next);
-                  if (next === "steelman" && mode === "real_data") setMode("generated");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="highlight_tag">Highlight & tag issues</SelectItem>
-                  <SelectItem value="steelman">Steelman a position</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
             <div className="grid gap-2">
               <Label>Source</Label>
@@ -991,6 +819,8 @@ export function AnalyticalExerciseFlow({
                 Minimum 100 characters to continue ({steelmanText.trim().length}/100).
               </p>
             </div>
+            <ConfidenceSlider value={confidence} onChange={setConfidence} />
+            {loading ? <PerspectiveLoadingCard /> : null}
             <div className="flex gap-2">
               <Button type="button" variant="secondary" onClick={() => {
                 const updated = { ...exercise, steelmanText, currentStep: 1 as const };
@@ -1011,13 +841,12 @@ export function AnalyticalExerciseFlow({
                     setError("Write at least 100 characters.");
                     return;
                   }
-                  const updated = { ...exercise, steelmanText };
-                  setExercise(updated);
-                  advance(3, updated);
+                  setExercise({ ...exercise, steelmanText });
+                  void submitSteelmanAndConfidence();
                 }}
-                disabled={steelmanText.trim().length < 100}
+                disabled={loading || steelmanText.trim().length < 100}
               >
-                Continue to confidence
+                {loading ? "Loading…" : "Get AI feedback"}
               </Button>
             </div>
         </ExerciseStepCard>
@@ -1048,6 +877,13 @@ export function AnalyticalExerciseFlow({
                 setError("Selection overlaps an existing highlight. Remove or adjust first.")
               }
             />
+            {/* Geopolitics asks for confidence after the perspective guess instead. */}
+            {!exercise.isGeopolitics ? (
+              <>
+                <ConfidenceSlider value={confidence} onChange={setConfidence} />
+                {loading ? <PerspectiveLoadingCard /> : null}
+              </>
+            ) : null}
             <div className="flex gap-2">
               <Button type="button" variant="secondary" onClick={() => {
                 const updated = { ...exercise, userHighlights: highlights, currentStep: 1 as const };
@@ -1070,12 +906,16 @@ export function AnalyticalExerciseFlow({
                   }
                   const updated = { ...exercise, userHighlights: highlights };
                   setExercise(updated);
-                  advance(exercise.isGeopolitics ? 2 : 3, updated);
+                  if (exercise.isGeopolitics) advance(2, updated);
+                  else void submitHighlightsAndConfidence(updated);
                 }}
+                disabled={loading}
               >
                 {exercise.isGeopolitics
                   ? "Continue to perspective guess"
-                  : "Continue to confidence"}
+                  : loading
+                    ? "Loading…"
+                    : "Get AI feedback"}
               </Button>
             </div>
         </ExerciseStepCard>
@@ -1123,71 +963,24 @@ export function AnalyticalExerciseFlow({
                 placeholder="e.g. fishing communities / informal economy"
               />
             </div>
+            <ConfidenceSlider value={confidence} onChange={setConfidence} />
+            {loading ? <PerspectiveLoadingCard /> : null}
             <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => {
+              <Button type="button" variant="secondary" disabled={loading} onClick={() => {
                 void putExercise({ ...exercise, userHighlights: highlights, currentStep: 1 });
                 setStep(1);
               }}>
                 Back
               </Button>
-              <Button type="button" onClick={() => void submitMetaGuess()}>
-                Continue to confidence
+              <Button type="button" disabled={loading} onClick={() => void submitMetaGuess()}>
+                {loading ? "Loading…" : "Get AI feedback"}
               </Button>
             </div>
           </CardContent>
         </Card>
       ) : null}
 
-      {step === 3 && exercise ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Confidence</CardTitle>
-            <CardDescription>
-              Set how confident you are before viewing the AI perspective.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <ConfidenceSlider value={confidence} onChange={setConfidence} />
-            {loading ? <PerspectiveLoadingCard /> : null}
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={loading}
-                onClick={() => {
-                  const patch =
-                    exercise.analyticalVariant === "steelman"
-                      ? { steelmanText }
-                      : { userHighlights: highlights };
-                  void putExercise({ ...exercise, ...patch, currentStep: exercise.isGeopolitics ? 2 : 1 });
-                  setStep(exercise.isGeopolitics ? 2 : 1);
-                }}
-              >
-                Back
-              </Button>
-              <Button
-                type="button"
-                disabled={loading}
-                onClick={() =>
-                  void (exercise.analyticalVariant === "steelman"
-                    ? submitSteelmanAndConfidence()
-                    : submitHighlightsAndConfidence())
-                }
-              >
-                {loading ? (
-                  <>
-                    <InlineSpinner /> Loading perspective…
-                  </>
-                ) : (
-                  "Submit and get AI perspective"
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {step === 4 && exercise && perspectiveText ? (
+      {(step === 4 || step === 7) && exercise && perspectiveText ? (
         <div className="space-y-4">
           {exercise.isGeopolitics && exercise.hiddenPerspective ? (
             <Card>
@@ -1231,148 +1024,16 @@ export function AnalyticalExerciseFlow({
             exerciseTitle={exercise.title}
             domain={exercise.domain}
           />
-          <Button type="button" onClick={() => advance(5)}>
-            Continue to journal
-          </Button>
+          <PracticeFinishCard
+            takeaway={takeaway}
+            onTakeawayChange={setTakeaway}
+            onFinish={finishExercise}
+            saving={finishing}
+            finished={step === 7}
+          />
         </div>
       ) : null}
 
-      {step === 5 && exercise ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Metacognition journal</CardTitle>
-            <CardDescription>
-              Reflect on at least two prompts (more than 10 characters each).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!journalPrimed ? (
-              <p className="text-muted-foreground text-sm">Preparing prompts…</p>
-            ) : (
-              <>
-                <div className="grid gap-2">
-                  <Label>What emotion might be influencing your thinking right now?</Label>
-                  <Select
-                    value={emotionLabel}
-                    onValueChange={(v) => setEmotionLabel((v as EmotionLabel) ?? "neutral")}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="anxious">Anxious</SelectItem>
-                      <SelectItem value="excited">Excited</SelectItem>
-                      <SelectItem value="frustrated">Frustrated</SelectItem>
-                      <SelectItem value="confident">Confident</SelectItem>
-                      <SelectItem value="uncertain">Uncertain</SelectItem>
-                      <SelectItem value="defensive">Defensive</SelectItem>
-                      <SelectItem value="neutral">Neutral</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {aiRefLine ? (
-                  <p className="text-muted-foreground border-l-2 pl-3 text-sm italic">
-                    {aiRefLine}
-                  </p>
-                ) : null}
-                {journalPrompts.map((p) => (
-                  <div key={p.id} className="grid gap-2">
-                    <Label htmlFor={p.id}>{p.text}</Label>
-                    <Textarea
-                      id={p.id}
-                      rows={3}
-                      value={journalAnswers[p.id] ?? ""}
-                      onChange={(e) =>
-                        setJournalAnswers((prev) => ({
-                          ...prev,
-                          [p.id]: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                ))}
-                <div className="flex gap-2">
-                  <Button type="button" variant="secondary" onClick={() => setStep(4)}>
-                    Back
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setError(null);
-                      if (!journalValid()) {
-                        setError("Need two answers with more than 10 characters.");
-                        return;
-                      }
-                      advance(6);
-                    }}
-                  >
-                    Continue to action
-                  </Button>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {step === 6 && exercise ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Action bridge</CardTitle>
-            <CardDescription>
-              One concrete action you will take in real life (at least 15 characters).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              rows={3}
-              placeholder="e.g. Schedule a 30-minute review of our incident runbook with the team."
-              value={actionText}
-              onChange={(e) => setActionText(e.target.value)}
-            />
-            <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(5)}>
-                Back
-              </Button>
-              <Button type="button" onClick={() => void finishExercise()}>
-                Finish exercise
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {step === 7 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Exercise saved</CardTitle>
-            <CardDescription>
-              When you finish the exercise, your responses, journal, and action are saved to your
-              account (Firebase).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            <Link
-              href="/"
-              className={cn(
-                buttonVariants({ variant: "default" }),
-                "inline-flex items-center justify-center",
-              )}
-            >
-              Back to home
-            </Link>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                window.location.assign("/exercise/analytical");
-              }}
-            >
-              Start another
-            </Button>
-          </CardContent>
-        </Card>
-      ) : null}
     </ExerciseShell>
   );
 }
