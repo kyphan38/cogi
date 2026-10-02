@@ -14,8 +14,8 @@ import {
   GEOPOLITICS_SEMANTIC_ACCENTS,
   GEOPOLITICS_TAG_OPTIONS,
   isGeopoliticsSemanticTag,
+  ANALYTICAL_TAG_OPTIONS,
   TAG_LABELS,
-  TAG_ORDER,
 } from "@/lib/exercise/tag-labels";
 import { SemanticTagPicker } from "@/components/exercises/SemanticTagPicker";
 import { Button } from "@/components/ui/button";
@@ -166,7 +166,7 @@ export function HighlightTag({
   highlights,
   onChange,
   onSelectionOverlap,
-  tagOptions = TAG_ORDER,
+  tagOptions = ANALYTICAL_TAG_OPTIONS,
 }: HighlightTagProps) {
   const ref = useRef<HTMLDivElement>(null);
   const firstTagButtonRef = useRef<HTMLButtonElement>(null);
