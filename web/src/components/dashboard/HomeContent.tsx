@@ -24,14 +24,21 @@ function resumeHref(ex: Exercise): string {
   return `/exercise/${ex.type}?resumeId=${ex.id}`;
 }
 
+/**
+ * Type and title on one line, domain below; both cut with "..." when too long. The
+ * title must be a block to truncate: on an inline span, `truncate` only stops wrapping,
+ * which stretched the row (and the page) past a phone screen.
+ */
 function ExerciseRowLabel({ ex }: { ex: Exercise }) {
   return (
-    <div className="min-w-0">
-      <span className="text-muted-foreground mr-2 text-xs font-medium uppercase">
-        {TYPE_LABEL[ex.type] ?? ex.type}
-      </span>
-      <span className="font-medium truncate">{ex.title}</span>
-      {ex.domain ? <span className="text-muted-foreground ml-2 text-xs">· {ex.domain}</span> : null}
+    <div className="min-w-0 flex-1">
+      <div className="flex min-w-0 items-baseline gap-2">
+        <span className="text-muted-foreground shrink-0 text-xs font-medium uppercase">
+          {TYPE_LABEL[ex.type] ?? ex.type}
+        </span>
+        <span className="min-w-0 truncate font-medium">{ex.title}</span>
+      </div>
+      {ex.domain ? <p className="text-muted-foreground truncate text-xs">{ex.domain}</p> : null}
     </div>
   );
 }
@@ -80,7 +87,7 @@ export function HomeContent() {
   };
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
+    <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Practice</h1>
