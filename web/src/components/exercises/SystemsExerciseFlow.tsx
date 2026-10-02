@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AdaptiveSetupHint } from "@/components/adaptive/AdaptiveSetupHint";
 import {
   ExerciseShell,
   practicePhase,
@@ -722,7 +721,6 @@ export function SystemsExerciseFlow({
               </Link>
               .
             </p>
-            <AdaptiveSetupHint exerciseType="systems" />
             <div className="flex gap-2">
               <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
                 {loading ? (

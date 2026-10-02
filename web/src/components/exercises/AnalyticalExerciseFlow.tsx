@@ -33,7 +33,6 @@ import type {
   UserHighlight,
 } from "@/lib/types/exercise";
 import type { AnalyticalExercise } from "@/lib/ai/validators/common";
-import { AdaptiveSetupHint } from "@/components/adaptive/AdaptiveSetupHint";
 import {
   buildAdaptiveHintsForRequest,
   getLanguageLevelForRequest,
@@ -781,7 +780,6 @@ export function AnalyticalExerciseFlow({
               </Link>
               .
             </p>
-            <AdaptiveSetupHint exerciseType="analytical" />
             <div className="flex gap-2">
               <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
                 {loading ? (

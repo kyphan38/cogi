@@ -15,16 +15,13 @@ test.describe("Settings page - layout and controls", () => {
     await expect(page.getByLabel("Personal context")).toBeVisible();
   });
 
-  test("renders delayed recall checkbox", async ({ page }) => {
+  test("hidden-feature options are gone", async ({ page }) => {
     await gotoAuthenticated(page, "/settings");
-    await expect(page.getByLabel("Delayed recall")).toBeVisible();
-  });
-
-  test("renders adaptive difficulty checkbox", async ({ page }) => {
-    await gotoAuthenticated(page, "/settings");
-    await expect(
-      page.getByLabel("Adaptive difficulty"),
-    ).toBeVisible();
+    await expect(page.getByLabel("Personal context")).toBeVisible();
+    await expect(page.getByLabel("Delayed recall")).toHaveCount(0);
+    await expect(page.getByLabel("Adaptive difficulty")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Geopolitics progression" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Download journal as Markdown" })).toHaveCount(0);
   });
 
   test("renders personal context textarea", async ({ page }) => {
@@ -49,28 +46,6 @@ test.describe("Settings page - layout and controls", () => {
     await gotoAuthenticated(page, "/settings");
     await page.getByRole("main").getByRole("link", { name: "Home" }).click();
     await expect(page).toHaveURL("/");
-  });
-});
-
-test.describe("Settings page - geopolitics progression card", () => {
-  test.beforeEach(async ({ page }) => {
-    await bypassFirebaseAuth(page);
-    await stubFirestoreReads(page);
-  });
-
-  test("renders geopolitics progression card", async ({ page }) => {
-    await gotoAuthenticated(page, "/settings");
-    await expect(
-      page.getByRole("heading", { name: "Geopolitics progression" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Reset progression counter" }),
-    ).toBeVisible();
-  });
-
-  test("shows default no-reset message", async ({ page }) => {
-    await gotoAuthenticated(page, "/settings");
-    await expect(page.getByText(/Reset on/)).toHaveCount(0);
   });
 });
 
@@ -102,9 +77,6 @@ test.describe("Settings page - data backup card", () => {
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Download JSON backup" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Download journal as Markdown" }),
     ).toBeVisible();
     await expect(page.getByLabel("Import JSON backup")).toBeVisible();
   });
