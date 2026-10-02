@@ -28,8 +28,10 @@ import {
   systemsResponseSchema,
 } from "@/lib/ai/response-schemas";
 import {
+  ANALYTICAL_RETRY_SUFFIX,
   GEOPOLITICS_ANALYTICAL_RETRY_SUFFIX,
   parseAnalyticalExerciseJson,
+  validateAnalyticalSemantics,
   validateGeopoliticsAnalyticalSemantics,
 } from "@/lib/ai/validators/common";
 import { repairAnalyticalSegments } from "@/lib/text/segment-match";
@@ -71,12 +73,15 @@ import {
 
 export const maxDuration = 60;
 
-/** Parse an analytical reply and snap its quoted segments onto the passage text. */
-function parseAndRepairAnalytical(raw: string) {
+/**
+ * Parse an analytical reply and snap its quoted segments onto the passage text.
+ * `passage` replaces the model's copy (pasted text is shown as the user wrote it).
+ */
+function parseAndRepairAnalytical(raw: string, passage?: string) {
   const parsed = parseAnalyticalExerciseJson(raw);
-  return parsed.success
-    ? { success: true as const, data: repairAnalyticalSegments(parsed.data) }
-    : parsed;
+  if (!parsed.success) return parsed;
+  const data = passage === undefined ? parsed.data : { ...parsed.data, passage };
+  return { success: true as const, data: repairAnalyticalSegments(data) };
 }
 
 function parseSetupMode(
@@ -261,6 +266,12 @@ export async function POST(req: Request) {
       exerciseType === "analytical" &&
       (mode === "generated" || mode === "custom_scenario") &&
       isGeopoliticsAnalyticalDomain(effectiveDomain);
+    const useSoundReasoning =
+      exerciseType === "analytical" &&
+      mode === "generated" &&
+      !scenarioForPrompt &&
+      !useGeopoliticsAnalytical &&
+      Math.random() < 0.2;
     const basePrompt =
       exerciseType === "systems"
         ? systemsTaskType === "resilience"
@@ -292,11 +303,6 @@ export async function POST(req: Request) {
                 customScenario: scenarioForPrompt,
               });
             }
-            const useSoundReasoning =
-              exerciseType === "analytical" &&
-              mode === "generated" &&
-              !scenarioForPrompt &&
-              Math.random() < 0.2;
             const base = useSoundReasoning
               ? buildAnalyticalSoundReasoningPrompt({
                   domain: effectiveDomain,
@@ -378,9 +384,12 @@ export async function POST(req: Request) {
           });
       const rReal = await generateValidatedJson({
         prompt: fromTextPrompt,
-        parse: parseAndRepairAnalytical,
-        validate: (data) => (isGeoReal ? validateGeopoliticsAnalyticalSemantics(data) : []),
-        retrySuffix: isGeoReal ? GEOPOLITICS_ANALYTICAL_RETRY_SUFFIX : undefined,
+        parse: (raw) => parseAndRepairAnalytical(raw, sanitized),
+        validate: (data) =>
+          isGeoReal
+            ? validateGeopoliticsAnalyticalSemantics(data)
+            : validateAnalyticalSemantics(data),
+        retrySuffix: isGeoReal ? GEOPOLITICS_ANALYTICAL_RETRY_SUFFIX : ANALYTICAL_RETRY_SUFFIX,
         responseJsonSchema: analyticalResponseSchema(isGeoReal),
       });
       if (!rReal.ok) {
@@ -389,19 +398,27 @@ export async function POST(req: Request) {
           "AI could not analyze the pasted text. Please try again.",
         );
       }
-      const data = { ...rReal.data, passage: sanitized };
-      return NextResponse.json({ ok: true, data });
+      return NextResponse.json({ ok: true, data: rReal.data });
     }
 
     const r = await generateValidatedJson({
       prompt: basePrompt,
-      parse: parseAndRepairAnalytical,
-      validate: validateGeopoliticsAnalyticalSemantics,
-      retrySuffix: GEOPOLITICS_ANALYTICAL_RETRY_SUFFIX,
+      parse: (raw) => parseAndRepairAnalytical(raw),
+      validate: (data) =>
+        useGeopoliticsAnalytical
+          ? validateGeopoliticsAnalyticalSemantics(data)
+          : validateAnalyticalSemantics(data, { expectSound: useSoundReasoning }),
+      retrySuffix: useGeopoliticsAnalytical
+        ? GEOPOLITICS_ANALYTICAL_RETRY_SUFFIX
+        : ANALYTICAL_RETRY_SUFFIX,
       responseJsonSchema: analyticalResponseSchema(useGeopoliticsAnalytical),
     });
     if (!r.ok) return validatedJsonFailureResponse(r);
-    return NextResponse.json({ ok: true, data: r.data });
+    // The client reads this flag; set it from what was asked, not what the model echoed.
+    const data = useGeopoliticsAnalytical
+      ? r.data
+      : { ...r.data, isSoundReasoning: useSoundReasoning };
+    return NextResponse.json({ ok: true, data });
   } catch (e) {
     const isTimeout =
       e instanceof Error &&
