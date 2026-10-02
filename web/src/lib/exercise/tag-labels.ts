@@ -57,19 +57,19 @@ export const TAG_LABELS: Record<
 > = {
   logical_fallacy: {
     label: "Logical Fallacy",
-    colorClass: "bg-red-600 text-white border-red-700",
+    colorClass: "border border-zinc-200 bg-zinc-50 text-zinc-800",
   },
   hidden_assumption: {
     label: "Hidden Assumption",
-    colorClass: "bg-orange-500 text-white border-orange-600",
+    colorClass: "border border-zinc-200 bg-zinc-50 text-zinc-800",
   },
   weak_evidence: {
     label: "Weak Evidence",
-    colorClass: "bg-yellow-500 text-black border-yellow-600",
+    colorClass: "border border-zinc-200 bg-zinc-50 text-zinc-800",
   },
   bias: {
     label: "Bias / Motivated Reasoning",
-    colorClass: "bg-purple-600 text-white border-purple-700",
+    colorClass: "border border-zinc-200 bg-zinc-50 text-zinc-800",
   },
   framing_bias: {
     label: GEOPOLITICS_SEMANTIC_ACCENTS.framing_bias.label,
@@ -89,11 +89,11 @@ export const TAG_LABELS: Record<
   },
   valid_point: {
     label: "Valid Point",
-    colorClass: "bg-green-600 text-white border-green-700",
+    colorClass: "border border-zinc-200 bg-zinc-50 text-zinc-800",
   },
   unclear: {
     label: "Unclear / Needs More Info",
-    colorClass: "bg-zinc-500 text-white border-zinc-600",
+    colorClass: "border border-zinc-200 bg-zinc-50 text-zinc-800",
   },
 };
 

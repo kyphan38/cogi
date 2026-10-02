@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { EmbeddedIssue, TagType, UserHighlight, ValidPoint } from "@/lib/types/exercise";
-import { analyticalResultOf, scoreAnalytical, sentenceRangeAt } from "./analytical-score";
+import { sentenceRangeAt } from "@/lib/text/sentences";
+import { analyticalResultOf, scoreAnalytical } from "./analytical-score";
 
 const passage = [
   "Start each day at 5 a.m. to win. If you do not run at dawn, you will never gain the discipline needed for high pay.",
