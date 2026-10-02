@@ -186,7 +186,7 @@ How to write each item:
   - extra: judge fairly whether the concern holds up. If it is reasonable, say so; if not, say gently why not.
 - "clue": the words in the passage that signal it (quote 2-6 words), and what kind of signal they are.
 - "nextTimeAsk": one question to ask yourself next time, at most 15 words.
-- "subtypeName": only when a well-known, more specific name helps (e.g. "False dilemma"). It is shown as "a type of <tag>", so never repeat the tag name and never invent new tags.
+- "subtypeName": usually leave it out. Add it only on an issue_ item, and only when the name is a textbook kind of that issue's planned tag (e.g. "False dilemma" for Logical Fallacy, "Small sample" for Weak Evidence). It is shown as "a type of <planned tag>", so it must truly belong under that tag. Never repeat the tag name, never invent new tags, and use it at most twice per reply.
 - Only use the tag names listed above.
 
 "takeaways": 1-2 short lessons to carry to the next exercise. Focus on MISSED issues and TRAPPED statements first. If everything was correct, say what to keep doing.
