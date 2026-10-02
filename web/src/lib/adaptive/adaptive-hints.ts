@@ -5,12 +5,15 @@ import { getAppSettings } from "@/lib/db/settings";
 import { DEFAULT_LANGUAGE_LEVEL, type LanguageLevel } from "@/lib/adaptive/language-level";
 
 const MAX_INJECT = 3;
+const ADAPTIVE_DIFFICULTY_AVAILABLE: boolean = false;
 
 export async function buildAdaptiveHintsForRequest(
   exerciseType: AdaptiveExerciseType,
 ): Promise<AdaptiveHintsPayload> {
+  // Adaptive difficulty is off for everyone: its toggle was removed from Settings and
+  // the confidence records it learns from are no longer written by the practice loop.
   const s = await getAppSettings();
-  if (s.adaptiveDifficultyEnabled !== true) {
+  if (ADAPTIVE_DIFFICULTY_AVAILABLE !== true || s.adaptiveDifficultyEnabled !== true) {
     return {
       enabled: false,
       exerciseType,
