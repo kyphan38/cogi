@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { bypassFirebaseAuth, gotoAuthenticated, stubFirestoreReads } from "./helpers/auth-setup";
-import { fillExerciseDomain, selectComboPreset } from "./helpers/exercise-flow";
+import { fillExerciseDomain, generateExercise, selectComboPreset } from "./helpers/exercise-flow";
 
 test.describe("EvaluativeMatrixBoard - drag and drop interactions", () => {
   test.beforeEach(async ({ page }) => {
@@ -509,19 +509,12 @@ test.describe("ConfidenceSlider interaction", () => {
   test("confidence slider renders with default percentage label", async ({
     page,
   }) => {
-    // The confidence slider appears in individual exercise flows.
-    // We can reach it via the analytical exercise (step 3 = Confidence)
-    // but that requires completing step 2. Instead we verify the component
-    // structure exists in a simpler context.
-
-    // Navigate to an analytical exercise which will show the exercise shell
+    // Confidence is part of the work step in the 3-step loop (PLAN-simplify.md),
+    // so the slider shows as soon as an analytical passage is generated.
     await gotoAuthenticated(page, "/exercise/analytical");
-
-    // The ExerciseShell renders step labels including "Confidence"
-    const progressNav = page.getByRole("navigation", {
-      name: "Exercise progress",
-    });
-    await expect(progressNav).toBeVisible();
-    await expect(progressNav.getByText("Confidence")).toBeVisible();
+    await generateExercise(page, "DevOps");
+    await expect(page.getByText("Structural reasoning passage")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("slider")).toBeVisible();
+    await expect(page.getByText(/\(50%\)/)).toBeVisible();
   });
 });
