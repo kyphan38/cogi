@@ -5,6 +5,8 @@ import Link from "next/link";
 import { AdaptiveSetupHint } from "@/components/adaptive/AdaptiveSetupHint";
 import {
   ExerciseShell,
+  practicePhase,
+  practiceStepLabels,
   GEOPOLITICS_SYSTEMS_STEP_LABELS,
   SYSTEMS_EXERCISE_STEP_LABELS,
   SYSTEMS_RESILIENCE_STEP_LABELS,
@@ -14,7 +16,8 @@ import { SystemsPerspectiveCompare } from "@/components/exercises/SystemsPerspec
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { PracticeFinishCard } from "@/components/shared/PracticeFinishCard";
+import { Button } from "@/components/ui/button";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { cn } from "@/lib/utils";
 import {
@@ -36,17 +39,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type {
-  ConfidenceRecord,
-  EmotionLabel,
-  JournalDraft,
   SystemsExerciseRow,
   SystemsNodeImpact,
   SystemsTaskType,
   SystemsUserEdge,
 } from "@/lib/types/exercise";
 import type { SystemsConnectionType } from "@/lib/ai/validators/systems";
-import type { JournalEntry } from "@/lib/types/journal";
-import type { ActionBridge } from "@/lib/types/action";
 import {
   isGeopoliticsSystemsPayload,
   isResilienceSystemsPayload,
@@ -60,14 +58,7 @@ import {
   getLanguageLevelForRequest,
 } from "@/lib/adaptive/adaptive-hints";
 import { getUserContext } from "@/lib/db/settings";
-import { completeExerciseFlow } from "@/lib/db/complete-exercise";
-import {
-  getPromptIdsUsedInLastNCompleted,
-  getRecentJournalSnippetsForDomain,
-} from "@/lib/db/journal";
-import { pickJournalPrompts, type JournalPromptItem } from "@/lib/ai/prompts/journal-pool";
-import { computeSystemsAccuracy } from "@/lib/analytics/calibration-systems";
-import { currentIsoWeekKey } from "@/lib/db/actions";
+import { completePracticeExercise } from "@/lib/db/complete-exercise";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
@@ -101,13 +92,6 @@ function isResilienceSystemsExercise(ex: SystemsExerciseRow): boolean {
   return ex.variantKind === "resilience";
 }
 
-function systemsShellStep(step: FlowStep): number {
-  // Base/geo/resilience each number their own FlowStep values as a 1:1 identity match against
-  // their respective *_STEP_LABELS array (see systemsVariantSteps), so no per-variant offset
-  // is needed here.
-  return step;
-}
-
 /** Resilience inserts a "Criticality" step after Connect and a "Cascade" step after the first
  * shock; geopolitics inserts a "Perspective swap" step after the first shock. The two variants
  * are mutually exclusive, so each row is at most one of isGeo/isResilience. */
@@ -137,6 +121,19 @@ function systemsVariantSteps(ex: SystemsExerciseRow | null): {
     actionStep: isResilience ? 9 : isGeo ? 8 : 7,
     doneStep: isResilience ? 10 : isGeo ? 9 : 8,
   };
+}
+
+/**
+ * Where an unfinished exercise reopens. Saved before the 3-step loop it may sit on a
+ * step that no longer exists: confidence now lives in the shock step, and journal /
+ * action fold into AI feedback.
+ */
+function systemsResumeStep(row: SystemsExerciseRow): FlowStep {
+  const { confidenceStep, shockStep, perspectiveStep, journalStep, actionStep } = systemsVariantSteps(row);
+  const saved = (row.currentStep ?? 1) as FlowStep;
+  if (saved === confidenceStep) return shockStep;
+  if (saved === journalStep || saved === actionStep) return perspectiveStep;
+  return saved;
 }
 
 function emptyImpact(nodeIds: string[]): Record<string, SystemsNodeImpact> {
@@ -187,16 +184,9 @@ export function SystemsExerciseFlow({
   const [perspectiveStructured, setPerspectiveStructured] =
     useState<AIPerspectiveStructured | null>(null);
 
-  const [journalPrompts, setJournalPrompts] = useState<JournalPromptItem[]>([]);
-  const [journalAnswers, setJournalAnswers] = useState<Record<string, string>>({});
-  const [aiRefLine, setAiRefLine] = useState<string | null>(null);
-  const [journalPrimed, setJournalPrimed] = useState(false);
-  const journalEffectIdRef = useRef(0);
-
-  const [actionText, setActionText] = useState("");
+  const [takeaway, setTakeaway] = useState("");
+  const [finishing, setFinishing] = useState(false);
   const [userPerspectiveBNotes, setUserPerspectiveBNotes] = useState("");
-
-  const [emotionLabel, setEmotionLabel] = useState<EmotionLabel>("neutral");
 
   useEffect(() => {
     void listRecentDomains(20).then(setDomainSuggestions);
@@ -229,15 +219,8 @@ export function SystemsExerciseFlow({
       if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
       if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
       setUserPerspectiveBNotes(row.userPerspectiveBNotes ?? "");
-      if (row.journalDraft) {
-        setJournalPrompts(row.journalDraft.prompts);
-        setJournalAnswers(row.journalDraft.responses);
-        setAiRefLine(row.journalDraft.aiReferenceLine);
-        setEmotionLabel(row.journalDraft.emotionLabel ?? "neutral");
-        setJournalPrimed(true);
-      }
-      if (row.actionDraftText) setActionText(row.actionDraftText);
-      setStep((row.currentStep ?? 1) as FlowStep);
+      setTakeaway(row.takeaway ?? "");
+      setStep(systemsResumeStep(row));
     })();
   }, [resumeId]);
 
@@ -246,23 +229,6 @@ export function SystemsExerciseFlow({
     const d = initialDomain?.trim();
     if (d) setDomain(d);
   }, [initialDomain, resumeId]);
-
-  useEffect(() => {
-    if (!exercise || !journalPrimed) return;
-    const { journalStep } = systemsVariantSteps(exercise);
-    if (step !== journalStep && step !== journalStep + 1) return;
-    const timer = setTimeout(() => {
-      const journalDraft: JournalDraft = {
-        prompts: journalPrompts,
-        responses: journalAnswers,
-        aiReferenceLine: aiRefLine,
-        emotionLabel,
-      };
-      void putExercise({ ...exercise, journalDraft, actionDraftText: actionText, currentStep: step });
-    }, 2000);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journalAnswers, actionText, emotionLabel, step]);
 
   useEffect(() => {
     const { doneStep } = systemsVariantSteps(exercise);
@@ -379,12 +345,8 @@ export function SystemsExerciseFlow({
       setDecomposePhase("input");
       setPerspectiveText(null);
       setPerspectiveStructured(null);
-      setJournalAnswers({});
-      setAiRefLine(null);
-      setJournalPrimed(false);
-      setActionText("");
+      setTakeaway("");
       setUserPerspectiveBNotes("");
-      setEmotionLabel("neutral");
       setStep(1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generate failed");
@@ -570,114 +532,11 @@ export function SystemsExerciseFlow({
     }
   };
 
-  useEffect(() => {
-    if (!exercise || journalPrimed) return;
-    const { journalStep } = systemsVariantSteps(exercise);
-    if (step !== journalStep) return;
-    const effectId = ++journalEffectIdRef.current;
-    let cancelled = false;
-    (async () => {
-      try {
-        const excluded = await getPromptIdsUsedInLastNCompleted(5);
-        const accuracy = computeSystemsAccuracy({
-          intendedConnections: exercise.intendedConnections,
-          userEdges,
-          shock: exercise.shockEvent,
-          nodeImpact,
-        });
-        const picks = pickJournalPrompts(excluded, {
-          exerciseType: "systems",
-          accuracy,
-          confidenceBefore: confidence,
-          overconfident: confidence - accuracy > 20,
-          underconfident: accuracy - confidence > 20,
-        });
-        if (cancelled || effectId !== journalEffectIdRef.current) return;
-        setJournalPrompts(picks);
-        const init: Record<string, string> = {};
-        picks.forEach((p) => {
-          init[p.id] = "";
-        });
-        setJournalAnswers(init);
-        setJournalPrimed(true);
-
-        const snippets = await getRecentJournalSnippetsForDomain(
-          exercise.domain,
-          3,
-        );
-        if (cancelled || effectId !== journalEffectIdRef.current) return;
-        if (snippets.length === 0) {
-          setAiRefLine(null);
-          return;
-        }
-        const res = await aiFetch("/api/ai/journal-ref", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            requestId: crypto.randomUUID(),
-            domain: exercise.domain,
-            snippets,
-          }),
-        });
-        const j = await safeAiJson<{ ok: true; line: string | null }>(res);
-        if (cancelled || effectId !== journalEffectIdRef.current) return;
-        if (j.ok && j.line) setAiRefLine(j.line);
-      } catch {
-        if (!cancelled && effectId === journalEffectIdRef.current) setAiRefLine(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [step, journalPrimed, exercise]);
-
-  const journalValid = () => {
-    const vals = Object.values(journalAnswers);
-    const long = vals.filter((v) => v.trim().length > 10);
-    return long.length >= 2;
-  };
-
+  /** Finish the 3-step loop: save the exercise with the optional takeaway (P2.2). */
   const finishExercise = async () => {
-    if (!exercise || !perspectiveText) return;
-    if (!journalValid()) {
-      setError("Answer at least two prompts with more than 10 characters each.");
-      return;
-    }
-    if (actionText.trim().length < 15) {
-      setError("Action must be at least 15 characters.");
-      return;
-    }
+    if (!exercise || !perspectiveText || finishing) return;
     setError(null);
-    const accuracy = computeSystemsAccuracy({
-      intendedConnections: exercise.intendedConnections,
-      userEdges,
-      shock: exercise.shockEvent,
-      nodeImpact,
-    });
-    const confidenceRecord: ConfidenceRecord = {
-      id: crypto.randomUUID(),
-      exerciseId: exercise.id,
-      confidenceBefore: confidence,
-      actualAccuracy: accuracy,
-      gap: confidence - accuracy,
-      createdAt: new Date().toISOString(),
-    };
-    const journalEntry: JournalEntry = {
-      id: crypto.randomUUID(),
-      exerciseId: exercise.id,
-      promptIds: journalPrompts.map((p) => p.id),
-      aiReferenceLine: aiRefLine,
-      responses: { ...journalAnswers },
-      emotionLabel,
-      createdAt: new Date().toISOString(),
-    };
-    const action: ActionBridge = {
-      id: crypto.randomUUID(),
-      exerciseId: exercise.id,
-      oneAction: actionText.trim(),
-      weeklyFollowThrough: [{ weekKey: currentIsoWeekKey(), done: false }],
-      createdAt: new Date().toISOString(),
-    };
+    setFinishing(true);
     const isResilience = isResilienceSystemsExercise(exercise);
     const finalEx: SystemsExerciseRow = {
       ...exercise,
@@ -687,20 +546,16 @@ export function SystemsExerciseFlow({
       confidenceBefore: confidence,
       aiPerspective: perspectiveText,
       aiPerspectiveStructured: perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null,
-      completedAt: new Date().toISOString(),
       ...(isResilience ? { secondNodeImpact, userCriticalityRanking } : {}),
     };
     try {
-      await completeExerciseFlow({
-        exercise: finalEx,
-        journal: journalEntry,
-        confidence: confidenceRecord,
-        action,
-      });
-      setExercise(finalEx);
+      const saved = await completePracticeExercise({ exercise: finalEx, takeaway });
+      setExercise(saved as SystemsExerciseRow);
       setStep(systemsVariantSteps(exercise).doneStep);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setFinishing(false);
     }
   };
 
@@ -712,19 +567,22 @@ export function SystemsExerciseFlow({
     shockStep,
     cascadeStep,
     perspectiveStep,
-    journalStep,
-    actionStep,
     doneStep,
   } = systemsVariantSteps(exercise);
-  const shellStep = systemsShellStep(step);
-  const stepLabels = isResilienceExercise
+  const variantLabels: readonly string[] = isResilienceExercise
     ? SYSTEMS_RESILIENCE_STEP_LABELS
     : isGeoExercise
       ? GEOPOLITICS_SYSTEMS_STEP_LABELS
       : SYSTEMS_EXERCISE_STEP_LABELS;
+  // Work parts are the steps between setup and AI feedback, minus the old confidence step.
+  const workParts = variantLabels.slice(1, perspectiveStep).filter((_, i) => i + 1 !== confidenceStep);
+  const phase = practicePhase(step, perspectiveStep);
+  const partIndex = workParts.indexOf(variantLabels[step]);
+  const partLabel =
+    phase === 1 && partIndex >= 0 ? `Part ${partIndex + 1} of ${workParts.length} · ${workParts[partIndex]}` : undefined;
 
   return (
-    <ExerciseShell stepIndex={shellStep} stepLabels={stepLabels}>
+    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Map the system")} partLabel={partLabel}>
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -1082,9 +940,11 @@ export function SystemsExerciseFlow({
                     setError("Add at least one connection before continuing.");
                     return;
                   }
-                  void putExercise({ ...exercise, userEdges, currentStep: 3 });
-                  setExercise({ ...exercise, userEdges, currentStep: 3 });
-                  setStep(3);
+                  // Confidence is part of the shock step now, so base/geo go straight there.
+                  const next = isResilienceExercise ? criticalityStep : shockStep;
+                  void putExercise({ ...exercise, userEdges, currentStep: next });
+                  setExercise({ ...exercise, userEdges, currentStep: next });
+                  setStep(next);
                 }}
               >
                 Done connecting
@@ -1174,53 +1034,13 @@ export function SystemsExerciseFlow({
                     userEdges,
                     nodeImpact,
                     userCriticalityRanking,
-                    currentStep: confidenceStep,
+                    currentStep: shockStep,
                   };
                   void putExercise(nextRow);
                   setExercise(nextRow);
-                  setStep(confidenceStep);
+                  setStep(shockStep);
                 }}
               >
-                Continue to confidence
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {step === confidenceStep && exercise ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Confidence</CardTitle>
-            <CardDescription>
-              How confident are you in this map before the shock scenario reflection?
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <ConfidenceSlider
-              value={confidence}
-              onChange={setConfidence}
-              label="How confident are you in your dependency map?"
-            />
-            {loading ? <PerspectiveLoadingCard /> : null}
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={loading}
-                onClick={() => {
-                  const backStep = isResilienceExercise ? criticalityStep : 2;
-                  void putExercise({ ...exercise, userEdges, nodeImpact, currentStep: backStep });
-                  setStep(backStep);
-                }}
-              >
-                Back
-              </Button>
-              <Button type="button" onClick={() => {
-                const updated = { ...exercise, userEdges, nodeImpact };
-                setExercise(updated);
-                advance(shockStep, updated);
-              }}>
                 Continue to shock
               </Button>
             </div>
@@ -1252,10 +1072,17 @@ export function SystemsExerciseFlow({
                 }));
               }}
             />
+            <ConfidenceSlider
+              value={confidence}
+              onChange={setConfidence}
+              label="How confident are you in your dependency map?"
+            />
+            {loading ? <PerspectiveLoadingCard /> : null}
             <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => {
-                void putExercise({ ...exercise, userEdges, nodeImpact, currentStep: confidenceStep });
-                setStep(confidenceStep);
+              <Button type="button" variant="secondary" disabled={loading} onClick={() => {
+                const backStep = isResilienceExercise ? criticalityStep : 2;
+                void putExercise({ ...exercise, userEdges, nodeImpact, currentStep: backStep });
+                setStep(backStep);
               }}>
                 Back
               </Button>
@@ -1421,7 +1248,7 @@ export function SystemsExerciseFlow({
         </Card>
       ) : null}
 
-      {step === perspectiveStep && exercise && perspectiveText ? (
+      {(step === perspectiveStep || step === doneStep) && exercise && perspectiveText ? (
         <div className="space-y-4">
           <AIPerspective
             text={perspectiveText}
@@ -1431,161 +1258,16 @@ export function SystemsExerciseFlow({
             exerciseTitle={exercise.title}
             domain={exercise.domain}
           />
-          <Button type="button" onClick={() => advance(journalStep)}>
-            Continue to journal
-          </Button>
+          <PracticeFinishCard
+            takeaway={takeaway}
+            onTakeawayChange={setTakeaway}
+            onFinish={finishExercise}
+            saving={finishing}
+            finished={step === doneStep}
+          />
         </div>
       ) : null}
 
-      {step === journalStep && exercise ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Metacognition journal</CardTitle>
-            <CardDescription>
-              Reflect on at least two prompts (more than 10 characters each).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!journalPrimed ? (
-              <p className="text-muted-foreground text-sm">Preparing prompts…</p>
-            ) : (
-              <>
-                <div className="grid gap-2">
-                  <Label>What emotion might be influencing your thinking right now?</Label>
-                  <Select
-                    value={emotionLabel}
-                    onValueChange={(v) =>
-                      setEmotionLabel(
-                        (v as
-                          | "anxious"
-                          | "excited"
-                          | "frustrated"
-                          | "confident"
-                          | "uncertain"
-                          | "defensive"
-                          | "neutral") ?? "neutral",
-                      )
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="anxious">Anxious</SelectItem>
-                      <SelectItem value="excited">Excited</SelectItem>
-                      <SelectItem value="frustrated">Frustrated</SelectItem>
-                      <SelectItem value="confident">Confident</SelectItem>
-                      <SelectItem value="uncertain">Uncertain</SelectItem>
-                      <SelectItem value="defensive">Defensive</SelectItem>
-                      <SelectItem value="neutral">Neutral</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {aiRefLine ? (
-                  <p className="text-muted-foreground border-l-2 pl-3 text-sm italic">{aiRefLine}</p>
-                ) : null}
-                {journalPrompts.map((p) => (
-                  <div key={p.id} className="grid gap-2">
-                    <Label htmlFor={p.id}>{p.text}</Label>
-                    <Textarea
-                      id={p.id}
-                      rows={3}
-                      value={journalAnswers[p.id] ?? ""}
-                      onChange={(e) =>
-                        setJournalAnswers((prev) => ({
-                          ...prev,
-                          [p.id]: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                ))}
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setStep(perspectiveStep)}
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setError(null);
-                      if (!journalValid()) {
-                        setError("Need two answers with more than 10 characters.");
-                        return;
-                      }
-                      advance(actionStep);
-                    }}
-                  >
-                    Continue to action
-                  </Button>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {step === actionStep && exercise ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Action bridge</CardTitle>
-            <CardDescription>
-              One concrete action you will take in real life (at least 15 characters).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              rows={3}
-              placeholder="e.g. Schedule a dependency review with stakeholders."
-              value={actionText}
-              onChange={(e) => setActionText(e.target.value)}
-            />
-            <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => setStep(journalStep)}>
-                Back
-              </Button>
-              <Button type="button" onClick={() => void finishExercise()}>
-                Finish exercise
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {step === doneStep ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Exercise saved</CardTitle>
-            <CardDescription>
-              When you finish the exercise, your responses, journal, and action are saved to your
-              account (Firebase).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            <Link
-              href="/"
-              className={cn(
-                buttonVariants({ variant: "default" }),
-                "inline-flex items-center justify-center",
-              )}
-            >
-              Back to home
-            </Link>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                window.location.assign("/exercise/systems");
-              }}
-            >
-              Start another
-            </Button>
-          </CardContent>
-        </Card>
-      ) : null}
     </ExerciseShell>
   );
 }

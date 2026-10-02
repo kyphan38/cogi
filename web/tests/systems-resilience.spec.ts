@@ -24,7 +24,7 @@ async function advanceResilienceToCriticality(page: Page): Promise<void> {
   await expect(page.getByRole("heading", { name: "Criticality ranking" })).toBeVisible();
 }
 
-/** Fills a valid 1-6 ranking (one per node, in render order) and continues to Confidence. */
+/** Fills a valid 1-6 ranking (one per node, in render order) and continues to the shock step. */
 async function fillCriticalityRankingAndContinue(page: Page): Promise<void> {
   const rankInputs = page.getByRole("spinbutton");
   const count = await rankInputs.count();
@@ -32,7 +32,7 @@ async function fillCriticalityRankingAndContinue(page: Page): Promise<void> {
   for (let i = 0; i < count; i++) {
     await rankInputs.nth(i).fill(String(i + 1));
   }
-  await page.getByRole("button", { name: "Continue to confidence" }).click();
+  await page.getByRole("button", { name: "Continue to shock" }).click();
 }
 
 test.describe("Systems exercise - resilience task type setup", () => {
@@ -86,7 +86,7 @@ test.describe("Systems exercise - resilience variant flow", () => {
     for (let i = 0; i < 6; i++) {
       await rankInputs.nth(i).fill("1");
     }
-    await page.getByRole("button", { name: "Continue to confidence" }).click();
+    await page.getByRole("button", { name: "Continue to shock" }).click();
     await expect(
       page.getByText("Rank all 6 nodes 1-6, using each rank exactly once."),
     ).toBeVisible();
@@ -94,19 +94,17 @@ test.describe("Systems exercise - resilience variant flow", () => {
     await expect(page.getByRole("heading", { name: "Criticality ranking" })).toBeVisible();
   });
 
-  test("full flow: criticality -> confidence -> shock -> cascade -> AI reflection -> journal", async ({
+  test("full flow: criticality -> shock with confidence -> cascade -> AI feedback -> saved", async ({
     page,
   }) => {
     await generateResilienceExercise(page);
     await advanceResilienceToCriticality(page);
     await fillCriticalityRankingAndContinue(page);
 
-    // Confidence step (shared UI across variants).
-    await expect(page.getByRole("heading", { name: "Confidence" })).toBeVisible();
-    await page.getByRole("button", { name: "Continue to shock" }).click();
-
-    // Shock step: first shock event, resilience-specific continue label.
+    // Shock step (confidence now lives here): first shock event, resilience-specific label.
     await expect(page.getByRole("heading", { name: "Shock scenario" })).toBeVisible();
+    await expect(page.getByText("How confident are you in your dependency map?")).toBeVisible();
+    await expect(page.getByText(/^Part 4 of 5 · Shock$/)).toBeVisible();
     await expect(
       page.getByText("A lightning strike takes the substation offline during peak demand"),
     ).toBeVisible();
@@ -134,12 +132,12 @@ test.describe("Systems exercise - resilience variant flow", () => {
     await expect(
       page.getByText("Suitable for integration testers validating perspective UI"),
     ).toBeVisible({ timeout: 15_000 });
-    await page.getByRole("button", { name: "Continue to journal" }).click();
+    const progress = page.getByRole("navigation", { name: "Exercise progress" });
+    await expect(progress.getByText("3. AI feedback")).toHaveClass(/bg-zinc-900/);
+    await expect(page.getByRole("heading", { name: "Metacognition journal" })).toHaveCount(0);
 
-    // Journal step.
-    await expect(page.getByRole("heading", { name: "Metacognition journal" })).toBeVisible();
-    await expect(
-      page.getByText("What emotion might be influencing your thinking right now?"),
-    ).toBeVisible();
+    await page.getByLabel(/What will you take away/).fill("The substation is the single point of failure.");
+    await page.getByRole("button", { name: "Finish" }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 15_000 });
   });
 });
