@@ -95,7 +95,12 @@ không phải nhãn để đoán.
 
 ---
 
-## Phase 1 - Nền móng (Analytical)
+## Phase 1 - Nền móng (Analytical) - XONG
+
+**Xong (2026-10-02)**, branch `analytical/phase-1`. Unit 475/475, E2E 91/91, `tsc`
+sạch, eslint 0 lỗi (2 cảnh báo cũ), build production đạt. Gọi Gemini thật: 8/8 bài
+tạo mới (6 thường, 2 sound reasoning) và 2/2 bài dán văn bản đều đạt kiểm tra mới
+ngay lần đầu; mọi bài tạo mới có 3 đoạn.
 
 Không đổi giao diện nhiều. Làm cho đáp án đáng tin trước khi hiển thị nó.
 
@@ -109,15 +114,21 @@ Không đổi giao diện nhiều. Làm cho đáp án đáng tin trước khi hi
   - Dùng trong `app/api/ai/route.ts` cho cả `generated`, `custom_scenario` và
     `real_data` (hiện `real_data` thường trả `[]`). Retry suffix chung.
   - Unit test cho từng lỗi.
+  - Đã làm thêm: bài dán văn bản giờ sửa và kiểm tra đoạn trích trên **chính văn
+    bản người dùng** (trước đây kiểm tra trên bản AI chép lại, rồi hiển thị bản của
+    người dùng). `isSoundReasoning` lấy từ request, không lấy từ AI.
 - **P1.2 Chỉ hiện 6 tag cho bài thường.** Thêm `ANALYTICAL_TAG_OPTIONS` (4 loại +
   Valid Point + Unclear) trong `lib/exercise/tag-labels.ts`, truyền vào `HighlightTag`
   ở `AnalyticalExerciseFlow.tsx:724`.
-- **P1.3 Gửi `languageLevel` khi lấy feedback.** Cả 3 flow (Analytical, Systems,
-  Evaluative) gọi `/api/ai/perspective` mà không gửi `languageLevel`, nên server luôn
-  dùng mặc định "Intermediate". Kiểm tra luôn các route AI khác mà client gọi.
+- **P1.3 Gửi `languageLevel` khi lấy feedback.** ~~Cả 3 flow gọi
+  `/api/ai/perspective` mà không gửi `languageLevel`.~~ **Không cần sửa:** nhận định
+  này sai. `aiFetch` (`lib/api/ai-fetch.ts`) tự thêm `languageLevel` vào mọi lời gọi
+  `/api/ai/*`, và các route đều đọc nó. Feedback nghe học thuật là do prompt (P2.2).
 - **P1.4 Giữ xuống dòng trong bài đọc.** Thêm `whitespace-pre-wrap` cho khung passage
   trong `HighlightTag.tsx` (History đã có). Kiểm tra chọn chữ qua nhiều đoạn vẫn
   đúng offset.
+  Đã làm thêm: prompt yêu cầu bài tạo mới chia 2-4 đoạn ngắn (trước đây thường là
+  một khối, nên chỉ thêm CSS thì không đủ).
 - **P1.5 Chấm điểm bằng code.** File mới `lib/exercise/analytical-score.ts`:
   - Vào: passage, `embeddedIssues`, `validPoints`, `userHighlights`.
   - Ra: mỗi lỗi {tìm được?, highlight khớp, tag đúng?}; mỗi câu bẫy {bị bắt nhầm?};
@@ -129,7 +140,10 @@ Không đổi giao diện nhiều. Làm cho đáp án đáng tin trước khi hi
   - Unit test đủ các trường hợp.
 - **P1.6 Lưu kết quả.** Thêm `result?: AnalyticalResult` (và sau này `level`) vào
   `AnalyticalExerciseRow`. Tính khi nộp bài. Bài cũ không có `result` thì tính lại
-  khi mở.
+  khi mở (`analyticalResultOf`).
+- Ghi chú cho Phase 3: một highlight rất dài (cả đoạn) có thể khớp nhiều lỗi cùng
+  lúc. Chế độ bấm cả câu sẽ tự giải quyết; chế độ kéo chọn (Expert) có thể cần giới
+  hạn.
 
 ## Phase 2 - Feedback mới (Analytical)
 
