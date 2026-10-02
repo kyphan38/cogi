@@ -19,28 +19,17 @@ test.describe("Home page - resume and navigation", () => {
     ).toBeVisible();
   });
 
-  test("learning notes section shows empty state messages", async ({ page }) => {
+  test("shows one primary New exercise action that opens the picker", async ({ page }) => {
     await gotoAuthenticated(page, "/");
-    await expect(page.getByText("No open notes.")).toBeVisible();
-    await expect(page.getByText("No math notes yet.")).toBeVisible();
-  });
-
-  test("learning notes pagination arrows are disabled with no notes", async ({ page }) => {
-    await gotoAuthenticated(page, "/");
-    const prevButtons = page.getByRole("button", { name: "Previous notes" });
-    const nextButtons = page.getByRole("button", { name: "Next notes" });
-    await expect(prevButtons).toHaveCount(2);
-    await expect(nextButtons).toHaveCount(2);
-    await expect(prevButtons.first()).toBeDisabled();
-    await expect(prevButtons.last()).toBeDisabled();
-    await expect(nextButtons.first()).toBeDisabled();
-    await expect(nextButtons.last()).toBeDisabled();
-  });
-
-  test("reasoning and math practice tabs navigate correctly", async ({ page }) => {
-    await gotoAuthenticated(page, "/");
-    await page.getByRole("link", { name: "Reasoning", exact: true }).click();
+    await page.getByRole("link", { name: "New exercise" }).click();
     await page.waitForURL("/reasoning", { timeout: 15_000 });
+  });
+
+  test("no longer shows math or learning notes on the start page", async ({ page }) => {
+    await gotoAuthenticated(page, "/");
+    await expect(page.getByRole("link", { name: "Math", exact: true })).toHaveCount(0);
+    await expect(page.getByText("Learning Notes")).toHaveCount(0);
+    await expect(page.getByText("No exercises yet. Start with New exercise.")).toBeVisible();
   });
 });
 
@@ -55,18 +44,16 @@ test.describe("Reasoning page - exercise picker and navigation", () => {
   }) => {
     await gotoAuthenticated(page, "/reasoning");
     await expect(
-      page.getByRole("heading", { name: "Reasoning" }),
+      page.getByRole("heading", { name: "New exercise" }),
     ).toBeVisible();
 
-    const analyticalCard = page.getByRole("link", {
-      name: /Analytical.*Spot flawed reasoning/,
-    });
-    await expect(analyticalCard).toBeVisible();
-
-    const comboCard = page.getByRole("link", {
-      name: /Combo.*Multi-step scenario chain/,
-    });
-    await expect(comboCard).toBeVisible();
+    for (const name of [/Evaluative.*Compare options fairly/, /Systems.*Map feedback loops/, /Analytical.*Spot flawed reasoning/]) {
+      await expect(page.getByRole("link", { name })).toBeVisible();
+    }
+    // Hidden types (PLAN-simplify.md): no card, but the route still works.
+    for (const name of [/Combo/, /Sequential/, /Generative/]) {
+      await expect(page.getByRole("link", { name })).toHaveCount(0);
+    }
   });
 
   test("reasoning page shows domain input and find-best-mode button", async ({ page }) => {
@@ -80,19 +67,9 @@ test.describe("Reasoning page - exercise picker and navigation", () => {
   }) => {
     await gotoAuthenticated(page, "/reasoning");
     await page
-      .getByRole("link", { name: /Sequential.*Order a messy process/ })
+      .getByRole("link", { name: /Systems.*Map feedback loops/ })
       .click();
-    await page.waitForURL(/\/exercise\/sequential/, { timeout: 15_000 });
-  });
-
-  test("clicking combo card navigates to /exercise/combo", async ({
-    page,
-  }) => {
-    await gotoAuthenticated(page, "/reasoning");
-    await page
-      .getByRole("link", { name: /Combo.*Multi-step scenario chain/ })
-      .click();
-    await page.waitForURL("/exercise/combo", { timeout: 15_000 });
+    await page.waitForURL(/\/exercise\/systems/, { timeout: 15_000 });
   });
 });
 
@@ -105,12 +82,15 @@ test.describe("AppTopNav navigation", () => {
   test("nav bar renders all primary links", async ({ page }) => {
     await gotoAuthenticated(page, "/");
     const nav = page.getByRole("navigation", { name: "Main" });
-    await expect(nav.getByRole("link", { name: "Home" })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "Guide" })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "Dashboard" })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "History" })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "Settings" })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "Decisions" })).toBeVisible();
+    await expect(nav.getByRole("link")).toHaveText(["Practice", "History", "Settings"]);
+  });
+
+  test("Practice stays active while picking and doing an exercise", async ({ page }) => {
+    const nav = page.getByRole("navigation", { name: "Main" });
+    for (const path of ["/reasoning", "/exercise/evaluative"]) {
+      await gotoAuthenticated(page, path);
+      await expect(nav.getByRole("link", { name: "Practice" })).toHaveClass(/font-medium/);
+    }
   });
 
   test("navigating to /settings via nav link", async ({ page }) => {
@@ -118,19 +98,9 @@ test.describe("AppTopNav navigation", () => {
     await clickMainNavLink(page, "Settings", "/settings");
   });
 
-  test("navigating to /decisions via nav link", async ({ page }) => {
-    await gotoAuthenticated(page, "/");
-    await clickMainNavLink(page, "Decisions", "/decisions");
-  });
-
   test("navigating to /exercise/history via nav link", async ({ page }) => {
     await gotoAuthenticated(page, "/");
     await clickMainNavLink(page, "History", "/exercise/history");
-  });
-
-  test("navigating to /dashboard via nav link", async ({ page }) => {
-    await gotoAuthenticated(page, "/");
-    await clickMainNavLink(page, "Dashboard", "/dashboard");
   });
 
   test("nav bar persists across route transitions", async ({ page }) => {
@@ -143,7 +113,7 @@ test.describe("AppTopNav navigation", () => {
     await clickMainNavLink(page, "History", "/exercise/history");
     await expect(nav).toBeVisible();
 
-    await clickMainNavLink(page, "Home", "/");
+    await clickMainNavLink(page, "Practice", "/");
     await expect(nav).toBeVisible();
   });
 
