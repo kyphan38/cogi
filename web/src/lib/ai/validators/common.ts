@@ -84,14 +84,70 @@ export function validateGeopoliticsAnalyticalSemantics(
     }
   }
 
+  errors.push(...severityErrors(data));
+
+  return [...errors, ...segmentErrors(data)];
+}
+
+const PLAIN_ISSUE_TYPES = [
+  "logical_fallacy",
+  "hidden_assumption",
+  "weak_evidence",
+  "bias",
+] as const;
+
+/**
+ * Plain (non-geopolitics) passages. The answer key is built from these fields, so a
+ * missing issue or a segment that is not in the passage would show the user a wrong
+ * answer. `expectSound` is the sound-reasoning variant: no issues, only decoys.
+ */
+export function validateAnalyticalSemantics(
+  data: AnalyticalExercise,
+  opts: { expectSound?: boolean } = {},
+): string[] {
+  const errors: string[] = [];
+
+  if (opts.expectSound) {
+    if (data.embeddedIssues.length !== 0) {
+      errors.push("embeddedIssues must be empty for a sound-reasoning passage");
+    }
+    if (data.validPoints.length < 2 || data.validPoints.length > 3) {
+      errors.push("validPoints must have 2-3 items for a sound-reasoning passage");
+    }
+    return [...errors, ...segmentErrors(data)];
+  }
+
+  if (data.isSoundReasoning === true) {
+    errors.push("isSoundReasoning must not be true for a passage with embedded issues");
+  }
+  if (data.embeddedIssues.length !== 4) {
+    errors.push("embeddedIssues must have exactly 4 items");
+  }
+  if (data.validPoints.length !== 2) {
+    errors.push("validPoints must have exactly 2 items");
+  }
+  for (const issue of data.embeddedIssues) {
+    if (!(PLAIN_ISSUE_TYPES as readonly string[]).includes(issue.type)) {
+      errors.push(`issue type ${issue.type} is not allowed; use ${PLAIN_ISSUE_TYPES.join(", ")}`);
+    }
+  }
+  errors.push(...severityErrors(data));
+
+  return [...errors, ...segmentErrors(data)];
+}
+
+function severityErrors(data: AnalyticalExercise): string[] {
   const sev = data.embeddedIssues.map((i) => i.severity);
   const obvious = sev.filter((s) => s === "obvious").length;
   const moderate = sev.filter((s) => s === "moderate").length;
   const subtle = sev.filter((s) => s === "subtle").length;
-  if (obvious !== 1 || moderate !== 2 || subtle !== 1) {
-    errors.push("severities must be 1 obvious, 2 moderate, 1 subtle");
-  }
+  return obvious !== 1 || moderate !== 2 || subtle !== 1
+    ? ["severities must be 1 obvious, 2 moderate, 1 subtle"]
+    : [];
+}
 
+function segmentErrors(data: AnalyticalExercise): string[] {
+  const errors: string[] = [];
   for (const issue of data.embeddedIssues) {
     if (!findSegmentRange(data.passage, issue.textSegment)) {
       errors.push(`textSegment not found in passage for issue type ${issue.type}`);
@@ -102,9 +158,11 @@ export function validateGeopoliticsAnalyticalSemantics(
       errors.push("textSegment not found in passage for a validPoint");
     }
   }
-
   return errors;
 }
+
+export const ANALYTICAL_RETRY_SUFFIX =
+  "Your previous JSON failed validation. Fix ALL issues and return ONLY the corrected JSON object. Every textSegment must be copied verbatim from passage.";
 
 export const GEOPOLITICS_ANALYTICAL_RETRY_SUFFIX =
   "Your previous JSON failed validation. Fix ALL issues and return ONLY the corrected JSON object.";

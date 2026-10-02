@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextResponse } from "next/server";
 
 vi.mock("server-only", () => ({}));
@@ -38,20 +38,23 @@ function makeRequest(body: unknown) {
   });
 }
 
-function validAnalyticalJson() {
+const ANALYTICAL_PASSAGE =
+  "Sales rose after the ad, so the ad caused it. Everyone agrees with the plan. The survey had ten people. Our team is the best choice. Costs fell last year. The market is growing.";
+
+function validAnalyticalJson(passage = ANALYTICAL_PASSAGE) {
   return JSON.stringify({
     title: "Test Exercise",
-    passage: "A passage about reasoning and logic.",
+    passage,
     embeddedIssues: [
-      {
-        description: "A bias issue",
-        type: "bias",
-        severity: "moderate",
-        textSegment: "reasoning",
-        explanation: "Explanation",
-      },
+      { description: "d", type: "logical_fallacy", severity: "obvious", textSegment: "so the ad caused it", explanation: "e" },
+      { description: "d", type: "hidden_assumption", severity: "moderate", textSegment: "Everyone agrees with the plan", explanation: "e" },
+      { description: "d", type: "weak_evidence", severity: "moderate", textSegment: "The survey had ten people", explanation: "e" },
+      { description: "d", type: "bias", severity: "subtle", textSegment: "Our team is the best choice", explanation: "e" },
     ],
-    validPoints: [{ textSegment: "logic", explanation: "why" }],
+    validPoints: [
+      { textSegment: "Costs fell last year", explanation: "why" },
+      { textSegment: "The market is growing", explanation: "why" },
+    ],
   });
 }
 
@@ -358,6 +361,15 @@ describe("POST /api/ai - systems", () => {
 });
 
 describe("POST /api/ai - analytical generated", () => {
+  // 0.2 or above skips the sound-reasoning variant.
+  let random: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    random = vi.spyOn(Math, "random").mockReturnValue(0.5);
+  });
+  afterEach(() => {
+    random.mockRestore();
+  });
+
   it("returns parsed exercise on success", async () => {
     authOk();
     mockGenerateRaw.mockResolvedValue(validAnalyticalJson());
@@ -366,6 +378,28 @@ describe("POST /api/ai - analytical generated", () => {
     const data = await res.json();
     expect(data.ok).toBe(true);
     expect(data.data.title).toBe("Test Exercise");
+    expect(data.data.isSoundReasoning).toBe(false);
+  });
+
+  it("rejects a passage with too few issues after the retry", async () => {
+    authOk();
+    const thin = JSON.parse(validAnalyticalJson());
+    thin.embeddedIssues = thin.embeddedIssues.slice(0, 1);
+    mockGenerateRaw.mockResolvedValue(JSON.stringify(thin));
+    const res = await POST(makeRequest({ domain: "tech" }));
+    expect(res.status).toBe(422);
+    expect(mockGenerateRaw).toHaveBeenCalledTimes(2);
+  });
+
+  it("marks the sound-reasoning variant from the request, not the model", async () => {
+    authOk();
+    random.mockReturnValue(0.1);
+    const sound = JSON.parse(validAnalyticalJson());
+    sound.embeddedIssues = [];
+    mockGenerateRaw.mockResolvedValue(JSON.stringify(sound));
+    const res = await POST(makeRequest({ domain: "tech" }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).data.isSoundReasoning).toBe(true);
   });
 
   it("defaults exerciseType to analytical", async () => {
@@ -404,13 +438,33 @@ describe("POST /api/ai - analytical real_data", () => {
         domain: "tech",
         mode: "real_data",
         exerciseType: "analytical",
-        userText: "A test passage for analysis.",
+        userText: ANALYTICAL_PASSAGE,
       }),
     );
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.ok).toBe(true);
-    expect(data.data.passage).toBe("A test passage for analysis.");
+    expect(data.data.passage).toBe(ANALYTICAL_PASSAGE);
+  });
+
+  it("checks segments against the pasted text, not the model's copy of it", async () => {
+    authOk();
+    // The model paraphrased one sentence, so that segment is not in the user's text.
+    mockGenerateRaw.mockResolvedValue(
+      validAnalyticalJson(ANALYTICAL_PASSAGE.replace("Everyone agrees", "Everybody agrees")).replace(
+        "Everyone agrees",
+        "Everybody agrees",
+      ),
+    );
+    const res = await POST(
+      makeRequest({
+        domain: "tech",
+        mode: "real_data",
+        exerciseType: "analytical",
+        userText: ANALYTICAL_PASSAGE,
+      }),
+    );
+    expect(res.status).toBe(422);
   });
 });
 
