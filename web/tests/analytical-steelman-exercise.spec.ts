@@ -92,7 +92,9 @@ async function switchToManualEntry(page: import("@playwright/test").Page) {
   await page.getByRole("button", { name: "Type your own" }).click();
 }
 
-test.describe("Analytical exercise - steelman variant", () => {
+// The steelman variant is hidden (PLAN-simplify.md P2.3): the setup no longer offers it.
+// Its code stays until Phase 5 decides whether to delete hidden features.
+test.describe.skip("Analytical exercise - steelman variant", () => {
   test.beforeEach(async ({ page }) => {
     await bypassFirebaseAuth(page);
     await stubSteelmanAi(page);
