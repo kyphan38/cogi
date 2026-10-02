@@ -68,6 +68,7 @@ import {
 import { putExercise, getExercise } from "@/lib/db/exercises";
 import { getUserContext } from "@/lib/db/settings";
 import { completePracticeExercise } from "@/lib/db/complete-exercise";
+import { useSaveOnLeave } from "@/lib/hooks/useSaveOnLeave";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type {
@@ -236,6 +237,7 @@ export function EvaluativeExerciseFlow({
 
   const [takeaway, setTakeaway] = useState("");
   const [finishing, setFinishing] = useState(false);
+  const pendingSave = useSaveOnLeave();
 
   useEffect(() => {
     void listRecentDomains(20).then(setDomainSuggestions);
@@ -298,8 +300,11 @@ export function EvaluativeExerciseFlow({
   }, [initialDomain, resumeId]);
 
   useEffect(() => {
-    if (!exercise || step === 0 || step === 7) return;
-    const timer = setTimeout(() => {
+    if (!exercise || step === 0 || step === 7) {
+      pendingSave.clear();
+      return;
+    }
+    const save = () => {
       const scoringEx = exercise.variant === "scoring" ? exercise : null;
       const updated: EvaluativeExerciseRow =
         exercise.variant === "matrix"
@@ -329,6 +334,11 @@ export function EvaluativeExerciseFlow({
                 currentStep: step,
               };
       void putExercise(updated);
+    };
+    pendingSave.set(save);
+    const timer = setTimeout(() => {
+      pendingSave.clear();
+      save();
     }, 2000);
     return () => clearTimeout(timer);
   }, [
@@ -714,6 +724,7 @@ export function EvaluativeExerciseFlow({
   /** Finish the 3-step loop: save the exercise with the optional takeaway (P2.2). */
   const finishExercise = async () => {
     if (!exercise || !perspectiveText || finishing) return;
+    pendingSave.clear();
     setError(null);
     setFinishing(true);
     const struct = perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null;

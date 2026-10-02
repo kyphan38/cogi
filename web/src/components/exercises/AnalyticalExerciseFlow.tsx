@@ -41,6 +41,7 @@ import {
 import { putExercise, getExercise } from "@/lib/db/exercises";
 import { getUserContext } from "@/lib/db/settings";
 import { completePracticeExercise } from "@/lib/db/complete-exercise";
+import { useSaveOnLeave } from "@/lib/hooks/useSaveOnLeave";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
@@ -107,6 +108,7 @@ export function AnalyticalExerciseFlow({
 
   const [takeaway, setTakeaway] = useState("");
   const [finishing, setFinishing] = useState(false);
+  const pendingSave = useSaveOnLeave();
   const [userPerspectiveGuess, setUserPerspectiveGuess] = useState("");
   const [missingActorGuess1, setMissingActorGuess1] = useState("");
   const [missingActorGuess2, setMissingActorGuess2] = useState("");
@@ -171,13 +173,21 @@ export function AnalyticalExerciseFlow({
   }, [initialDomain, resumeId]);
 
   useEffect(() => {
-    if (!exercise || step === 0 || step === 7) return;
-    const timer = setTimeout(() => {
+    if (!exercise || step === 0 || step === 7) {
+      pendingSave.clear();
+      return;
+    }
+    const save = () => {
       const patch =
         exercise.analyticalVariant === "steelman"
           ? { steelmanText }
           : { userHighlights: highlights };
       void putExercise({ ...exercise, ...patch, currentStep: step });
+    };
+    pendingSave.set(save);
+    const timer = setTimeout(() => {
+      pendingSave.clear();
+      save();
     }, 2000);
     return () => clearTimeout(timer);
   }, [highlights, steelmanText, step]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -491,6 +501,7 @@ export function AnalyticalExerciseFlow({
   /** Finish the 3-step loop: save the exercise with the optional takeaway (P2.2). */
   const finishExercise = async () => {
     if (!exercise || !perspectiveText || finishing) return;
+    pendingSave.clear();
     setError(null);
     setFinishing(true);
     const finalEx: AnalyticalExerciseRow = {

@@ -59,6 +59,7 @@ import {
 } from "@/lib/adaptive/adaptive-hints";
 import { getUserContext } from "@/lib/db/settings";
 import { completePracticeExercise } from "@/lib/db/complete-exercise";
+import { useSaveOnLeave } from "@/lib/hooks/useSaveOnLeave";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
@@ -186,6 +187,7 @@ export function SystemsExerciseFlow({
 
   const [takeaway, setTakeaway] = useState("");
   const [finishing, setFinishing] = useState(false);
+  const pendingSave = useSaveOnLeave();
   const [userPerspectiveBNotes, setUserPerspectiveBNotes] = useState("");
 
   useEffect(() => {
@@ -232,8 +234,11 @@ export function SystemsExerciseFlow({
 
   useEffect(() => {
     const { doneStep } = systemsVariantSteps(exercise);
-    if (!exercise || step === 0 || step === doneStep) return;
-    const timer = setTimeout(() => {
+    if (!exercise || step === 0 || step === doneStep) {
+      pendingSave.clear();
+      return;
+    }
+    const save = () => {
       void putExercise({
         ...exercise,
         userEdges,
@@ -242,6 +247,11 @@ export function SystemsExerciseFlow({
         userCriticalityRanking,
         currentStep: step,
       });
+    };
+    pendingSave.set(save);
+    const timer = setTimeout(() => {
+      pendingSave.clear();
+      save();
     }, 2000);
     return () => clearTimeout(timer);
   }, [userEdges, nodeImpact, secondNodeImpact, userCriticalityRanking, step]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -535,6 +545,7 @@ export function SystemsExerciseFlow({
   /** Finish the 3-step loop: save the exercise with the optional takeaway (P2.2). */
   const finishExercise = async () => {
     if (!exercise || !perspectiveText || finishing) return;
+    pendingSave.clear();
     setError(null);
     setFinishing(true);
     const isResilience = isResilienceSystemsExercise(exercise);
