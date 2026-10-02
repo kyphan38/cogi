@@ -82,14 +82,23 @@ AI perspective, Journal, Action.
 - Kiểm tra: test cho shell (unit + Playwright 3 loại), đo số dòng trước/sau, thử
   làm hết một bài mỗi loại trong browser.
 
-## Phase 3 - Home thay Dashboard; History gọn
+## Phase 3 - Home thay Dashboard; History gọn - XONG
+
+**Xong (2026-10-02)**, branch `simplify/phase-3`. History 1123→881, Settings 383→221
+dòng. E2E 162 đạt (3 bỏ qua: Steelman), unit 972/972, build đạt.
 
 - **P3.1** Bỏ trang Dashboard khỏi luồng chính. Số liệu còn ý nghĩa (số bài đã xong,
-  chuỗi ngày học) chuyển lên Home dưới dạng một dòng nhỏ.
+  chuỗi ngày học) chuyển lên Home dưới dạng một dòng nhỏ. Đăng nhập xong vào `/`
+  thay vì `/dashboard`. Hàm tính chuỗi ngày tách ra `lib/exercise/streak.ts`.
 - **P3.2** History (`exercise/history/page.tsx`, 1.123 dòng): danh sách bài + xem
   lại phản hồi AI và "Điều rút ra". Bỏ các phần chỉ phục vụ tính năng đã ẩn.
+  Đã bỏ: Calibration, Perspective disagreements, Journal, nút "Realtime filters".
+  Giữ: Activity, Filters (đủ 6 loại cho bài cũ), xem lại từng loại, xoá bài.
 - **P3.3** Settings: bỏ mục Geopolitics progression, Adaptive difficulty và các tuỳ
   chọn của tính năng đã ẩn. Giữ Personal context, Keyboard, Backup.
+  Đã bỏ thêm Delayed recall và nút tải Journal (Markdown). Giữ Language level (vẫn
+  dùng khi AI tạo bài). Adaptive difficulty tắt luôn khi tạo bài (cờ trong
+  `lib/adaptive/adaptive-hints.ts`), vì dữ liệu Confidence nó cần không còn được ghi.
 
 ## Phase 4 - Lớp AI
 
@@ -120,6 +129,6 @@ AI perspective, Journal, Action.
 
 1. ~~Phase 1 (nhanh, thấy ngay khác biệt)~~ - xong
 2. ~~Phase 2 (lớn nhất, nhiều quyết định)~~ - xong
-3. Phase 3
+3. ~~Phase 3~~ - xong
 4. Phase 4
 5. Phase 5
