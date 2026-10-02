@@ -96,12 +96,46 @@ export interface LegacyPerspectiveStructured {
   openQuestions: PerspectivePoint[];
 }
 
-export type AIPerspectiveStructured = ClarityPerspectiveStructured | LegacyPerspectiveStructured;
+/**
+ * Analytical feedback v3: code decides right and wrong (`AnalyticalResult`); the AI
+ * only explains each case. `ref` points at what it explains: `issue_<n>` and
+ * `decoy_<n>` (1-based, in answer-key order) or `extra_<n>` (the n-th highlight that
+ * matched neither).
+ */
+export interface AnalyticalCoachingItem {
+  ref: string;
+  why: string;
+  clue: string;
+  nextTimeAsk: string;
+  /** A more specific common name (e.g. "False dilemma"), shown as a type of the tag. */
+  subtypeName?: string;
+}
+
+export interface AnalyticalCoachingStructured {
+  perspectiveFormat: "analytical_v3";
+  title: string;
+  items: AnalyticalCoachingItem[];
+  /** 1-2 lessons to carry to the next exercise. */
+  takeaways: string[];
+  /** Geopolitics only: a short note on the user's perspective and missing-actor guesses. */
+  metaNote?: string;
+}
+
+export type AIPerspectiveStructured =
+  | ClarityPerspectiveStructured
+  | LegacyPerspectiveStructured
+  | AnalyticalCoachingStructured;
+
+export function isAnalyticalCoachingStructured(
+  s: AIPerspectiveStructured | null | undefined,
+): s is AnalyticalCoachingStructured {
+  return s != null && "perspectiveFormat" in s && s.perspectiveFormat === "analytical_v3";
+}
 
 export function isLegacyPerspectiveStructured(
   s: AIPerspectiveStructured,
 ): s is LegacyPerspectiveStructured {
-  if (isClarityPerspectiveStructured(s)) return false;
+  if (isClarityPerspectiveStructured(s) || isAnalyticalCoachingStructured(s)) return false;
   return "embedded" in s && Array.isArray(s.embedded);
 }
 

@@ -81,26 +81,52 @@ describe("POST /api/ai/perspective - analytical", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns structured perspective on success", async () => {
+  const passage = "Sales rose after the ad, so the ad caused it. Costs fell last year.";
+  const analyticalBody = {
+    kind: "analytical",
+    passage,
+    title: "Test Title",
+    domain: "tech",
+    confidenceBefore: 60,
+    embeddedIssues: [
+      { description: "d", type: "logical_fallacy", severity: "obvious", textSegment: "so the ad caused it", explanation: "e" },
+    ],
+    validPoints: [{ textSegment: "Costs fell last year", explanation: "e" }],
+    userHighlights: [
+      { id: "h1", startOffset: 0, endOffset: 44, text: passage.slice(0, 44), tag: "logical_fallacy" },
+    ],
+  };
+  const coaching = (items: { ref: string }[]) =>
+    JSON.stringify({
+      perspectiveFormat: "analytical_v3",
+      title: "Test Title",
+      items: items.map((it) => ({ ...it, why: "w", clue: "c", nextTimeAsk: "q?" })),
+      takeaways: ["Look for causes claimed from timing alone."],
+    });
+
+  it("scores in code and returns v3 coaching on success", async () => {
     authOk();
-    mockGenerateRaw.mockResolvedValue(structuredPerspectiveJson());
-    const res = await POST(
-      makeRequest({
-        kind: "analytical",
-        passage: "A test passage",
-        title: "Test Title",
-        domain: "tech",
-        confidenceBefore: 60,
-        embeddedIssues: [],
-        validPoints: [],
-        userHighlights: [],
-      }),
-    );
+    mockGenerateRaw.mockResolvedValue(coaching([{ ref: "issue_1" }]));
+    const res = await POST(makeRequest(analyticalBody));
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.ok).toBe(true);
-    expect(data.structured).toBeDefined();
-    expect(data.text).toBeDefined();
+    expect(data.structured.perspectiveFormat).toBe("analytical_v3");
+    expect(data.result).toMatchObject({ found: 1, total: 1, tagsCorrect: 1, trapsHit: 0 });
+    expect(data.text).toContain('Issue: "so the ad caused it"');
+    const prompt = mockGenerateRaw.mock.calls[0]![0] as string;
+    expect(prompt).toContain("CORRECT - found it");
+  });
+
+  it("retries when an issue has no coaching item", async () => {
+    authOk();
+    mockGenerateRaw
+      .mockResolvedValueOnce(coaching([{ ref: "decoy_1" }]))
+      .mockResolvedValueOnce(coaching([{ ref: "issue_1" }]));
+    const res = await POST(makeRequest(analyticalBody));
+    expect(res.status).toBe(200);
+    expect(mockGenerateRaw).toHaveBeenCalledTimes(2);
+    expect(mockGenerateRaw.mock.calls[1]![0]).toContain("items missing for refs: issue_1");
   });
 
   it("retries on parse failure then returns 500 if still invalid", async () => {

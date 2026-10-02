@@ -145,7 +145,19 @@ Không đổi giao diện nhiều. Làm cho đáp án đáng tin trước khi hi
   lúc. Chế độ bấm cả câu sẽ tự giải quyết; chế độ kéo chọn (Expert) có thể cần giới
   hạn.
 
-## Phase 2 - Feedback mới (Analytical)
+## Phase 2 - Feedback mới (Analytical) - XONG
+
+**Xong (2026-10-02)**, branch `analytical/phase-2`. Unit 492/492, E2E 92/92, `tsc` sạch, eslint 0
+lỗi (2 cảnh báo cũ), build production đạt. Gọi Gemini thật với bài mẫu "daily
+routine": AI giữ đúng kết luận của code, câu false dilemma được xác nhận đúng.
+
+- Route `/api/ai/perspective` tự chấm bằng `scoreAnalytical`, gửi AI kết luận cuối
+  cùng cho từng trường hợp; AI chỉ giải thích. Trả về thêm `result`.
+- Đã làm thêm: siết luật `subtypeName` (chỉ cho lỗi, chỉ khi thật sự là loại con của
+  tag đó, tối đa 2). Lần chạy đầu AI gắn tên loại con cho mọi lỗi, ví dụ
+  "Confusing correlation with causation" hiện là loại con của Hidden Assumption.
+- Đã làm trước một phần Phase 5: History dùng bảng đáp án cho bài analytical (nếu
+  không, feedback v3 sẽ không xem lại được). Bỏ in tên tag thô.
 
 - **P2.1 Bảng đáp án** (`components/exercises/AnalyticalAnswerKey.tsx`):
   - Dòng tổng kết: "Tìm được 3/4 lỗi · Bắt nhầm 0/2 bẫy".
@@ -231,8 +243,9 @@ Ví dụ mục tiêu (câu người dùng đã gặp):
 
 ## Phase 5 - History (Analytical)
 
-- Hiện tên tag đẹp (không phải `logical_fallacy`), bảng đáp án, cấp đã làm.
-- Bài cũ: tính `result` khi mở; feedback cũ vẫn hiện như trước.
+- ~~Hiện tên tag đẹp (không phải `logical_fallacy`), bảng đáp án.~~ Đã làm ở Phase 2.
+- ~~Bài cũ: tính `result` khi mở; feedback cũ vẫn hiện như trước.~~ Đã làm ở Phase 2.
+- Còn lại: hiện cấp đã làm (sau Phase 4).
 
 ## Phase 6 - Mở rộng cấp độ sang Systems và Evaluative `[QUYẾT ĐỊNH]`
 

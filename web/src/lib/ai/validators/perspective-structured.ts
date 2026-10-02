@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { ClarityPerspectiveKind } from "@/lib/types/perspective";
 import type {
   AIPerspectiveStructured,
+  AnalyticalCoachingStructured,
   ClarityPerspectiveStructured,
   LegacyPerspectiveStructured,
 } from "@/lib/types/perspective";
@@ -95,8 +96,70 @@ export const legacyPerspectiveStructuredSchema = z.object({
   openQuestions: z.array(perspectivePointSchema).min(1),
 });
 
+const coachingItemSchema = z.object({
+  ref: z.string().min(1),
+  why: z.string().min(1),
+  clue: z.string().min(1),
+  nextTimeAsk: z.string().min(1),
+  subtypeName: z.string().min(1).optional(),
+});
+
+export const analyticalCoachingSchema = z.object({
+  perspectiveFormat: z.literal("analytical_v3"),
+  title: z.string().min(1),
+  items: z.array(coachingItemSchema),
+  takeaways: z.array(z.string().min(1)).min(1).max(2),
+  metaNote: z.string().min(1).optional(),
+});
+
+export type ParseAnalyticalCoachingResult =
+  | { success: true; data: AnalyticalCoachingStructured }
+  | { success: false; error: string };
+
+/**
+ * Parse analytical v3 feedback and check it covers every case the code asked about.
+ * Items for refs nobody asked about are dropped rather than failing the reply.
+ */
+export function parseAnalyticalCoachingJson(
+  text: string,
+  opts: { requiredRefs: string[]; allowedRefs: string[]; requireMetaNote?: boolean },
+): ParseAnalyticalCoachingResult {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stripJsonFences(text));
+  } catch {
+    return { success: false, error: "Invalid JSON from model" };
+  }
+  const result = analyticalCoachingSchema.safeParse(parsed);
+  if (!result.success) {
+    return { success: false, error: result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ") };
+  }
+  const allowed = new Set(opts.allowedRefs);
+  const seen = new Set<string>();
+  const items = result.data.items.filter((it) => {
+    if (!allowed.has(it.ref) || seen.has(it.ref)) return false;
+    seen.add(it.ref);
+    return true;
+  });
+  const missing = opts.requiredRefs.filter((r) => !seen.has(r));
+  if (missing.length > 0) {
+    return { success: false, error: `items missing for refs: ${missing.join(", ")}` };
+  }
+  if (opts.requireMetaNote && !result.data.metaNote) {
+    return { success: false, error: "metaNote is required for geopolitics passages" };
+  }
+  // Keep the answer-key order, whatever order the model used.
+  const order = new Map(opts.allowedRefs.map((r, i) => [r, i]));
+  items.sort((a, b) => order.get(a.ref)! - order.get(b.ref)!);
+  return { success: true, data: { ...result.data, items } as AnalyticalCoachingStructured };
+}
+
+export const ANALYTICAL_COACHING_RETRY_SUFFIX = `Your previous answer was not valid JSON or did not match the required shape.
+Return ONLY a single JSON object (no markdown fences) with perspectiveFormat: "analytical_v3", title, items[{ ref, why, clue, nextTimeAsk, subtypeName? }] with one item for every ref listed under CASES, and takeaways (1-2 strings).`;
+
 /** @deprecated Use kind-specific clarity schemas; kept for generic checks. */
 export const aiPerspectiveStructuredSchema = z.union([
+  analyticalCoachingSchema,
   analyticalPerspectiveSchema,
   systemsPerspectiveSchema,
   evaluativeMatrixPerspectiveSchema,

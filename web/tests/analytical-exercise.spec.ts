@@ -123,6 +123,25 @@ test.describe("Analytical exercise - generate and highlight phase", () => {
     await page.getByRole("button", { name: "Finish" }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 15_000 });
   });
+
+  test("AI feedback shows the answer key with coaching for each case", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/analytical");
+    await generateExercise(page, "DevOps");
+    await expect(page.getByText("Structural reasoning passage")).toBeVisible({ timeout: 15_000 });
+
+    await addPassageHighlight(page);
+    await page.getByRole("button", { name: "Get AI feedback" }).click();
+
+    const key = page.getByTestId("analytical-answer-key");
+    await expect(key).toBeVisible({ timeout: 15_000 });
+    await expect(key.getByText("Issues found")).toBeVisible();
+    await expect(key.getByText('"binary choice"', { exact: false }).first()).toBeVisible();
+    await expect(key.getByText("Mock why: the passage offers only two options.")).toBeVisible();
+    await expect(key.getByText("More specific: False dilemma", { exact: false })).toBeVisible();
+    await expect(key.getByTestId("answer-key-takeaways")).toContainText("Mock takeaway");
+    // v3 feedback replaces the old "Stronger alternative" card.
+    await expect(page.getByText("Stronger alternative")).toHaveCount(0);
+  });
 });
 
 test.describe("Analytical exercise - domain input", () => {
