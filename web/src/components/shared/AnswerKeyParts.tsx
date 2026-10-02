@@ -29,7 +29,7 @@ export function Marker({ children }: { children: ReactNode }) {
 }
 
 export function Coaching({ item, fallback }: { item?: AnalyticalCoachingItem; fallback: string }) {
-  if (!item) return <p className="text-muted-foreground">{fallback}</p>;
+  if (!item) return fallback ? <p className="text-muted-foreground">{fallback}</p> : null;
   return (
     <div className="space-y-1">
       <p>{item.why}</p>

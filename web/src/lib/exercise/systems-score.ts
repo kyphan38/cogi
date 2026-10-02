@@ -1,0 +1,133 @@
+import type {
+  SystemsIntendedConnection,
+  SystemsNodeImpact,
+  SystemsNodeSpec,
+  SystemsShockEvent,
+  SystemsUserEdge,
+} from "@/lib/types/exercise";
+import type { ResultRating } from "@/lib/exercise/levels";
+
+/** How one of the model's connections was handled. */
+export interface SystemsConnectionOutcome {
+  /** Index into `intendedConnections`. */
+  index: number;
+  /** The user's edge on the same pair of nodes, if any. */
+  edgeId: string | null;
+  /** "same": same direction; "reversed": the user drew it the other way. */
+  direction: "same" | "reversed" | null;
+  userType: SystemsUserEdge["type"] | null;
+  found: boolean;
+  /** Found in the same direction and with the same connection type. */
+  exact: boolean;
+}
+
+export interface SystemsImpactOutcome {
+  nodeId: string;
+  expected: SystemsNodeImpact;
+  user: SystemsNodeImpact;
+  correct: boolean;
+}
+
+/** Systems work scored against the model, in code (plan phase 6a). */
+export interface SystemsResult {
+  connections: SystemsConnectionOutcome[];
+  /** User edges between nodes the model does not connect. */
+  extraEdgeIds: string[];
+  impacts: SystemsImpactOutcome[];
+  connectionsFound: number;
+  connectionsExact: number;
+  connectionsTotal: number;
+  impactsCorrect: number;
+  impactsTotal: number;
+}
+
+export function expectedImpact(shock: SystemsShockEvent, nodeId: string): SystemsNodeImpact {
+  if (shock.directlyAffected.includes(nodeId as never)) return "direct";
+  if (shock.indirectlyAffected.includes(nodeId as never)) return "indirect";
+  return "none";
+}
+
+export function scoreSystems(input: {
+  nodes: SystemsNodeSpec[];
+  intendedConnections: SystemsIntendedConnection[];
+  shockEvent: SystemsShockEvent;
+  userEdges: SystemsUserEdge[];
+  nodeImpact: Record<string, SystemsNodeImpact>;
+}): SystemsResult {
+  const used = new Set<string>();
+  const connections = input.intendedConnections.map((c, index) => {
+    const same = input.userEdges.find((e) => !used.has(e.id) && e.source === c.from && e.target === c.to);
+    const reversed = same
+      ? undefined
+      : input.userEdges.find((e) => !used.has(e.id) && e.source === c.to && e.target === c.from);
+    const edge = same ?? reversed ?? null;
+    if (edge) used.add(edge.id);
+    return {
+      index,
+      edgeId: edge?.id ?? null,
+      direction: same ? ("same" as const) : reversed ? ("reversed" as const) : null,
+      userType: edge?.type ?? null,
+      found: edge != null,
+      exact: same != null && same.type === c.type,
+    };
+  });
+  const impacts = input.nodes.map((n) => {
+    const expected = expectedImpact(input.shockEvent, n.id);
+    const user = input.nodeImpact[n.id] ?? "none";
+    return { nodeId: n.id, expected, user, correct: expected === user };
+  });
+  return {
+    connections,
+    extraEdgeIds: input.userEdges.filter((e) => !used.has(e.id)).map((e) => e.id),
+    impacts,
+    connectionsFound: connections.filter((c) => c.found).length,
+    connectionsExact: connections.filter((c) => c.exact).length,
+    connectionsTotal: connections.length,
+    impactsCorrect: impacts.filter((i) => i.correct).length,
+    impactsTotal: impacts.length,
+  };
+}
+
+/** Good: on average at least 75% of connections found and nodes marked right. Poor: 35% or less. */
+export function rateSystems(r: SystemsResult): ResultRating {
+  const conn = r.connectionsTotal > 0 ? r.connectionsFound / r.connectionsTotal : 1;
+  const impact = r.impactsTotal > 0 ? r.impactsCorrect / r.impactsTotal : 1;
+  const share = (conn + impact) / 2;
+  if (share >= 0.75) return "good";
+  if (share <= 0.35) return "poor";
+  return "ok";
+}
+
+/**
+ * Refs for the coaching feedback: `node_<id>`, `conn_<n>` (1-based, model order),
+ * `extra_<n>` (1-based, order of `extraEdgeIds`). Required: wrongly marked nodes, up to
+ * 4 missed or reversed connections, up to 2 extra edges.
+ */
+export function systemsCoachingRefs(r: SystemsResult): { required: string[]; allowed: string[] } {
+  const nodeRefs = r.impacts.map((i) => `node_${i.nodeId}`);
+  const connRefs = r.connections.map((c) => `conn_${c.index + 1}`);
+  const extraRefs = r.extraEdgeIds.map((_, i) => `extra_${i + 1}`);
+  return {
+    required: [
+      ...r.impacts.filter((i) => !i.correct).map((i) => `node_${i.nodeId}`),
+      ...r.connections
+        .filter((c) => !c.found || c.direction === "reversed")
+        .slice(0, 4)
+        .map((c) => `conn_${c.index + 1}`),
+      ...extraRefs.slice(0, 2),
+    ],
+    allowed: [...nodeRefs, ...connRefs, ...extraRefs],
+  };
+}
+
+/** The stored result, or a fresh score for rows saved before results were stored. */
+export function systemsResultOf(row: {
+  nodes: SystemsNodeSpec[];
+  intendedConnections: SystemsIntendedConnection[];
+  shockEvent: SystemsShockEvent;
+  userEdges: SystemsUserEdge[];
+  nodeImpact: Record<string, SystemsNodeImpact>;
+  result?: SystemsResult | null;
+}): SystemsResult {
+  return row.result ?? scoreSystems(row);
+}
