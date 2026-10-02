@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { startTransition, Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -27,13 +27,9 @@ import {
   getExercise,
   deleteCompletedExerciseAndRelatedRecords,
   subscribeCompletedExercises,
-  subscribeConfidenceRecords,
   type CompletedExerciseFilter,
 } from "@/lib/db/exercises";
-import { getJournalForExercise } from "@/lib/db/journal";
-import { JOURNAL_PROMPTS } from "@/lib/ai/prompts/journal-pool";
 import type { Exercise } from "@/lib/types/exercise";
-import type { ConfidenceRecord } from "@/lib/types/exercise";
 import {
   isAnalyticalExercise,
   isComboExercise,
@@ -42,7 +38,6 @@ import {
   isSequentialExercise,
   isSystemsExercise,
 } from "@/lib/types/exercise";
-import type { JournalEntry } from "@/lib/types/journal";
 import {
   getPerspectiveViewModel,
   getStructuredPerspectiveSections,
@@ -50,11 +45,10 @@ import {
 import { isLegacyPerspectiveStructured } from "@/lib/types/perspective";
 import type { ClarityPerspectiveKind } from "@/lib/types/perspective";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
-import { listPerspectiveDisagreementsForExercise } from "@/lib/db/disagreements";
-import type { PerspectiveDisagreementRow } from "@/lib/types/disagreement";
 import { Trash2 } from "lucide-react";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { computeStreak } from "@/lib/exercise/streak";
 
 type ThinkingTypeFilter =
   | "all"
@@ -169,28 +163,6 @@ function startOfWeekMonday(d: Date): Date {
   return x;
 }
 
-function computeStreak(allDone: Exercise[]): number {
-  const daySet = new Set<string>();
-  for (const ex of allDone) {
-    if (!ex.completedAt) continue;
-    daySet.add(new Date(ex.completedAt).toLocaleDateString("en-CA"));
-  }
-  if (daySet.size === 0) return 0;
-  const cursor = new Date();
-  cursor.setHours(0, 0, 0, 0);
-  if (!daySet.has(cursor.toLocaleDateString("en-CA"))) {
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  let s = 0;
-  for (;;) {
-    const k = cursor.toLocaleDateString("en-CA");
-    if (!daySet.has(k)) break;
-    s += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return s;
-}
-
 function typeSwatchClass(t: Exercise["type"]): string {
   switch (t) {
     case "analytical":
@@ -302,60 +274,11 @@ function HistoryActivityHeatmap({ rows }: { rows: Exercise[] }) {
   );
 }
 
-function GapChart({ points }: { points: { t: string; gap: number }[] }) {
-  if (points.length < 2) {
-    return (
-      <p className="text-muted-foreground text-xs">
-        Complete at least two exercises with calibration to see a trend line.
-      </p>
-    );
-  }
-  const gaps = points.map((p) => p.gap);
-  const min = Math.min(...gaps, 0) - 2;
-  const max = Math.max(...gaps, 0) + 2;
-  const w = 320;
-  const h = 120;
-  const pad = 8;
-  const xFor = (i: number) => pad + (i / (points.length - 1)) * (w - pad * 2);
-  const yFor = (g: number) => {
-    const t = (g - min) / (max - min || 1);
-    return h - pad - t * (h - pad * 2);
-  };
-  const d = points
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${xFor(i)} ${yFor(p.gap)}`)
-    .join(" ");
-  return (
-    <svg
-      viewBox={`0 0 ${w} ${h}`}
-      className="w-full max-w-md text-primary"
-      aria-label="Calibration gap over time"
-    >
-      <line
-        x1={pad}
-        y1={yFor(0)}
-        x2={w - pad}
-        y2={yFor(0)}
-        className="stroke-muted-foreground/40"
-        strokeWidth="1"
-        strokeDasharray="4 3"
-      />
-      <path d={d} fill="none" stroke="currentColor" strokeWidth="2" />
-    </svg>
-  );
-}
-
 function HistoryPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { show: showToast } = useToast();
   const [rows, setRows] = useState<Exercise[]>([]);
-  const [confMap, setConfMap] = useState<Map<string, number>>(new Map());
-  const [globalStats, setGlobalStats] = useState<{
-    avgConf: number | null;
-    avgAcc: number | null;
-    avgGap: number | null;
-    chartPoints: { t: string; gap: number }[];
-  }>({ avgConf: null, avgAcc: null, avgGap: null, chartPoints: [] });
   const [streakDays, setStreakDays] = useState(0);
 
   const [typeFilter, setTypeFilter] = useState<ThinkingTypeFilter>("all");
@@ -365,8 +288,6 @@ function HistoryPageInner() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailEx, setDetailEx] = useState<Exercise | null>(null);
-  const [detailJournal, setDetailJournal] = useState<JournalEntry | null>(null);
-  const [detailDisagreements, setDetailDisagreements] = useState<PerspectiveDisagreementRow[]>([]);
 
   const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null);
   const [deletePhrase, setDeletePhrase] = useState("");
@@ -377,7 +298,6 @@ function HistoryPageInner() {
   const [filteredListReady, setFilteredListReady] = useState(false);
 
   const [allCompletedRows, setAllCompletedRows] = useState<Exercise[]>([]);
-  const [confidenceRows, setConfidenceRows] = useState<ConfidenceRecord[]>([]);
 
   const openExerciseId = searchParams.get("openExercise")?.trim() || null;
 
@@ -450,78 +370,18 @@ function HistoryPageInner() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = subscribeConfidenceRecords(
-      (rows) => {
-        startTransition(() => {
-          setConfidenceRows(rows);
-        });
-      },
-      (error) => {
-        logFirestoreQueryError("HistoryPage", "subscribeConfidenceRecords", error);
-      },
-    );
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const m = new Map<string, number>();
-    const filteredIds = new Set(rows.map((row) => row.id));
-    for (const row of confidenceRows) {
-      if (filteredIds.has(row.exerciseId)) {
-        m.set(row.exerciseId, row.gap);
-      }
-    }
-    setConfMap(m);
-  }, [rows, confidenceRows]);
-
-  useEffect(() => {
-    const ids = new Set(allCompletedRows.map((item) => item.id));
-    const recs = confidenceRows.filter((row) => ids.has(row.exerciseId));
-    if (recs.length === 0) {
-      setGlobalStats({
-        avgConf: null,
-        avgAcc: null,
-        avgGap: null,
-        chartPoints: [],
-      });
-      return;
-    }
-    const avgConf = recs.reduce((sum, row) => sum + row.confidenceBefore, 0) / recs.length;
-    const avgAcc = recs.reduce((sum, row) => sum + row.actualAccuracy, 0) / recs.length;
-    const avgGap = recs.reduce((sum, row) => sum + row.gap, 0) / recs.length;
-    const chartPoints = [...recs]
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-      .map((row) => ({ t: row.createdAt, gap: row.gap }));
-    setGlobalStats({
-      avgConf: Math.round(avgConf * 10) / 10,
-      avgAcc: Math.round(avgAcc * 10) / 10,
-      avgGap: Math.round(avgGap * 10) / 10,
-      chartPoints,
-    });
-  }, [allCompletedRows, confidenceRows]);
-
-  useEffect(() => {
     if (!selectedId) {
       startTransition(() => {
         setDetailEx(null);
-        setDetailJournal(null);
-        setDetailDisagreements([]);
       });
       return;
     }
     let cancelled = false;
     void (async () => {
       const ex = await getExercise(selectedId);
-      const j = await getJournalForExercise(selectedId);
-      const disagreements = await listPerspectiveDisagreementsForExercise(selectedId);
-      const sortedDisagreements = [...disagreements].sort(
-        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-      );
       if (cancelled) return;
       startTransition(() => {
         setDetailEx(ex ?? null);
-        setDetailJournal(j ?? null);
-        setDetailDisagreements(sortedDisagreements);
       });
     })();
     return () => {
@@ -606,40 +466,6 @@ function HistoryPageInner() {
       ) : null}
 
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Calibration</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-md border border-border bg-muted/10 p-3 text-sm">
-              <p className="text-muted-foreground">Avg confidence</p>
-              <p className="text-lg font-medium tabular-nums">
-                {globalStats.avgConf != null ? `${globalStats.avgConf}%` : "-"}
-              </p>
-            </div>
-            <div className="rounded-md border border-border bg-muted/10 p-3 text-sm">
-              <p className="text-muted-foreground">Avg accuracy</p>
-              <p className="text-lg font-medium tabular-nums">
-                {globalStats.avgAcc != null ? `${globalStats.avgAcc}%` : "-"}
-              </p>
-            </div>
-            <div className="rounded-md border border-border bg-muted/10 p-3 text-sm">
-              <p className="text-muted-foreground">Avg calibration gap</p>
-              <p className="text-lg font-medium tabular-nums">
-                {globalStats.avgGap != null
-                  ? `${globalStats.avgGap > 0 ? "+" : ""}${globalStats.avgGap}%`
-                  : "-"}
-              </p>
-            </div>
-          </div>
-          <div>
-            <p className="text-muted-foreground mb-2 text-xs font-medium">Gap over time</p>
-            <GapChart points={globalStats.chartPoints} />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-2">
           <CardTitle className="text-base">Activity</CardTitle>
           <p className="text-muted-foreground text-xs tabular-nums">
@@ -686,15 +512,6 @@ function HistoryPageInner() {
             <Label>Completed on or before</Label>
             <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
           </div>
-          <div className="sm:col-span-2">
-            <button
-              type="button"
-              disabled
-              className={cn(buttonVariants({ variant: "secondary" }), "w-full sm:w-auto")}
-            >
-              Realtime filters enabled
-            </button>
-          </div>
         </CardContent>
       </Card>
 
@@ -739,26 +556,6 @@ function HistoryPageInner() {
                       <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                         {ex.domain}
                       </span>
-                      {confMap.has(ex.id)
-                        ? (() => {
-                            const g = confMap.get(ex.id)!;
-                            return (
-                              <span
-                                className={cn(
-                                  "rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums",
-                                  g > 0
-                                    ? "bg-destructive/10 text-destructive"
-                                    : g < 0
-                                      ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200"
-                                      : "bg-muted text-muted-foreground",
-                                )}
-                              >
-                                gap {g > 0 ? "+" : ""}
-                                {g}%
-                              </span>
-                            );
-                          })()
-                        : null}
                     </div>
                   </button>
                   <Button
@@ -994,51 +791,12 @@ function HistoryPageInner() {
               )}
             </div>
 
-            {detailDisagreements.length > 0 ? (
+            {"takeaway" in detailEx && detailEx.takeaway ? (
               <div>
-                <h3 className="mb-1 font-medium">Perspective disagreements</h3>
-                <ul className="space-y-3 text-xs">
-                  {detailDisagreements.map((d) => (
-                    <li key={d.id} className="rounded-md border p-2">
-                      <p className="text-muted-foreground">
-                        {d.section} · {d.pointId}
-                        {d.pointTitle ? ` - ${d.pointTitle}` : ""}
-                      </p>
-                      <p className="mt-1 font-medium">You</p>
-                      <p className="text-muted-foreground whitespace-pre-wrap">{d.userReason}</p>
-                      <p className="mt-2 font-medium">AI</p>
-                      <p className="text-muted-foreground whitespace-pre-wrap">{d.aiReply}</p>
-                    </li>
-                  ))}
-                </ul>
+                <h3 className="mb-1 font-medium">Takeaway</h3>
+                <p className="whitespace-pre-wrap leading-relaxed">{detailEx.takeaway}</p>
               </div>
             ) : null}
-
-            <div>
-              <h3 className="mb-1 font-medium">Journal</h3>
-              {!detailJournal ? (
-                <p className="text-muted-foreground">No journal entry found.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {detailJournal.emotionLabel ? (
-                    <li>
-                      <p className="text-xs font-medium">
-                        Emotion: <span className="font-normal">{detailJournal.emotionLabel}</span>
-                      </p>
-                    </li>
-                  ) : null}
-                  {detailJournal.promptIds.map((pid) => {
-                    const label = JOURNAL_PROMPTS.find((p) => p.id === pid)?.text ?? pid;
-                    return (
-                      <li key={pid}>
-                        <p className="text-muted-foreground text-xs">{label}</p>
-                        <p className="whitespace-pre-wrap">{detailJournal.responses[pid] ?? "-"}</p>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
           </CardContent>
         </Card>
       ) : null}
