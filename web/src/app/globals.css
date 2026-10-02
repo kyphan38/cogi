@@ -130,10 +130,21 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    /* Chi cuon doc, khong bao gio cuon ngang o cap trang. Bang can cuon
+       ngang thi tu lo `overflow-x-auto` o ben trong. */
+    overflow-x: clip;
+    overscroll-behavior-x: none;
+    /* iOS: chan nhay layout khi ban phim chu bat len */
+    -webkit-text-size-adjust: 100%;
+  }
   body {
     @apply bg-background text-foreground font-sans tracking-normal antialiased transition-colors duration-200;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: clip;
+    overscroll-behavior-x: none;
+    max-width: 100vw;
   }
   h1,
   h2,
@@ -147,6 +158,21 @@
   }
   a:focus-visible {
     @apply rounded-sm outline-2 outline-offset-2 outline-ring;
+  }
+  /* iOS: bo o sang khi cham, bo do tre 300ms. */
+  a,
+  button,
+  select,
+  label,
+  [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  /* Duoi 16px la iOS Safari tu zoom khi focus vao input. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
   }
 }
 

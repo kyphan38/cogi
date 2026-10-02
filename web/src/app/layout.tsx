@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ToastLayout } from "@/components/providers/ToastLayout";
+import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,8 +20,19 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
-    apple: "/branding/cogi-icon.svg",
+    apple: "/icons/apple-touch-icon.png",
   },
+  appleWebApp: { capable: true, title: "cogi", statusBarStyle: "default" },
+};
+
+export const viewport: Viewport = {
+  // Khoa zoom: app la cong cu luyen tap tren dien thoai, double-tap zoom
+  // chi gay loi cham.
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+  themeColor: "#f9f9fb",
 };
 
 export default function RootLayout({
@@ -66,7 +78,8 @@ export default function RootLayout({
         />
       </head>
       {/* suppressHydrationWarning: extensions (e.g. WOT wotdisconnected on body) mutate DOM before hydrate */}
-      <body className="flex min-h-full flex-col" suppressHydrationWarning>
+      <body className="flex min-h-full flex-col overscroll-none" suppressHydrationWarning>
+        <ServiceWorkerRegistrar />
         <ToastLayout>
           <div className="flex flex-1 flex-col">{children}</div>
         </ToastLayout>
