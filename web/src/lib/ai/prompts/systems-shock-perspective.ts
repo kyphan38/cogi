@@ -1,4 +1,3 @@
-import { buildPerspectiveClarityPreamble } from "@/lib/ai/prompts/perspective-clarity-directives";
 import type {
   SystemsIntendedConnection,
   SystemsNodeCriticalityHint,
@@ -7,6 +6,54 @@ import type {
   SystemsShockEvent,
   SystemsUserEdge,
 } from "@/lib/types/exercise";
+import type { SystemsResult } from "@/lib/exercise/systems-score";
+import { CONNECTION_TYPE_INFO, IMPACT_LABELS } from "@/lib/exercise/systems-labels";
+
+/**
+ * The cases the AI must explain, one block per ref. Verdicts come from code
+ * (`scoreSystems`), so the AI never judges right or wrong itself.
+ */
+export function buildSystemsCoachingCases(input: {
+  nodes: SystemsNodeSpec[];
+  intendedConnections: SystemsIntendedConnection[];
+  userEdges: SystemsUserEdge[];
+  result: SystemsResult;
+}): string {
+  const label = (id: string) => input.nodes.find((n) => n.id === id)?.label ?? id;
+  const typeName = (t: SystemsUserEdge["type"]) => CONNECTION_TYPE_INFO[t].label;
+  const blocks: string[] = [];
+  for (const i of input.result.impacts) {
+    const verdict = i.correct
+      ? `CORRECT - marked ${IMPACT_LABELS[i.user]}.`
+      : `DIFFERENT - marked ${IMPACT_LABELS[i.user]}; the model says ${IMPACT_LABELS[i.expected]}.`;
+    blocks.push(`node_${i.nodeId} - node "${label(i.nodeId)}" under the shock\n  User: ${verdict}`);
+  }
+  for (const c of input.result.connections) {
+    const ic = input.intendedConnections[c.index]!;
+    const verdict = !c.found
+      ? "MISSED - did not draw it."
+      : c.direction === "reversed"
+        ? `FOUND BUT REVERSED - drew ${label(ic.to)} -> ${label(ic.from)} (${typeName(c.userType!)}).`
+        : c.exact
+          ? "CORRECT - same direction and type."
+          : `FOUND, OTHER TYPE - drew it as "${typeName(c.userType!)}".`;
+    blocks.push(
+      [
+        `conn_${c.index + 1} - model connection ${label(ic.from)} -> ${label(ic.to)} (${typeName(ic.type)})`,
+        `  Model's note: ${ic.explanation}`,
+        `  User: ${verdict}`,
+      ].join("\n"),
+    );
+  }
+  input.result.extraEdgeIds.forEach((id, i) => {
+    const e = input.userEdges.find((x) => x.id === id);
+    if (!e) return;
+    blocks.push(
+      `extra_${i + 1} - the user's own connection, not in the model\n  User drew: ${label(e.source)} -> ${label(e.target)} (${typeName(e.type)}).`,
+    );
+  });
+  return blocks.join("\n\n");
+}
 
 export function buildSystemsShockPerspectivePrompt(input: {
   title: string;
@@ -17,6 +64,8 @@ export function buildSystemsShockPerspectivePrompt(input: {
   shockEvent: SystemsShockEvent;
   userEdges: SystemsUserEdge[];
   nodeImpact: Record<string, SystemsNodeImpact>;
+  result: SystemsResult;
+  requiredRefs: string[];
   userProposedComponents?: string[] | null;
   confidenceBefore: number;
   userContext?: string;
@@ -35,97 +84,89 @@ export function buildSystemsShockPerspectivePrompt(input: {
   secondShockEvent?: SystemsShockEvent;
 }): string {
   const ctx = input.userContext?.trim() || "(none)";
-  const geoBlock =
-    input.perspectiveAName &&
-    input.perspectiveBName &&
-    input.intendedConnectionsB &&
-    input.shockEventB
-      ? `
-
-Geopolitics dual-perspective context (diagnostic - do not score Perspective B separately):
-- Perspective A (${input.perspectiveAName}): user mapped connections and shock impact against this actor's intended structure (intendedConnections + shockEvent above).
-- Perspective B (${input.perspectiveBName}): alternate structural view (reference only for comparison):
-${JSON.stringify(input.intendedConnectionsB, null, 2)}
-- Shock from Perspective B's lens (same shock description as above; affected nodes may differ):
-${JSON.stringify(input.shockEventB, null, 2)}
-- User notes on how B's view differs structurally:
-${(input.userPerspectiveBNotes?.trim() || "(none)").slice(0, 4000)}
-
-In your reflection, weave in both perspectives where relevant: acknowledge blind spots from mapping only A, comment on structural differences the user noted, and how shock ripples might read differently for ${input.perspectiveBName}. Quote user notes where relevant. Do not assign a second numeric accuracy score.`
-      : "";
-
-  const resilienceBlock =
+  const r = input.result;
+  const isGeo = Boolean(
+    input.perspectiveAName && input.perspectiveBName && input.intendedConnectionsB && input.shockEventB,
+  );
+  const isResilience = Boolean(
     input.variantKind === "resilience" &&
-    input.criticalityGroundTruth &&
-    input.userCriticalityRanking &&
-    input.secondShockEvent
-      ? `
+      input.criticalityGroundTruth &&
+      input.userCriticalityRanking &&
+      input.secondShockEvent,
+  );
 
-Resilience audit context (diagnostic - do not assign a second numeric accuracy score):
-- Ground-truth criticality ranking (1 = most critical, i.e. single point of failure):
-${JSON.stringify(input.criticalityGroundTruth, null, 2)}
-- User's own criticality ranking guess (node id -> rank):
-${JSON.stringify(input.userCriticalityRanking, null, 2)}
-- Second shock event (cascades from the first shock's indirectlyAffected ring one hop further):
-${JSON.stringify(input.secondShockEvent, null, 2)}
+  const geoBlock = isGeo
+    ? `
 
-In your reflection, comment on how accurate the user's criticality ranking was versus the ground truth (call out any nodes they under- or over-rated), and discuss whether the second shock's cascade path was anticipatable from their initial mapping. Tone: collaborative peer, not a judge.`
-      : "";
+SECOND PERSPECTIVE (geopolitics):
+- The user mapped the system from ${input.perspectiveAName}'s view. ${input.perspectiveBName} sees it like this:
+${JSON.stringify(input.intendedConnectionsB, null, 2)}
+- The shock from ${input.perspectiveBName}'s view: ${JSON.stringify(input.shockEventB)}
+- The user's notes on how ${input.perspectiveBName} differs: ${(input.userPerspectiveBNotes?.trim() || "(none)").slice(0, 4000)}
+Write "metaNote": 2-3 short sentences on the biggest structural difference between the two views and whether the user's notes caught it.`
+    : "";
 
-  const clarity = buildPerspectiveClarityPreamble();
+  const resilienceBlock = isResilience
+    ? `
 
-  return `You are a thoughtful peer helping someone practice systems thinking in the domain: ${input.domain}.
+RESILIENCE (criticality and cascade):
+- Model ranking (1 = most critical): ${JSON.stringify(input.criticalityGroundTruth)}
+- User ranking (node id -> rank): ${JSON.stringify(input.userCriticalityRanking)}
+- Second shock (one hop further): ${JSON.stringify(input.secondShockEvent)}
+Write "metaNote": 2-3 short sentences on which node the user most under- or over-rated, and whether their map could have predicted the cascade.`
+    : "";
+
+  return `You are a friendly coach helping a learner practice systems thinking in the domain: ${input.domain}.
+The learner is still building this skill. Help them see WHY, so they can map it themselves next time.
 User context (may be empty): ${ctx}
-
-${clarity}
 
 Exercise title: ${input.title}
 Scenario:
 ---
 ${input.scenario}
 ---
+Nodes: ${input.nodes.map((n) => `${n.id} = ${n.label} (${n.description})`).join("; ")}
+The user's own 6 components before seeing the nodes: ${JSON.stringify(input.userProposedComponents ?? [])}
 
-User's initial decomposition (before seeing nodes):
-${JSON.stringify(input.userProposedComponents ?? [])}
+The shock: ${input.shockEvent.description}
+Why the model marks nodes this way: ${input.shockEvent.explanation}
 
-Nodes:
-${JSON.stringify(input.nodes, null, 2)}
+Connection types (arrow A -> B): ${Object.values(CONNECTION_TYPE_INFO)
+    .map((t) => `"${t.label}" = ${t.meaning}`)
+    .join(" ")}
 
-Intended connections (model reference, not a score):
-${JSON.stringify(input.intendedConnections, null, 2)}
+SCORE (already decided by code - final, do not change or argue with it):
+- Found ${r.connectionsFound} of ${r.connectionsTotal} model connections (${r.connectionsExact} with the same direction and type); drew ${r.extraEdgeIds.length} connections the model does not have.
+- Marked ${r.impactsCorrect} of ${r.impactsTotal} nodes the same as the model under the shock.
+- Confidence before feedback: ${input.confidenceBefore}%.
 
-Shock scenario:
-${JSON.stringify(input.shockEvent, null, 2)}
-
-User-drawn connections:
-${JSON.stringify(input.userEdges, null, 2)}
-
-User-marked node impact (none / direct / indirect per node id):
-${JSON.stringify(input.nodeImpact, null, 2)}
-
-User self-reported confidence before this reflection: ${input.confidenceBefore}%
+CASES (each verdict is final):
+${buildSystemsCoachingCases(input)}${geoBlock}${resilienceBlock}
 
 Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
 {
-  "perspectiveFormat": "clarity_v2",
-  "title": string (echo: "${input.title.replace(/"/g, '\\"')}"),
-  "suitableFor": "Suitable for <concrete audience>",
-  "nodeCritiques": [
-    {
-      "nodeId": "node_1",
-      "nodeLabel": "human label from nodes list",
-      "userImpact": "none" | "direct" | "indirect",
-      "userContextSnippet": "You marked this node as direct because ... (include edge rationale if relevant)",
-      "critique": "You marked 'Label' as direct... However, ...",
-      "remediationAlternative": "A systems thinker would also consider..."
-    }
+  "perspectiveFormat": "coaching_v3",
+  "title": string (echo the exercise title),
+  "items": [
+    { "ref": string (a ref from CASES), "why": string, "clue": string, "nextTimeAsk": string }
   ],
-  "openQuestions": ["optional 1-3 strings"]
+  "takeaways": [string] (1-2 items)${isGeo || isResilience ? `,
+  "metaNote": string` : ""}
 }
 
-Rules:
-- One nodeCritiques row per node in the nodes list (all 6).
-- userContextSnippet must state the user's impact choice and any connection pattern affecting that node.
-- Compare userImpact to shockEvent.directlyAffected / indirectlyAffected; agree or disagree gently in critique.
-- Tone: collaborative peer, not a judge. Do not give a numeric score.${geoBlock}${resilienceBlock}`;
+Write one item for each of these refs: ${input.requiredRefs.join(", ") || "(none)"}. You may add items for other refs in CASES, but keep it short.
+
+How to write each item:
+- "why": at most 2 short sentences. Follow the verdict:
+  - CORRECT: confirm it plainly ("Yes - ..."), then say what makes it so.
+  - DIFFERENT (node): explain how the shock does or does not reach this node, step by step through the connections.
+  - MISSED: explain the link between the two nodes in simple words.
+  - FOUND BUT REVERSED or OTHER TYPE: say which way or which type fits, and why. Be kind - they saw the link.
+  - extra: judge fairly whether the link is reasonable even though the model left it out.
+- "clue": the words in the scenario or node descriptions that signal it (quote 2-6 words).
+- "nextTimeAsk": one question to ask yourself next time, at most 15 words.
+
+"takeaways": 1-2 short lessons for the next exercise. Focus on missed links and nodes marked differently first. If everything matched, say what to keep doing.
+
+Tone: warm and direct, like a patient coach. No numeric scores. No "stronger alternative". No academic words when a simple one works.`;
 }

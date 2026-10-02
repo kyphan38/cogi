@@ -14,6 +14,9 @@ import { SystemsFlowCanvas } from "@/components/exercises/SystemsFlowCanvas";
 import { SystemsPerspectiveCompare } from "@/components/exercises/SystemsPerspectiveCompare";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
+import { SystemsAnswerKey } from "@/components/exercises/SystemsAnswerKey";
+import { scoreSystems, systemsResultOf } from "@/lib/exercise/systems-score";
+import { isCoachingStructured } from "@/lib/types/perspective";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
 import { PracticeFinishCard } from "@/components/shared/PracticeFinishCard";
 import { Button } from "@/components/ui/button";
@@ -447,6 +450,13 @@ export function SystemsExerciseFlow({
       nodeImpact,
       confidenceBefore: confidence,
       userPerspectiveBNotes: notes ?? exercise.userPerspectiveBNotes,
+      result: scoreSystems({
+        nodes: exercise.nodes,
+        intendedConnections: exercise.intendedConnections,
+        shockEvent: exercise.shockEvent,
+        userEdges,
+        nodeImpact,
+      }),
       aiPerspective: parsed.text,
       aiPerspectiveStructured: parsed.structured,
       currentStep: perspectiveStep,
@@ -585,6 +595,7 @@ export function SystemsExerciseFlow({
   const partIndex = workParts.indexOf(variantLabels[step]);
   const partLabel =
     phase === 1 && partIndex >= 0 ? `Part ${partIndex + 1} of ${workParts.length} · ${workParts[partIndex]}` : undefined;
+  const systemsFeedback = perspectiveStructured ?? exercise?.aiPerspectiveStructured ?? null;
 
   return (
     <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Map the system")} partLabel={partLabel}>
@@ -1254,11 +1265,15 @@ export function SystemsExerciseFlow({
 
       {(step === perspectiveStep || step === doneStep) && exercise && perspectiveText ? (
         <div className="space-y-4">
-          <AIPerspective
-            text={perspectiveText}
-            structured={perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null}
-            perspectiveKind="systems"
+          <SystemsAnswerKey
+            exercise={{ ...exercise, userEdges, confidenceBefore: confidence }}
+            result={systemsResultOf({ ...exercise, userEdges, nodeImpact })}
+            coaching={isCoachingStructured(systemsFeedback) ? systemsFeedback : null}
           />
+          {/* Feedback saved before the comparison view (clarity v2 or plain text). */}
+          {!isCoachingStructured(systemsFeedback) ? (
+            <AIPerspective text={perspectiveText} structured={systemsFeedback} perspectiveKind="systems" />
+          ) : null}
           <PracticeFinishCard
             takeaway={takeaway}
             onTakeawayChange={setTakeaway}

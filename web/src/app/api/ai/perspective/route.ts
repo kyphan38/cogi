@@ -10,6 +10,8 @@ import { generateAnalyticalExerciseRaw } from "@/lib/ai/gemini";
 import type { ClarityPerspectiveKind } from "@/lib/types/perspective";
 import {
   ANALYTICAL_COACHING_RETRY_SUFFIX,
+  COACHING_RETRY_SUFFIX,
+  parseCoachingJson,
   parseAnalyticalCoachingJson,
   parseStructuredPerspectiveJson,
   structuredPerspectiveRetrySuffix,
@@ -19,6 +21,7 @@ import {
   structuredPerspectiveToMarkdown,
 } from "@/lib/perspective/format-structured";
 import { analyticalCoachingRefs, scoreAnalytical } from "@/lib/exercise/analytical-score";
+import { scoreSystems, systemsCoachingRefs } from "@/lib/exercise/systems-score";
 import { ANALYTICAL_TAG_OPTIONS, GEOPOLITICS_TAG_OPTIONS } from "@/lib/exercise/tag-labels";
 import type { EmbeddedIssue } from "@/lib/types/exercise";
 import type { UserHighlight } from "@/lib/types/exercise";
@@ -33,7 +36,7 @@ import type {
   SystemsUserEdge,
   SystemsNodeImpact,
 } from "@/lib/types/exercise";
-import type { AIPerspectiveStructured } from "@/lib/types/perspective";
+import type { AIPerspectiveStructured, CoachingStructured } from "@/lib/types/perspective";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 import { buildLanguageLevelAppendix, resolveLanguageLevel } from "@/lib/adaptive/language-level";
 
@@ -65,6 +68,36 @@ async function generateStructuredPerspective(
   }
   const text = structuredPerspectiveToMarkdown(parsed.data, kind);
   return { structured: parsed.data, text };
+}
+
+/**
+ * Coaching feedback (Systems, Evaluative): generate, check every required ref is
+ * covered, retry once with the reason. `heading` turns a ref into a readable line.
+ */
+async function generateCoaching(
+  prompt: string,
+  languageAppendix: string | undefined,
+  refs: { required: string[]; allowed: string[]; requireMetaNote?: boolean },
+  heading: (ref: string) => string,
+): Promise<{ structured: CoachingStructured; text: string }> {
+  const fullPrompt = [prompt, languageAppendix].filter(Boolean).join("\n\n");
+  const parse = (raw: string) =>
+    parseCoachingJson(raw, {
+      requiredRefs: refs.required,
+      allowedRefs: refs.allowed,
+      requireMetaNote: refs.requireMetaNote,
+    });
+  let parsed = parse(await generateAnalyticalExerciseRaw(fullPrompt, "thinking"));
+  if (!parsed.success) {
+    parsed = parse(
+      await generateAnalyticalExerciseRaw(
+        `${fullPrompt}\n${COACHING_RETRY_SUFFIX}\nReason: ${parsed.error}`,
+        "thinking",
+      ),
+    );
+  }
+  if (!parsed.success) throw new Error(parsed.error);
+  return { structured: parsed.data, text: analyticalCoachingToMarkdown(parsed.data, heading) };
 }
 
 /** POST JSON: perspective narrative after user work + confidence (Phase 1.4 / Phase 2.2 / Phase 3). */
@@ -346,6 +379,8 @@ export async function POST(req: Request) {
       b.secondShockEvent && typeof b.secondShockEvent === "object"
         ? (b.secondShockEvent as SystemsShockEvent)
         : undefined;
+    const result = scoreSystems({ nodes, intendedConnections, shockEvent, userEdges, nodeImpact });
+    const refs = systemsCoachingRefs(result);
     const prompt = buildSystemsShockPerspectivePrompt({
       title,
       domain,
@@ -355,6 +390,8 @@ export async function POST(req: Request) {
       shockEvent,
       userEdges,
       nodeImpact,
+      result,
+      requiredRefs: refs.required,
       userProposedComponents,
       confidenceBefore,
       userContext,
@@ -368,13 +405,28 @@ export async function POST(req: Request) {
       userCriticalityRanking,
       secondShockEvent,
     });
+    const needsMeta =
+      Boolean(perspectiveAName && perspectiveBName && intendedConnectionsB && shockEventB) ||
+      Boolean(variantKind && criticalityGroundTruth && userCriticalityRanking && secondShockEvent);
+    const nodeLabel = (id: string) => nodes.find((n) => n.id === id)?.label ?? id;
     try {
-      const { structured, text } = await generateStructuredPerspective(
+      const { structured, text } = await generateCoaching(
         prompt,
-        "systems",
         languageAppendix,
+        { ...refs, requireMetaNote: needsMeta },
+        (ref) => {
+          if (ref.startsWith("node_")) return `Node: ${nodeLabel(ref.slice(5))}`;
+          const [kind, n] = ref.split("_");
+          const i = Number(n) - 1;
+          if (kind === "conn") {
+            const c = intendedConnections[i];
+            return c ? `Connection: ${nodeLabel(c.from)} -> ${nodeLabel(c.to)}` : ref;
+          }
+          const e = userEdges.find((x) => x.id === result.extraEdgeIds[i]);
+          return e ? `Your connection: ${nodeLabel(e.source)} -> ${nodeLabel(e.target)}` : ref;
+        },
       );
-      return NextResponse.json({ ok: true, structured, text });
+      return NextResponse.json({ ok: true, structured, text, result });
     } catch (e) {
       const isTimeout =
         e instanceof Error &&

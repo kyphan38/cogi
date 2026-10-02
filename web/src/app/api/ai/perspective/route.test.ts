@@ -147,105 +147,88 @@ describe("POST /api/ai/perspective - analytical", () => {
 });
 
 describe("POST /api/ai/perspective - systems", () => {
+  const coachingJson = (refs: string[], metaNote?: string) =>
+    JSON.stringify({
+      perspectiveFormat: "coaching_v3",
+      title: "Sys Title",
+      items: refs.map((ref) => ({ ref, why: "w", clue: "c", nextTimeAsk: "q?" })),
+      takeaways: ["Follow the arrows from the shock."],
+      ...(metaNote ? { metaNote } : {}),
+    });
+  const base = {
+    kind: "systems",
+    title: "Sys Title",
+    scenario: "Sys Scenario",
+    domain: "tech",
+    confidenceBefore: 65,
+    nodes: [
+      { id: "n1", label: "Supply", description: "desc" },
+      { id: "n2", label: "Price", description: "desc" },
+    ],
+    intendedConnections: [{ from: "n1", to: "n2", type: "enables", explanation: "e" }],
+    shockEvent: { description: "shock", directlyAffected: ["n1"], indirectlyAffected: ["n2"], explanation: "why" },
+    userEdges: [{ id: "e1", source: "n2", target: "n1", type: "enables" }],
+    nodeImpact: { n1: "direct", n2: "none" },
+  };
+
   it("returns 400 when required fields are missing", async () => {
     authOk();
     const res = await POST(makeRequest({ kind: "systems", title: "T" }));
     expect(res.status).toBe(400);
   });
 
-  it("returns perspective on success", async () => {
+  it("scores in code and returns coaching with the result", async () => {
     authOk();
-    mockGenerateRaw.mockResolvedValue(structuredPerspectiveJson());
-    const res = await POST(
-      makeRequest({
-        kind: "systems",
-        title: "Sys Title",
-        scenario: "Sys Scenario",
-        domain: "tech",
-        confidenceBefore: 65,
-        nodes: [{ id: "n1", label: "N1", description: "desc" }],
-        intendedConnections: [],
-        shockEvent: {
-          description: "shock",
-          directlyAffected: ["n1"],
-          indirectlyAffected: [],
-          explanation: "why",
-        },
-        userEdges: [],
-        nodeImpact: {},
-      }),
-    );
+    mockGenerateRaw.mockResolvedValue(coachingJson(["node_n2", "conn_1"]));
+    const res = await POST(makeRequest(base));
     expect(res.status).toBe(200);
-    expect((await res.json()).ok).toBe(true);
+    const data = await res.json();
+    expect(data.structured.perspectiveFormat).toBe("coaching_v3");
+    expect(data.result).toMatchObject({ connectionsFound: 1, connectionsExact: 0, impactsCorrect: 1, impactsTotal: 2 });
+    expect(data.text).toContain("Connection: Supply -> Price");
+    const prompt = mockGenerateRaw.mock.calls[0]![0] as string;
+    expect(prompt).toContain("FOUND BUT REVERSED");
+    expect(prompt).toContain("DIFFERENT - marked not affected; the model says indirectly affected.");
+    expect(prompt).not.toContain("remediationAlternative");
   });
 
-  it("threads resilience fields (variantKind, criticalityGroundTruth, userCriticalityRanking, secondShockEvent) into the prompt", async () => {
+  it("retries when a wrongly marked node has no item", async () => {
     authOk();
-    mockGenerateRaw.mockResolvedValue(structuredPerspectiveJson());
+    mockGenerateRaw
+      .mockResolvedValueOnce(coachingJson(["conn_1"]))
+      .mockResolvedValueOnce(coachingJson(["node_n2", "conn_1"]));
+    const res = await POST(makeRequest(base));
+    expect(res.status).toBe(200);
+    expect(mockGenerateRaw.mock.calls[1]![0]).toContain("items missing for refs: node_n2");
+  });
+
+  it("asks for a metaNote on resilience exercises", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue(coachingJson(["node_n2", "conn_1"], "Supply was under-rated."));
     const res = await POST(
       makeRequest({
-        kind: "systems",
-        title: "Resilience Title",
-        scenario: "Resilience Scenario",
-        domain: "tech",
-        confidenceBefore: 65,
-        nodes: [{ id: "n1", label: "N1", description: "desc" }],
-        intendedConnections: [],
-        shockEvent: {
-          description: "shock",
-          directlyAffected: ["n1"],
-          indirectlyAffected: ["n2"],
-          explanation: "why",
-        },
-        userEdges: [],
-        nodeImpact: {},
+        ...base,
         variantKind: "resilience",
         criticalityGroundTruth: [
           { nodeId: "n1", criticalityRank: 1, rationale: "hub" },
           { nodeId: "n2", criticalityRank: 2, rationale: "leaf" },
         ],
         userCriticalityRanking: { n1: 2, n2: 1 },
-        secondShockEvent: {
-          description: "cascade",
-          directlyAffected: ["n2"],
-          indirectlyAffected: [],
-          explanation: "cascades from n2",
-        },
+        secondShockEvent: { description: "cascade", directlyAffected: ["n2"], indirectlyAffected: [], explanation: "cascades from n2" },
       }),
     );
     expect(res.status).toBe(200);
-    expect((await res.json()).ok).toBe(true);
-    expect(mockGenerateRaw).toHaveBeenCalledTimes(1);
-    const prompt = mockGenerateRaw.mock.calls[0][0] as string;
-    expect(prompt).toContain("Resilience audit context");
-    expect(prompt).toContain("Ground-truth criticality ranking");
+    const prompt = mockGenerateRaw.mock.calls[0]![0] as string;
+    expect(prompt).toContain("RESILIENCE (criticality and cascade)");
     expect(prompt).toContain("cascades from n2");
+    expect(prompt).toContain('"metaNote": string');
   });
 
-  it("omits the resilience block when variantKind is not resilience", async () => {
+  it("omits the resilience block otherwise", async () => {
     authOk();
-    mockGenerateRaw.mockResolvedValue(structuredPerspectiveJson());
-    await POST(
-      makeRequest({
-        kind: "systems",
-        title: "Sys Title",
-        scenario: "Sys Scenario",
-        domain: "tech",
-        confidenceBefore: 65,
-        nodes: [{ id: "n1", label: "N1", description: "desc" }],
-        intendedConnections: [],
-        shockEvent: {
-          description: "shock",
-          directlyAffected: ["n1"],
-          indirectlyAffected: [],
-          explanation: "why",
-        },
-        userEdges: [],
-        nodeImpact: {},
-      }),
-    );
-    const prompt = mockGenerateRaw.mock.calls[0][0] as string;
-    expect(prompt).not.toContain("Resilience audit context");
+    mockGenerateRaw.mockResolvedValue(coachingJson(["node_n2", "conn_1"]));
+    await POST(makeRequest(base));
+    expect(mockGenerateRaw.mock.calls[0]![0]).not.toContain("RESILIENCE");
   });
 });
 

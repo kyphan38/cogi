@@ -6,6 +6,7 @@ import type { SystemsResilienceExercisePayload } from "@/lib/ai/validators/syste
 import type { SystemsTaskType } from "@/lib/ai/validators/systems";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import type { PracticeLevel } from "@/lib/exercise/levels";
+import type { SystemsResult } from "@/lib/exercise/systems-score";
 
 /** The exercise types the app offers. Old rows of removed types may still exist in Firestore. */
 export type ThinkingType = "analytical" | "systems" | "evaluative";
@@ -187,6 +188,10 @@ export interface SystemsExerciseRow {
   secondNodeImpact?: Record<string, SystemsNodeImpact>;
   /** User's proposed components before seeing AI nodes (diagnostic, not scored). */
   userProposedComponents?: string[] | null;
+  /** Map and impact scored against the model when feedback was requested. */
+  result?: SystemsResult | null;
+  /** Practice level the exercise was made for. Older rows lack it. */
+  level?: PracticeLevel;
   userEdges: SystemsUserEdge[];
   /** Per node_id impact assessment after shock. */
   nodeImpact: Record<string, SystemsNodeImpact>;
