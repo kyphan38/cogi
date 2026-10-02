@@ -247,30 +247,68 @@ describe("POST /api/ai/perspective - evaluative-matrix", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns perspective on success", async () => {
+  const coaching = (refs: string[], metaNote?: string) =>
+    JSON.stringify({
+      perspectiveFormat: "coaching_v3",
+      title: "Eval Title",
+      items: refs.map((ref) => ({ ref, why: "w", clue: "c", nextTimeAsk: "q?" })),
+      takeaways: ["Check both axes for each option."],
+      ...(metaNote ? { metaNote } : {}),
+    });
+  const matrixExercise = {
+    type: "evaluative",
+    variant: "matrix",
+    scenario: "scenario",
+    axisX: { label: "Cost", lowLabel: "Low", highLabel: "High" },
+    axisY: { label: "Value", lowLabel: "Low", highLabel: "High" },
+    options: [
+      { id: "o1", title: "Cloud", description: "d", intendedQuadrant: "top-right", explanation: "why" },
+      { id: "o2", title: "On-prem", description: "d", intendedQuadrant: "bottom-left", explanation: "why" },
+    ],
+    placements: { o1: "top-right", o2: "top-left" },
+  };
+
+  it("scores matrix placements in code and returns coaching", async () => {
     authOk();
-    mockGenerateRaw.mockResolvedValue(structuredPerspectiveJson());
+    mockGenerateRaw.mockResolvedValue(coaching(["option_o2"]));
+    const res = await POST(
+      makeRequest({ kind: "evaluative-matrix", title: "Eval Title", domain: "tech", confidenceBefore: 55, exercise: matrixExercise }),
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.structured.perspectiveFormat).toBe("coaching_v3");
+    expect(data.result).toMatchObject({ variant: "matrix", correct: 1, total: 2 });
+    expect(data.text).toContain("Option: On-prem");
+    const prompt = mockGenerateRaw.mock.calls[0]![0] as string;
+    expect(prompt).toContain("DIFFERENT - placed in top-left (Cost: Low, Value: High); the model puts it in bottom-left (Cost: Low, Value: Low).");
+    expect(prompt).not.toContain("Clarity Blueprint");
+  });
+
+  it("requires a metaNote for scoring tables", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue(coaching(["criterion_c1"]));
     const res = await POST(
       makeRequest({
-        kind: "evaluative-matrix",
+        kind: "evaluative-scoring",
         title: "Eval Title",
         domain: "tech",
         confidenceBefore: 55,
         exercise: {
           type: "evaluative",
-          variant: "matrix",
-          scenario: "scenario",
-          axisX: { label: "X", lowLabel: "Low", highLabel: "High" },
-          axisY: { label: "Y", lowLabel: "Low", highLabel: "High" },
-          options: [
-            { id: "o1", label: "Opt", correctQuadrant: "top-right", explanation: "why" },
-          ],
-          placements: { o1: "top-right" },
+          variant: "scoring",
+          scenario: "s",
+          criteria: [{ id: "c1", label: "Cost", description: "d", suggestedWeight: 1 }],
+          options: [{ id: "a", title: "A", description: "d", suggestedScores: { c1: 2 }, explanation: "e" }],
+          hiddenCriteria: [],
+          criterionWeights: { c1: 5 },
+          scores: { a: { c1: 5 } },
         },
       }),
     );
-    expect(res.status).toBe(200);
-    expect((await res.json()).ok).toBe(true);
+    // Both tries lack the note, so the request fails after the retry.
+    expect(res.status).toBe(500);
+    expect(mockGenerateRaw).toHaveBeenCalledTimes(2);
+    expect(mockGenerateRaw.mock.calls[0]![0]).toContain("BIG WEIGHT GAP - user 5/5, model 1/5 (user weighted it higher).");
   });
 });
 

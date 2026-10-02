@@ -18,6 +18,9 @@ import { EvaluativeOutcomeInputRow } from "@/components/exercises/EvaluativeOutc
 import { EvaluativeDealbreakerAlerts } from "@/components/exercises/EvaluativeDealbreakerAlerts";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
+import { EvaluativeAnswerKey } from "@/components/exercises/EvaluativeAnswerKey";
+import { evaluativeResultOf, scoreEvaluative } from "@/lib/exercise/evaluative-score";
+import { isCoachingStructured } from "@/lib/types/perspective";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
 import { PracticeFinishCard } from "@/components/shared/PracticeFinishCard";
 import { Button } from "@/components/ui/button";
@@ -692,8 +695,9 @@ export function EvaluativeExerciseFlow({
                 aiPerspectiveStructured: parsed.structured,
                 currentStep: 4,
               };
-      await putExercise(partial);
-      setExercise(partial);
+      const scored = { ...partial, result: scoreEvaluative(partial) } as EvaluativeExerciseRow;
+      await putExercise(scored);
+      setExercise(scored);
       setStep(4);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Perspective failed");
@@ -788,6 +792,7 @@ export function EvaluativeExerciseFlow({
   }, [exercise]);
 
   const isGeoExercise = exercise ? isGeopoliticsEvaluativeExercise(exercise) : false;
+  const evaluativeFeedback = perspectiveStructured ?? exercise?.aiPerspectiveStructured ?? null;
   // Internal steps 1-2 are the two parts of the work; 4 is AI feedback, 7 saved.
   const partLabels =
     exercise?.variant === "uncertainty"
@@ -1495,9 +1500,16 @@ export function EvaluativeExerciseFlow({
             ) : exercise.variant === "scoring" ? (
               <EvaluativeBlindSpotAlerts hiddenCriteria={exercise.hiddenCriteria} />
             ) : null}
+            <EvaluativeAnswerKey
+              exercise={{ ...exercise, confidenceBefore: confidence }}
+              result={evaluativeResultOf(exercise)}
+              coaching={isCoachingStructured(evaluativeFeedback) ? evaluativeFeedback : null}
+            />
+            {/* Feedback saved before the comparison view (clarity v2 or plain text). */}
+            {!isCoachingStructured(evaluativeFeedback) ? (
             <AIPerspective
               text={perspectiveText}
-              structured={perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null}
+              structured={evaluativeFeedback}
               perspectiveKind={
                 exercise.variant === "matrix"
                   ? "evaluative-matrix"
@@ -1508,6 +1520,7 @@ export function EvaluativeExerciseFlow({
               evaluativeScoringBreakdown={exercise.variant === "scoring" ? scoringBreakdown : undefined}
               highlightTerms={perspectiveHighlightTerms}
             />
+            ) : null}
           </CardContent>
         </Card>
       ) : null}

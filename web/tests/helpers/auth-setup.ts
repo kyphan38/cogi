@@ -185,7 +185,7 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
       });
       return;
     }
-    if (kind === "systems") {
+    if (kind === "systems" || (typeof kind === "string" && kind.startsWith("evaluative"))) {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -196,7 +196,12 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
             perspectiveFormat: "coaching_v3",
             title: "Mock exercise",
             items: [],
-            takeaways: ["Mock systems takeaway: follow each arrow from the shock."],
+            takeaways: [
+              kind === "systems"
+                ? "Mock systems takeaway: follow each arrow from the shock."
+                : "Mock evaluative takeaway: check both axes.",
+            ],
+            ...(kind === "evaluative-scoring" ? { metaNote: "Mock note on your criteria." } : {}),
           },
         }),
       });

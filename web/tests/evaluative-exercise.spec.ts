@@ -130,6 +130,9 @@ test.describe("Evaluative exercise - 3-step practice loop", () => {
     await page.getByRole("button", { name: "Get AI feedback" }).click();
     await expect(page.getByLabel(/What will you take away/)).toBeVisible({ timeout: 15_000 });
     await expect(progress.getByText("3. AI feedback")).toHaveClass(/bg-zinc-900/);
+    const key = page.getByTestId("evaluative-answer-key");
+    await expect(key).toBeVisible();
+    await expect(key.getByTestId("answer-key-takeaways")).toContainText("Mock evaluative takeaway");
     await expect(page.getByText(/Journal|Action bridge/)).toHaveCount(0);
 
     await page.getByLabel(/What will you take away/).fill("Check deal-breakers before weighing the rest.");
