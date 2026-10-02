@@ -32,8 +32,12 @@ vi.mock("@/lib/db/strip-undefined-deep", () => ({
 vi.mock("@/lib/db/practiced-topics", () => ({
   recordPracticedTopic: vi.fn(),
 }));
+const mockPutExercise = vi.fn();
+vi.mock("@/lib/db/exercises", () => ({
+  putExercise: (ex: unknown) => mockPutExercise(ex),
+}));
 
-import { completeExerciseFlow } from "./complete-exercise";
+import { completeExerciseFlow, completePracticeExercise } from "./complete-exercise";
 import { getAppSettings } from "@/lib/db/settings";
 import { recordWeaknessesAfterExercise } from "@/lib/adaptive/record-weaknesses";
 import { recordPracticedTopic } from "@/lib/db/practiced-topics";
@@ -150,3 +154,31 @@ describe("completeExerciseFlow", () => {
     ).resolves.toBeUndefined();
   });
 });
+
+describe("completePracticeExercise", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPutExercise.mockResolvedValue(undefined);
+  });
+
+  it("writes only the exercise doc, with completedAt and the trimmed takeaway", async () => {
+    const open = { ...exercise, completedAt: null } as unknown as Exercise;
+    const saved = await completePracticeExercise({ exercise: open, takeaway: "  check base rates  " });
+    expect(mockPutExercise).toHaveBeenCalledTimes(1);
+    expect(mockBatchSet).not.toHaveBeenCalled();
+    const written = mockPutExercise.mock.calls[0][0] as Exercise & { takeaway: string | null };
+    expect(written.takeaway).toBe("check base rates");
+    expect(written.completedAt).toEqual(expect.any(String));
+    expect(saved.completedAt).toBe(written.completedAt);
+    expect(recordWeaknessesAfterExercise).not.toHaveBeenCalled();
+    expect(recordPracticedTopic).toHaveBeenCalledWith(expect.objectContaining({ area: "analytical", title: "test" }));
+  });
+
+  it("stores an empty takeaway as null and keeps an existing completedAt", async () => {
+    await completePracticeExercise({ exercise, takeaway: "   " });
+    const written = mockPutExercise.mock.calls[0][0] as Exercise & { takeaway: string | null };
+    expect(written.takeaway).toBeNull();
+    expect(written.completedAt).toBe("2025-01-02T00:00:00Z");
+  });
+});
+

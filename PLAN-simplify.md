@@ -67,13 +67,13 @@ AI perspective, Journal, Action.
 - **P2.2** Lưu khi xong: chỉ ghi doc `exercises` (thêm field `confidence?`,
   `takeaway?`). Không ghi `journalEntries`, `actions`, `confidenceRecords`,
   `delayedRecallQueue`, `weaknesses` nữa. Giữ `practicedTopics` (dùng cho gợi ý chủ
-  đề). `[QUYẾT ĐỊNH]` có giữ Confidence không, hay bỏ hẳn.
+  đề). Đã chọn (2026-10-02): giữ Confidence, gộp thành một thanh kéo trong bước Làm bài
+  (API phản hồi AI cần `confidenceBefore`).
 - **P2.3** Chuyển từng loại sang khung mới, theo thứ tự dùng nhiều nhất:
   Evaluative → Systems → Analytical. Mỗi loại một commit, kèm cập nhật test.
-  `[QUYẾT ĐỊNH]` Analytical có 2 biến thể (Steelman, dán văn thật): giữ cả hai hay
-  chỉ một.
-- **P2.4** 8 bài dở theo kiểu 7 bước: `[QUYẾT ĐỊNH]` mở tiếp bằng khung mới (bỏ qua
-  các bước đã bỏ), hay chỉ hiện trong History là "bài cũ".
+  Đã chọn: Analytical chỉ giữ Highlight & tag (ẩn Steelman); giữ 3 nguồn đề.
+- **P2.4** 8 bài dở theo kiểu 7 bước. Đã chọn: mở tiếp bằng khung mới; bài đang ở
+  Journal/Action nhảy tới bước Phản hồi AI.
 - **P2.5** Lưu tiến độ trong lúc làm, để mở lại đúng chỗ (bài học từ noda F1: không
   ghi đè khi chuyển bài, lưu ngay những thay đổi đang chờ trước khi rời trang).
 - Kiểm tra: test cho shell (unit + Playwright 3 loại), đo số dòng trước/sau, thử
