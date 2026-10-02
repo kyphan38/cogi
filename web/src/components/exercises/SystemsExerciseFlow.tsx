@@ -52,10 +52,7 @@ import {
   type SystemsResilienceExercisePayload,
 } from "@/lib/ai/validators/systems";
 import { isGeopoliticsAnalyticalDomain } from "@/lib/exercise/geopolitics-domains";
-import {
-  buildAdaptiveHintsForRequest,
-  getLanguageLevelForRequest,
-} from "@/lib/adaptive/adaptive-hints";
+import { getLanguageLevelForRequest } from "@/lib/db/settings";
 import { getUserContext } from "@/lib/db/settings";
 import { completePracticeExercise } from "@/lib/db/complete-exercise";
 import { useSaveOnLeave } from "@/lib/hooks/useSaveOnLeave";
@@ -274,7 +271,6 @@ export function SystemsExerciseFlow({
     setLoading(true);
     try {
       const userContext = await getUserContext();
-      const adaptiveHints = await buildAdaptiveHintsForRequest("systems");
       const languageLevel = await getLanguageLevelForRequest();
       const res = await aiFetch("/api/ai", {
         method: "POST",
@@ -285,7 +281,6 @@ export function SystemsExerciseFlow({
           exerciseType: "systems",
           mode: effectiveSetupMode,
           customScenario: customScenarioOut,
-          adaptiveHints,
           languageLevel,
           systemsTaskType,
         }),
@@ -1262,10 +1257,7 @@ export function SystemsExerciseFlow({
           <AIPerspective
             text={perspectiveText}
             structured={perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null}
-            exerciseId={exercise.id}
             perspectiveKind="systems"
-            exerciseTitle={exercise.title}
-            domain={exercise.domain}
           />
           <PracticeFinishCard
             takeaway={takeaway}

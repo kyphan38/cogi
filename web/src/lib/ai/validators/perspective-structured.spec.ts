@@ -1,8 +1,5 @@
 import assert from "node:assert/strict";
-import {
-  parseLegacyPerspectiveJson,
-  parseStructuredPerspectiveJson,
-} from "./perspective-structured";
+import { parseStructuredPerspectiveJson } from "./perspective-structured";
 
 const analyticalV2 = {
   perspectiveFormat: "clarity_v2",
@@ -36,10 +33,7 @@ const legacyParsed = parseStructuredPerspectiveJson(JSON.stringify(legacy), "ana
 assert.equal(legacyParsed.success, true);
 if (legacyParsed.success) assert.equal(legacyParsed.format, "legacy");
 
-const legacyOnly = parseLegacyPerspectiveJson(JSON.stringify(legacy));
-assert.equal(legacyOnly.success, true);
-
 const bad = { title: "x" };
-assert.equal(parseStructuredPerspectiveJson(JSON.stringify(bad), "generative").success, false);
+assert.equal(parseStructuredPerspectiveJson(JSON.stringify(bad), "systems").success, false);
 
 console.log("perspective-structured.spec.ts: all assertions passed");

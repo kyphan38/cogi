@@ -1,16 +1,5 @@
-/** Areas a suggested topic can belong to: the 5 exercise thinking types, or a Math topic. */
-export type PracticedTopicArea =
-  | "analytical"
-  | "sequential"
-  | "systems"
-  | "evaluative"
-  | "generative"
-  | "expected_value"
-  | "graph_theory"
-  | "game_theory"
-  | "probability_bayes"
-  | "causal_literacy"
-  | "exponential_power_law";
+/** Areas a suggested topic can belong to: one of the exercise types. */
+export type PracticedTopicArea = "analytical" | "systems" | "evaluative";
 
 export interface PracticedTopicEntry {
   id: string;

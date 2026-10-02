@@ -98,7 +98,7 @@ test.describe("Analytical exercise - generate and highlight phase", () => {
 
     const passage = page.getByTestId("text-passage");
     await expect(passage).toBeVisible();
-    await passage.selectText(/Regional powers/);
+    await passage.selectText();
     await expect(page.getByTestId("tag-selection-hint")).toContainText(
       "Tap selection to tag",
     );

@@ -50,7 +50,7 @@ test.describe("Reasoning page - exercise picker and navigation", () => {
     for (const name of [/Evaluative.*Compare options fairly/, /Systems.*Map feedback loops/, /Analytical.*Spot flawed reasoning/]) {
       await expect(page.getByRole("link", { name })).toBeVisible();
     }
-    // Hidden types (PLAN-simplify.md): no card, but the route still works.
+    // Removed types (PLAN-simplify.md) have no card.
     for (const name of [/Combo/, /Sequential/, /Generative/]) {
       await expect(page.getByRole("link", { name })).toHaveCount(0);
     }
@@ -125,42 +125,6 @@ test.describe("AppTopNav navigation", () => {
   });
 });
 
-test.describe("Dashboard page content", () => {
-  test.beforeEach(async ({ page }) => {
-    await bypassFirebaseAuth(page);
-    await stubFirestoreReads(page);
-  });
-
-  test("dashboard page renders heading and summary section", async ({
-    page,
-  }) => {
-    await gotoAuthenticated(page, "/dashboard");
-    await expect(
-      page.getByRole("heading", { name: "Dashboard" }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("Activity and performance trends."),
-    ).toBeVisible();
-  });
-
-  test("dashboard shows WeeklyInsights card with patterns heading", async ({
-    page,
-  }) => {
-    await gotoAuthenticated(page, "/dashboard");
-    await expect(
-      page.getByRole("heading", { name: "Patterns (local)" }),
-    ).toBeVisible();
-    await expect(page.getByText("Perspective disagreements")).toBeVisible();
-  });
-
-  test("dashboard shows calibration gap card", async ({ page }) => {
-    await gotoAuthenticated(page, "/dashboard");
-    await expect(
-      page.getByRole("heading", { name: "Calibration gap" }),
-    ).toBeVisible();
-  });
-});
-
 test.describe("Exercise type routing", () => {
   test.beforeEach(async ({ page }) => {
     await bypassFirebaseAuth(page);
@@ -172,10 +136,22 @@ test.describe("Exercise type routing", () => {
     await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
   });
 
-  test("valid exercise types load without 404", async ({ page }) => {
-    for (const type of ["analytical", "sequential", "systems", "evaluative", "generative"]) {
+  test("the three exercise types load without 404", async ({ page }) => {
+    for (const type of ["analytical", "systems", "evaluative"]) {
       const response = await page.goto(`/exercise/${type}`);
       expect(response?.status()).not.toBe(404);
+    }
+  });
+
+  test("removed exercise types and pages return 404", async ({ page }) => {
+    // The [type] route calls notFound() while streaming, so it shows the 404 page with a 200.
+    for (const type of ["sequential", "generative", "combo"]) {
+      await page.goto(`/exercise/${type}`);
+      await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+    }
+    for (const path of ["/dashboard", "/math", "/decisions", "/guide"]) {
+      const response = await page.goto(path);
+      expect(response?.status(), path).toBe(404);
     }
   });
 });
