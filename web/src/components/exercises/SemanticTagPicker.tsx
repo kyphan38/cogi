@@ -17,6 +17,8 @@ export interface SemanticTagPickerProps {
   selected?: TagType;
   /** Move focus to the first option when the picker opens. */
   autoFocusFirst?: boolean;
+  /** Show each plain tag's check question (default on). */
+  showQuestions?: boolean;
   disabled?: boolean;
   className?: string;
 }
@@ -30,6 +32,7 @@ export function SemanticTagPicker({
   onSelect,
   selected,
   autoFocusFirst,
+  showQuestions = true,
   disabled,
   className,
 }: SemanticTagPickerProps) {
@@ -79,7 +82,7 @@ export function SemanticTagPicker({
               />
             ) : null}
             <span className={geo ? undefined : "font-medium"}>{label}</span>
-            {!geo && question ? (
+            {!geo && showQuestions && question ? (
               <span className="text-xs font-normal text-zinc-500">{question}</span>
             ) : null}
           </button>

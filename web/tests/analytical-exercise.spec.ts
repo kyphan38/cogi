@@ -147,6 +147,50 @@ test.describe("Analytical exercise - generate and highlight phase", () => {
     await expect(second).not.toHaveAttribute("data-tagged", "true");
   });
 
+  test("guided level: main claim, then each suggested sentence, then feedback", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/analytical");
+    await generateExercise(page, "DevOps", { level: "Guided" });
+    await expect(page.getByText("Structural reasoning passage")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Part 1 of 2 · Main claim")).toBeVisible();
+
+    await page.getByRole("radio", { name: /wrongly reduce the dispute/ }).click();
+    await expect(page.getByTestId("main-claim-feedback")).toContainText("Right.");
+    await page.getByRole("button", { name: "Next: check the sentences" }).click();
+
+    await expect(page.getByText("Part 2 of 2 · Check each sentence")).toBeVisible();
+    const walk = page.getByTestId("guided-walkthrough");
+    await expect(walk).toContainText("This passage has 1 issues");
+    await expect(walk.getByTestId("check-questions")).toBeVisible();
+    // Confidence and feedback wait until every suggested sentence is answered.
+    await expect(page.getByRole("button", { name: "Get AI feedback" })).toHaveCount(0);
+
+    const count = await walk.getByTestId("guided-sentence").count();
+    expect(count).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) {
+      const current = walk.getByTestId("guided-current");
+      if ((await current.textContent())?.includes("binary choice")) {
+        await current.getByRole("button", { name: "Has a problem" }).click();
+        await current.getByRole("button", { name: /Logical Fallacy/ }).click();
+      } else {
+        await current.getByRole("button", { name: "Looks fine" }).click();
+      }
+    }
+    await expect(walk.getByTestId("guided-done")).toContainText("You marked 1 as having a problem.");
+
+    await page.getByRole("button", { name: "Get AI feedback" }).click();
+    const key = page.getByTestId("analytical-answer-key");
+    await expect(key).toBeVisible({ timeout: 15_000 });
+    await expect(key.getByText("Found, different tag")).toBeVisible();
+  });
+
+  test("standard level hides the walkthrough and shows the issue count", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/analytical");
+    await generateExercise(page, "DevOps", { level: "Standard" });
+    await expect(page.getByTestId("issue-count-hint")).toContainText("This passage has 1 issues");
+    await expect(page.getByTestId("guided-walkthrough")).toHaveCount(0);
+    await expect(page.getByTestId("check-questions")).toBeVisible();
+  });
+
   test("highlight with confidence -> AI feedback -> takeaway -> saved", async ({
     page,
   }) => {

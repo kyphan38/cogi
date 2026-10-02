@@ -40,10 +40,25 @@ export async function addPassageHighlight(page: Page): Promise<void> {
   await picker.getByRole("button").first().click();
 }
 
-export async function generateExercise(page: Page, domain: string): Promise<void> {
+/**
+ * Fill the domain and generate. On pages with a level picker (analytical), pick
+ * `level` first - Standard by default, the free-tagging level most specs assume.
+ */
+export async function generateExercise(
+  page: Page,
+  domain: string,
+  opts: { level?: "Guided" | "Standard" | "Expert" } = {},
+): Promise<void> {
   const main = page.getByRole("main");
   const generateBtn = main.getByRole("button", { name: "Generate exercise" });
   await generateBtn.waitFor({ state: "visible", timeout: 30_000 });
+
+  const levelPicker = main.getByTestId("level-picker");
+  if (await levelPicker.isVisible().catch(() => false)) {
+    const option = levelPicker.getByRole("button", { name: new RegExp(`^${opts.level ?? "Standard"}`) });
+    await option.click();
+    await expect(option).toHaveAttribute("aria-pressed", "true");
+  }
 
   for (let attempt = 0; attempt < 3; attempt++) {
     await fillExerciseDomain(page, domain);
