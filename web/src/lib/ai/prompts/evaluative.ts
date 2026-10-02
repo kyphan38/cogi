@@ -5,6 +5,8 @@ export function buildEvaluativeGenerationPrompt(input: {
   userContext?: string;
   adaptationAppendix?: string;
   customScenario?: string;
+  /** Guided level: always a 2x2 matrix with the two criteria that matter most. */
+  matrixOnly?: boolean;
 }): string {
   const ctx = input.userContext?.trim()
     ? `\nUser context (optional): ${input.userContext.trim()}`
@@ -18,11 +20,15 @@ export function buildEvaluativeGenerationPrompt(input: {
 
   return `${aboutLine}
 
-Decide variant:
+${
+    input.matrixOnly
+      ? `Use the MATRIX variant ONLY (variant must be "matrix"): pick the TWO criteria that matter most for this decision as the axes. Do not return scoring.`
+      : `Decide variant:
 - MATRIX (variant "matrix") when the decision is naturally framed with exactly TWO evaluation criteria as axes (2x2 quadrants).
 - SCORING (variant "scoring") when there are THREE OR MORE criteria / trade-off dimensions (weighted table).
 
-Prefer SCORING for genuinely multi-criteria trade-offs. Use MATRIX only when two axes clearly suffice.
+Prefer SCORING for genuinely multi-criteria trade-offs. Use MATRIX only when two axes clearly suffice.`
+  }
 
 Return ONLY a single JSON object (no markdown fences) matching ONE of:
 
