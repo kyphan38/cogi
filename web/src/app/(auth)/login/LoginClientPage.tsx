@@ -51,7 +51,7 @@ export function LoginClientPage() {
             const idToken = await user.getIdToken();
             await syncServerSession(idToken);
             if (epoch !== authListenerEpoch.current) return;
-            await awaitRouterReplace(router, searchParams.get("next") || "/dashboard");
+            await awaitRouterReplace(router, searchParams.get("next") || "/");
             return;
           }
           if (!isAllowedUser(user)) return;
@@ -60,7 +60,7 @@ export function LoginClientPage() {
           if (epoch !== authListenerEpoch.current) return;
           const next = searchParams.get("next");
           const destination =
-            next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+            next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
           await awaitRouterReplace(router, destination);
         } catch (e) {
           if (isAbortError(e)) return;

@@ -14,6 +14,7 @@ import {
 import { logFirestoreQueryError } from "@/lib/db/firestore";
 import type { Exercise } from "@/lib/types/exercise";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
+import { computeStreak } from "@/lib/exercise/streak";
 import { cn } from "@/lib/utils";
 
 /** How many in-progress and recently finished exercises the start page lists. */
@@ -43,6 +44,7 @@ const rowLinkClass =
 export function HomeContent() {
   const [incompleteExercises, setIncompleteExercises] = useState<Exercise[]>([]);
   const [completedExercises, setCompletedExercises] = useState<Exercise[]>([]);
+  const [stats, setStats] = useState<{ completed: number; streak: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,6 +57,7 @@ export function HomeContent() {
         if (cancelled) return;
         setIncompleteExercises(incomplete.slice(0, HOME_LIST_SIZE));
         setCompletedExercises(completed.slice(0, HOME_LIST_SIZE));
+        setStats({ completed: completed.length, streak: computeStreak(completed) });
       } catch (e) {
         if (!cancelled) logFirestoreQueryError("HomeContent", "listExercises", e);
       }
@@ -83,6 +86,11 @@ export function HomeContent() {
         <div className="space-y-1">
           <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Practice</h1>
           <p className="text-muted-foreground text-sm">Pick a topic, work through it, then compare with the AI.</p>
+          {stats && stats.completed > 0 ? (
+            <p className="text-muted-foreground text-xs tabular-nums" data-testid="home-stats">
+              {stats.completed} completed · {stats.streak} day streak
+            </p>
+          ) : null}
         </div>
         <Link href="/reasoning" className={cn(buttonVariants(), "inline-flex items-center gap-1.5")}>
           <Plus className="size-4" aria-hidden />
