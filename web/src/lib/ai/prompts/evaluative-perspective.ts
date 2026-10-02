@@ -37,7 +37,8 @@ How to write each item:
 ${input.metaNote ? `\n"metaNote": ${input.metaNote}\n` : ""}
 "takeaways": 1-2 short lessons for the next decision. Focus on the biggest differences first. If everything matched, say what to keep doing.
 
-Tone: warm and direct, like a patient coach. No numeric grade. No "stronger alternative". No academic words when a simple one works. Write option and criterion names plainly, without quotation marks.`;
+Tone: warm and direct, like a patient coach. No numeric grade. No "stronger alternative". No academic words when a simple one works. Write option and criterion names plainly, without quotation marks.
+Refs (like issue_1, node_3, option_o1) are only for the "ref" field: in the text, always use names, never ids.`;
 }
 
 function header(kind: string, domain: string, title: string, scenario: string, confidence: number, userContext?: string): string {

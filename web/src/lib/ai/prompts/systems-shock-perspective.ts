@@ -168,5 +168,6 @@ How to write each item:
 
 "takeaways": 1-2 short lessons for the next exercise. Focus on missed links and nodes marked differently first. If everything matched, say what to keep doing.
 
-Tone: warm and direct, like a patient coach. No numeric scores. No "stronger alternative". No academic words when a simple one works.`;
+Tone: warm and direct, like a patient coach. No numeric scores. No "stronger alternative". No academic words when a simple one works.
+Refs (like issue_1, node_3, option_o1) are only for the "ref" field: in the text, always use names, never ids.`;
 }
