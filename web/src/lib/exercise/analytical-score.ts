@@ -6,8 +6,7 @@ import type {
   ValidPoint,
 } from "@/lib/types/exercise";
 import { findSegmentRange } from "@/lib/text/segment-match";
-
-type Range = { start: number; end: number };
+import { sentenceRangeAt, type TextRange as Range } from "@/lib/text/sentences";
 
 /** Tags that say "this is a problem" (everything except Valid Point and Unclear). */
 function isIssueTag(tag: TagType): boolean {
@@ -16,30 +15,6 @@ function isIssueTag(tag: TagType): boolean {
 
 function overlapLength(a: Range, b: Range): number {
   return Math.max(0, Math.min(a.end, b.end) - Math.max(a.start, b.start));
-}
-
-/**
- * The sentence around `index`: from just after the previous sentence end (or line
- * break) to the next one. "3.5" is not a sentence end, since a dot must be followed by
- * whitespace.
- */
-export function sentenceRangeAt(passage: string, index: number): Range {
-  // Text just before position `i` ends a sentence: ".", "!" or "?", maybe a closing quote.
-  const endsSentenceBefore = (i: number) =>
-    /[.!?]["'”’)\]]?$/.test(passage.slice(Math.max(0, i - 2), i));
-
-  let start = index;
-  while (start > 0) {
-    const prev = passage[start - 1]!;
-    if (prev === "\n" || (/\s/.test(prev) && endsSentenceBefore(start - 1))) break;
-    start--;
-  }
-  let end = index;
-  while (end < passage.length && passage[end] !== "\n") {
-    end++;
-    if (endsSentenceBefore(end) && (end === passage.length || /\s/.test(passage[end]!))) break;
-  }
-  return { start, end };
 }
 
 /**
