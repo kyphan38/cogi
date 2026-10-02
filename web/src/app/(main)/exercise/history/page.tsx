@@ -39,7 +39,12 @@ import {
   getPerspectiveViewModel,
   getStructuredPerspectiveSections,
 } from "@/lib/perspective/format-structured";
-import { isLegacyPerspectiveStructured } from "@/lib/types/perspective";
+import {
+  isAnalyticalCoachingStructured,
+  isLegacyPerspectiveStructured,
+} from "@/lib/types/perspective";
+import { AnalyticalAnswerKey } from "@/components/exercises/AnalyticalAnswerKey";
+import { analyticalResultOf } from "@/lib/exercise/analytical-score";
 import type { ClarityPerspectiveKind } from "@/lib/types/perspective";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { Trash2 } from "lucide-react";
@@ -577,26 +582,15 @@ function HistoryPageInner() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             {isAnalyticalExercise(detailEx) ? (
-              <>
-                <div>
-                  <h3 className="mb-1 font-medium">Passage</h3>
-                  <p className="whitespace-pre-wrap leading-relaxed">{detailEx.passage}</p>
-                </div>
-                <div>
-                  <h3 className="mb-1 font-medium">Your highlights</h3>
-                  {detailEx.userHighlights.length === 0 ? (
-                    <p className="text-muted-foreground">None saved.</p>
-                  ) : (
-                    <ul className="list-inside list-disc space-y-1">
-                      {detailEx.userHighlights.map((h) => (
-                        <li key={h.id}>
-                          <span className="font-medium">{h.tag}</span>: {h.text}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </>
+              <AnalyticalAnswerKey
+                exercise={detailEx}
+                result={analyticalResultOf(detailEx)}
+                coaching={
+                  isAnalyticalCoachingStructured(detailEx.aiPerspectiveStructured)
+                    ? detailEx.aiPerspectiveStructured
+                    : null
+                }
+              />
             ) : isSystemsExercise(detailEx) ? (
               <>
                 <div>
@@ -675,19 +669,22 @@ function HistoryPageInner() {
               </>
             ) : null}
 
-            <div>
-              <h3 className="mb-1 font-medium">AI perspective</h3>
-              {detailEx.aiPerspectiveStructured ? (
-                <HistoryPerspectiveBody
-                  structured={detailEx.aiPerspectiveStructured}
-                  kind={perspectiveKindForExercise(detailEx)}
-                />
-              ) : (
-                <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {detailEx.aiPerspective ?? "-"}
-                </p>
-              )}
-            </div>
+            {/* v3 analytical feedback lives inside the answer key above. */}
+            {isAnalyticalCoachingStructured(detailEx.aiPerspectiveStructured) ? null : (
+              <div>
+                <h3 className="mb-1 font-medium">AI perspective</h3>
+                {detailEx.aiPerspectiveStructured ? (
+                  <HistoryPerspectiveBody
+                    structured={detailEx.aiPerspectiveStructured}
+                    kind={perspectiveKindForExercise(detailEx)}
+                  />
+                ) : (
+                  <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                    {detailEx.aiPerspective ?? "-"}
+                  </p>
+                )}
+              </div>
+            )}
 
             {"takeaway" in detailEx && detailEx.takeaway ? (
               <div>

@@ -58,7 +58,9 @@ import {
 } from "@/components/shared/ExerciseStepCard";
 import { ANALYTICAL_TAG_OPTIONS, GEOPOLITICS_TAG_OPTIONS } from "@/lib/exercise/tag-labels";
 import { computeMetaGuessScore } from "@/lib/analytics/geopolitics-meta-guess";
-import { scoreAnalytical } from "@/lib/exercise/analytical-score";
+import { analyticalResultOf, scoreAnalytical } from "@/lib/exercise/analytical-score";
+import { AnalyticalAnswerKey } from "@/components/exercises/AnalyticalAnswerKey";
+import { isAnalyticalCoachingStructured } from "@/lib/types/perspective";
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
@@ -467,6 +469,11 @@ export function AnalyticalExerciseFlow({
   };
 
   const phase = practicePhase(step, FEEDBACK_STEP);
+  const feedbackStructured = perspectiveStructured ?? exercise?.aiPerspectiveStructured ?? null;
+  const feedbackResult = useMemo(
+    () => (exercise ? analyticalResultOf({ ...exercise, userHighlights: highlights }) : null),
+    [exercise, highlights],
+  );
   // Geopolitics splits the work into highlight + perspective guess.
   const partLabel =
     phase === 1 && exercise?.isGeopolitics
@@ -874,13 +881,26 @@ export function AnalyticalExerciseFlow({
               </CardContent>
             </Card>
           ) : null}
-          <AIPerspective
-            text={perspectiveText}
-            structured={perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null}
-            perspectiveKind="analytical"
+          <AnalyticalAnswerKey
+            exercise={{ ...exercise, userHighlights: highlights, confidenceBefore: confidence }}
+            result={feedbackResult!}
+            coaching={isAnalyticalCoachingStructured(feedbackStructured) ? feedbackStructured : null}
           />
+          {/* Feedback saved before the answer key (clarity v2 or plain text). */}
+          {!isAnalyticalCoachingStructured(feedbackStructured) ? (
+            <AIPerspective
+              text={perspectiveText}
+              structured={feedbackStructured}
+              perspectiveKind="analytical"
+            />
+          ) : null}
           <PracticeFinishCard
             takeaway={takeaway}
+            takeawayPlaceholder={
+              feedbackResult && (feedbackResult.found < feedbackResult.total || feedbackResult.trapsHit > 0)
+                ? "Why was one sentence you missed (or a trap) tricky? One sentence is enough."
+                : undefined
+            }
             onTakeawayChange={setTakeaway}
             onFinish={finishExercise}
             saving={finishing}
