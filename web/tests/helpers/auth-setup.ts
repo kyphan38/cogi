@@ -154,6 +154,37 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
   });
 
   await page.route("**/api/ai/perspective", async (route: Route) => {
+    let kind: unknown;
+    try {
+      kind = (JSON.parse(route.request().postData() ?? "{}") as { kind?: unknown }).kind;
+    } catch {
+      // treat as analytical
+    }
+    if (kind === undefined || kind === "analytical") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          text: "Mock coaching.",
+          structured: {
+            perspectiveFormat: "analytical_v3",
+            title: "Structural reasoning passage",
+            items: [
+              {
+                ref: "issue_1",
+                why: "Mock why: the passage offers only two options.",
+                clue: "Mock clue: \"binary choice\".",
+                nextTimeAsk: "Are other options left out?",
+                subtypeName: "False dilemma",
+              },
+            ],
+            takeaways: ["Mock takeaway: look for words that shrink the choices."],
+          },
+        }),
+      });
+      return;
+    }
     const structured = {
       perspectiveFormat: "clarity_v2",
       title: "Mock exercise",
