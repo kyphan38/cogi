@@ -41,8 +41,13 @@ import {
 } from "@/lib/perspective/format-structured";
 import {
   isAnalyticalCoachingStructured,
+  isCoachingStructured,
   isLegacyPerspectiveStructured,
 } from "@/lib/types/perspective";
+import { SystemsAnswerKey } from "@/components/exercises/SystemsAnswerKey";
+import { EvaluativeAnswerKey } from "@/components/exercises/EvaluativeAnswerKey";
+import { evaluativeResultOf } from "@/lib/exercise/evaluative-score";
+import { systemsResultOf } from "@/lib/exercise/systems-score";
 import { AnalyticalAnswerKey } from "@/components/exercises/AnalyticalAnswerKey";
 import { analyticalResultOf } from "@/lib/exercise/analytical-score";
 import { LEVEL_LABELS } from "@/lib/exercise/levels";
@@ -605,41 +610,18 @@ function HistoryPageInner() {
                   <h3 className="mb-1 font-medium">Scenario</h3>
                   <p className="leading-relaxed">{detailEx.scenario}</p>
                 </div>
-                <div>
-                  <h3 className="mb-1 font-medium">Nodes</h3>
-                  <ul className="space-y-1 text-xs">
-                    {detailEx.nodes.map((n) => (
-                      <li key={n.id}>
-                        <span className="font-medium">{n.label}</span> - {n.description}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="mb-1 font-medium">Your connections</h3>
-                  {detailEx.userEdges.length === 0 ? (
-                    <p className="text-muted-foreground">None saved.</p>
-                  ) : (
-                    <ul className="list-inside list-disc space-y-1 text-xs">
-                      {detailEx.userEdges.map((e) => (
-                        <li key={e.id}>
-                          {e.source} → {e.target} ({e.type.replace(/_/g, " ")})
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                <div>
-                  <h3 className="mb-1 font-medium">Shock - your impact map</h3>
-                  <p className="text-muted-foreground mb-2 text-xs">{detailEx.shockEvent.description}</p>
-                  <ul className="space-y-1 text-xs">
-                    {detailEx.nodes.map((n) => (
-                      <li key={n.id}>
-                        {n.label}: {detailEx.nodeImpact[n.id] ?? "none"}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                {detailEx.level ? (
+                  <p className="text-muted-foreground">Level: {LEVEL_LABELS[detailEx.level]}</p>
+                ) : null}
+                <SystemsAnswerKey
+                  exercise={detailEx}
+                  result={systemsResultOf(detailEx)}
+                  coaching={
+                    isCoachingStructured(detailEx.aiPerspectiveStructured)
+                      ? detailEx.aiPerspectiveStructured
+                      : null
+                  }
+                />
               </>
             ) : isEvaluativeExercise(detailEx) ? (
               <>
@@ -647,38 +629,24 @@ function HistoryPageInner() {
                   <h3 className="mb-1 font-medium">Scenario</h3>
                   <p className="leading-relaxed">{detailEx.scenario}</p>
                 </div>
-                {detailEx.variant === "matrix" ? (
-                  <div>
-                    <h3 className="mb-1 font-medium">Matrix placements</h3>
-                    <ul className="list-inside list-disc space-y-1 text-xs">
-                      {detailEx.options.map((o) => (
-                        <li key={o.id}>
-                          {o.title}: {detailEx.placements[o.id] ?? "-"}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : detailEx.variant === "scoring" ? (
-                  <div>
-                    <h3 className="mb-1 font-medium">Scoring (summary)</h3>
-                    <p className="text-muted-foreground text-xs">
-                      {detailEx.options.length} options × {detailEx.criteria.length} criteria (weights and
-                      scores saved).
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    <h3 className="mb-1 font-medium">Uncertainty (summary)</h3>
-                    <p className="text-muted-foreground text-xs">
-                      {detailEx.options.length} options with probability/payoff outcomes recorded.
-                    </p>
-                  </div>
-                )}
+                {detailEx.level ? (
+                  <p className="text-muted-foreground">Level: {LEVEL_LABELS[detailEx.level]}</p>
+                ) : null}
+                <EvaluativeAnswerKey
+                  exercise={detailEx}
+                  result={evaluativeResultOf(detailEx)}
+                  coaching={
+                    isCoachingStructured(detailEx.aiPerspectiveStructured)
+                      ? detailEx.aiPerspectiveStructured
+                      : null
+                  }
+                />
               </>
             ) : null}
 
-            {/* v3 analytical feedback lives inside the answer key above. */}
-            {isAnalyticalCoachingStructured(detailEx.aiPerspectiveStructured) ? null : (
+            {/* v3 coaching lives inside the answer key above. */}
+            {isAnalyticalCoachingStructured(detailEx.aiPerspectiveStructured) ||
+            isCoachingStructured(detailEx.aiPerspectiveStructured) ? null : (
               <div>
                 <h3 className="mb-1 font-medium">AI perspective</h3>
                 {detailEx.aiPerspectiveStructured ? (

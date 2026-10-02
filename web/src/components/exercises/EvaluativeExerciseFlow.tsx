@@ -18,6 +18,21 @@ import { EvaluativeOutcomeInputRow } from "@/components/exercises/EvaluativeOutc
 import { EvaluativeDealbreakerAlerts } from "@/components/exercises/EvaluativeDealbreakerAlerts";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
+import { EvaluativeAnswerKey } from "@/components/exercises/EvaluativeAnswerKey";
+import { LevelPicker } from "@/components/exercises/LevelPicker";
+import { LevelSuggestionCard } from "@/components/shared/LevelSuggestionCard";
+import { useToast } from "@/components/ui/toast";
+import { EVALUATIVE_LEVELS } from "@/lib/exercise/evaluative-levels";
+import {
+  DEFAULT_PRACTICE_LEVEL,
+  LEVEL_LABELS,
+  type LevelSuggestion,
+  type PracticeLevel,
+} from "@/lib/exercise/levels";
+import { levelSuggestionFor } from "@/lib/exercise/level-suggestion";
+import { dismissLevelSuggestion, getPracticeLevel, setPracticeLevel } from "@/lib/db/settings";
+import { evaluativeResultOf, scoreEvaluative } from "@/lib/exercise/evaluative-score";
+import { isCoachingStructured } from "@/lib/types/perspective";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
 import { PracticeFinishCard } from "@/components/shared/PracticeFinishCard";
 import { Button } from "@/components/ui/button";
@@ -199,6 +214,20 @@ export function EvaluativeExerciseFlow({
     initialSource === "custom_scenario" ? "custom_scenario" : "generated",
   );
   const [evaluativeTaskType, setEvaluativeTaskType] = useState<EvaluativeTaskType>("auto");
+  const [level, setLevel] = useState<PracticeLevel>(DEFAULT_PRACTICE_LEVEL);
+  const [levelSuggestion, setLevelSuggestion] = useState<LevelSuggestion>(null);
+  const { show: showToast } = useToast();
+
+  useEffect(() => {
+    void getPracticeLevel("evaluative").then(setLevel);
+  }, []);
+
+  const chooseLevel = (next: PracticeLevel) => {
+    setLevel(next);
+    void setPracticeLevel("evaluative", next);
+    // Task types the new level does not offer fall back to auto.
+    if (!EVALUATIVE_LEVELS[next].taskTypes.includes(evaluativeTaskType)) setEvaluativeTaskType("auto");
+  };
   const [entryMode, setEntryMode] = useState<"suggested" | "manual">(initialDomain ? "manual" : "suggested");
   const [customScenarioText, setCustomScenarioText] = useState("");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
@@ -382,6 +411,7 @@ export function EvaluativeExerciseFlow({
           customScenario: customScenarioOut,
           languageLevel,
           evaluativeTaskType,
+          level,
         }),
       });
       const json = await safeAiJson<
@@ -393,8 +423,12 @@ export function EvaluativeExerciseFlow({
         return;
       }
       const id = crypto.randomUUID();
+      const base = payloadToRow(id, d, json.data, customScenarioOut);
+      const geo = base.variant === "scoring" && (base.isGeopolitics ?? Boolean(base.stakeholderNote?.trim()));
       const row: EvaluativeExerciseRow = {
-        ...payloadToRow(id, d, json.data, customScenarioOut),
+        ...base,
+        // Geopolitics always runs at Expert.
+        level: geo ? "expert" : level,
         currentStep: 1,
       };
       await putExercise(row);
@@ -435,7 +469,7 @@ export function EvaluativeExerciseFlow({
     } finally {
       setLoading(false);
     }
-  }, [domain, setupMode, customScenarioText, evaluativeTaskType]);
+  }, [domain, setupMode, customScenarioText, evaluativeTaskType, level]);
 
   const autoGenerateTriggered = useRef(false);
   const [autoGenerateReady, setAutoGenerateReady] = useState(false);
@@ -692,8 +726,9 @@ export function EvaluativeExerciseFlow({
                 aiPerspectiveStructured: parsed.structured,
                 currentStep: 4,
               };
-      await putExercise(partial);
-      setExercise(partial);
+      const scored = { ...partial, result: scoreEvaluative(partial) } as EvaluativeExerciseRow;
+      await putExercise(scored);
+      setExercise(scored);
       setStep(4);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Perspective failed");
@@ -752,6 +787,11 @@ export function EvaluativeExerciseFlow({
       const saved = await completePracticeExercise({ exercise: finalEx, takeaway });
       setExercise(saved as EvaluativeExerciseRow);
       setStep(7);
+      if (finalEx.level && !isGeopoliticsEvaluativeExercise(finalEx)) {
+        void levelSuggestionFor("evaluative", finalEx.level)
+          .then(setLevelSuggestion)
+          .catch(() => setLevelSuggestion(null));
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {
@@ -788,6 +828,14 @@ export function EvaluativeExerciseFlow({
   }, [exercise]);
 
   const isGeoExercise = exercise ? isGeopoliticsEvaluativeExercise(exercise) : false;
+  const evaluativeFeedback = perspectiveStructured ?? exercise?.aiPerspectiveStructured ?? null;
+  // Older rows have no level: they had the criteria list (Standard).
+  const exerciseLevel: PracticeLevel = exercise
+    ? isGeoExercise
+      ? "expert"
+      : (exercise.level ?? "standard")
+    : level;
+  const exLevel = EVALUATIVE_LEVELS[exerciseLevel];
   // Internal steps 1-2 are the two parts of the work; 4 is AI feedback, 7 saved.
   const partLabels =
     exercise?.variant === "uncertainty"
@@ -850,6 +898,18 @@ export function EvaluativeExerciseFlow({
               </Button>
             </div>
 
+            <LevelPicker
+              value={level}
+              onChange={chooseLevel}
+              descriptions={{
+                guided: EVALUATIVE_LEVELS.guided.description,
+                standard: EVALUATIVE_LEVELS.standard.description,
+                expert: EVALUATIVE_LEVELS.expert.description,
+              }}
+              note="Geopolitics topics always use Expert for now."
+            />
+
+            {EVALUATIVE_LEVELS[level].taskTypes.length > 1 ? (
             <div className="grid gap-2">
               <Label>Task type</Label>
               <Select
@@ -866,6 +926,7 @@ export function EvaluativeExerciseFlow({
                 </SelectContent>
               </Select>
             </div>
+            ) : null}
 
             <div className={cn(entryMode !== "suggested" && "hidden")}>
               <TopicSuggestionPicker
@@ -1055,7 +1116,9 @@ export function EvaluativeExerciseFlow({
                   What 2–4 criteria would you use to evaluate these options? For each, give a short
                   name and explain why it matters (up to ~500 words).
                 </p>
-                {exercise.criteriaCandidates && exercise.criteriaCandidates.length > 0 ? (
+                {exLevel.criteriaCandidates &&
+                exercise.criteriaCandidates &&
+                exercise.criteriaCandidates.length > 0 ? (
                   <div className="space-y-2">
                     <div className="flex flex-wrap gap-2">
                       {exercise.criteriaCandidates.map((c) => {
@@ -1100,7 +1163,9 @@ export function EvaluativeExerciseFlow({
                 <div className="grid gap-4">
                   {userProposedCriteria.map((row, idx) => {
                     const hasCandidates = Boolean(
-                      exercise.criteriaCandidates && exercise.criteriaCandidates.length > 0,
+                      exLevel.criteriaCandidates &&
+                        exercise.criteriaCandidates &&
+                        exercise.criteriaCandidates.length > 0,
                     );
                     if (hasCandidates && !row.name.trim()) return null;
                     const wordCount = row.rationale.trim()
@@ -1495,9 +1560,16 @@ export function EvaluativeExerciseFlow({
             ) : exercise.variant === "scoring" ? (
               <EvaluativeBlindSpotAlerts hiddenCriteria={exercise.hiddenCriteria} />
             ) : null}
+            <EvaluativeAnswerKey
+              exercise={{ ...exercise, confidenceBefore: confidence }}
+              result={evaluativeResultOf(exercise)}
+              coaching={isCoachingStructured(evaluativeFeedback) ? evaluativeFeedback : null}
+            />
+            {/* Feedback saved before the comparison view (clarity v2 or plain text). */}
+            {!isCoachingStructured(evaluativeFeedback) ? (
             <AIPerspective
               text={perspectiveText}
-              structured={perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null}
+              structured={evaluativeFeedback}
               perspectiveKind={
                 exercise.variant === "matrix"
                   ? "evaluative-matrix"
@@ -1508,8 +1580,24 @@ export function EvaluativeExerciseFlow({
               evaluativeScoringBreakdown={exercise.variant === "scoring" ? scoringBreakdown : undefined}
               highlightTerms={perspectiveHighlightTerms}
             />
+            ) : null}
           </CardContent>
         </Card>
+      ) : null}
+
+      {step === 7 && levelSuggestion ? (
+        <LevelSuggestionCard
+          suggestion={levelSuggestion}
+          onAccept={() => {
+            chooseLevel(levelSuggestion.to);
+            showToast(`Level set to ${LEVEL_LABELS[levelSuggestion.to]} for your next exercise.`);
+            setLevelSuggestion(null);
+          }}
+          onDismiss={() => {
+            void dismissLevelSuggestion("evaluative");
+            setLevelSuggestion(null);
+          }}
+        />
       ) : null}
 
       {(step === 4 || step === 7) && exercise && perspectiveText ? (

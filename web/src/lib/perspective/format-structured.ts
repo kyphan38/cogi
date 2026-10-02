@@ -3,11 +3,13 @@ import type {
   AIPerspectiveStructured,
   AnalyticalCoachingStructured,
   ClarityPerspectiveStructured,
+  CoachingStructured,
   LegacyPerspectiveStructured,
   PerspectivePoint,
 } from "@/lib/types/perspective";
 import {
   isAnalyticalCoachingStructured,
+  isCoachingStructured,
   isClarityPerspectiveStructured,
   isLegacyPerspectiveStructured,
 } from "@/lib/types/perspective";
@@ -136,7 +138,7 @@ export function getPerspectiveViewModel(
   if (isClarityPerspectiveStructured(structured)) {
     return getClarityPerspectiveViewModel(structured, kind);
   }
-  if (isAnalyticalCoachingStructured(structured)) {
+  if (isAnalyticalCoachingStructured(structured) || isCoachingStructured(structured)) {
     // The answer key renders v3 with its context; this is only a plain fallback.
     return {
       format: "clarity_v2",
@@ -162,7 +164,7 @@ export function getPerspectiveViewModel(
  * readable line (the route knows the passage text behind each ref).
  */
 export function analyticalCoachingToMarkdown(
-  s: AnalyticalCoachingStructured,
+  s: AnalyticalCoachingStructured | CoachingStructured,
   heading: (ref: string) => string = (ref) => ref,
 ): string {
   const parts = s.items.map((it) =>
@@ -183,7 +185,7 @@ export function structuredPerspectiveToMarkdown(
   s: AIPerspectiveStructured,
   kind: ClarityPerspectiveKind,
 ): string {
-  if (isAnalyticalCoachingStructured(s)) return analyticalCoachingToMarkdown(s);
+  if (isAnalyticalCoachingStructured(s) || isCoachingStructured(s)) return analyticalCoachingToMarkdown(s);
   if (isClarityPerspectiveStructured(s)) {
     const vm = getClarityPerspectiveViewModel(s, kind);
     const parts: string[] = [`### ${vm.suitableFor}`, ""];

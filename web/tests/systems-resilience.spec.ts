@@ -3,6 +3,7 @@ import { bypassFirebaseAuth, gotoAuthenticated, stubFirestoreReads } from "./hel
 import {
   addSystemsConnection,
   advanceSystemsToCanvas,
+  choosePracticeLevel,
   generateExercise,
   selectSystemsTaskType,
 } from "./helpers/exercise-flow";
@@ -43,6 +44,7 @@ test.describe("Systems exercise - resilience task type setup", () => {
 
   test("task type selector offers auto, geopolitical, and resilience audit", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/systems");
+    await choosePracticeLevel(page, "Expert");
     await page.getByText("Task type", { exact: true }).locator("..").getByRole("combobox").click();
     await expect(page.getByRole("option", { name: "Auto" })).toBeVisible();
     await expect(
@@ -129,9 +131,10 @@ test.describe("Systems exercise - resilience variant flow", () => {
       .click();
 
     // AI reflection (perspective) step.
-    await expect(
-      page.getByText("Suitable for integration testers validating perspective UI"),
-    ).toBeVisible({ timeout: 15_000 });
+    const key = page.getByTestId("systems-answer-key");
+    await expect(key).toBeVisible({ timeout: 15_000 });
+    await expect(key.getByText("Links found")).toBeVisible();
+    await expect(key.getByTestId("answer-key-takeaways")).toContainText("Mock systems takeaway");
     const progress = page.getByRole("navigation", { name: "Exercise progress" });
     await expect(progress.getByText("3. AI feedback")).toHaveClass(/bg-zinc-900/);
     await expect(page.getByRole("heading", { name: "Metacognition journal" })).toHaveCount(0);

@@ -14,6 +14,22 @@ import { SystemsFlowCanvas } from "@/components/exercises/SystemsFlowCanvas";
 import { SystemsPerspectiveCompare } from "@/components/exercises/SystemsPerspectiveCompare";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
+import { SystemsAnswerKey } from "@/components/exercises/SystemsAnswerKey";
+import { LevelPicker } from "@/components/exercises/LevelPicker";
+import { LinkTypeGuide } from "@/components/exercises/LinkTypeGuide";
+import { LevelSuggestionCard } from "@/components/shared/LevelSuggestionCard";
+import { useToast } from "@/components/ui/toast";
+import { SYSTEMS_LEVELS } from "@/lib/exercise/systems-levels";
+import {
+  DEFAULT_PRACTICE_LEVEL,
+  LEVEL_LABELS,
+  type LevelSuggestion,
+  type PracticeLevel,
+} from "@/lib/exercise/levels";
+import { levelSuggestionFor } from "@/lib/exercise/level-suggestion";
+import { dismissLevelSuggestion, getPracticeLevel, setPracticeLevel } from "@/lib/db/settings";
+import { scoreSystems, systemsResultOf } from "@/lib/exercise/systems-score";
+import { isCoachingStructured } from "@/lib/types/perspective";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
 import { PracticeFinishCard } from "@/components/shared/PracticeFinishCard";
 import { Button } from "@/components/ui/button";
@@ -163,6 +179,9 @@ export function SystemsExerciseFlow({
   const [loading, setLoading] = useState(false);
 
   const [systemsTaskType, setSystemsTaskType] = useState<SystemsTaskType>("auto");
+  const [level, setLevel] = useState<PracticeLevel>(DEFAULT_PRACTICE_LEVEL);
+  const { show: showToast } = useToast();
+  const [levelSuggestion, setLevelSuggestion] = useState<LevelSuggestion>(null);
 
   const [exercise, setExercise] = useState<SystemsExerciseRow | null>(null);
   const [userEdges, setUserEdges] = useState<SystemsUserEdge[]>([]);
@@ -188,7 +207,15 @@ export function SystemsExerciseFlow({
 
   useEffect(() => {
     void listRecentDomains(20).then(setDomainSuggestions);
+    void getPracticeLevel("systems").then(setLevel);
   }, []);
+
+  const chooseLevel = (next: PracticeLevel) => {
+    setLevel(next);
+    void setPracticeLevel("systems", next);
+    // Task types the new level does not offer fall back to auto.
+    if (!SYSTEMS_LEVELS[next].taskTypes.includes(systemsTaskType)) setSystemsTaskType("auto");
+  };
 
   const advance = useCallback(
     (next: FlowStep, updatedRow?: SystemsExerciseRow) => {
@@ -333,6 +360,8 @@ export function SystemsExerciseFlow({
         nodeImpact: emptyImpact(ids),
         secondNodeImpact: resilienceData ? emptyImpact(ids) : undefined,
         userCriticalityRanking: resilienceData ? {} : undefined,
+        // Geopolitics always runs at Expert.
+        level: isGeo ? "expert" : level,
         confidenceBefore: null,
         aiPerspective: null,
         createdAt: new Date().toISOString(),
@@ -357,7 +386,7 @@ export function SystemsExerciseFlow({
     } finally {
       setLoading(false);
     }
-  }, [domain, setupMode, customScenarioText, systemsTaskType]);
+  }, [domain, setupMode, customScenarioText, systemsTaskType, level]);
 
   const autoGenerateTriggered = useRef(false);
   const [autoGenerateReady, setAutoGenerateReady] = useState(false);
@@ -447,6 +476,13 @@ export function SystemsExerciseFlow({
       nodeImpact,
       confidenceBefore: confidence,
       userPerspectiveBNotes: notes ?? exercise.userPerspectiveBNotes,
+      result: scoreSystems({
+        nodes: exercise.nodes,
+        intendedConnections: exercise.intendedConnections,
+        shockEvent: exercise.shockEvent,
+        userEdges,
+        nodeImpact,
+      }),
       aiPerspective: parsed.text,
       aiPerspectiveStructured: parsed.structured,
       currentStep: perspectiveStep,
@@ -557,6 +593,11 @@ export function SystemsExerciseFlow({
       const saved = await completePracticeExercise({ exercise: finalEx, takeaway });
       setExercise(saved as SystemsExerciseRow);
       setStep(systemsVariantSteps(exercise).doneStep);
+      if (finalEx.level && !isGeopoliticsSystemsExercise(finalEx)) {
+        void levelSuggestionFor("systems", finalEx.level)
+          .then(setLevelSuggestion)
+          .catch(() => setLevelSuggestion(null));
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {
@@ -585,6 +626,14 @@ export function SystemsExerciseFlow({
   const partIndex = workParts.indexOf(variantLabels[step]);
   const partLabel =
     phase === 1 && partIndex >= 0 ? `Part ${partIndex + 1} of ${workParts.length} · ${workParts[partIndex]}` : undefined;
+  const systemsFeedback = perspectiveStructured ?? exercise?.aiPerspectiveStructured ?? null;
+  // Older rows have no level: they had the component list and no other hints (Standard).
+  const exerciseLevel: PracticeLevel = exercise
+    ? isGeoExercise
+      ? "expert"
+      : (exercise.level ?? "standard")
+    : level;
+  const exLevel = SYSTEMS_LEVELS[exerciseLevel];
 
   return (
     <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Map the system")} partLabel={partLabel}>
@@ -637,6 +686,18 @@ export function SystemsExerciseFlow({
               </Button>
             </div>
 
+            <LevelPicker
+              value={level}
+              onChange={chooseLevel}
+              descriptions={{
+                guided: SYSTEMS_LEVELS.guided.description,
+                standard: SYSTEMS_LEVELS.standard.description,
+                expert: SYSTEMS_LEVELS.expert.description,
+              }}
+              note="Geopolitics topics always use Expert for now."
+            />
+
+            {SYSTEMS_LEVELS[level].taskTypes.length > 1 ? (
             <div className="grid gap-2">
               <Label>Task type</Label>
               <Select
@@ -653,6 +714,7 @@ export function SystemsExerciseFlow({
                 </SelectContent>
               </Select>
             </div>
+            ) : null}
 
             <div className={cn(entryMode !== "suggested" && "hidden")}>
               <TopicSuggestionPicker
@@ -751,7 +813,9 @@ export function SystemsExerciseFlow({
                   Before you see any nodes, pick the 6 components or factors you think matter most in this
                   scenario.
                 </p>
-                {exercise.componentCandidates && exercise.componentCandidates.length > 0 ? (
+                {exLevel.componentCandidates &&
+                exercise.componentCandidates &&
+                exercise.componentCandidates.length > 0 ? (
                   <div className="space-y-2">
                     <div className="flex flex-wrap gap-2">
                       {exercise.componentCandidates.map((c) => {
@@ -885,6 +949,13 @@ export function SystemsExerciseFlow({
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm leading-relaxed">{exercise.scenario}</p>
+            {exLevel.linkCountHint ? (
+              <p className="text-sm text-zinc-900" data-testid="link-count-hint">
+                The model draws <span className="font-medium">{exercise.intendedConnections.length} links</span>{" "}
+                between these nodes. Try to find them.
+              </p>
+            ) : null}
+            {exLevel.linkTypeGuide !== "hidden" ? <LinkTypeGuide mode={exLevel.linkTypeGuide} /> : null}
             <SystemsFlowCanvas
               nodes={exercise.nodes}
               userEdges={userEdges}
@@ -1063,6 +1134,13 @@ export function SystemsExerciseFlow({
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm font-medium">{exercise.shockEvent.description}</p>
+            {exLevel.impactCountHint ? (
+              <p className="text-sm text-zinc-900" data-testid="impact-count-hint">
+                In the model, {exercise.shockEvent.directlyAffected.length} node
+                {exercise.shockEvent.directlyAffected.length === 1 ? " is" : "s are"} directly and{" "}
+                {exercise.shockEvent.indirectlyAffected.length} indirectly affected.
+              </p>
+            ) : null}
             <SystemsFlowCanvas
               nodes={exercise.nodes}
               userEdges={userEdges}
@@ -1254,11 +1332,29 @@ export function SystemsExerciseFlow({
 
       {(step === perspectiveStep || step === doneStep) && exercise && perspectiveText ? (
         <div className="space-y-4">
-          <AIPerspective
-            text={perspectiveText}
-            structured={perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null}
-            perspectiveKind="systems"
+          <SystemsAnswerKey
+            exercise={{ ...exercise, userEdges, confidenceBefore: confidence }}
+            result={systemsResultOf({ ...exercise, userEdges, nodeImpact })}
+            coaching={isCoachingStructured(systemsFeedback) ? systemsFeedback : null}
           />
+          {/* Feedback saved before the comparison view (clarity v2 or plain text). */}
+          {!isCoachingStructured(systemsFeedback) ? (
+            <AIPerspective text={perspectiveText} structured={systemsFeedback} perspectiveKind="systems" />
+          ) : null}
+          {step === doneStep && levelSuggestion ? (
+            <LevelSuggestionCard
+              suggestion={levelSuggestion}
+              onAccept={() => {
+                chooseLevel(levelSuggestion.to);
+                showToast(`Level set to ${LEVEL_LABELS[levelSuggestion.to]} for your next exercise.`);
+                setLevelSuggestion(null);
+              }}
+              onDismiss={() => {
+                void dismissLevelSuggestion("systems");
+                setLevelSuggestion(null);
+              }}
+            />
+          ) : null}
           <PracticeFinishCard
             takeaway={takeaway}
             onTakeawayChange={setTakeaway}

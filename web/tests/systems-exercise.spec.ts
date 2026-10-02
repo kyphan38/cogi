@@ -1,7 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { bypassFirebaseAuth, gotoAuthenticated, stubFirestoreReads } from "./helpers/auth-setup";
 import {
+  addSystemsConnection,
   advanceSystemsToCanvas,
+  choosePracticeLevel,
   exerciseSourceCombobox,
   generateExercise,
 } from "./helpers/exercise-flow";
@@ -92,5 +94,35 @@ test.describe("Systems exercise - generation and canvas", () => {
     await expect(
       page.getByText(/Drag from one node.*Set each edge.*type/),
     ).toBeVisible();
+  });
+});
+
+test.describe("Systems exercise - levels", () => {
+  test.beforeEach(async ({ page }) => {
+    await bypassFirebaseAuth(page);
+    await stubFirestoreReads(page);
+  });
+
+  test("guided shows the link count, link types and the impact hint; task type is hidden", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/systems");
+    await choosePracticeLevel(page, "Guided");
+    await expect(page.getByText("Task type", { exact: true })).toHaveCount(0);
+    await generateExercise(page, "Cloud Architecture", { level: "Guided" });
+    await advanceSystemsToCanvas(page);
+    await expect(page.getByTestId("link-count-hint")).toContainText("The model draws");
+    await expect(page.getByTestId("link-type-guide")).toContainText("A depends on B");
+    await addSystemsConnection(page);
+    await page.getByRole("button", { name: "Done connecting" }).click();
+    await expect(page.getByTestId("impact-count-hint")).toContainText("directly and");
+  });
+
+  test("expert hides the hints and offers every task type", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/systems");
+    await choosePracticeLevel(page, "Expert");
+    await expect(page.getByText("Task type", { exact: true })).toBeVisible();
+    await generateExercise(page, "Cloud Architecture");
+    await advanceSystemsToCanvas(page);
+    await expect(page.getByTestId("link-count-hint")).toHaveCount(0);
+    await expect(page.getByTestId("link-type-guide")).toHaveCount(0);
   });
 });

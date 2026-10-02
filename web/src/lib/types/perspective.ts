@@ -121,10 +121,25 @@ export interface AnalyticalCoachingStructured {
   metaNote?: string;
 }
 
+/**
+ * The same coaching shape for Systems and Evaluative (plan phase 6a). Refs depend on
+ * the exercise type, e.g. `node_<id>`, `conn_<n>`, `option_<id>`, `criterion_<id>`.
+ */
+export interface CoachingStructured extends Omit<AnalyticalCoachingStructured, "perspectiveFormat"> {
+  perspectiveFormat: "coaching_v3";
+}
+
 export type AIPerspectiveStructured =
   | ClarityPerspectiveStructured
   | LegacyPerspectiveStructured
-  | AnalyticalCoachingStructured;
+  | AnalyticalCoachingStructured
+  | CoachingStructured;
+
+export function isCoachingStructured(
+  s: AIPerspectiveStructured | null | undefined,
+): s is CoachingStructured {
+  return s != null && "perspectiveFormat" in s && s.perspectiveFormat === "coaching_v3";
+}
 
 export function isAnalyticalCoachingStructured(
   s: AIPerspectiveStructured | null | undefined,
@@ -135,7 +150,9 @@ export function isAnalyticalCoachingStructured(
 export function isLegacyPerspectiveStructured(
   s: AIPerspectiveStructured,
 ): s is LegacyPerspectiveStructured {
-  if (isClarityPerspectiveStructured(s) || isAnalyticalCoachingStructured(s)) return false;
+  if (isClarityPerspectiveStructured(s) || isAnalyticalCoachingStructured(s) || isCoachingStructured(s)) {
+    return false;
+  }
   return "embedded" in s && Array.isArray(s.embedded);
 }
 
