@@ -213,7 +213,22 @@ sạch, eslint 0 lỗi (2 cảnh báo cũ), build production đạt.
 - **P3.5 Tag đơn sắc.** Bỏ màu đỏ, cam, vàng, tím, xanh trong `TAG_LABELS`. Dùng chip
   trung tính, phân biệt bằng tên.
 
-## Phase 4 - Cấp độ: khung chung + Analytical
+## Phase 4 - Cấp độ: khung chung + Analytical - XONG
+
+**Xong (2026-10-03)**, branch `analytical/phase-4`. Unit 524/524, E2E 96/96 (trước 2
+bản sửa nhỏ cuối; spec liên quan chạy lại đều đạt), `tsc` sạch, eslint 0 lỗi (2 cảnh
+báo cũ), build production đạt. Gọi Gemini thật cho bài Guided: 4/4 đạt ngay lần đầu,
+145-181 từ, 8-10 câu.
+
+- Bài cũ không có `level` được coi như Standard (chúng làm trước khi có cấp, bằng
+  cách bấm câu). Geopolitics luôn là Expert.
+- Câu hỏi ý chính: AI hay đặt đáp án đúng ở vị trí đầu (3/4 lần), nên giao diện xáo
+  thứ tự theo id bài.
+- Ở Guided, bài 8-10 câu thì gần như mọi câu đều được gợi ý (4 lỗi + 2 bẫy + 2 câu
+  thường). Đúng thiết kế, nhưng nếu thấy dài có thể giảm câu thường xuống 1.
+- Đã làm thêm: câu thường đánh "Looks fine" / "Not sure" không hiện trong mục
+  "Your other highlights" và không gửi cho AI (tránh nhận xét thừa).
+- Gợi ý lên/xuống cấp chỉ có unit test (cần 3 bài xong liên tiếp nên không có E2E).
 
 - **P4.1 Khung chung** `lib/exercise/levels.ts`:
   - `PracticeLevel = "guided" | "standard" | "expert"`.
@@ -257,7 +272,7 @@ sạch, eslint 0 lỗi (2 cảnh báo cũ), build production đạt.
 
 - ~~Hiện tên tag đẹp (không phải `logical_fallacy`), bảng đáp án.~~ Đã làm ở Phase 2.
 - ~~Bài cũ: tính `result` khi mở; feedback cũ vẫn hiện như trước.~~ Đã làm ở Phase 2.
-- Còn lại: hiện cấp đã làm (sau Phase 4).
+- ~~Còn lại: hiện cấp đã làm (sau Phase 4).~~ Đã làm ở Phase 4. **Phase 5 xong.**
 
 ## Phase 6 - Mở rộng cấp độ sang Systems và Evaluative `[QUYẾT ĐỊNH]`
 
