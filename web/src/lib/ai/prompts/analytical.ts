@@ -23,6 +23,18 @@ const ANALYTICAL_ISSUE_SHAPE_BLOCK = `Return a single JSON object with this exac
 
 const PARAGRAPH_RULE = `Split the passage into 2-4 short paragraphs separated by a blank line ("\\n\\n"), so it is easy to read.`;
 
+/**
+ * Guided level: a main-claim check before hunting for problems. Appended after the
+ * shape block, so it adds one top-level key.
+ */
+export const MAIN_CLAIM_QUIZ_BLOCK = `Also add a top-level "mainClaimQuiz" object, used to check the reader understood the passage before looking for problems:
+"mainClaimQuiz": {
+  "options": [string, string, string] (exactly 3 short statements, at most 20 words each),
+  "answerIndex": number (0, 1 or 2 - the index of the passage's main claim; vary its position),
+  "explanation": string (1-2 simple sentences on why that is the main claim)
+}
+One option is the passage's main claim. The other two are plausible but wrong: a supporting detail, or a claim the passage does not make.`;
+
 const ANALYTICAL_ISSUE_COUNT_FOOTER = `embeddedIssues must have exactly 4 items (1 obvious, 2 moderate, 1 subtle severities).
 validPoints must have exactly 2 items (the decoys).`;
 
@@ -70,8 +82,14 @@ export function buildAnalyticalGenerationPrompt(input: {
   adaptationAppendix?: string;
   /** When set, design the passage around this situation instead of a generic domain topic. */
   customScenario?: string;
+  /** Passage length range, set by the practice level (default "250-350"). */
+  passageWords?: string;
+  /** Guided level: also ask for the main-claim quiz. */
+  withMainClaimQuiz?: boolean;
 }): string {
   const ctx = input.userContext?.trim() || "(none provided)";
+  const words = input.passageWords ?? "250-350";
+  const quiz = input.withMainClaimQuiz ? `\n\n${MAIN_CLAIM_QUIZ_BLOCK}` : "";
   const adapt = input.adaptationAppendix?.trim();
   const scenarioBlock = formatUserScenarioBlock(input.customScenario);
   const domainHint = buildDomainHint(input.domain);
@@ -84,7 +102,7 @@ ${domainHint}
 
 ${scenarioBlock}
 
-Write an analysis passage (250-350 words) clearly grounded in the scenario above. The passage must contain exactly:
+Write an analysis passage (${words} words) clearly grounded in the scenario above. The passage must contain exactly:
 - 1 obvious issue (most people would catch this)
 - 2 moderate issues (requires careful reading)
 - 1 subtle issue (only critical thinkers would catch)
@@ -94,7 +112,7 @@ The passage should read naturally as part of that situation (memo, internal brie
 Do NOT make issues cartoonishly obvious.
 ${PARAGRAPH_RULE}
 
-${ANALYTICAL_ISSUE_SHAPE_BLOCK}
+${ANALYTICAL_ISSUE_SHAPE_BLOCK}${quiz}
 
 ${ANALYTICAL_ISSUE_COUNT_FOOTER}${adapt ? `\n\n${adapt}` : ""}`;
   }
@@ -103,7 +121,7 @@ ${ANALYTICAL_ISSUE_COUNT_FOOTER}${adapt ? `\n\n${adapt}` : ""}`;
 
 USER context: ${ctx}
 
-Generate a ${input.domain} analysis passage (250-350 words) that contains exactly:
+Generate a ${input.domain} analysis passage (${words} words) that contains exactly:
 - 1 obvious issue (most people would catch this)
 - 2 moderate issues (requires careful reading)
 - 1 subtle issue (only critical thinkers would catch)
@@ -113,7 +131,7 @@ The passage should read naturally, like a real ${input.domain} analysis or plan.
 Do NOT make issues cartoonishly obvious.
 ${PARAGRAPH_RULE}
 
-${ANALYTICAL_ISSUE_SHAPE_BLOCK}
+${ANALYTICAL_ISSUE_SHAPE_BLOCK}${quiz}
 
 ${ANALYTICAL_ISSUE_COUNT_FOOTER}${adapt ? `\n\n${adapt}` : ""}`;
 }
@@ -242,8 +260,11 @@ export function buildAnalyticalFromUserTextPrompt(input: {
   userContext?: string;
   userText: string;
   adaptationAppendix?: string;
+  /** Guided level: also ask for the main-claim quiz. */
+  withMainClaimQuiz?: boolean;
 }): string {
   const ctx = input.userContext?.trim() || "(none provided)";
+  const quiz = input.withMainClaimQuiz ? `\n\n${MAIN_CLAIM_QUIZ_BLOCK}` : "";
   const adapt = input.adaptationAppendix?.trim();
   return `You are analyzing the user's own real-world text. Return ONLY valid JSON (no markdown, no prose).
 
@@ -260,7 +281,7 @@ Your task:
 - Treat the provided text as the passage.
 - Identify embedded issues and decoy valid points exactly as in the analytical exercise spec.
 
-${ANALYTICAL_ISSUE_SHAPE_BLOCK}
+${ANALYTICAL_ISSUE_SHAPE_BLOCK}${quiz}
 
 Requirements:
 - Use the USER TEXT above directly as the passage. You may lightly trim whitespace but must NOT paraphrase or expand it.

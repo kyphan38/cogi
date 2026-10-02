@@ -66,6 +66,8 @@ import {
   isLanguageLevel,
 } from "@/lib/adaptive/language-level";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
+import { isPracticeLevel } from "@/lib/exercise/levels";
+import { ANALYTICAL_LEVELS } from "@/lib/exercise/analytical-levels";
 import {
   CUSTOM_DOMAIN_PLACEHOLDER,
   CUSTOM_SCENARIO_MAX_LEN,
@@ -176,6 +178,10 @@ export async function POST(req: Request) {
   // Passed to every prompt builder as its `adaptationAppendix`.
   const adaptationAppendix = languageAppendix?.trim() ? languageAppendix : undefined;
 
+  // Analytical practice level. Requests without one keep the original (expert) behavior.
+  const rawLevel = (body as { level?: unknown }).level;
+  const analyticalLevel = ANALYTICAL_LEVELS[isPracticeLevel(rawLevel) ? rawLevel : "expert"];
+
   try {
     if (exerciseType === "evaluative") {
       const rawEvaluativeTaskType = (body as { evaluativeTaskType?: unknown })
@@ -268,6 +274,7 @@ export async function POST(req: Request) {
       isGeopoliticsAnalyticalDomain(effectiveDomain);
     const useSoundReasoning =
       exerciseType === "analytical" &&
+      analyticalLevel.allowSoundReasoning &&
       mode === "generated" &&
       !scenarioForPrompt &&
       !useGeopoliticsAnalytical &&
@@ -315,6 +322,8 @@ export async function POST(req: Request) {
                   userContext,
                   adaptationAppendix,
                   customScenario: scenarioForPrompt,
+                  passageWords: analyticalLevel.passageWords,
+                  withMainClaimQuiz: analyticalLevel.walkthrough,
                 });
             return base;
           })();
@@ -381,6 +390,7 @@ export async function POST(req: Request) {
             userContext,
             userText: sanitized,
             adaptationAppendix,
+            withMainClaimQuiz: analyticalLevel.walkthrough,
           });
       const rReal = await generateValidatedJson({
         prompt: fromTextPrompt,
@@ -388,9 +398,11 @@ export async function POST(req: Request) {
         validate: (data) =>
           isGeoReal
             ? validateGeopoliticsAnalyticalSemantics(data)
-            : validateAnalyticalSemantics(data),
+            : validateAnalyticalSemantics(data, { expectMainClaimQuiz: analyticalLevel.walkthrough }),
         retrySuffix: isGeoReal ? GEOPOLITICS_ANALYTICAL_RETRY_SUFFIX : ANALYTICAL_RETRY_SUFFIX,
-        responseJsonSchema: analyticalResponseSchema(isGeoReal),
+        responseJsonSchema: analyticalResponseSchema(isGeoReal, {
+          withMainClaimQuiz: !isGeoReal && analyticalLevel.walkthrough,
+        }),
       });
       if (!rReal.ok) {
         return validatedJsonFailureResponse(
@@ -407,11 +419,16 @@ export async function POST(req: Request) {
       validate: (data) =>
         useGeopoliticsAnalytical
           ? validateGeopoliticsAnalyticalSemantics(data)
-          : validateAnalyticalSemantics(data, { expectSound: useSoundReasoning }),
+          : validateAnalyticalSemantics(data, {
+              expectSound: useSoundReasoning,
+              expectMainClaimQuiz: analyticalLevel.walkthrough,
+            }),
       retrySuffix: useGeopoliticsAnalytical
         ? GEOPOLITICS_ANALYTICAL_RETRY_SUFFIX
         : ANALYTICAL_RETRY_SUFFIX,
-      responseJsonSchema: analyticalResponseSchema(useGeopoliticsAnalytical),
+      responseJsonSchema: analyticalResponseSchema(useGeopoliticsAnalytical, {
+        withMainClaimQuiz: !useGeopoliticsAnalytical && analyticalLevel.walkthrough,
+      }),
     });
     if (!r.ok) return validatedJsonFailureResponse(r);
     // The client reads this flag; set it from what was asked, not what the model echoed.
