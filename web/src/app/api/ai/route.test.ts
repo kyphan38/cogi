@@ -245,6 +245,23 @@ describe("POST /api/ai - evaluative", () => {
     expect((await res.json()).ok).toBe(true);
   });
 
+  it("guided level asks for a matrix only", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue(validEvaluativeJson());
+    const res = await POST(makeRequest({ domain: "tech", exerciseType: "evaluative", level: "guided" }));
+    expect(res.status).toBe(200);
+    const prompt = mockGenerateRaw.mock.calls[0]![0] as string;
+    expect(prompt).toContain("Use the MATRIX variant ONLY");
+    expect(prompt).not.toContain("Decide variant");
+  });
+
+  it("standard level lets the model pick matrix or scoring", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue(validEvaluativeJson());
+    await POST(makeRequest({ domain: "tech", exerciseType: "evaluative", level: "standard" }));
+    expect(mockGenerateRaw.mock.calls[0]![0]).toContain("Decide variant");
+  });
+
   it("retries on parse failure then returns 422 if still invalid", async () => {
     authOk();
     mockGenerateRaw.mockResolvedValue("bad json");
