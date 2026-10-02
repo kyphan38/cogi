@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseAnalyticalExerciseJson,
   isGeopoliticsAnalyticalPayload,
+  validateAnalyticalSemantics,
   validateGeopoliticsAnalyticalSemantics,
   type AnalyticalExercise,
 } from "./common";
@@ -177,5 +178,72 @@ describe("validateGeopoliticsAnalyticalSemantics", () => {
     };
     const errors = validateGeopoliticsAnalyticalSemantics(bad);
     expect(errors.some((e) => e.includes("textSegment not found"))).toBe(true);
+  });
+});
+
+describe("validateAnalyticalSemantics", () => {
+  it("accepts a valid plain passage", () => {
+    expect(validateAnalyticalSemantics(validAnalytical)).toEqual([]);
+  });
+
+  it("rejects the wrong number of issues and decoys", () => {
+    const bad = {
+      ...validAnalytical,
+      embeddedIssues: validAnalytical.embeddedIssues.slice(0, 3),
+      validPoints: validAnalytical.validPoints.slice(0, 1),
+    };
+    const errors = validateAnalyticalSemantics(bad);
+    expect(errors).toContain("embeddedIssues must have exactly 4 items");
+    expect(errors).toContain("validPoints must have exactly 2 items");
+  });
+
+  it("rejects a wrong severity mix", () => {
+    const bad = {
+      ...validAnalytical,
+      embeddedIssues: validAnalytical.embeddedIssues.map((i) => ({ ...i, severity: "moderate" as const })),
+    };
+    expect(validateAnalyticalSemantics(bad)).toContain("severities must be 1 obvious, 2 moderate, 1 subtle");
+  });
+
+  it("rejects geopolitics issue types on a plain passage", () => {
+    const bad = {
+      ...validAnalytical,
+      embeddedIssues: [
+        { ...validAnalytical.embeddedIssues[0], type: "framing_bias" as const },
+        ...validAnalytical.embeddedIssues.slice(1),
+      ],
+    };
+    expect(validateAnalyticalSemantics(bad).some((e) => e.includes("framing_bias"))).toBe(true);
+  });
+
+  it("rejects segments that are not in the passage", () => {
+    const bad = {
+      ...validAnalytical,
+      embeddedIssues: [
+        { ...validAnalytical.embeddedIssues[0], textSegment: "a sentence the passage never says" },
+        ...validAnalytical.embeddedIssues.slice(1),
+      ],
+      validPoints: [validAnalytical.validPoints[0], { textSegment: "nowhere to be found", explanation: "x" }],
+    };
+    const errors = validateAnalyticalSemantics(bad);
+    expect(errors).toContain("textSegment not found in passage for issue type logical_fallacy");
+    expect(errors).toContain("textSegment not found in passage for a validPoint");
+  });
+
+  it("rejects isSoundReasoning on a passage with issues", () => {
+    const bad = { ...validAnalytical, isSoundReasoning: true };
+    expect(validateAnalyticalSemantics(bad)).toContain(
+      "isSoundReasoning must not be true for a passage with embedded issues",
+    );
+  });
+
+  it("accepts a sound-reasoning passage with no issues and 2-3 decoys", () => {
+    const sound = { ...validAnalytical, embeddedIssues: [], isSoundReasoning: true };
+    expect(validateAnalyticalSemantics(sound, { expectSound: true })).toEqual([]);
+  });
+
+  it("rejects a sound-reasoning passage that still has issues", () => {
+    const errors = validateAnalyticalSemantics(validAnalytical, { expectSound: true });
+    expect(errors).toContain("embeddedIssues must be empty for a sound-reasoning passage");
   });
 });
