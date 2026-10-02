@@ -24,7 +24,7 @@ test.describe("State preservation - Analytical", () => {
     ).toBeVisible({ timeout: 15_000 });
 
     // Click Back to return to step 0
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
 
     // Should see both Generate and Continue buttons
     await expect(
@@ -46,7 +46,7 @@ test.describe("State preservation - Analytical", () => {
     ).toBeVisible({ timeout: 15_000 });
 
     // Click Back
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
 
     // Click Continue existing exercise
     await page.getByRole("button", { name: "Continue existing exercise" }).click();
@@ -73,7 +73,7 @@ test.describe("State preservation - Analytical", () => {
     expect(highlightCount).toBeGreaterThan(0);
 
     // Click Back
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
 
     // Click Continue
     await page.getByRole("button", { name: "Continue existing exercise" }).click();
@@ -101,7 +101,7 @@ test.describe("State preservation - Sequential", () => {
     ).toBeVisible({ timeout: 15_000 });
 
     // Click Back
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
 
     await expect(
       page.getByRole("button", { name: "Continue existing exercise" }),
@@ -118,7 +118,7 @@ test.describe("State preservation - Sequential", () => {
       page.getByText("Incident Response Sequence"),
     ).toBeVisible({ timeout: 15_000 });
 
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
     await page.getByRole("button", { name: "Continue existing exercise" }).click();
 
     await expect(
@@ -144,7 +144,7 @@ test.describe("State preservation - Systems", () => {
     ).toBeVisible({ timeout: 15_000 });
 
     // Step 1 has decompose phase. Click Back
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
 
     await expect(
       page.getByRole("button", { name: "Continue existing exercise" }),
@@ -169,7 +169,7 @@ test.describe("State preservation - Evaluative", () => {
     ).toBeVisible({ timeout: 15_000 });
 
     // Evaluative step 1 has criteria input phase with a Back button
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
 
     await expect(
       page.getByRole("button", { name: "Continue existing exercise" }),
@@ -193,7 +193,7 @@ test.describe("State preservation - Generative", () => {
       page.getByText("AI Ethics Policy Framework"),
     ).toBeVisible({ timeout: 15_000 });
 
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
 
     await expect(
       page.getByRole("button", { name: "Continue existing exercise" }),
@@ -210,7 +210,7 @@ test.describe("State preservation - Generative", () => {
       page.getByText("AI Ethics Policy Framework"),
     ).toBeVisible({ timeout: 15_000 });
 
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
     await page.getByRole("button", { name: "Continue existing exercise" }).click();
 
     await expect(
