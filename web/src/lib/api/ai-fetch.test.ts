@@ -61,6 +61,15 @@ describe("safeAiJson", () => {
     );
   });
 
+  it("replaces technical auth errors with a sign-in hint", async () => {
+    for (const status of [401, 403]) {
+      const res = mockResponse({ ok: false, error: "Missing auth token" }, { status });
+      await expect(safeAiJson(res)).rejects.toThrow(
+        "Your session has expired. Refresh the page and sign in again.",
+      );
+    }
+  });
+
   it("extracts error from 400 JSON response", async () => {
     const res = mockResponse(
       { ok: false, error: "Provide domain and/or customScenario (non-empty)." },

@@ -78,6 +78,12 @@ export async function safeAiJson<T>(res: Response): Promise<T> {
     try {
       const body = (await res.json()) as { error?: string };
       msg = body.error || `Server error (${res.status})`;
+      if (res.status === 401 || res.status === 403) {
+        // Auth errors from the server are technical ("Missing auth token"); keep them
+        // for debugging and show the learner what to do instead.
+        console.warn(`[ai-fetch] ${res.status}: ${msg}`);
+        msg = "Your session has expired. Refresh the page and sign in again.";
+      }
     } catch {
       msg =
         res.status === 504
