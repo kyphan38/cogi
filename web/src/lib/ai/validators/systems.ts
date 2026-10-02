@@ -115,6 +115,15 @@ export function sanitizeSystemsNodesInPlace(parsed: unknown): void {
       n.description = n.description.slice(0, SYSTEMS_NODE_DESCRIPTION_MAX);
     }
   }
+  // Candidates hold the real node labels plus distractors; cut them the same way so a
+  // long label still matches its truncated node.
+  const rec = parsed as Record<string, unknown>;
+  const candidates = rec.componentCandidates;
+  if (Array.isArray(candidates)) {
+    rec.componentCandidates = candidates.map((c) =>
+      typeof c === "string" && c.length > SYSTEMS_NODE_LABEL_MAX ? c.slice(0, SYSTEMS_NODE_LABEL_MAX) : c,
+    );
+  }
 }
 
 function stripJsonFences(text: string): string {
