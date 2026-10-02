@@ -55,7 +55,10 @@ Action, Done). Dashboard có 9 khung, phần lớn trống. Menu có 7 mục.
 - Kiểm tra: ảnh chụp Home, menu desktop/mobile; spec Playwright về layout và
   navigation.
 
-## Phase 2 - Vòng lặp 3 bước với một khung chung (thay đổi chính)
+## Phase 2 - Vòng lặp 3 bước với một khung chung (thay đổi chính) - XONG
+
+**Xong (2026-10-02)**, branch `simplify/phase-2`. Evaluative 1791→1524, Systems
+1591→1273, Analytical 1378→1039 dòng. E2E 167 đạt (3 bỏ qua: Steelman), unit 967/967.
 
 Hiện 6 file `*ExerciseFlow.tsx` dài 1.300-1.800 dòng, lặp lại các bước Confidence,
 AI perspective, Journal, Action.
@@ -116,7 +119,7 @@ AI perspective, Journal, Action.
 ## Thứ tự
 
 1. ~~Phase 1 (nhanh, thấy ngay khác biệt)~~ - xong
-2. Phase 2 (lớn nhất, nhiều quyết định)
+2. ~~Phase 2 (lớn nhất, nhiều quyết định)~~ - xong
 3. Phase 3
 4. Phase 4
 5. Phase 5
