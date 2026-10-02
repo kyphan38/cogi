@@ -215,8 +215,7 @@ sạch, eslint 0 lỗi (2 cảnh báo cũ), build production đạt.
 
 ## Phase 4 - Cấp độ: khung chung + Analytical - XONG
 
-**Xong (2026-10-03)**, branch `analytical/phase-4`. Unit 524/524, E2E 96/96 (trước 2
-bản sửa nhỏ cuối; spec liên quan chạy lại đều đạt), `tsc` sạch, eslint 0 lỗi (2 cảnh
+**Xong (2026-10-03)**, branch `analytical/phase-4`. Unit 525/525, E2E 96/96, `tsc` sạch, eslint 0 lỗi (2 cảnh
 báo cũ), build production đạt. Gọi Gemini thật cho bài Guided: 4/4 đạt ngay lần đầu,
 145-181 từ, 8-10 câu.
 
