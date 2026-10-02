@@ -38,15 +38,6 @@ function makeRequest(body: unknown) {
   });
 }
 
-function structuredPerspectiveJson() {
-  return JSON.stringify({
-    embedded: [{ id: "e1", title: "Issue 1", body: "Explanation", suitableFor: "beginner" }],
-    userFound: [{ id: "u1", title: "Found 1", body: "Good catch", suitableFor: "intermediate" }],
-    additional: [{ id: "a1", title: "Additional 1", body: "More context", suitableFor: "advanced" }],
-    openQuestions: [{ id: "o1", title: "Question 1", body: "Think about this", suitableFor: "beginner" }],
-  });
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("GEMINI_API_KEY", "test-key");
