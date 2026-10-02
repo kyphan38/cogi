@@ -96,12 +96,55 @@ test.describe("Analytical exercise - generate and highlight phase", () => {
       page.getByText("Structural reasoning passage"),
     ).toBeVisible({ timeout: 15_000 });
 
-    const passage = page.getByTestId("text-passage");
-    await expect(passage).toBeVisible();
-    await passage.selectText();
-    await expect(page.getByTestId("tag-selection-hint")).toContainText(
-      "Tap selection to tag",
+    // "Technology" is a plain passage, so it uses sentence taps; free selection
+    // (geopolitics) is covered on the layout fixtures page.
+    await expect(page.getByTestId("text-passage")).toBeVisible();
+    await expect(page.getByTestId("sentence-mode-hint")).toContainText(
+      "Tap a sentence to tag it.",
     );
+  });
+
+  test("plain passages: tap a sentence, pick a tag by its question, then change or remove it", async ({
+    page,
+  }) => {
+    await gotoAuthenticated(page, "/exercise/analytical");
+    await generateExercise(page, "DevOps");
+    await expect(page.getByText("Structural reasoning passage")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("sentence-mode-hint")).toBeVisible();
+
+    const second = page.getByTestId("passage-sentence").nth(1);
+    await expect(second).toHaveText(/binary choice/);
+    await second.click();
+
+    const picker = page.getByTestId("tag-picker-region");
+    await expect(picker.getByTestId("pick-tag-prompt")).toHaveText("Pick a tag:");
+    // Six plain tags, each with the question behind it, no geopolitics tags.
+    await expect(picker.getByRole("button", { name: /Logical Fallacy/ })).toContainText(
+      "Does the logic jump?",
+    );
+    await expect(picker.getByRole("button", { name: /Framing Bias/ })).toHaveCount(0);
+    await picker.getByRole("button", { name: /Logical Fallacy/ }).click();
+
+    await expect(second).toHaveAttribute("data-tagged", "true");
+    await expect(page.getByTestId("highlight-chip")).toHaveCount(1);
+    await expect(page.getByTestId("highlight-chip")).toContainText("Logical Fallacy");
+
+    // Tap the tagged sentence again to change its tag.
+    await second.click();
+    await expect(picker.getByTestId("pick-tag-prompt")).toHaveText("Change the tag:");
+    await expect(picker.getByRole("button", { name: /Logical Fallacy/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await picker.getByRole("button", { name: /Hidden Assumption/ }).click();
+    await expect(page.getByTestId("highlight-chip")).toHaveCount(1);
+    await expect(page.getByTestId("highlight-chip")).toContainText("Hidden Assumption");
+
+    // And once more to remove it.
+    await second.click();
+    await picker.getByRole("button", { name: "Remove" }).click();
+    await expect(page.getByTestId("highlight-chip")).toHaveCount(0);
+    await expect(second).not.toHaveAttribute("data-tagged", "true");
   });
 
   test("highlight with confidence -> AI feedback -> takeaway -> saved", async ({

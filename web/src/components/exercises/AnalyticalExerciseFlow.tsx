@@ -738,6 +738,8 @@ export function AnalyticalExerciseFlow({
               tagOptions={
                 exercise.isGeopolitics ? GEOPOLITICS_TAG_OPTIONS : ANALYTICAL_TAG_OPTIONS
               }
+              // Geopolitics stays at the expert level (free selection) for now.
+              selectionMode={exercise.isGeopolitics ? "free" : "sentence"}
               onSelectionOverlap={() =>
                 setError("Selection overlaps an existing highlight. Remove or adjust first.")
               }
