@@ -5,6 +5,7 @@ import type { SystemsExercisePayload } from "@/lib/ai/validators/systems";
 import type { SystemsResilienceExercisePayload } from "@/lib/ai/validators/systems";
 import type { SystemsTaskType } from "@/lib/ai/validators/systems";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
+import type { PracticeLevel } from "@/lib/exercise/levels";
 
 /** The exercise types the app offers. Old rows of removed types may still exist in Firestore. */
 export type ThinkingType = "analytical" | "systems" | "evaluative";
@@ -92,6 +93,12 @@ export interface AnalyticalResult {
   decoyTotal: number;
 }
 
+export interface MainClaimQuiz {
+  options: string[];
+  answerIndex: number;
+  explanation: string;
+}
+
 /** Persisted analytical exercise (extends generated payload + user state). */
 export interface AnalyticalExerciseRow {
   id: string;
@@ -119,6 +126,14 @@ export interface AnalyticalExerciseRow {
   userHighlights: UserHighlight[];
   /** Highlights scored against the answer key when submitted. Older rows lack it. */
   result?: AnalyticalResult | null;
+  /** Practice level the exercise was made for. Older rows lack it. */
+  level?: PracticeLevel;
+  /** Guided level: pick the main claim before checking sentences. */
+  mainClaimQuiz?: MainClaimQuiz;
+  /** Index into `mainClaimQuiz.options` the user picked (not the shuffled position). */
+  mainClaimAnswer?: number | null;
+  /** Guided walkthrough: which suggested sentence the user is on. */
+  guidedIndex?: number;
   confidenceBefore: number | null;
   aiPerspective: string | null;
   aiPerspectiveStructured?: AIPerspectiveStructured | null;

@@ -86,6 +86,12 @@ describe("buildAnalyticalPerspectivePrompt", () => {
     expect(p).toContain("issue_4, extra_1.");
   });
 
+  it("leaves out unplanned sentences the user marked fine or unsure", () => {
+    const at = passage.indexOf(" A study");
+    const fine: UserHighlight = { id: "f", startOffset: at, endOffset: at + 1, text: "gap", tag: "valid_point" };
+    expect(build([fine])).not.toContain("extra_1");
+  });
+
   it("gives the check question for each plain tag, not the geopolitics ones", () => {
     const p = build([]);
     expect(p).toContain("- Weak Evidence: Is there real evidence here, or only a claim?");
