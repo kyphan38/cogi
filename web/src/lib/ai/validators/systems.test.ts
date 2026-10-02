@@ -63,6 +63,14 @@ describe("sanitizeSystemsNodesInPlace", () => {
     expect(o.nodes[0].description).toHaveLength(50);
   });
 
+  it("clips oversized component candidates so they still match clipped labels", () => {
+    const long = "Regional port authority board";
+    const o = { nodes: [{ label: long, description: "ok" }], componentCandidates: [long, "Short"] };
+    sanitizeSystemsNodesInPlace(o);
+    expect(o.componentCandidates).toEqual([long.slice(0, 20), "Short"]);
+    expect(o.componentCandidates[0]).toBe(o.nodes[0].label);
+  });
+
   it("leaves valid strings unchanged", () => {
     const o = { nodes: [{ label: "Fine", description: "Also fine" }] };
     sanitizeSystemsNodesInPlace(o);
