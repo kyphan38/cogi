@@ -122,18 +122,29 @@ uncertainty/geo, Systems auto/resilience/geo, Analytical thường/sound/geo).
   được import (kéo theo một bản `@google/genai` cũ).
 - Kiểm tra: gọi Gemini thật 1 lần cho mỗi loại; test timeout.
 
-## Phase 5 - Dọn code và dữ liệu
+## Phase 5 - Dọn code và dữ liệu - XONG (chờ deploy rules)
+
+**Xong (2026-10-02)**, branch `simplify/phase-5`. Xoá ~25.700 dòng (245 file). Còn 15 route.
+E2E 91/91 (không còn test bỏ qua), unit 448/448, `tsc` sạch kể cả test, eslint 0 lỗi
+(2 cảnh báo ref cố ý trong luồng đăng nhập), build đạt.
 
 - **P5.1** `[QUYẾT ĐỊNH]` Xoá hẳn code của các tính năng đã ẩn (flow, route API,
   prompt, validator, trang), hay giữ thêm một thời gian. Đề xuất: dùng bản gọn vài
-  tuần rồi mới xoá.
+  tuần rồi mới xoá. Đã chọn: xoá hẳn. Xoá luôn ô Discuss dưới phản hồi AI (lúc đó
+  vẫn còn hiện). Bài cũ thuộc loại đã xoá vẫn nằm trong History (tên, phản hồi AI) và
+  không hiện ở Continue.
 - **P5.2** Truy vấn có `where` / `orderBy` / `limit` thay cho tải cả collection; xoá
-  một bài bằng truy vấn theo `exerciseId`.
+  một bài bằng truy vấn theo `exerciseId`. Đã làm: `RowQuery` trong `db/firestore.ts`
+  (chạy trên Firestore và trên kho E2E), chỉ lọc + sắp xếp cùng một trường nên không
+  cần composite index. Xoá bài giờ chỉ xoá một doc.
 - **P5.3** Xoá code chết: `lib/ai/provider.ts` (stub), `lib/ai/claude.ts` (không
-  được import).
+  được import). Đã làm, cùng các gói `@google-cloud/vertexai`, `@dnd-kit/sortable`,
+  `@dnd-kit/utilities`.
 - **P5.4** Sửa 33 lỗi type trong file test và 3 lỗi lint, để `tsc` sạch.
 - **P5.5** Gỡ collection không dùng khỏi `firestore.rules` (cần deploy rules; hỏi
-  trước).
+  trước). Đã chọn: deploy luôn, không backup. Rules còn 4 collection: exercises,
+  settings, practicedTopics, cachedTopicLists. Phải deploy code mới trước rules: code
+  đang chạy vẫn đọc các collection cũ khi xoá bài.
 
 ---
 
@@ -143,4 +154,4 @@ uncertainty/geo, Systems auto/resilience/geo, Analytical thường/sound/geo).
 2. ~~Phase 2 (lớn nhất, nhiều quyết định)~~ - xong
 3. ~~Phase 3~~ - xong
 4. ~~Phase 4~~ - xong
-5. Phase 5
+5. ~~Phase 5~~ - xong
