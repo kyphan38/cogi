@@ -20,7 +20,7 @@ const matrixOptionSchema = z.object({
 
 const criteriaCandidatesSchema = z.array(z.string().min(1).max(40)).min(6).max(10).optional();
 
-const matrixPayloadSchema = z.object({
+export const matrixPayloadSchema = z.object({
   variant: z.literal("matrix"),
   title: z.string().min(1).max(200),
   scenario: z.string().min(1).max(4000),
@@ -51,7 +51,7 @@ const hiddenCriterionSchema = z.object({
   description: z.string().min(1).max(500),
 });
 
-const scoringPayloadSchema = z.object({
+export const scoringPayloadSchema = z.object({
   variant: z.literal("scoring"),
   title: z.string().min(1).max(200),
   scenario: z.string().min(1).max(4000),
@@ -88,7 +88,7 @@ const uncertaintyOptionSchema = z.object({
   outcomes: z.array(uncertaintyOutcomeSchema).min(2).max(5),
 });
 
-const uncertaintyPayloadSchema = z.object({
+export const uncertaintyPayloadSchema = z.object({
   variant: z.literal("uncertainty"),
   title: z.string().min(1).max(200),
   scenario: z.string().min(1).max(4000),

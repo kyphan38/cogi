@@ -100,14 +100,26 @@ dòng. E2E 162 đạt (3 bỏ qua: Steelman), unit 972/972, build đạt.
   dùng khi AI tạo bài). Adaptive difficulty tắt luôn khi tạo bài (cờ trong
   `lib/adaptive/adaptive-hints.ts`), vì dữ liệu Confidence nó cần không còn được ghi.
 
-## Phase 4 - Lớp AI
+## Phase 4 - Lớp AI - XONG
+
+**Xong (2026-10-02)**, branch `simplify/phase-4`. `api/ai/route.ts` 793→617 dòng.
+E2E 161 đạt + 1 lỗi chập chờn (Combo, chạy lại 3 lần đều đạt), 3 bỏ qua (Steelman); unit
+990/990; build đạt. Gọi Gemini thật: 9/9 trường hợp đạt (Evaluative auto/dealbreaker/
+uncertainty/geo, Systems auto/resilience/geo, Analytical thường/sound/geo).
 
 - **P4.1** Đổi `@google/generative-ai` (ngừng hỗ trợ từ 31/08/2025) sang
   `@google/genai`, như noda A3.
 - **P4.2** Dùng `responseSchema` cho 3 loại bài giữ lại, kèm một hàm normalize
   (như noda), thay cho validate tay.
+  Đã làm: `lib/ai/response-schemas.ts` tạo `responseJsonSchema` từ chính schema zod
+  (một nguồn, không lệch nhau). Zod parse + kiểm tra ngữ nghĩa vẫn chạy. Analytical
+  thường không có trường geo (nếu có, model tự điền rồi bị coi là bài geo). Gemini
+  không giữ `maxLength`, nên `componentCandidates` được cắt như nhãn node.
 - **P4.3** Một hàm dùng chung "gọi AI → validate → retry 1 lần" thay cho 6 khối lặp
-  trong `api/ai/route.ts`.
+  trong `api/ai/route.ts`. Đã làm: `lib/ai/generate-validated.ts`. Loại bài ẩn
+  (Generative, Sequential, Steelman) dùng chung hàm nhưng không gửi schema.
+- Ghi chú cho Phase 5: `@google-cloud/vertexai` có trong `package.json` nhưng không
+  được import (kéo theo một bản `@google/genai` cũ).
 - Kiểm tra: gọi Gemini thật 1 lần cho mỗi loại; test timeout.
 
 ## Phase 5 - Dọn code và dữ liệu
@@ -130,5 +142,5 @@ dòng. E2E 162 đạt (3 bỏ qua: Steelman), unit 972/972, build đạt.
 1. ~~Phase 1 (nhanh, thấy ngay khác biệt)~~ - xong
 2. ~~Phase 2 (lớn nhất, nhiều quyết định)~~ - xong
 3. ~~Phase 3~~ - xong
-4. Phase 4
+4. ~~Phase 4~~ - xong
 5. Phase 5

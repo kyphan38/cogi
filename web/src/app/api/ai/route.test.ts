@@ -312,6 +312,27 @@ describe("POST /api/ai - evaluative", () => {
     expect(res.status).toBe(422);
     expect(mockGenerateRaw).toHaveBeenCalledTimes(2);
   });
+
+  it("returns 504 when Gemini times out (the SDK rejects with an AbortError)", async () => {
+    authOk();
+    const abort = new Error("This operation was aborted");
+    abort.name = "AbortError";
+    mockGenerateRaw.mockRejectedValue(abort);
+    const res = await POST(makeRequest({ domain: "tech", exerciseType: "evaluative" }));
+    expect(res.status).toBe(504);
+    expect((await res.json()).error).toMatch(/timed out/);
+  });
+
+  it("sends a response schema that matches the task type", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue(validEvaluativeJson());
+    await POST(
+      makeRequest({ domain: "tech", exerciseType: "evaluative", evaluativeTaskType: "uncertainty" }),
+    );
+    const schema = mockGenerateRaw.mock.calls[0][3] as { properties: Record<string, unknown> };
+    expect(schema.properties).toHaveProperty("variant");
+    expect(schema.properties).not.toHaveProperty("criteria");
+  });
 });
 
 describe("POST /api/ai - generative", () => {
@@ -561,6 +582,15 @@ describe("POST /api/ai - analytical steelman", () => {
     const prompt = mockGenerateRaw.mock.calls[0][0] as string;
     expect(prompt).toContain("State a contestable");
     expect(prompt).toContain("Do NOT pre-empt counterarguments");
+  });
+
+  it("keeps plain JSON mode (no response schema) for steelman", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue(validSteelmanJson());
+    await POST(
+      makeRequest({ domain: "management", exerciseType: "analytical", analyticalVariant: "steelman" }),
+    );
+    expect(mockGenerateRaw.mock.calls[0][3]).toBeUndefined();
   });
 
   it("steelman wins over geopolitics domain routing", async () => {
