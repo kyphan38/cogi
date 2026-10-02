@@ -14,14 +14,12 @@ test.describe("History page - layout and structure", () => {
     ).toBeVisible();
   });
 
-  test("renders calibration card with three stat boxes", async ({ page }) => {
+  test("hidden-feature sections are gone", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/history");
-    await expect(
-      page.getByRole("heading", { name: "Calibration" }),
-    ).toBeVisible();
-    await expect(page.getByText("Avg confidence")).toBeVisible();
-    await expect(page.getByText("Avg accuracy")).toBeVisible();
-    await expect(page.getByText("Avg calibration gap")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Activity" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Calibration" })).toHaveCount(0);
+    await expect(page.getByText("Avg calibration gap")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Realtime filters enabled" })).toHaveCount(0);
   });
 
   test("renders activity heatmap card", async ({ page }) => {
@@ -82,13 +80,6 @@ test.describe("History page - layout and structure", () => {
     ).toBeVisible();
   });
 
-  test("gap chart shows minimum-data message", async ({ page }) => {
-    await gotoAuthenticated(page, "/exercise/history");
-    await expect(
-      page.getByText(/Complete at least two exercises/),
-    ).toBeVisible();
-  });
-
   test("heatmap legend shows all exercise types", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/history");
     const heatmapCard = page.locator('[data-slot="card"]').filter({
@@ -100,12 +91,5 @@ test.describe("History page - layout and structure", () => {
     await expect(heatmapCard.getByText("Evaluative", { exact: true })).toBeVisible();
     await expect(heatmapCard.getByText("Generative", { exact: true })).toBeVisible();
     await expect(heatmapCard.getByText("Combo", { exact: true })).toBeVisible();
-  });
-
-  test("realtime filters badge is visible", async ({ page }) => {
-    await gotoAuthenticated(page, "/exercise/history");
-    await expect(
-      page.getByRole("button", { name: "Realtime filters enabled" }),
-    ).toBeVisible();
   });
 });
