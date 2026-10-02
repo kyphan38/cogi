@@ -40,9 +40,23 @@ export async function addPassageHighlight(page: Page): Promise<void> {
   await picker.getByRole("button").first().click();
 }
 
+/** Pick a practice level on a setup screen that has the level picker. */
+export async function choosePracticeLevel(
+  page: Page,
+  level: "Guided" | "Standard" | "Expert",
+): Promise<void> {
+  const option = page
+    .getByRole("main")
+    .getByTestId("level-picker")
+    .getByRole("button", { name: new RegExp(`^${level}`) });
+  await option.click();
+  await expect(option).toHaveAttribute("aria-pressed", "true");
+}
+
 /**
- * Fill the domain and generate. On pages with a level picker (analytical), pick
- * `level` first - Standard by default, the free-tagging level most specs assume.
+ * Fill the domain and generate. On setup screens with a level picker, pick `level`
+ * first; with no `level`, a new user's Guided default moves to Standard (what most
+ * specs assume) and a level a spec already chose is kept.
  */
 export async function generateExercise(
   page: Page,
@@ -55,9 +69,9 @@ export async function generateExercise(
 
   const levelPicker = main.getByTestId("level-picker");
   if (await levelPicker.isVisible().catch(() => false)) {
-    const option = levelPicker.getByRole("button", { name: new RegExp(`^${opts.level ?? "Standard"}`) });
-    await option.click();
-    await expect(option).toHaveAttribute("aria-pressed", "true");
+    const guided = levelPicker.getByRole("button", { name: /^Guided/ });
+    if (opts.level) await choosePracticeLevel(page, opts.level);
+    else if ((await guided.getAttribute("aria-pressed")) === "true") await choosePracticeLevel(page, "Standard");
   }
 
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -97,6 +111,10 @@ export async function selectEvaluativeTaskType(
   page: Page,
   name: RegExp | string,
 ): Promise<void> {
+  // Task types other than Auto open up at Expert.
+  if (await page.getByRole("main").getByTestId("level-picker").isVisible().catch(() => false)) {
+    await choosePracticeLevel(page, "Expert");
+  }
   await comboboxBelowLabel(page, "Task type").click();
   await page.getByRole("option", { name }).click();
 }
@@ -112,6 +130,10 @@ export async function selectSystemsTaskType(
   page: Page,
   name: RegExp | string,
 ): Promise<void> {
+  // Task types other than Auto open up at Expert.
+  if (await page.getByRole("main").getByTestId("level-picker").isVisible().catch(() => false)) {
+    await choosePracticeLevel(page, "Expert");
+  }
   await comboboxBelowLabel(page, "Task type").click();
   await page.getByRole("option", { name }).click();
 }
