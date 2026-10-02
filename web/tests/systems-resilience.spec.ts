@@ -3,6 +3,7 @@ import { bypassFirebaseAuth, gotoAuthenticated, stubFirestoreReads } from "./hel
 import {
   addSystemsConnection,
   advanceSystemsToCanvas,
+  choosePracticeLevel,
   generateExercise,
   selectSystemsTaskType,
 } from "./helpers/exercise-flow";
@@ -43,6 +44,7 @@ test.describe("Systems exercise - resilience task type setup", () => {
 
   test("task type selector offers auto, geopolitical, and resilience audit", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/systems");
+    await choosePracticeLevel(page, "Expert");
     await page.getByText("Task type", { exact: true }).locator("..").getByRole("combobox").click();
     await expect(page.getByRole("option", { name: "Auto" })).toBeVisible();
     await expect(
