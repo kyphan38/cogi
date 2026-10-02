@@ -47,16 +47,13 @@ test.describe("History page - layout and structure", () => {
     ).toBeVisible();
   });
 
-  test("type filter has all exercise type options", async ({ page }) => {
+  test("type filter offers the three exercise types", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/history");
     await page.getByText("Type", { exact: true }).locator("..").getByRole("combobox").click();
     await expect(page.getByRole("option", { name: "All" })).toBeVisible();
     await expect(page.getByRole("option", { name: "Analytical" })).toBeVisible();
-    await expect(page.getByRole("option", { name: "Sequential" })).toBeVisible();
     await expect(page.getByRole("option", { name: "Systems" })).toBeVisible();
     await expect(page.getByRole("option", { name: "Evaluative" })).toBeVisible();
-    await expect(page.getByRole("option", { name: "Generative" })).toBeVisible();
-    await expect(page.getByRole("option", { name: "Combo" })).toBeVisible();
   });
 
   test("can type in domain filter", async ({ page }) => {
@@ -80,16 +77,13 @@ test.describe("History page - layout and structure", () => {
     ).toBeVisible();
   });
 
-  test("heatmap legend shows all exercise types", async ({ page }) => {
+  test("heatmap legend shows the three exercise types", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/history");
     const heatmapCard = page.locator('[data-slot="card"]').filter({
       has: page.getByRole("heading", { name: "Activity" }),
     });
     await expect(heatmapCard.getByText("Analytical", { exact: true })).toBeVisible();
-    await expect(heatmapCard.getByText("Sequential", { exact: true })).toBeVisible();
     await expect(heatmapCard.getByText("Systems", { exact: true })).toBeVisible();
     await expect(heatmapCard.getByText("Evaluative", { exact: true })).toBeVisible();
-    await expect(heatmapCard.getByText("Generative", { exact: true })).toBeVisible();
-    await expect(heatmapCard.getByText("Combo", { exact: true })).toBeVisible();
   });
 });

@@ -12,7 +12,6 @@ import type {
   SystemsPerspectiveStructured,
   EvaluativeMatrixPerspectiveStructured,
   EvaluativeScoringPerspectiveStructured,
-  GenerativePerspectiveStructured,
 } from "@/lib/types/perspective";
 
 const legacyPerspective: LegacyPerspectiveStructured = {
@@ -61,17 +60,6 @@ const evaluativeScoringPerspective: EvaluativeScoringPerspectiveStructured = {
     { criterionId: "c1", criterionLabel: "Feasibility", userAssignedWeight: 3,
       userValueContext: "Weighted high", aiEvaluationText: "Reasonable weight" },
   ],
-};
-
-const generativePerspective: GenerativePerspectiveStructured = {
-  perspectiveFormat: "clarity_v2",
-  title: "Generative Review",
-  suitableFor: "Structured writing",
-  stepCritiques: [
-    { phaseId: "p1", promptQuestion: "What is the problem?", userResponseSnippet: "User wrote...",
-      critique: "Too vague", remediationAlternative: "Be specific" },
-  ],
-  openQuestions: ["What would happen if...?"],
 };
 
 describe("getStructuredPerspectiveSections", () => {
@@ -142,28 +130,8 @@ describe("getClarityPerspectiveViewModel", () => {
     expect(vm.blocks[0].title).toBe("Feasibility");
   });
 
-  it("builds generative view model with step critiques", () => {
-    const vm = getClarityPerspectiveViewModel(generativePerspective, "generative");
-    expect(vm.blocks).toHaveLength(1);
-    expect(vm.blocks[0].title).toBe("What is the problem?");
-    expect(vm.blocks[0].remediation).toBe("Be specific");
-  });
 
-  it("includes open questions in disagreePoints", () => {
-    const vm = getClarityPerspectiveViewModel(analyticalPerspective, "analytical");
-    const openQ = vm.disagreePoints.filter((p) => p.section === "openQuestionsList");
-    expect(openQ).toHaveLength(1);
-    expect(openQ[0].pointBody).toBe("How does this apply?");
-    expect(openQ[0].pointId).toBe("open_1");
-  });
 
-  it("builds disagreePoints from blocks", () => {
-    const vm = getClarityPerspectiveViewModel(analyticalPerspective, "analytical");
-    const critiques = vm.disagreePoints.filter((p) => p.section === "highlightCritiques");
-    expect(critiques).toHaveLength(2);
-    expect(critiques[0].pointBody).toContain("Weak evidence");
-    expect(critiques[0].pointBody).toContain("Cite source");
-  });
 
   it("returns empty blocks when no critiques match kind", () => {
     const vm = getClarityPerspectiveViewModel(analyticalPerspective, "systems");

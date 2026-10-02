@@ -55,31 +55,6 @@ function validAnalyticalJson() {
   });
 }
 
-function validSteelmanJson() {
-  return JSON.stringify({
-    title: "Remote work reduces productivity",
-    passage: Array(100).fill("word").join(" "),
-    embeddedIssues: [],
-    validPoints: [],
-  });
-}
-
-function validSequentialJson() {
-  return JSON.stringify({
-    title: "Sequential Exercise",
-    scenario: "A crisis scenario",
-    steps: Array.from({ length: 6 }, (_, i) => ({
-      id: `s${i + 1}`,
-      text: `Step ${i + 1}`,
-      correctPosition: i,
-      dependencies: i > 0 ? [`s${i}`] : [],
-      isFlexible: false,
-      explanation: `Step ${i + 1} explanation`,
-    })),
-    criticalErrors: [{ description: "Error 1", severity: "catastrophic" }],
-  });
-}
-
 function validEvaluativeJson() {
   return JSON.stringify({
     variant: "matrix",
@@ -92,19 +67,6 @@ function validEvaluativeJson() {
       { id: "o2", title: "Option 2", description: "Desc 2", intendedQuadrant: "bottom-left", explanation: "why 2" },
       { id: "o3", title: "Option 3", description: "Desc 3", intendedQuadrant: "top-left", explanation: "why 3" },
       { id: "o4", title: "Option 4", description: "Desc 4", intendedQuadrant: "bottom-right", explanation: "why 4" },
-    ],
-  });
-}
-
-function validGenerativeJson() {
-  return JSON.stringify({
-    title: "Generative Exercise",
-    scenario: "Write about technology.",
-    prompts: [
-      { id: "p1", question: "Question 1?", draftText: "Draft text for p1." },
-      { id: "p2", question: "Question 2?", draftText: "Draft text for p2." },
-      { id: "p3", question: "Question 3?", draftText: "Draft text for p3." },
-      { id: "p4", question: "Question 4?", draftText: "Draft text for p4." },
     ],
   });
 }
@@ -269,29 +231,6 @@ describe("POST /api/ai - common validation", () => {
   });
 });
 
-describe("POST /api/ai - sequential", () => {
-  it("returns parsed exercise on success", async () => {
-    authOk();
-    mockGenerateRaw.mockResolvedValue(validSequentialJson());
-    const res = await POST(
-      makeRequest({ domain: "tech", exerciseType: "sequential" }),
-    );
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.ok).toBe(true);
-    expect(data.data.title).toBe("Sequential Exercise");
-  });
-
-  it("returns 422 when model returns invalid JSON", async () => {
-    authOk();
-    mockGenerateRaw.mockResolvedValue("not valid json");
-    const res = await POST(
-      makeRequest({ domain: "tech", exerciseType: "sequential" }),
-    );
-    expect(res.status).toBe(422);
-  });
-});
-
 describe("POST /api/ai - evaluative", () => {
   it("returns parsed exercise on success", async () => {
     authOk();
@@ -332,90 +271,6 @@ describe("POST /api/ai - evaluative", () => {
     const schema = mockGenerateRaw.mock.calls[0][3] as { properties: Record<string, unknown> };
     expect(schema.properties).toHaveProperty("variant");
     expect(schema.properties).not.toHaveProperty("criteria");
-  });
-});
-
-describe("POST /api/ai - generative", () => {
-  it("returns 400 when generativeStage is missing", async () => {
-    authOk();
-    const res = await POST(
-      makeRequest({ domain: "tech", exerciseType: "generative" }),
-    );
-    expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/generativeStage/);
-  });
-
-  it("returns parsed exercise on success", async () => {
-    authOk();
-    mockGenerateRaw.mockResolvedValue(validGenerativeJson());
-    const res = await POST(
-      makeRequest({
-        domain: "tech",
-        exerciseType: "generative",
-        generativeStage: "edit",
-      }),
-    );
-    expect(res.status).toBe(200);
-    expect((await res.json()).ok).toBe(true);
-  });
-
-  it("defaults to argue_debate prompt when generativeVariant is omitted", async () => {
-    authOk();
-    mockGenerateRaw.mockResolvedValue(validGenerativeJson());
-    await POST(
-      makeRequest({ domain: "tech", exerciseType: "generative", generativeStage: "edit" }),
-    );
-    const prompt = mockGenerateRaw.mock.calls[0]![0] as string;
-    expect(prompt).toContain("core problem");
-  });
-
-  it("dispatches to the reframing prompt when generativeVariant is reframing", async () => {
-    authOk();
-    mockGenerateRaw.mockResolvedValue(validGenerativeJson());
-    const res = await POST(
-      makeRequest({
-        domain: "tech",
-        exerciseType: "generative",
-        generativeStage: "edit",
-        generativeVariant: "reframing",
-      }),
-    );
-    expect(res.status).toBe(200);
-    const prompt = mockGenerateRaw.mock.calls[0]![0] as string;
-    expect(prompt).toContain("How might we");
-    expect(prompt).toContain("underlying need");
-  });
-
-  it("dispatches to the inversion prompt when generativeVariant is inversion", async () => {
-    authOk();
-    mockGenerateRaw.mockResolvedValue(validGenerativeJson());
-    const res = await POST(
-      makeRequest({
-        domain: "tech",
-        exerciseType: "generative",
-        generativeStage: "edit",
-        generativeVariant: "inversion",
-      }),
-    );
-    expect(res.status).toBe(200);
-    const prompt = mockGenerateRaw.mock.calls[0]![0] as string;
-    expect(prompt).toContain("fails catastrophically");
-    expect(prompt).toContain("causally distinct");
-  });
-
-  it("ignores an invalid generativeVariant value and falls back to argue_debate", async () => {
-    authOk();
-    mockGenerateRaw.mockResolvedValue(validGenerativeJson());
-    await POST(
-      makeRequest({
-        domain: "tech",
-        exerciseType: "generative",
-        generativeStage: "edit",
-        generativeVariant: "not_a_real_variant",
-      }),
-    );
-    const prompt = mockGenerateRaw.mock.calls[0]![0] as string;
-    expect(prompt).toContain("core problem");
   });
 });
 
@@ -556,98 +411,6 @@ describe("POST /api/ai - analytical real_data", () => {
     const data = await res.json();
     expect(data.ok).toBe(true);
     expect(data.data.passage).toBe("A test passage for analysis.");
-  });
-});
-
-describe("POST /api/ai - analytical steelman", () => {
-  it("returns parsed exercise with empty embeddedIssues/validPoints on success", async () => {
-    authOk();
-    mockGenerateRaw.mockResolvedValue(validSteelmanJson());
-    const res = await POST(
-      makeRequest({ domain: "management", exerciseType: "analytical", analyticalVariant: "steelman" }),
-    );
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.ok).toBe(true);
-    expect(data.data.embeddedIssues).toEqual([]);
-    expect(data.data.validPoints).toEqual([]);
-  });
-
-  it("dispatches to the steelman prompt (not the plain analytical prompt)", async () => {
-    authOk();
-    mockGenerateRaw.mockResolvedValue(validSteelmanJson());
-    await POST(
-      makeRequest({ domain: "management", exerciseType: "analytical", analyticalVariant: "steelman" }),
-    );
-    const prompt = mockGenerateRaw.mock.calls[0][0] as string;
-    expect(prompt).toContain("State a contestable");
-    expect(prompt).toContain("Do NOT pre-empt counterarguments");
-  });
-
-  it("keeps plain JSON mode (no response schema) for steelman", async () => {
-    authOk();
-    mockGenerateRaw.mockResolvedValue(validSteelmanJson());
-    await POST(
-      makeRequest({ domain: "management", exerciseType: "analytical", analyticalVariant: "steelman" }),
-    );
-    expect(mockGenerateRaw.mock.calls[0][3]).toBeUndefined();
-  });
-
-  it("steelman wins over geopolitics domain routing", async () => {
-    authOk();
-    mockGenerateRaw.mockResolvedValue(validSteelmanJson());
-    await POST(
-      makeRequest({
-        domain: "US-China strategic competition",
-        exerciseType: "analytical",
-        analyticalVariant: "steelman",
-      }),
-    );
-    const prompt = mockGenerateRaw.mock.calls[0][0] as string;
-    expect(prompt).not.toContain("hiddenPerspective");
-  });
-
-  it("ignores analyticalVariant when mode is real_data", async () => {
-    authOk();
-    mockGenerateRaw.mockResolvedValue(validAnalyticalJson());
-    const res = await POST(
-      makeRequest({
-        domain: "tech",
-        exerciseType: "analytical",
-        analyticalVariant: "steelman",
-        mode: "real_data",
-        userText: "A test passage for analysis.",
-      }),
-    );
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.data.passage).toBe("A test passage for analysis.");
-  });
-
-  it("ignores an invalid analyticalVariant value and falls back to highlight_tag", async () => {
-    authOk();
-    mockGenerateRaw.mockResolvedValue(validAnalyticalJson());
-    const res = await POST(
-      makeRequest({ domain: "tech", exerciseType: "analytical", analyticalVariant: "not_a_real_variant" }),
-    );
-    expect(res.status).toBe(200);
-    const prompt = mockGenerateRaw.mock.calls[0][0] as string;
-    expect(prompt).not.toContain("Do NOT pre-empt counterarguments");
-  });
-
-  it("retries with the steelman retry suffix on semantic validation failure", async () => {
-    authOk();
-    const badPassage = { title: "T", passage: "too short", embeddedIssues: [], validPoints: [] };
-    mockGenerateRaw
-      .mockResolvedValueOnce(JSON.stringify(badPassage))
-      .mockResolvedValueOnce(validSteelmanJson());
-    const res = await POST(
-      makeRequest({ domain: "management", exerciseType: "analytical", analyticalVariant: "steelman" }),
-    );
-    expect(res.status).toBe(200);
-    expect(mockGenerateRaw).toHaveBeenCalledTimes(2);
-    const retryPrompt = mockGenerateRaw.mock.calls[1][0] as string;
-    expect(retryPrompt).toContain("steelman validation");
   });
 });
 

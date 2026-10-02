@@ -13,15 +13,14 @@ vi.mock("@/lib/auth/firebase-client", () => ({
 vi.mock("@/lib/db/firestore", () => ({
   COGI_COLLECTIONS: { settings: "settings" },
   userDocRef: vi.fn((_col: string, id: string) => ({ id })),
-  subscribeCollectionRows: vi.fn(),
 }));
 
 import {
   getAppSettings,
+  getLanguageLevelForRequest,
   getUserContext,
+  setLanguageLevel,
   setUserContext,
-  setDelayedRecallEnabled,
-  setAdaptiveDifficultyEnabled,
 } from "./settings";
 
 function mockSnapshot(data: Record<string, unknown> | null) {
@@ -37,30 +36,18 @@ describe("getAppSettings", () => {
   it("returns defaults when no settings exist", async () => {
     mockSnapshot(null);
     const s = await getAppSettings();
-    expect(s.id).toBe("app");
-    expect(s.userContext).toBe("");
-    expect(s.delayedRecallEnabled).toBe(true);
-    expect(s.adaptiveDifficultyEnabled).toBe(false);
+    expect(s).toEqual({ id: "app", userContext: "", languageLevel: "Intermediate" });
   });
 
-  it("reads stored values", async () => {
+  it("reads stored values and drops fields of removed features", async () => {
     mockSnapshot({
       userContext: "senior analyst",
+      languageLevel: "Advanced",
       delayedRecallEnabled: false,
       adaptiveDifficultyEnabled: true,
-      geopoliticsProgressionEpoch: "2025-01-01",
     });
     const s = await getAppSettings();
-    expect(s.userContext).toBe("senior analyst");
-    expect(s.delayedRecallEnabled).toBe(false);
-    expect(s.adaptiveDifficultyEnabled).toBe(true);
-    expect(s.geopoliticsProgressionEpoch).toBe("2025-01-01");
-  });
-
-  it("defaults delayedRecallEnabled to true when field missing", async () => {
-    mockSnapshot({ userContext: "test" });
-    const s = await getAppSettings();
-    expect(s.delayedRecallEnabled).toBe(true);
+    expect(s).toEqual({ id: "app", userContext: "senior analyst", languageLevel: "Advanced" });
   });
 });
 
@@ -77,43 +64,33 @@ describe("getUserContext", () => {
 });
 
 describe("setUserContext", () => {
-  it("writes settings preserving existing fields", async () => {
-    mockSnapshot({ userContext: "old", delayedRecallEnabled: false });
+  it("writes the context and keeps the language level", async () => {
+    mockSnapshot({ userContext: "old", languageLevel: "Advanced" });
     await setUserContext("new context");
     expect(mockSetDoc).toHaveBeenCalledOnce();
-    const written = mockSetDoc.mock.calls[0][1];
-    expect(written.userContext).toBe("new context");
-    expect(written.delayedRecallEnabled).toBe(false);
+    expect(mockSetDoc.mock.calls[0][1]).toEqual({
+      id: "app",
+      userContext: "new context",
+      languageLevel: "Advanced",
+    });
   });
 });
 
-describe("setDelayedRecallEnabled", () => {
-  it("toggles delayed recall setting", async () => {
-    mockSnapshot({ userContext: "test", delayedRecallEnabled: true });
-    await setDelayedRecallEnabled(false);
-    const written = mockSetDoc.mock.calls[0][1];
-    expect(written.delayedRecallEnabled).toBe(false);
-  });
-});
-
-describe("setAdaptiveDifficultyEnabled", () => {
-  it("toggles adaptive difficulty setting", async () => {
-    mockSnapshot({ userContext: "test", adaptiveDifficultyEnabled: false });
-    await setAdaptiveDifficultyEnabled(true);
-    const written = mockSetDoc.mock.calls[0][1];
-    expect(written.adaptiveDifficultyEnabled).toBe(true);
-  });
-
-  it("never writes undefined fields (Firestore rejects them)", async () => {
-    // No weeklyReviewLastCompletedCount / geopoliticsProgressionEpoch stored yet -
-    // spreading `prev?.field` straight through would otherwise leave `undefined`.
+describe("setLanguageLevel", () => {
+  it("writes the level and keeps the context, with no undefined fields", async () => {
     mockSnapshot({ userContext: "test" });
-    await setAdaptiveDifficultyEnabled(true);
+    await setLanguageLevel("Foundation");
     const written = mockSetDoc.mock.calls[0][1];
+    expect(written).toEqual({ id: "app", userContext: "test", languageLevel: "Foundation" });
     for (const [key, value] of Object.entries(written)) {
       expect(value, `field "${key}" must not be undefined`).not.toBeUndefined();
     }
-    expect("weeklyReviewLastCompletedCount" in written).toBe(false);
-    expect("geopoliticsProgressionEpoch" in written).toBe(false);
+  });
+});
+
+describe("getLanguageLevelForRequest", () => {
+  it("falls back to the default level", async () => {
+    mockSnapshot({ userContext: "x" });
+    expect(await getLanguageLevelForRequest()).toBe("Intermediate");
   });
 });

@@ -33,10 +33,7 @@ import type {
   UserHighlight,
 } from "@/lib/types/exercise";
 import type { AnalyticalExercise } from "@/lib/ai/validators/common";
-import {
-  buildAdaptiveHintsForRequest,
-  getLanguageLevelForRequest,
-} from "@/lib/adaptive/adaptive-hints";
+import { getLanguageLevelForRequest } from "@/lib/db/settings";
 import { putExercise, getExercise } from "@/lib/db/exercises";
 import { getUserContext } from "@/lib/db/settings";
 import { completePracticeExercise } from "@/lib/db/complete-exercise";
@@ -95,11 +92,6 @@ export function AnalyticalExerciseFlow({
 
   const [exercise, setExercise] = useState<AnalyticalExerciseRow | null>(null);
   const [highlights, setHighlights] = useState<UserHighlight[]>([]);
-  const [analyticalVariant, setAnalyticalVariant] = useState<"highlight_tag" | "steelman">(
-    "highlight_tag",
-  );
-  const [steelmanText, setSteelmanText] = useState("");
-  const [rubricScore, setRubricScore] = useState<number | null>(null);
   const [confidence, setConfidence] = useState(50);
   const [perspectiveText, setPerspectiveText] = useState<string | null>(null);
   const [perspectiveStructured, setPerspectiveStructured] =
@@ -142,9 +134,6 @@ export function AnalyticalExerciseFlow({
       if (!row || row.completedAt || !isAnalyticalExercise(row)) return;
       setExercise(row);
       setHighlights(row.userHighlights ?? []);
-      setAnalyticalVariant(row.analyticalVariant ?? "highlight_tag");
-      setSteelmanText(row.steelmanText ?? "");
-      setRubricScore(row.rubricScore ?? null);
       setConfidence(row.confidenceBefore ?? 50);
       if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
       if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
@@ -177,11 +166,7 @@ export function AnalyticalExerciseFlow({
       return;
     }
     const save = () => {
-      const patch =
-        exercise.analyticalVariant === "steelman"
-          ? { steelmanText }
-          : { userHighlights: highlights };
-      void putExercise({ ...exercise, ...patch, currentStep: step });
+      void putExercise({ ...exercise, userHighlights: highlights, currentStep: step });
     };
     pendingSave.set(save);
     const timer = setTimeout(() => {
@@ -189,7 +174,7 @@ export function AnalyticalExerciseFlow({
       save();
     }, 2000);
     return () => clearTimeout(timer);
-  }, [highlights, steelmanText, step]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [highlights, step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startGenerate = useCallback(async (
     domainOverride?: string,
@@ -252,7 +237,6 @@ export function AnalyticalExerciseFlow({
     try {
       const userContext = await getUserContext();
       const userTextForReal = effectiveMode === "real_data" ? sanitizedUserText : undefined;
-      const adaptiveHints = await buildAdaptiveHintsForRequest("analytical");
       const languageLevel = await getLanguageLevelForRequest();
       const res = await aiFetch("/api/ai", {
         method: "POST",
@@ -262,10 +246,8 @@ export function AnalyticalExerciseFlow({
           userContext: userContext || undefined,
           exerciseType: "analytical",
           mode: effectiveMode,
-          analyticalVariant,
           userText: effectiveMode === "real_data" ? userTextForReal : undefined,
           customScenario: customScenarioBody,
-          adaptiveHints,
           languageLevel,
         }),
       });
@@ -278,8 +260,7 @@ export function AnalyticalExerciseFlow({
         return;
       }
       const data = json.data;
-      const isGeopolitics =
-        analyticalVariant === "steelman" ? false : isGeopoliticsAnalyticalDomain(effectiveDomain);
+      const isGeopolitics = isGeopoliticsAnalyticalDomain(effectiveDomain);
       const id = crypto.randomUUID();
       const row: AnalyticalExerciseRow = {
         id,
@@ -297,9 +278,6 @@ export function AnalyticalExerciseFlow({
         embeddedIssues: data.embeddedIssues,
         validPoints: data.validPoints,
         userHighlights: [],
-        analyticalVariant,
-        steelmanText: null,
-        rubricScore: null,
         confidenceBefore: null,
         aiPerspective: null,
         createdAt: new Date().toISOString(),
@@ -309,8 +287,6 @@ export function AnalyticalExerciseFlow({
       await putExercise(row);
       setExercise(row);
       setHighlights([]);
-      setSteelmanText("");
-      setRubricScore(null);
       setPerspectiveText(null);
       setPerspectiveStructured(null);
       setTakeaway("");
@@ -323,7 +299,7 @@ export function AnalyticalExerciseFlow({
     } finally {
       setLoading(false);
     }
-  }, [domain, mode, realText, customScenarioText, analyticalVariant]);
+  }, [domain, mode, realText, customScenarioText]);
 
   const autoGenerateTriggered = useRef(false);
   const [autoGenerateReady, setAutoGenerateReady] = useState(false);
@@ -359,9 +335,7 @@ export function AnalyticalExerciseFlow({
   }, [autoGenerateReady, initialDomain, resumeId, startGenerate]);
 
   const regenerate = () => {
-    const hasWork =
-      analyticalVariant === "steelman" ? steelmanText.trim().length > 0 : highlights.length > 0;
-    if (hasWork) {
+    if (highlights.length > 0) {
       const ok = window.confirm("Discard current work and regenerate?");
       if (!ok) return;
     }
@@ -430,73 +404,6 @@ export function AnalyticalExerciseFlow({
     }
   };
 
-  const submitSteelmanAndConfidence = async () => {
-    if (!exercise) return;
-    if (perspectiveText != null) {
-      advance(4);
-      return;
-    }
-    if (steelmanText.trim().length < 100) {
-      setError("Write at least 100 characters before continuing.");
-      return;
-    }
-    setError(null);
-    setLoading(true);
-    try {
-      const base: AnalyticalExerciseRow = { ...exercise, steelmanText };
-      const rubRes = await aiFetch("/api/ai/analytical-steelman-rubric", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exercise: base }),
-      });
-      const rubJson = (await rubRes.json()) as
-        | { ok: true; overall: number }
-        | { ok: false; error: string };
-      const score = rubJson.ok ? rubJson.overall : 0;
-      if (!rubJson.ok) setError(rubJson.error);
-      setRubricScore(score);
-
-      const userContext = await getUserContext();
-      const res = await aiFetch("/api/ai/perspective", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: "analytical",
-          analyticalVariant: "steelman",
-          title: exercise.title,
-          passage: exercise.passage,
-          steelmanText,
-          confidenceBefore: confidence,
-          domain: exercise.domain,
-          userContext: userContext || undefined,
-        }),
-      });
-      const json = await safeAiJson<unknown>(res);
-      const parsed = parsePerspectiveFetchJson(json, "analytical");
-      if (!parsed.ok) {
-        setError(parsed.error);
-        return;
-      }
-      setPerspectiveText(parsed.text);
-      setPerspectiveStructured(parsed.structured);
-      const partial: AnalyticalExerciseRow = {
-        ...base,
-        confidenceBefore: confidence,
-        rubricScore: score,
-        aiPerspective: parsed.text,
-        aiPerspectiveStructured: parsed.structured,
-        currentStep: 4,
-      };
-      await putExercise(partial);
-      setExercise(partial);
-      setStep(4);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Perspective failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   /** Finish the 3-step loop: save the exercise with the optional takeaway (P2.2). */
   const finishExercise = async () => {
     if (!exercise || !perspectiveText || finishing) return;
@@ -505,9 +412,7 @@ export function AnalyticalExerciseFlow({
     setFinishing(true);
     const finalEx: AnalyticalExerciseRow = {
       ...exercise,
-      ...(exercise.analyticalVariant === "steelman"
-        ? { steelmanText, rubricScore: rubricScore ?? 0 }
-        : { userHighlights: highlights }),
+      userHighlights: highlights,
       confidenceBefore: confidence,
       aiPerspective: perspectiveText,
       aiPerspectiveStructured: perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null,
@@ -649,9 +554,7 @@ export function AnalyticalExerciseFlow({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="generated">AI-generated passage</SelectItem>
-                  {analyticalVariant !== "steelman" ? (
-                    <SelectItem value="real_data">Use my own text</SelectItem>
-                  ) : null}
+                  <SelectItem value="real_data">Use my own text</SelectItem>
                   <SelectItem value="custom_scenario">My scenario</SelectItem>
                 </SelectContent>
               </Select>
@@ -800,68 +703,7 @@ export function AnalyticalExerciseFlow({
         </ExerciseStepCard>
       ) : null}
 
-      {step === 1 && exercise && exercise.analyticalVariant === "steelman" ? (
-        <ExerciseStepCard
-          data-testid="analytical-exercise-card"
-          title={exercise.title}
-          description={`Domain: ${exercise.domain}`}
-          bodyClassName="space-y-4"
-        >
-            <div className="space-y-1">
-              <p className="text-muted-foreground text-sm">Position to steelman (read-only):</p>
-              <p className="rounded-md border bg-muted/20 p-3 text-sm whitespace-pre-wrap">
-                {exercise.passage}
-              </p>
-            </div>
-            <div className="grid gap-2">
-              <Label>
-                Write the strongest possible version of this argument. Assume a smart,
-                well-informed person holds this position - what is the best case they could make?
-              </Label>
-              <Textarea
-                rows={8}
-                value={steelmanText}
-                onChange={(e) => setSteelmanText(e.target.value)}
-                placeholder="Your steelman…"
-              />
-              <p className="text-muted-foreground text-xs">
-                Minimum 100 characters to continue ({steelmanText.trim().length}/100).
-              </p>
-            </div>
-            <ConfidenceSlider value={confidence} onChange={setConfidence} />
-            {loading ? <PerspectiveLoadingCard /> : null}
-            <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={() => {
-                const updated = { ...exercise, steelmanText, currentStep: 1 as const };
-                setExercise(updated);
-                void putExercise(updated);
-                setStep(0);
-              }}>
-                Back
-              </Button>
-              <Button type="button" variant="secondary" onClick={regenerate}>
-                Regenerate
-              </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  setError(null);
-                  if (steelmanText.trim().length < 100) {
-                    setError("Write at least 100 characters.");
-                    return;
-                  }
-                  setExercise({ ...exercise, steelmanText });
-                  void submitSteelmanAndConfidence();
-                }}
-                disabled={loading || steelmanText.trim().length < 100}
-              >
-                {loading ? "Loading…" : "Get AI feedback"}
-              </Button>
-            </div>
-        </ExerciseStepCard>
-      ) : null}
-
-      {step === 1 && exercise && exercise.analyticalVariant !== "steelman" ? (
+      {step === 1 && exercise ? (
         <ExerciseStepCard
           data-testid="analytical-exercise-card"
           title={exercise.title}
@@ -1028,10 +870,7 @@ export function AnalyticalExerciseFlow({
           <AIPerspective
             text={perspectiveText}
             structured={perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null}
-            exerciseId={exercise.id}
             perspectiveKind="analytical"
-            exerciseTitle={exercise.title}
-            domain={exercise.domain}
           />
           <PracticeFinishCard
             takeaway={takeaway}

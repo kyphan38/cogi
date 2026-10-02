@@ -6,7 +6,6 @@ import type {
   PerspectivePoint,
 } from "@/lib/types/perspective";
 import { isClarityPerspectiveStructured, isLegacyPerspectiveStructured } from "@/lib/types/perspective";
-import type { PerspectiveSectionKey } from "@/lib/types/disagreement";
 
 export const PERSPECTIVE_UI_SECTIONS = [
   { key: "embedded" as const, title: "What I intentionally embedded" },
@@ -14,13 +13,6 @@ export const PERSPECTIVE_UI_SECTIONS = [
   { key: "additional" as const, title: "Additional perspectives to consider" },
   { key: "openQuestions" as const, title: "Open questions" },
 ];
-
-export type PerspectiveDisagreePoint = {
-  section: PerspectiveSectionKey;
-  pointId: string;
-  pointTitle: string | null;
-  pointBody: string;
-};
 
 export type ClarityPerspectiveBlock = {
   id: string;
@@ -35,7 +27,6 @@ export type ClarityPerspectiveViewModel = {
   suitableFor: string;
   blocks: ClarityPerspectiveBlock[];
   openQuestions: string[];
-  disagreePoints: PerspectiveDisagreePoint[];
 };
 
 /** @deprecated Use getPerspectiveViewModel */
@@ -65,7 +56,6 @@ export function getClarityPerspectiveViewModel(
 ): ClarityPerspectiveViewModel {
   const openQuestions = s.openQuestions ?? [];
   const blocks: ClarityPerspectiveBlock[] = [];
-  const disagreePoints: PerspectiveDisagreePoint[] = [];
 
   if (kind === "analytical" && "highlightCritiques" in s) {
     for (const [i, row] of s.highlightCritiques.entries()) {
@@ -77,12 +67,6 @@ export function getClarityPerspectiveViewModel(
         body: row.critique,
         remediation: row.remediationAlternative,
       });
-      disagreePoints.push({
-        section: "highlightCritiques",
-        pointId: id,
-        pointTitle: null,
-        pointBody: `${row.critique}\n\nStronger alternative: ${row.remediationAlternative}`,
-      });
     }
   } else if (kind === "systems" && "nodeCritiques" in s) {
     for (const row of s.nodeCritiques) {
@@ -92,12 +76,6 @@ export function getClarityPerspectiveViewModel(
         userSnippet: row.userContextSnippet || `Impact: ${row.userImpact}`,
         body: row.critique,
         remediation: row.remediationAlternative,
-      });
-      disagreePoints.push({
-        section: "nodeCritiques",
-        pointId: row.nodeId,
-        pointTitle: row.nodeLabel,
-        pointBody: `${row.critique}\n\nStronger alternative: ${row.remediationAlternative}`,
       });
     }
   } else if (kind === "evaluative-matrix" && "placementCritiques" in s) {
@@ -109,12 +87,6 @@ export function getClarityPerspectiveViewModel(
         body: row.aiEvaluationText,
         remediation: null,
       });
-      disagreePoints.push({
-        section: "placementCritiques",
-        pointId: row.optionId,
-        pointTitle: row.optionTitle,
-        pointBody: row.aiEvaluationText,
-      });
     }
   } else if (kind === "evaluative-scoring" && "critiqueMatrix" in s) {
     for (const row of s.critiqueMatrix) {
@@ -124,12 +96,6 @@ export function getClarityPerspectiveViewModel(
         userSnippet: row.userValueContext,
         body: row.aiEvaluationText,
         remediation: null,
-      });
-      disagreePoints.push({
-        section: "critiqueMatrix",
-        pointId: row.criterionId,
-        pointTitle: row.criterionLabel,
-        pointBody: row.aiEvaluationText,
       });
     }
   } else if (kind === "evaluative-uncertainty" && "outcomeCritiques" in s) {
@@ -142,46 +108,15 @@ export function getClarityPerspectiveViewModel(
         body: row.critique,
         remediation: null,
       });
-      disagreePoints.push({
-        section: "outcomeCritiques",
-        pointId: row.optionId,
-        pointTitle: row.optionTitle,
-        pointBody: row.critique,
-      });
-    }
-  } else if (kind === "generative" && "stepCritiques" in s) {
-    for (const row of s.stepCritiques) {
-      blocks.push({
-        id: row.phaseId,
-        title: row.promptQuestion,
-        userSnippet: row.userResponseSnippet,
-        body: row.critique,
-        remediation: row.remediationAlternative,
-      });
-      disagreePoints.push({
-        section: "stepCritiques",
-        pointId: row.phaseId,
-        pointTitle: row.promptQuestion,
-        pointBody: `${row.critique}\n\nStronger alternative: ${row.remediationAlternative}`,
-      });
     }
   }
 
-  for (const [i, q] of openQuestions.entries()) {
-    disagreePoints.push({
-      section: "openQuestionsList",
-      pointId: `open_${i + 1}`,
-      pointTitle: null,
-      pointBody: q,
-    });
-  }
 
   return {
     format: "clarity_v2",
     suitableFor: s.suitableFor,
     blocks,
     openQuestions,
-    disagreePoints,
   };
 }
 

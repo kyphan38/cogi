@@ -8,7 +8,7 @@ export function isE2EAuthBypass(): boolean {
   );
 }
 
-type DocData = any;
+type DocData = object;
 type Listener = () => void;
 
 /** uid -> collection -> docId -> data */
@@ -67,7 +67,7 @@ export async function e2eListCollectionRows<T extends { id: string }>(
 ): Promise<T[]> {
   const uid = getCurrentUidOrThrow();
   const col = getCollectionStore(uid, collection);
-  return [...col.values()].map((row) => ({ id: row.id as string, ...row }) as T);
+  return [...col.values()].map((row) => ({ ...row }) as T);
 }
 
 export function e2eSubscribeCollectionRows<T extends { id: string }>(

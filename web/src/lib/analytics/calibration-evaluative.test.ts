@@ -13,7 +13,7 @@ import type {
   EvaluativeUncertaintyRow,
 } from "@/lib/types/exercise";
 
-function makeMatrixRow(placements: Record<string, string>): EvaluativeMatrixRow {
+function makeMatrixRow(placements: EvaluativeMatrixRow["placements"]): EvaluativeMatrixRow {
   return {
     id: "ex1",
     type: "evaluative",

@@ -38,7 +38,6 @@ test.describe("HighlightTag - mobile text selection", () => {
   });
 
   test("two-step pointer flow opens picker", async ({ page }) => {
-    const passage = page.getByTestId("text-passage");
     await stageTextInPassage(page);
     await expect(page.getByTestId("tag-picker-region")).not.toBeVisible();
 

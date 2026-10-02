@@ -1,68 +1,11 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export const ANALYTICAL_EXERCISE_STEP_LABELS = [
-  "Setup",
-  "Highlight & tag",
-  "Confidence",
-  "AI perspective",
-  "Journal",
-  "Action",
-  "Done",
-] as const;
-
-export const ANALYTICAL_STEELMAN_STEP_LABELS = [
-  "Setup",
-  "Steelman",
-  "Confidence",
-  "AI perspective",
-  "Journal",
-  "Action",
-  "Done",
-] as const;
-
-export const GEOPOLITICS_ANALYTICAL_STEP_LABELS = [
-  "Setup",
-  "Highlight & tag",
-  "Perspective guess",
-  "Confidence",
-  "AI perspective",
-  "Journal",
-  "Action",
-  "Done",
-] as const;
-
-export const SEQUENTIAL_EXERCISE_STEP_LABELS = [
-  "Setup",
-  "Order steps",
-  "Confidence",
-  "AI perspective",
-  "Journal",
-  "Action",
-  "Done",
-] as const;
-
-export const GEOPOLITICS_SEQUENTIAL_STEP_LABELS = [
-  "Setup",
-  "Order steps (Actor A)",
-  "Order steps (Actor B)",
-  "Confidence",
-  "AI perspective",
-  "Journal",
-  "Action",
-  "Done",
-] as const;
-
-export const SEQUENTIAL_TRIAGE_STEP_LABELS = [
-  "Setup",
-  "Order under time pressure",
-  "Confidence",
-  "AI perspective",
-  "Journal",
-  "Action",
-  "Done",
-] as const;
-
+/**
+ * Step lists of the original flows. Saved exercises store `currentStep` as an index into
+ * these, so old steps (Confidence, Journal, Action, Done) stay listed; the flows show
+ * only the work parts between Setup and the AI step.
+ */
 export const SYSTEMS_EXERCISE_STEP_LABELS = [
   "Setup",
   "Decompose",
@@ -135,30 +78,6 @@ export const EVALUATIVE_UNCERTAINTY_STEP_LABELS = [
   "Done",
 ] as const;
 
-export const GENERATIVE_EXERCISE_STEP_LABELS = [
-  "Setup",
-  "Write",
-  "Steelman",
-  "Confidence",
-  "Debate",
-  "AI reflection",
-  "Journal",
-  "Action",
-  "Done",
-] as const;
-
-export const GEOPOLITICS_GENERATIVE_STEP_LABELS = [
-  "Setup",
-  "Scenario planning",
-  "Steelman",
-  "Confidence",
-  "Debate",
-  "AI reflection",
-  "Journal",
-  "Action",
-  "Done",
-] as const;
-
 export type ExerciseShellStepLabels = readonly string[];
 
 /**
@@ -179,8 +98,7 @@ export function practicePhase(step: number, feedbackStep: number): 0 | 1 | 2 {
 export interface ExerciseShellProps {
   stepIndex: number;
   children: ReactNode;
-  /** Defaults to analytical labels (highlight & tag). */
-  stepLabels?: ExerciseShellStepLabels;
+  stepLabels: ExerciseShellStepLabels;
   /** Shown under the bar, e.g. "Part 2 of 3 · Connect". */
   partLabel?: string;
 }
@@ -188,7 +106,7 @@ export interface ExerciseShellProps {
 export function ExerciseShell({
   stepIndex,
   children,
-  stepLabels = ANALYTICAL_EXERCISE_STEP_LABELS,
+  stepLabels,
   partLabel,
 }: ExerciseShellProps) {
   return (

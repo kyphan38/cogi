@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from "react";
 import { HighlightTag } from "@/components/exercises/HighlightTag";
-import { GeopoliticsProgressionCard } from "@/components/dashboard/GeopoliticsProgressionCard";
 import {
   MinimalContainer,
   MinimalContainerAction,
@@ -11,10 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { GEOPOLITICS_TAG_OPTIONS } from "@/lib/exercise/tag-labels";
 import type { UserHighlight } from "@/lib/types/exercise";
-import {
-  LAYOUT_FIXTURE_PASSAGE,
-  MOCK_GEO_COMPLETED,
-} from "@/lib/dev/layout-fixtures-data";
+import { LAYOUT_FIXTURE_PASSAGE } from "@/lib/dev/layout-fixtures-data";
 
 export default function LayoutFixturesPage() {
   const [highlights, setHighlights] = useState<UserHighlight[]>([]);
@@ -63,13 +59,6 @@ export default function LayoutFixturesPage() {
           Dev-only surfaces for Nordic Mono structural Playwright tests.
         </p>
       </header>
-
-      <section aria-labelledby="progression-heading" className="space-y-4">
-        <h2 id="progression-heading" className="section-label">
-          Progression track
-        </h2>
-        <GeopoliticsProgressionCard completed={MOCK_GEO_COMPLETED} />
-      </section>
 
       <section aria-labelledby="highlight-heading" className="space-y-4">
         <h2 id="highlight-heading" className="section-label">

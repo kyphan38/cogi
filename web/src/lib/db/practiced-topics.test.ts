@@ -64,7 +64,7 @@ describe("recordPracticedTopic", () => {
   });
 
   it("does not match a titleKey from a different area", async () => {
-    mockList.mockResolvedValue([entry({ area: "sequential" })]);
+    mockList.mockResolvedValue([entry({ area: "systems" })]);
     await recordPracticedTopic({
       area: "analytical",
       title: "DevOps blue-green deployments",
@@ -84,7 +84,7 @@ describe("listPracticedTitles", () => {
   it("returns display titles filtered by area", async () => {
     mockList.mockResolvedValue([
       entry({ title: "A" }),
-      entry({ id: "p2", area: "sequential", title: "B" }),
+      entry({ id: "p2", area: "systems", title: "B" }),
     ]);
     const result = await listPracticedTitles("analytical");
     expect(result).toEqual(["A"]);
