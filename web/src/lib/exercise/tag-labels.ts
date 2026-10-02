@@ -97,15 +97,12 @@ export const TAG_LABELS: Record<
   },
 };
 
-export const TAG_ORDER: TagType[] = [
+/** Tags shown when highlighting plain analytical passages (the issue types they embed). */
+export const ANALYTICAL_TAG_OPTIONS: TagType[] = [
   "logical_fallacy",
   "hidden_assumption",
   "weak_evidence",
   "bias",
-  "framing_bias",
-  "missing_actor",
-  "assumed_causation",
-  "analogy_misuse",
   "valid_point",
   "unclear",
 ];
