@@ -14,11 +14,7 @@ export function exerciseSourceCombobox(page: Page) {
   return comboboxBelowLabel(page, "Source");
 }
 
-export function exercisePresetCombobox(page: Page) {
-  return comboboxBelowLabel(page, "Preset");
-}
-
-export async function fillExerciseDomain(page: Page, domain: string) {
+async function fillExerciseDomain(page: Page, domain: string) {
   const input = page.getByRole("main").getByRole("textbox", { name: "Domain" });
   await input.click();
   await input.fill(domain);
@@ -26,12 +22,6 @@ export async function fillExerciseDomain(page: Page, domain: string) {
   await input.dispatchEvent("change");
   await page.keyboard.press("Escape");
   await expect(input).toHaveValue(domain);
-}
-
-export async function selectComboPreset(page: Page, name: RegExp | string) {
-  await page.keyboard.press("Escape");
-  await exercisePresetCombobox(page).click();
-  await page.getByRole("option", { name }).click();
 }
 
 /** Stage passage text and apply the first tag so highlight step can advance. */
@@ -96,14 +86,6 @@ export async function advanceEvaluativeUncertaintyToEstimate(page: Page): Promis
 }
 
 export async function selectSystemsTaskType(
-  page: Page,
-  name: RegExp | string,
-): Promise<void> {
-  await comboboxBelowLabel(page, "Task type").click();
-  await page.getByRole("option", { name }).click();
-}
-
-export async function selectSequentialTaskType(
   page: Page,
   name: RegExp | string,
 ): Promise<void> {

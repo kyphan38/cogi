@@ -1,5 +1,5 @@
 import { getFirebaseAuth } from "@/lib/auth/firebase-client";
-import { getLanguageLevelForRequest } from "@/lib/adaptive/adaptive-hints";
+import { getLanguageLevelForRequest } from "@/lib/db/settings";
 
 function isE2EAuthBypass(): boolean {
   return (

@@ -17,7 +17,6 @@ import {
   assertMinPaddingPx,
   assertNoHorizontalOverflow,
   assertVerticalCenterAligned,
-  parsePx,
   selectTextInPassage,
   getComputed,
 } from "../helpers/layout-metrics";
@@ -34,15 +33,6 @@ test.describe("Nordic Mono layout architecture", () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize(DESKTOP);
       await gotoLayoutFixtures(page);
-    });
-
-    test("progression minimal container has 16px radius and 1px border", async ({
-      page,
-    }) => {
-      const panel = page.getByTestId("geopolitics-progression-card");
-      await expect(panel).toBeVisible();
-      await assertBorderRadiusPx(panel, 16);
-      await assertBorderWidthPx(panel, 1);
     });
 
     test("reference minimal container has 16px radius and 1px border", async ({
@@ -77,13 +67,13 @@ test.describe("Nordic Mono layout architecture", () => {
     test("minimal container body meets 24px padding on desktop", async ({
       page,
     }) => {
-      const body = page.getByTestId("geopolitics-progression-card-body");
+      const body = page.getByTestId("layout-fixture-container-body");
       await assertMinPaddingPx(body, 24);
     });
 
-    test("progression title uses semibold structural weight", async ({ page }) => {
+    test("container title uses semibold structural weight", async ({ page }) => {
       const title = page
-        .getByTestId("geopolitics-progression-card")
+        .getByTestId("layout-fixture-container")
         .getByRole("heading", { level: 2 });
       await assertFontWeightAtLeast(title, 600);
     });
@@ -164,9 +154,7 @@ test.describe("Nordic Mono layout architecture", () => {
       await expect(page.getByTestId("tag-picker-region")).toBeVisible();
       await assertNoHorizontalOverflow(page);
 
-      const primary = page.getByRole("link", {
-        name: "Start suggested exercise",
-      });
+      const primary = page.getByRole("button", { name: "Primary action" });
       const secondary = page.getByRole("button", { name: "Secondary action" });
       const primaryBox = await primary.boundingBox();
       const secondaryBox = await secondary.boundingBox();

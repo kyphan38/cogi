@@ -15,7 +15,7 @@ const MAX_MORE_CLICKS = 4;
 
 interface UseTopicSuggestionsParams {
   area: PracticedTopicArea;
-  kind: "exercise" | "math";
+  kind: "exercise";
   /** Extra titles to exclude beyond already-practiced ones (e.g. Math's real catalog titles). */
   extraExcludeTitles?: string[];
   /** Only fetch once true - lets callers defer fetching until a tab/page is actually active. */

@@ -13,6 +13,6 @@ ${modesList}
 Topic: "${topic}"
 
 Return a JSON array of exactly 5 objects, ranked best-fit first. Each object has:
-- "mode": one of "analytical", "sequential", "systems", "evaluative", "generative"
+- "mode": one of "analytical", "systems", "evaluative"
 - "reason": one sentence explaining why this mode fits (or doesn't) the topic`;
 }

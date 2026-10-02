@@ -1,20 +1,14 @@
 import { NextResponse } from "next/server";
-import {
-  buildAnalyticalPerspectivePrompt,
-  buildAnalyticalSteelmanPerspectivePrompt,
-} from "@/lib/ai/prompts/analytical-perspective";
+import { buildAnalyticalPerspectivePrompt } from "@/lib/ai/prompts/analytical-perspective";
 import {
   buildEvaluativeMatrixPerspectivePrompt,
   buildEvaluativeScoringPerspectivePrompt,
   buildEvaluativeUncertaintyPerspectivePrompt,
 } from "@/lib/ai/prompts/evaluative-perspective";
-import { buildGenerativePerspectivePrompt } from "@/lib/ai/prompts/generative-perspective";
-import { buildSequentialPerspectivePrompt } from "@/lib/ai/prompts/sequential-perspective";
 import { buildSystemsShockPerspectivePrompt } from "@/lib/ai/prompts/systems-shock-perspective";
 import { generateAnalyticalExerciseRaw } from "@/lib/ai/gemini";
 import type { ClarityPerspectiveKind } from "@/lib/types/perspective";
 import {
-  parseLegacyPerspectiveJson,
   parseStructuredPerspectiveJson,
   structuredPerspectiveRetrySuffix,
 } from "@/lib/ai/validators/perspective-structured";
@@ -25,9 +19,6 @@ import type {
   EvaluativeMatrixRow,
   EvaluativeScoringRow,
   EvaluativeUncertaintyRow,
-  GenerativeExerciseRow,
-  SequentialCriticalError,
-  SequentialStepSpec,
   SystemsIntendedConnection,
   SystemsNodeCriticalityHint,
   SystemsNodeSpec,
@@ -41,25 +32,16 @@ import { buildLanguageLevelAppendix, resolveLanguageLevel } from "@/lib/adaptive
 
 export const maxDuration = 60;
 
-type PerspectiveRouteKind = ClarityPerspectiveKind | "sequential";
-
 async function generateStructuredPerspective(
   prompt: string,
-  kind: PerspectiveRouteKind,
+  kind: ClarityPerspectiveKind,
   languageAppendix?: string,
 ): Promise<{
   structured: AIPerspectiveStructured;
   text: string;
 }> {
-  const parse =
-    kind === "sequential"
-      ? (raw: string) => parseLegacyPerspectiveJson(raw)
-      : (raw: string) => parseStructuredPerspectiveJson(raw, kind);
-
-  const retrySuffix =
-    kind === "sequential"
-      ? `Your previous answer was not valid JSON. Return ONLY a single JSON object with keys: embedded, userFound, additional, openQuestions.`
-      : structuredPerspectiveRetrySuffix(kind);
+  const parse = (raw: string) => parseStructuredPerspectiveJson(raw, kind);
+  const retrySuffix = structuredPerspectiveRetrySuffix(kind);
 
   const fullPrompt = [prompt, languageAppendix].filter(Boolean).join("\n\n");
 
@@ -74,9 +56,7 @@ async function generateStructuredPerspective(
   if (!parsed.success) {
     throw new Error(parsed.error);
   }
-  const clarityKind: ClarityPerspectiveKind =
-    kind === "sequential" ? "analytical" : kind;
-  const text = structuredPerspectiveToMarkdown(parsed.data, clarityKind);
+  const text = structuredPerspectiveToMarkdown(parsed.data, kind);
   return { structured: parsed.data, text };
 }
 
@@ -106,17 +86,13 @@ export async function POST(req: Request) {
   const kind =
     b.kind === "systems"
       ? "systems"
-      : b.kind === "sequential"
-        ? "sequential"
-        : b.kind === "evaluative-matrix"
-          ? "evaluative-matrix"
-          : b.kind === "evaluative-scoring"
-            ? "evaluative-scoring"
-            : b.kind === "evaluative-uncertainty"
-              ? "evaluative-uncertainty"
-              : b.kind === "generative"
-                ? "generative"
-                : "analytical";
+      : b.kind === "evaluative-matrix"
+        ? "evaluative-matrix"
+        : b.kind === "evaluative-scoring"
+          ? "evaluative-scoring"
+          : b.kind === "evaluative-uncertainty"
+            ? "evaluative-uncertainty"
+            : "analytical";
 
   if (kind === "evaluative-matrix") {
     const title = typeof b.title === "string" ? b.title : "";
@@ -285,50 +261,6 @@ export async function POST(req: Request) {
     }
   }
 
-  if (kind === "generative") {
-    const exercise = b.exercise as GenerativeExerciseRow | undefined;
-    const confidenceBefore =
-      typeof b.confidenceBefore === "number" ? b.confidenceBefore : NaN;
-    if (!exercise || exercise.type !== "generative" || !Number.isFinite(confidenceBefore)) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "generative requires exercise row and confidenceBefore",
-        },
-        { status: 400 },
-      );
-    }
-    const userContext =
-      typeof b.userContext === "string" && b.userContext.trim()
-        ? b.userContext.trim()
-        : undefined;
-    const prompt = buildGenerativePerspectivePrompt({
-      exercise,
-      confidenceBefore,
-      userContext,
-    });
-    try {
-      const { structured, text } = await generateStructuredPerspective(
-        prompt,
-        "generative",
-        languageAppendix,
-      );
-      return NextResponse.json({ ok: true, structured, text });
-    } catch (e) {
-      const isTimeout =
-        e instanceof Error &&
-        (e.name === "AbortError" || e.message.includes("timed out") || e.message.includes("timeout"));
-      if (isTimeout) {
-        return NextResponse.json(
-          { ok: false, error: "Exercise generation timed out. Please try again." },
-          { status: 504 },
-        );
-      }
-      const message = e instanceof Error ? e.message : "Unknown error";
-      return NextResponse.json({ ok: false, error: message }, { status: 500 });
-    }
-  }
-
   if (kind === "systems") {
     const title = typeof b.title === "string" ? b.title : "";
     const scenario = typeof b.scenario === "string" ? b.scenario : "";
@@ -433,145 +365,6 @@ export async function POST(req: Request) {
       const { structured, text } = await generateStructuredPerspective(
         prompt,
         "systems",
-        languageAppendix,
-      );
-      return NextResponse.json({ ok: true, structured, text });
-    } catch (e) {
-      const isTimeout =
-        e instanceof Error &&
-        (e.name === "AbortError" || e.message.includes("timed out") || e.message.includes("timeout"));
-      if (isTimeout) {
-        return NextResponse.json(
-          { ok: false, error: "Exercise generation timed out. Please try again." },
-          { status: 504 },
-        );
-      }
-      const message = e instanceof Error ? e.message : "Unknown error";
-      return NextResponse.json({ ok: false, error: message }, { status: 500 });
-    }
-  }
-
-  if (kind === "sequential") {
-    const title = typeof b.title === "string" ? b.title : "";
-    const scenario = typeof b.scenario === "string" ? b.scenario : "";
-    const domain = typeof b.domain === "string" ? b.domain : "";
-    const confidenceBefore =
-      typeof b.confidenceBefore === "number" ? b.confidenceBefore : NaN;
-    const steps = Array.isArray(b.steps) ? (b.steps as SequentialStepSpec[]) : [];
-    const criticalErrors = Array.isArray(b.criticalErrors)
-      ? (b.criticalErrors as SequentialCriticalError[])
-      : [];
-    const userOrderedStepIds = Array.isArray(b.userOrderedStepIds)
-      ? (b.userOrderedStepIds as string[])
-      : [];
-    if (
-      !title.trim() ||
-      !scenario.trim() ||
-      !domain.trim() ||
-      !Number.isFinite(confidenceBefore) ||
-      steps.length < 1 ||
-      userOrderedStepIds.length < 1
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Sequential perspective requires title, scenario, domain, confidenceBefore, steps[], userOrderedStepIds[]",
-        },
-        { status: 400 },
-      );
-    }
-    const userContext =
-      typeof b.userContext === "string" && b.userContext.trim()
-        ? b.userContext.trim()
-        : undefined;
-    const perspectiveAName =
-      typeof b.perspectiveAName === "string" ? b.perspectiveAName : undefined;
-    const perspectiveBName =
-      typeof b.perspectiveBName === "string" ? b.perspectiveBName : undefined;
-    const userOrderedStepIdsB = Array.isArray(b.userOrderedStepIdsB)
-      ? (b.userOrderedStepIdsB as string[])
-      : undefined;
-    const criticalErrorsB = Array.isArray(b.criticalErrorsB)
-      ? (b.criticalErrorsB as SequentialCriticalError[])
-      : undefined;
-    const timeLimitMinutes =
-      typeof b.timeLimitMinutes === "number" ? b.timeLimitMinutes : undefined;
-    const elapsedSeconds =
-      typeof b.elapsedSeconds === "number" ? b.elapsedSeconds : undefined;
-    const prompt = buildSequentialPerspectivePrompt({
-      title,
-      scenario,
-      steps,
-      criticalErrors,
-      userOrderedStepIds,
-      confidenceBefore,
-      domain,
-      userContext,
-      perspectiveAName,
-      perspectiveBName,
-      userOrderedStepIdsB,
-      criticalErrorsB,
-      timeLimitMinutes,
-      elapsedSeconds,
-    });
-    try {
-      const { structured, text } = await generateStructuredPerspective(
-        prompt,
-        "sequential",
-        languageAppendix,
-      );
-      return NextResponse.json({ ok: true, structured, text });
-    } catch (e) {
-      const isTimeout =
-        e instanceof Error &&
-        (e.name === "AbortError" || e.message.includes("timed out") || e.message.includes("timeout"));
-      if (isTimeout) {
-        return NextResponse.json(
-          { ok: false, error: "Exercise generation timed out. Please try again." },
-          { status: 504 },
-        );
-      }
-      const message = e instanceof Error ? e.message : "Unknown error";
-      return NextResponse.json({ ok: false, error: message }, { status: 500 });
-    }
-  }
-
-  if (kind === "analytical" && b.analyticalVariant === "steelman") {
-    const title = typeof b.title === "string" ? b.title : "";
-    const passage = typeof b.passage === "string" ? b.passage : "";
-    const steelmanText = typeof b.steelmanText === "string" ? b.steelmanText : "";
-    const domain = typeof b.domain === "string" ? b.domain : "";
-    const confidenceBefore =
-      typeof b.confidenceBefore === "number" ? b.confidenceBefore : NaN;
-    if (
-      !title.trim() ||
-      !passage.trim() ||
-      !steelmanText.trim() ||
-      !domain.trim() ||
-      !Number.isFinite(confidenceBefore)
-    ) {
-      return NextResponse.json(
-        { ok: false, error: "title, passage, steelmanText, domain, confidenceBefore required" },
-        { status: 400 },
-      );
-    }
-    const userContext =
-      typeof b.userContext === "string" && b.userContext.trim()
-        ? b.userContext.trim()
-        : undefined;
-    const prompt = buildAnalyticalSteelmanPerspectivePrompt({
-      title,
-      passage,
-      steelmanText,
-      confidenceBefore,
-      domain,
-      userContext,
-    });
-    try {
-      const { structured, text } = await generateStructuredPerspective(
-        prompt,
-        "analytical",
         languageAppendix,
       );
       return NextResponse.json({ ok: true, structured, text });

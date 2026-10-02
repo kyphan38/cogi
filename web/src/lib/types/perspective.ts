@@ -1,4 +1,10 @@
-import type { PerspectiveKind } from "@/lib/types/disagreement";
+export type PerspectiveKind =
+  | "analytical"
+  | "systems"
+  | "evaluative-matrix"
+  | "evaluative-scoring"
+  | "evaluative-uncertainty";
+
 
 /** Structured AI perspective - clarity v2 (self-anchored critiques). */
 export interface HighlightCritique {
@@ -33,14 +39,6 @@ export interface CriterionCritique {
   aiEvaluationText: string;
 }
 
-export interface StepCritique {
-  phaseId: string;
-  promptQuestion: string;
-  userResponseSnippet: string;
-  critique: string;
-  remediationAlternative: string;
-}
-
 export interface OutcomeCritique {
   optionId: string;
   optionTitle: string;
@@ -72,10 +70,6 @@ export interface EvaluativeScoringPerspectiveStructured extends ClarityPerspecti
   critiqueMatrix: CriterionCritique[];
 }
 
-export interface GenerativePerspectiveStructured extends ClarityPerspectiveBase {
-  stepCritiques: StepCritique[];
-}
-
 export interface EvaluativeUncertaintyPerspectiveStructured extends ClarityPerspectiveBase {
   outcomeCritiques: OutcomeCritique[];
 }
@@ -85,8 +79,7 @@ export type ClarityPerspectiveStructured =
   | SystemsPerspectiveStructured
   | EvaluativeMatrixPerspectiveStructured
   | EvaluativeScoringPerspectiveStructured
-  | EvaluativeUncertaintyPerspectiveStructured
-  | GenerativePerspectiveStructured;
+  | EvaluativeUncertaintyPerspectiveStructured;
 
 /** @deprecated Legacy four-section shape; read-only fallback for saved exercises. */
 export interface PerspectivePoint {
@@ -118,15 +111,8 @@ export function isClarityPerspectiveStructured(
   return "perspectiveFormat" in s && s.perspectiveFormat === "clarity_v2";
 }
 
-export type ClarityPerspectiveKind = Extract<
-  PerspectiveKind,
-  | "analytical"
-  | "systems"
-  | "evaluative-matrix"
-  | "evaluative-scoring"
-  | "evaluative-uncertainty"
-  | "generative"
->;
+/** Every perspective kind now uses the clarity v2 shape. */
+export type ClarityPerspectiveKind = PerspectiveKind;
 
 /** Client-computed weight/score breakdown for one evaluative-scoring criterion (replaces the AI's run-on summary sentence). */
 export interface EvaluativeScoringCriterionBreakdown {

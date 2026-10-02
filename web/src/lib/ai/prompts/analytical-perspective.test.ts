@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAnalyticalPerspectivePrompt,
-  buildAnalyticalSteelmanPerspectivePrompt,
 } from "./analytical-perspective";
 
 describe("buildAnalyticalPerspectivePrompt", () => {
@@ -45,48 +44,3 @@ describe("buildAnalyticalPerspectivePrompt", () => {
   });
 });
 
-describe("buildAnalyticalSteelmanPerspectivePrompt", () => {
-  const base = {
-    title: "Remote work is bad for productivity",
-    passage: "Remote work reduces spontaneous collaboration and weakens team cohesion.",
-    steelmanText: "The strongest case for this position rests on measurable declines in cross-team collaboration...",
-    confidenceBefore: 55,
-    domain: "management",
-  };
-
-  it("includes title, position, steelman text, and domain", () => {
-    const result = buildAnalyticalSteelmanPerspectivePrompt(base);
-    expect(result).toContain("Remote work is bad for productivity");
-    expect(result).toContain("Remote work reduces spontaneous collaboration");
-    expect(result).toContain("The strongest case for this position rests on measurable declines");
-    expect(result).toContain("management");
-  });
-
-  it("includes the clarity_v2 output contract", () => {
-    const result = buildAnalyticalSteelmanPerspectivePrompt(base);
-    expect(result).toContain('"perspectiveFormat": "clarity_v2"');
-    expect(result).toContain("highlightCritiques");
-    expect(result).toContain("openQuestions");
-  });
-
-  it("instructs quoting from the user's steelman, not the original position", () => {
-    const result = buildAnalyticalSteelmanPerspectivePrompt(base);
-    expect(result).toContain("NOT the position");
-  });
-
-  it("interpolates userContext", () => {
-    const result = buildAnalyticalSteelmanPerspectivePrompt({ ...base, userContext: "grad student" });
-    expect(result).toContain("grad student");
-  });
-
-  it("defaults userContext to none", () => {
-    const result = buildAnalyticalSteelmanPerspectivePrompt(base);
-    expect(result).toContain("(none)");
-  });
-
-  it("does not leak undefined or [object Object]", () => {
-    const result = buildAnalyticalSteelmanPerspectivePrompt(base);
-    expect(result).not.toContain("undefined");
-    expect(result).not.toContain("[object Object]");
-  });
-});

@@ -60,13 +60,13 @@ export async function gotoAuthenticated(page: Page, path: string): Promise<void>
 }
 
 /**
- * Exercise setup screens (Evaluative/Analytical/Generative/Systems/Sequential)
+ * Exercise setup screens (Evaluative/Analytical/Systems)
  * default to a "Suggested topics" entry mode. Its AI topic-suggestions fetch
  * always fails in e2e (no real Firebase ID token for the server to verify),
  * but the manual Domain/Source/Generate controls stay hidden until the user
  * switches tabs. Defensively switch to "Type your own" wherever that toggle
  * exists so setup-form locators used across the suite resolve. No-op on
- * pages without this toggle (e.g. dashboard, settings).
+ * pages without this toggle (e.g. settings).
  */
 export async function ensureManualEntryMode(page: Page): Promise<void> {
   const manualToggle = page.getByRole("main").getByRole("button", { name: "Type your own" });
@@ -109,26 +109,6 @@ export async function clickMainNavLink(
  * Stub AI and backend API endpoints so pages render without a live server.
  */
 export async function stubFirestoreReads(page: Page): Promise<void> {
-  await page.route("**/api/ai/combo", async (route: Route) => {
-    const body = JSON.parse(
-      (await route.request().postData()) ?? "{}",
-    ) as { preset?: string };
-    const preset = body.preset ?? "full_analysis";
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ ok: true, data: makeMockComboBundle(preset) }),
-    });
-  });
-
-  await page.route("**/api/ai/journal-ref", async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ ok: true, line: null }),
-    });
-  });
-
   await page.route("**/api/ai", async (route: Route) => {
     if (route.request().method() !== "POST") {
       await route.continue();
@@ -162,19 +142,6 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
             : makeMockStandaloneSystemsPayload();
         break;
       }
-      case "generative":
-        data = makeMockGenerativeAiPayload();
-        break;
-      case "sequential": {
-        const sequentialTaskType = body.sequentialTaskType as string | undefined;
-        data =
-          sequentialTaskType === "geopolitics"
-            ? makeMockSequentialGeopoliticsAiPayload()
-            : sequentialTaskType === "triage"
-              ? makeMockSequentialTriageAiPayload()
-              : makeMockSequentialAiPayload();
-        break;
-      }
       default:
         data = makeMockAnalyticalAiPayload(domain);
     }
@@ -183,14 +150,6 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ ok: true, data }),
-    });
-  });
-
-  await page.route("**/api/ai/weekly-review", async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ ok: true, markdown: "Mock weekly review." }),
     });
   });
 
@@ -220,13 +179,6 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
     });
   });
 
-  await page.route("**/api/ai/recall-feedback", async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ ok: true }),
-    });
-  });
 }
 
 /** @deprecated Use stubFirestoreReads - POST /api/ai is stubbed there. */
@@ -248,287 +200,7 @@ export async function gotoLayoutFixtures(page: Page): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Mock combo bundle data
 // ---------------------------------------------------------------------------
-
-const SHARED_SCENARIO =
-  "A mid-size e-commerce company is evaluating whether to migrate their monolithic " +
-  "application to microservices. The CTO argues this will improve scalability and " +
-  "developer velocity, but the VP of Engineering warns about operational complexity " +
-  "and the risk of distributed system failures. Recent outages have been traced to " +
-  "database contention, which could be solved by either approach. The team has limited " +
-  "experience with container orchestration, and the migration timeline conflicts with " +
-  "a major product launch scheduled for Q3.";
-
-function makeMockComboBundle(preset: string) {
-  if (preset === "decision_sprint") return decisionSprintBundle();
-  if (preset === "root_cause") return rootCauseBundle();
-  if (preset === "crisis_response") return crisisResponseBundle();
-  return fullAnalysisBundle();
-}
-
-const CRISIS_SCENARIO =
-  "Tensions have escalated in a disputed maritime region after a naval patrol vessel from " +
-  "Northland collided with a fishing fleet escorted by Southland's coast guard. Both nations " +
-  "have mobilized additional forces to the area, and regional allies are watching closely to " +
-  "see how each side responds. Diplomatic channels remain open but strained, and a miscalculated " +
-  "next move by either side risks a wider confrontation.";
-
-function crisisResponseBundle() {
-  const perspectiveAName = "Northland";
-  const perspectiveBName = "Southland";
-  const nodes = [
-    { id: "node_1", label: "Naval Command", description: "Northland's regional fleet HQ", x: 15, y: 25 },
-    { id: "node_2", label: "Coast Guard", description: "Southland's patrol authority", x: 50, y: 15 },
-    { id: "node_3", label: "Fishing Fleet", description: "Civilian vessels in dispute", x: 85, y: 25 },
-    { id: "node_4", label: "Regional Allies", description: "Neighboring states watching closely", x: 15, y: 75 },
-    { id: "node_5", label: "UN Envoy", description: "Mediator seeking de-escalation", x: 50, y: 85 },
-    { id: "node_6", label: "Domestic Press", description: "Shapes public pressure on both sides", x: 85, y: 75 },
-  ];
-  return {
-    preset: "crisis_response",
-    sharedTitle: "Maritime Standoff Response",
-    sharedScenario: CRISIS_SCENARIO,
-    perspectiveAName,
-    perspectiveBName,
-    sequential: {
-      title: "Response Sequence",
-      scenario: CRISIS_SCENARIO,
-      perspectiveAName,
-      perspectiveBName,
-      steps: Array.from({ length: 6 }, (_, i) => ({
-        id: `s${i + 1}`,
-        text: `Response step ${i + 1}`,
-        correctPosition: i,
-        correctPositionB: (i + 3) % 6,
-        dependencies: [],
-        isFlexible: false,
-        explanation: `Why step ${i + 1} matters`,
-      })),
-      criticalErrors: [
-        { description: `Escalating before ${perspectiveAName} secures allied backing`, severity: "catastrophic" },
-      ],
-      criticalErrorsB: [
-        { description: `${perspectiveBName} conceding before domestic audiences are briefed`, severity: "problematic" },
-      ],
-    },
-    systems: {
-      title: "Regional Actor Network",
-      scenario: CRISIS_SCENARIO,
-      nodes,
-      perspectiveAName,
-      perspectiveBName,
-      intendedConnections: [
-        { from: "node_1", to: "node_3", type: "risks", explanation: `${perspectiveAName} sees the fleet as provocation.` },
-        { from: "node_4", to: "node_1", type: "depends_on", explanation: "Allies expect restraint." },
-      ],
-      intendedConnectionsB: [
-        { from: "node_2", to: "node_3", type: "enables", explanation: `${perspectiveBName} sees the fleet as protected livelihood.` },
-        { from: "node_6", to: "node_2", type: "risks", explanation: "Domestic press pressures a firm response." },
-      ],
-      shockEvent: {
-        description: "A warning shot is fired near the fishing fleet",
-        directlyAffected: ["node_3", "node_1"],
-        indirectlyAffected: ["node_4", "node_5"],
-        explanation: `${perspectiveAName} must decide how allies interpret this escalation.`,
-      },
-      shockEventB: {
-        directlyAffected: ["node_3", "node_2"],
-        indirectlyAffected: ["node_6"],
-        explanation: `${perspectiveBName}'s domestic press amplifies the incident.`,
-      },
-    },
-    evaluativeUncertainty: {
-      variant: "uncertainty",
-      title: "Response Options Under Uncertainty",
-      scenario: CRISIS_SCENARIO,
-      options: [
-        {
-          id: "opt-1",
-          title: "De-escalate and withdraw patrol",
-          description: "Pull back naval assets and open backchannel talks.",
-          outcomes: [
-            { id: "out-1a", label: "Tensions cool", probability: 0.6, payoff: 50, explanation: "Both sides save face." },
-            { id: "out-1b", label: "Seen as weakness", probability: 0.4, payoff: -30, explanation: "Domestic backlash emboldens hardliners." },
-          ],
-        },
-        {
-          id: "opt-2",
-          title: "Hold position and demand apology",
-          description: "Maintain presence, escalate diplomatically only.",
-          outcomes: [
-            { id: "out-2a", label: "Apology secured", probability: 0.3, payoff: 40, explanation: "Southland backs down publicly." },
-            { id: "out-2b", label: "Standoff continues", probability: 0.7, payoff: -10, explanation: "Costly prolonged tension." },
-          ],
-        },
-      ],
-    },
-  };
-}
-
-function fullAnalysisBundle() {
-  return {
-    preset: "full_analysis",
-    sharedTitle: "Microservices Migration Analysis",
-    sharedScenario: SHARED_SCENARIO,
-    analytical: {
-      title: "CTO vs VP Arguments",
-      passage: SHARED_SCENARIO,
-      embeddedIssues: [
-        {
-          description: "False dichotomy in architectural choices",
-          type: "logical_fallacy",
-          severity: "moderate",
-          textSegment: "migrate their monolithic application to microservices",
-          explanation: "Presents only two extremes.",
-        },
-        {
-          description: "Unexamined assumption about velocity gains",
-          type: "hidden_assumption",
-          severity: "subtle",
-          textSegment: "improve scalability and developer velocity",
-          explanation: "Microservices can slow small teams.",
-        },
-      ],
-      validPoints: [
-        {
-          textSegment: "Recent outages have been traced to database contention",
-          explanation: "Data-driven observation.",
-        },
-      ],
-    },
-    systems: makeSystemsPayload(
-      "Migration Impact Map",
-      [
-        { id: "node_1", label: "Monolith", description: "Current single-process app", x: 15, y: 25 },
-        { id: "node_2", label: "Database", description: "PostgreSQL with contention", x: 50, y: 15 },
-        { id: "node_3", label: "Dev Team", description: "Limited k8s skills", x: 85, y: 25 },
-        { id: "node_4", label: "CI/CD Pipeline", description: "Build and deploy automation", x: 15, y: 75 },
-        { id: "node_5", label: "Product Launch", description: "Q3 revenue-critical release", x: 50, y: 85 },
-        { id: "node_6", label: "Infra Cost", description: "Cloud compute and ops spend", x: 85, y: 75 },
-      ],
-      {
-        description: "Key architect leaves the company mid-migration",
-        directlyAffected: ["node_3", "node_4"],
-        indirectlyAffected: ["node_5", "node_6"],
-        explanation: "Knowledge loss cascades into delivery delays.",
-      },
-    ),
-    evaluativeMatrix: makeMatrixPayload("Migration Strategy Evaluation"),
-  };
-}
-
-function decisionSprintBundle() {
-  return {
-    preset: "decision_sprint",
-    sharedTitle: "Microservices Migration Decision",
-    sharedScenario: SHARED_SCENARIO,
-    evaluativeMatrix: {
-      variant: "matrix",
-      title: "Migration Strategy Matrix",
-      scenario: SHARED_SCENARIO,
-      axisX: { label: "Implementation Risk", lowLabel: "Low Risk", highLabel: "High Risk" },
-      axisY: { label: "Business Impact", lowLabel: "Low Impact", highLabel: "High Impact" },
-      options: [
-        { id: "opt-1", title: "Full microservices migration", description: "Complete rewrite.", intendedQuadrant: "top-right", explanation: "High impact, high risk." },
-        { id: "opt-2", title: "Strangler fig pattern", description: "Gradual extraction.", intendedQuadrant: "top-left", explanation: "High impact, managed risk." },
-        { id: "opt-3", title: "Database sharding only", description: "Fix DB contention.", intendedQuadrant: "bottom-left", explanation: "Low risk, limited value." },
-        { id: "opt-4", title: "Modular monolith refactor", description: "Restructure internally.", intendedQuadrant: "bottom-right", explanation: "Moderate all around." },
-      ],
-    },
-    generative: {
-      title: "Migration Decision Analysis",
-      scenario: SHARED_SCENARIO,
-      prompts: [
-        { id: "gen-1", question: "What are the key risks of proceeding before Q3?", draftText: "", hints: ["Team experience", "Timeline pressure"], spareHint: "What if launch slips?" },
-        { id: "gen-2", question: "How would you sequence the migration?", draftText: "", hints: ["Start with least coupled service"], spareHint: "Rollback strategies." },
-        { id: "gen-3", question: "What metrics would you track?", draftText: "", hints: ["Latency, error rates"], spareHint: "Developer satisfaction." },
-      ],
-    },
-  };
-}
-
-function rootCauseBundle() {
-  return {
-    preset: "root_cause",
-    sharedTitle: "Root Cause: E-commerce Outages",
-    sharedScenario: SHARED_SCENARIO,
-    sequential: {
-      title: "Outage Investigation Sequence",
-      scenario: SHARED_SCENARIO,
-      steps: [
-        { id: "seq-1", text: "Identify the database contention pattern from logs", correctPosition: 1, dependencies: [], isFlexible: false, explanation: "Start with root symptom." },
-        { id: "seq-2", text: "Map which services contribute most to write locks", correctPosition: 2, dependencies: ["seq-1"], isFlexible: false, explanation: "Need log data first." },
-        { id: "seq-3", text: "Evaluate query optimization vs schema redesign", correctPosition: 3, dependencies: ["seq-2"], isFlexible: true, explanation: "Depends on knowing contributors." },
-        { id: "seq-4", text: "Implement read replicas for high-read services", correctPosition: 4, dependencies: ["seq-3"], isFlexible: true, explanation: "Follows analysis." },
-      ],
-      criticalErrors: [
-        { description: "Implementing solutions before identifying root cause", severity: "catastrophic" },
-      ],
-    },
-    systems: makeSystemsPayload(
-      "System Dependencies Map",
-      [
-        { id: "node_1", label: "User Traffic", description: "Incoming API requests", x: 20, y: 20 },
-        { id: "node_2", label: "API Gateway", description: "Routes to backend services", x: 50, y: 20 },
-        { id: "node_3", label: "Product Service", description: "Catalog and inventory", x: 20, y: 50 },
-        { id: "node_4", label: "Order Service", description: "Purchases and payments", x: 50, y: 50 },
-        { id: "node_5", label: "Database", description: "PostgreSQL with write locks", x: 80, y: 50 },
-        { id: "node_6", label: "Cache Layer", description: "Redis for hot product data", x: 80, y: 20 },
-      ],
-      {
-        description: "Black Friday traffic spike causes 10x normal load",
-        directlyAffected: ["node_5", "node_4"],
-        indirectlyAffected: ["node_3", "node_2"],
-        explanation: "Database contention cascades upstream.",
-      },
-    ),
-    analytical: {
-      title: "CTO vs VP Analysis",
-      passage: SHARED_SCENARIO,
-      embeddedIssues: [
-        { description: "False dichotomy", type: "logical_fallacy", severity: "moderate", textSegment: "migrate their monolithic application to microservices", explanation: "Only two options shown." },
-        { description: "Assumed velocity gain", type: "hidden_assumption", severity: "subtle", textSegment: "improve scalability and developer velocity", explanation: "Not automatic." },
-      ],
-      validPoints: [
-        { textSegment: "Recent outages have been traced to database contention", explanation: "Empirical root cause." },
-      ],
-    },
-  };
-}
-
-function makeSystemsPayload(
-  title: string,
-  nodes: { id: string; label: string; description: string; x: number; y: number }[],
-  shockEvent: { description: string; directlyAffected: string[]; indirectlyAffected: string[]; explanation: string },
-) {
-  return {
-    title,
-    scenario: SHARED_SCENARIO,
-    nodes,
-    intendedConnections: [
-      { from: nodes[0]!.id, to: nodes[1]!.id, type: "depends_on", explanation: "Primary dependency." },
-      { from: nodes[2]!.id, to: nodes[4]!.id, type: "depends_on", explanation: "Service depends on DB." },
-    ],
-    shockEvent,
-  };
-}
-
-function makeMatrixPayload(title: string) {
-  return {
-    variant: "matrix",
-    title,
-    scenario: SHARED_SCENARIO,
-    axisX: { label: "Risk Level", lowLabel: "Low Risk", highLabel: "High Risk" },
-    axisY: { label: "Strategic Value", lowLabel: "Low Value", highLabel: "High Value" },
-    options: [
-      { id: "opt-1", title: "Full microservices rewrite", description: "Complete decomposition.", intendedQuadrant: "top-right", explanation: "Max value, max risk." },
-      { id: "opt-2", title: "Strangler fig migration", description: "Incremental extraction.", intendedQuadrant: "top-left", explanation: "High value, controlled risk." },
-      { id: "opt-3", title: "Database-only fix", description: "Sharding and read replicas.", intendedQuadrant: "bottom-left", explanation: "Low risk, low value." },
-      { id: "opt-4", title: "Modular monolith", description: "Internal modularisation.", intendedQuadrant: "bottom-right", explanation: "Moderate all around." },
-    ],
-  };
-}
 
 function makeMockEvaluativeAiPayload() {
   return {
@@ -741,91 +413,3 @@ function makeMockSystemsResiliencePayload() {
     },
   };
 }
-
-function makeMockGenerativeAiPayload() {
-  return {
-    title: "AI Ethics Policy Framework",
-    scenario:
-      "Your organization is deploying an AI-powered hiring tool. Early testing " +
-      "shows strong accuracy gains but potential demographic bias in resume screening. " +
-      "Leadership wants to ship within 60 days, but your ethics board recommends a " +
-      "longer review period.",
-    prompts: [
-      { id: "p1", question: "What is the core tension in this scenario, and what assumptions drive each side?", draftText: "The core tension is between speed-to-market and responsible deployment. Leadership assumes accuracy gains outweigh fairness risks." },
-      { id: "p2", question: "What alternative approaches could reduce bias without delaying the launch significantly?", draftText: "One approach is a phased rollout: deploy the tool in shadow mode alongside human reviewers." },
-      { id: "p3", question: "What is the strongest argument against your preferred approach?", draftText: "Critics would argue that any deployment of a known-biased system, even in shadow mode, normalizes its use." },
-      { id: "p4", question: "If the tool is deployed and bias is later discovered, what is your contingency plan?", draftText: "The contingency plan should include immediate suspension of automated decisions and a manual review of all affected candidates." },
-    ],
-  };
-}
-
-function makeMockSequentialAiPayload() {
-  return {
-    title: "Incident Response Sequence",
-    scenario:
-      "A production outage has been detected in the payment processing service. " +
-      "Multiple teams are scrambling to restore service while customers are unable to " +
-      "complete transactions. The monitoring system shows cascading failures across " +
-      "three microservices.",
-    steps: [
-      { id: "s1", text: "Acknowledge the incident and notify stakeholders", correctPosition: 1, dependencies: [], isFlexible: false, explanation: "First response protocol." },
-      { id: "s2", text: "Isolate the failing payment service from the load balancer", correctPosition: 2, dependencies: ["s1"], isFlexible: false, explanation: "Stop the bleeding before diagnosis." },
-      { id: "s3", text: "Analyze error logs to identify root cause", correctPosition: 3, dependencies: ["s2"], isFlexible: false, explanation: "Need isolation before safe log analysis." },
-      { id: "s4", text: "Deploy hotfix and verify in staging", correctPosition: 4, dependencies: ["s3"], isFlexible: true, explanation: "Depends on knowing root cause." },
-      { id: "s5", text: "Gradually restore traffic and monitor metrics", correctPosition: 5, dependencies: ["s4"], isFlexible: true, explanation: "Only after fix is verified." },
-    ],
-    criticalErrors: [
-      { description: "Deploying a fix before identifying root cause", severity: "catastrophic" },
-    ],
-  };
-}
-
-function makeMockSequentialGeopoliticsAiPayload() {
-  return {
-    title: "Ceasefire Negotiation Sequence",
-    scenario:
-      "Two neighboring states are negotiating a ceasefire after a border skirmish. " +
-      "Actor Northland favors a diplomacy-first sequence to preserve alliance credibility, " +
-      "while Actor Southrim favors a deterrence-first sequence to protect its negotiating position.",
-    perspectiveAName: "Northland",
-    perspectiveBName: "Southrim",
-    steps: [
-      { id: "g1", text: "Issue a public statement calling for restraint", correctPosition: 0, correctPositionB: 2, dependencies: [], isFlexible: false, explanation: "Northland leads with diplomacy to reassure allies." },
-      { id: "g2", text: "Reinforce forward defensive positions", correctPosition: 3, correctPositionB: 0, dependencies: [], isFlexible: false, explanation: "Southrim leads with deterrence to avoid appearing weak." },
-      { id: "g3", text: "Open a back-channel with the other side's negotiators", correctPosition: 1, correctPositionB: 1, dependencies: ["g1"], isFlexible: true, explanation: "Both actors value early back-channel contact." },
-      { id: "g4", text: "Brief allied governments on the negotiating position", correctPosition: 2, correctPositionB: 4, dependencies: ["g1"], isFlexible: false, explanation: "Northland briefs allies before conceding anything publicly." },
-      { id: "g5", text: "Propose a monitored ceasefire line", correctPosition: 4, correctPositionB: 3, dependencies: ["g3"], isFlexible: false, explanation: "Requires back-channel contact first for either actor." },
-      { id: "g6", text: "Withdraw non-essential personnel from the border zone", correctPosition: 5, correctPositionB: 5, dependencies: ["g5"], isFlexible: false, explanation: "Only after a ceasefire line is proposed." },
-    ],
-    criticalErrors: [
-      { description: "Reinforcing positions before issuing a restraint statement undercuts Northland's alliance credibility", severity: "problematic" },
-    ],
-    criticalErrorsB: [
-      { description: "Opening back-channel talks before reinforcing positions weakens Southrim's negotiating leverage", severity: "problematic" },
-    ],
-  };
-}
-
-function makeMockSequentialTriageAiPayload() {
-  return {
-    title: "Payment Outage Triage",
-    scenario:
-      "A production outage has taken down payment processing during a flash sale. " +
-      "The on-call team has a limited window to restore service before the sale window closes.",
-    variantKind: "triage",
-    timeLimitMinutes: 15,
-    steps: [
-      { id: "t1", text: "Acknowledge the page and notify the incident channel", correctPosition: 0, dependencies: [], isFlexible: false, severity: "critical", explanation: "First response protocol; delay compounds every downstream step." },
-      { id: "t2", text: "Isolate the failing payment service from the load balancer", correctPosition: 1, dependencies: ["t1"], isFlexible: false, severity: "critical", explanation: "Stops cascading failures into healthy services." },
-      { id: "t3", text: "Check recent deploys for a rollback candidate", correctPosition: 2, dependencies: ["t2"], isFlexible: false, severity: "major", explanation: "Fastest path to recovery if a recent deploy is the cause." },
-      { id: "t4", text: "Roll back the suspect deploy", correctPosition: 3, dependencies: ["t3"], isFlexible: false, severity: "major", explanation: "Directly addresses the likely root cause." },
-      { id: "t5", text: "Gradually restore traffic and monitor error rates", correctPosition: 4, dependencies: ["t4"], isFlexible: true, severity: "major", explanation: "Verifies the fix before full restoration." },
-      { id: "t6", text: "Draft the customer-facing status page update", correctPosition: 5, dependencies: [], isFlexible: true, severity: "minor", explanation: "Important for trust, but does not block recovery." },
-    ],
-    criticalErrors: [
-      { description: "Rolling back before isolating the failing service risks re-triggering the cascade", severity: "catastrophic" },
-    ],
-  };
-}
-
-export { makeMockComboBundle };

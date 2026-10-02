@@ -1,8 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-
-vi.mock("server-only", () => ({}));
-
-import { parseTopicSuggestions } from "./route";
+import { describe, expect, it } from "vitest";
+import { parseTopicSuggestions } from "./topic-suggestions-parse";
 
 describe("parseTopicSuggestions", () => {
   it("parses a valid array of 5 suggestions", () => {

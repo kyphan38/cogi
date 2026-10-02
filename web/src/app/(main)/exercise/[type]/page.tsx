@@ -1,7 +1,5 @@
 import { AnalyticalExerciseFlow } from "@/components/exercises/AnalyticalExerciseFlow";
 import { EvaluativeExerciseFlow } from "@/components/exercises/EvaluativeExerciseFlow";
-import { GenerativeExerciseFlow } from "@/components/exercises/GenerativeExerciseFlow";
-import { SequentialExerciseFlow } from "@/components/exercises/SequentialExerciseFlow";
 import { SystemsExerciseFlow } from "@/components/exercises/SystemsExerciseFlow";
 import { notFound } from "next/navigation";
 
@@ -14,10 +12,8 @@ type FlowComponent = React.ComponentType<{
 
 const FLOW_BY_TYPE: Record<string, FlowComponent> = {
   analytical: AnalyticalExerciseFlow,
-  sequential: SequentialExerciseFlow,
   systems: SystemsExerciseFlow,
   evaluative: EvaluativeExerciseFlow,
-  generative: GenerativeExerciseFlow,
 };
 
 const VALID_SOURCES = new Set(["generated", "real_data", "custom_scenario"]);
