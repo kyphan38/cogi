@@ -7,21 +7,23 @@ import {
 } from "@/lib/ai/prompts/evaluative-perspective";
 import { buildSystemsShockPerspectivePrompt } from "@/lib/ai/prompts/systems-shock-perspective";
 import { generateAnalyticalExerciseRaw } from "@/lib/ai/gemini";
-import type { ClarityPerspectiveKind } from "@/lib/types/perspective";
 import {
   ANALYTICAL_COACHING_RETRY_SUFFIX,
   COACHING_RETRY_SUFFIX,
   parseCoachingJson,
   parseAnalyticalCoachingJson,
-  parseStructuredPerspectiveJson,
-  structuredPerspectiveRetrySuffix,
 } from "@/lib/ai/validators/perspective-structured";
-import {
-  analyticalCoachingToMarkdown,
-  structuredPerspectiveToMarkdown,
-} from "@/lib/perspective/format-structured";
+import { analyticalCoachingToMarkdown } from "@/lib/perspective/format-structured";
 import { analyticalCoachingRefs, scoreAnalytical } from "@/lib/exercise/analytical-score";
 import { scoreSystems, systemsCoachingRefs } from "@/lib/exercise/systems-score";
+import {
+  evaluativeCoachingRefs,
+  scoreEvaluative,
+  type MatrixResult,
+  type ScoringResult,
+  type UncertaintyResult,
+} from "@/lib/exercise/evaluative-score";
+import type { EvaluativeExerciseRow } from "@/lib/types/exercise";
 import { ANALYTICAL_TAG_OPTIONS, GEOPOLITICS_TAG_OPTIONS } from "@/lib/exercise/tag-labels";
 import type { EmbeddedIssue } from "@/lib/types/exercise";
 import type { UserHighlight } from "@/lib/types/exercise";
@@ -36,39 +38,11 @@ import type {
   SystemsUserEdge,
   SystemsNodeImpact,
 } from "@/lib/types/exercise";
-import type { AIPerspectiveStructured, CoachingStructured } from "@/lib/types/perspective";
+import type { CoachingStructured } from "@/lib/types/perspective";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 import { buildLanguageLevelAppendix, resolveLanguageLevel } from "@/lib/adaptive/language-level";
 
 export const maxDuration = 60;
-
-async function generateStructuredPerspective(
-  prompt: string,
-  kind: ClarityPerspectiveKind,
-  languageAppendix?: string,
-): Promise<{
-  structured: AIPerspectiveStructured;
-  text: string;
-}> {
-  const parse = (raw: string) => parseStructuredPerspectiveJson(raw, kind);
-  const retrySuffix = structuredPerspectiveRetrySuffix(kind);
-
-  const fullPrompt = [prompt, languageAppendix].filter(Boolean).join("\n\n");
-
-  const run = async (p: string) => {
-    const raw = await generateAnalyticalExerciseRaw(p, "thinking");
-    return parse(raw);
-  };
-  let parsed = await run(fullPrompt);
-  if (!parsed.success) {
-    parsed = await run(`${fullPrompt}\n${retrySuffix}\nReason: ${parsed.error}`);
-  }
-  if (!parsed.success) {
-    throw new Error(parsed.error);
-  }
-  const text = structuredPerspectiveToMarkdown(parsed.data, kind);
-  return { structured: parsed.data, text };
-}
 
 /**
  * Coaching feedback (Systems, Evaluative): generate, check every required ref is
@@ -98,6 +72,19 @@ async function generateCoaching(
   }
   if (!parsed.success) throw new Error(parsed.error);
   return { structured: parsed.data, text: analyticalCoachingToMarkdown(parsed.data, heading) };
+}
+
+/** A readable heading for an evaluative coaching ref (`option_<id>` / `criterion_<id>`). */
+function evaluativeRefHeading(ex: EvaluativeExerciseRow, ref: string): string {
+  if (ref.startsWith("option_")) {
+    const o = ex.options.find((x) => x.id === ref.slice("option_".length));
+    return o ? `Option: ${o.title}` : ref;
+  }
+  if (ref.startsWith("criterion_") && ex.variant === "scoring") {
+    const c = ex.criteria.find((x) => x.id === ref.slice("criterion_".length));
+    return c ? `Criterion: ${c.label}` : ref;
+  }
+  return ref;
 }
 
 /** POST JSON: perspective narrative after user work + confidence (Phase 1.4 / Phase 2.2 / Phase 3). */
@@ -160,21 +147,26 @@ export async function POST(req: Request) {
       typeof b.userContext === "string" && b.userContext.trim()
         ? b.userContext.trim()
         : undefined;
+    const result = scoreEvaluative(exercise) as MatrixResult;
+    const refs = evaluativeCoachingRefs(result);
     const prompt = buildEvaluativeMatrixPerspectivePrompt({
       title,
       domain,
       scenario: exercise.scenario,
       exercise,
+      result,
+      requiredRefs: refs.required,
       confidenceBefore,
       userContext,
     });
     try {
-      const { structured, text } = await generateStructuredPerspective(
+      const { structured, text } = await generateCoaching(
         prompt,
-        "evaluative-matrix",
         languageAppendix,
+        { ...refs, requireMetaNote: false },
+        (ref) => evaluativeRefHeading(exercise, ref),
       );
-      return NextResponse.json({ ok: true, structured, text });
+      return NextResponse.json({ ok: true, structured, text, result });
     } catch (e) {
       const isTimeout =
         e instanceof Error &&
@@ -216,20 +208,25 @@ export async function POST(req: Request) {
       typeof b.userContext === "string" && b.userContext.trim()
         ? b.userContext.trim()
         : undefined;
+    const result = scoreEvaluative(exercise) as ScoringResult;
+    const refs = evaluativeCoachingRefs(result);
     const prompt = buildEvaluativeScoringPerspectivePrompt({
       title,
       domain,
       exercise,
+      result,
+      requiredRefs: refs.required,
       confidenceBefore,
       userContext,
     });
     try {
-      const { structured, text } = await generateStructuredPerspective(
+      const { structured, text } = await generateCoaching(
         prompt,
-        "evaluative-scoring",
         languageAppendix,
+        { ...refs, requireMetaNote: true },
+        (ref) => evaluativeRefHeading(exercise, ref),
       );
-      return NextResponse.json({ ok: true, structured, text });
+      return NextResponse.json({ ok: true, structured, text, result });
     } catch (e) {
       const isTimeout =
         e instanceof Error &&
@@ -272,20 +269,25 @@ export async function POST(req: Request) {
       typeof b.userContext === "string" && b.userContext.trim()
         ? b.userContext.trim()
         : undefined;
+    const result = scoreEvaluative(exercise) as UncertaintyResult;
+    const refs = evaluativeCoachingRefs(result);
     const prompt = buildEvaluativeUncertaintyPerspectivePrompt({
       title,
       domain,
       exercise,
+      result,
+      requiredRefs: refs.required,
       confidenceBefore,
       userContext,
     });
     try {
-      const { structured, text } = await generateStructuredPerspective(
+      const { structured, text } = await generateCoaching(
         prompt,
-        "evaluative-uncertainty",
         languageAppendix,
+        { ...refs, requireMetaNote: false },
+        (ref) => evaluativeRefHeading(exercise, ref),
       );
-      return NextResponse.json({ ok: true, structured, text });
+      return NextResponse.json({ ok: true, structured, text, result });
     } catch (e) {
       const isTimeout =
         e instanceof Error &&

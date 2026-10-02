@@ -7,6 +7,7 @@ import type { SystemsTaskType } from "@/lib/ai/validators/systems";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import type { PracticeLevel } from "@/lib/exercise/levels";
 import type { SystemsResult } from "@/lib/exercise/systems-score";
+import type { EvaluativeResult } from "@/lib/exercise/evaluative-score";
 
 /** The exercise types the app offers. Old rows of removed types may still exist in Firestore. */
 export type ThinkingType = "analytical" | "systems" | "evaluative";
@@ -253,6 +254,10 @@ export interface EvaluativeMatrixRow {
   currentStep?: number;
   /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
+  /** Work compared with the model when feedback was requested. */
+  result?: EvaluativeResult | null;
+  /** Practice level the exercise was made for. Older rows lack it. */
+  level?: PracticeLevel;
 }
 
 export interface EvaluativeCriterion {
@@ -319,6 +324,10 @@ export interface EvaluativeScoringRow {
   currentStep?: number;
   /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
+  /** Work compared with the model when feedback was requested. */
+  result?: EvaluativeResult | null;
+  /** Practice level the exercise was made for. Older rows lack it. */
+  level?: PracticeLevel;
 }
 
 export interface EvaluativeUncertaintyOutcome {
@@ -359,6 +368,10 @@ export interface EvaluativeUncertaintyRow {
   currentStep?: number;
   /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
+  /** Work compared with the model when feedback was requested. */
+  result?: EvaluativeResult | null;
+  /** Practice level the exercise was made for. Older rows lack it. */
+  level?: PracticeLevel;
 }
 
 export type EvaluativeExerciseRow = EvaluativeMatrixRow | EvaluativeScoringRow | EvaluativeUncertaintyRow;

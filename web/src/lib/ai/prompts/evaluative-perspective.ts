@@ -1,247 +1,205 @@
-import { buildPerspectiveClarityPreamble } from "@/lib/ai/prompts/perspective-clarity-directives";
-import { computeOptionEv } from "@/lib/analytics/calibration-evaluative";
 import type {
   EvaluativeMatrixRow,
   EvaluativeScoringRow,
   EvaluativeUncertaintyRow,
 } from "@/lib/types/exercise";
+import type { EvaluativeQuadrant } from "@/lib/ai/validators/evaluative";
+import {
+  quadrantName,
+  type MatrixResult,
+  type ScoringResult,
+  type UncertaintyResult,
+} from "@/lib/exercise/evaluative-score";
+
+function coachingContract(input: {
+  title: string;
+  requiredRefs: string[];
+  metaNote?: string;
+  verdictRules: string;
+}): string {
+  return `Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
+{
+  "perspectiveFormat": "coaching_v3",
+  "title": string (echo: "${input.title.replace(/"/g, '\\"')}"),
+  "items": [
+    { "ref": string (a ref from CASES), "why": string, "clue": string, "nextTimeAsk": string }
+  ],
+  "takeaways": [string] (1-2 items)${input.metaNote ? `,
+  "metaNote": string` : ""}
+}
+
+Write one item for each of these refs: ${input.requiredRefs.join(", ") || "(none)"}. You may add items for other refs in CASES, but keep it short.
+
+How to write each item:
+- "why": at most 2 short sentences. ${input.verdictRules}
+- "clue": the words in the scenario or option that point to it (quote 2-6 words).
+- "nextTimeAsk": one question to ask yourself next time, at most 15 words.
+${input.metaNote ? `\n"metaNote": ${input.metaNote}\n` : ""}
+"takeaways": 1-2 short lessons for the next decision. Focus on the biggest differences first. If everything matched, say what to keep doing.
+
+Tone: warm and direct, like a patient coach. No numeric grade. No "stronger alternative". No academic words when a simple one works. Write option and criterion names plainly, without quotation marks.`;
+}
+
+function header(kind: string, domain: string, title: string, scenario: string, confidence: number, userContext?: string): string {
+  const ctx = userContext?.trim() ? `\nUser context: ${userContext.trim()}` : "";
+  return `You are a friendly coach helping a learner practice ${kind} in the domain: ${domain}.
+The learner is still building this skill. Help them see WHY, so they can judge it themselves next time.${ctx}
+
+Title: ${title}
+Scenario:
+${scenario}
+
+Confidence before feedback: ${confidence}%`;
+}
 
 export function buildEvaluativeMatrixPerspectivePrompt(input: {
   title: string;
   domain: string;
   scenario: string;
   exercise: EvaluativeMatrixRow;
+  result: MatrixResult;
+  requiredRefs: string[];
   confidenceBefore: number;
   userContext?: string;
 }): string {
-  const placements = JSON.stringify(input.exercise.placements, null, 2);
-  const intended = input.exercise.options
-    .map(
-      (o) =>
-        `- ${o.id} (${o.title}): intended quadrant ${o.intendedQuadrant} - ${o.explanation}`,
-    )
-    .join("\n");
-  const ctx = input.userContext?.trim() ? `\nUser context: ${input.userContext}` : "";
-  const proposed = input.exercise.userProposedCriteria ?? null;
-  const clarity = buildPerspectiveClarityPreamble();
+  const ex = input.exercise;
+  const q = (v: EvaluativeQuadrant) => quadrantName(v, ex.axisX, ex.axisY);
+  const cases = input.result.placements
+    .map((p) => {
+      const o = ex.options.find((x) => x.id === p.optionId)!;
+      const verdict = p.correct
+        ? `CORRECT - placed in ${q(p.user!)}.`
+        : p.user
+          ? `DIFFERENT - placed in ${q(p.user)}; the model puts it in ${q(p.intended)}.`
+          : `NOT PLACED - the model puts it in ${q(p.intended)}.`;
+      return `option_${o.id} - ${o.title}: ${o.description}\n  Model's note: ${o.explanation}\n  User: ${verdict}`;
+    })
+    .join("\n\n");
 
-  return `You are a collaborative thinking coach (not a harsh grader).
+  return `${header("judging options on two criteria (a 2x2 matrix)", input.domain, input.title, ex.scenario, input.confidenceBefore, input.userContext)}
 
-${clarity}
+Axes: ${ex.axisX.label} (${ex.axisX.lowLabel} -> ${ex.axisX.highLabel}) and ${ex.axisY.label} (${ex.axisY.lowLabel} -> ${ex.axisY.highLabel}).
+Criteria the user proposed before seeing the axes: ${JSON.stringify(ex.userProposedCriteria ?? [])}
 
-Domain: ${input.domain}
-Title: ${input.title}
-Scenario:
-${input.exercise.scenario}
+SCORE (decided by code - final): placed ${input.result.correct} of ${input.result.total} options in the same quadrant as the model.
 
-User proposed these criteria before seeing the framework:
-${JSON.stringify(proposed, null, 2)}
+CASES (each verdict is final):
+${cases}
 
-Axes: X - ${input.exercise.axisX.label} (${input.exercise.axisX.lowLabel} → ${input.exercise.axisX.highLabel})
-      Y - ${input.exercise.axisY.label} (${input.exercise.axisY.lowLabel} → ${input.exercise.axisY.highLabel})
-
-User stated confidence before seeing your notes: ${input.confidenceBefore}%${ctx}
-
-Intended placements (for your reference - do not present as a numeric score):
-${intended}
-
-User's quadrant placements (option id → quadrant):
-${placements}
-
-Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
-{
-  "perspectiveFormat": "clarity_v2",
-  "title": string (echo exercise title),
-  "suitableFor": "Suitable for <concrete audience>",
-  "placementCritiques": [
-    {
-      "optionId": "unique_id",
-      "optionTitle": "option title from exercise",
-      "userQuadrant": "top-left" | "top-right" | "bottom-left" | "bottom-right",
-      "userValueContext": "You placed Option Title in top-left because ... (state actual placement; infer brief rationale if user gave none)",
-      "aiEvaluationText": "You placed Option Title in top-left... However, from an alternative framing..."
-    }
-  ],
-  "openQuestions": ["optional 1-3 strings"]
-}
-
-Rules:
-- One placementCritiques row per option in the exercise.
-- aiEvaluationText must follow the Clarity Blueprint (state placement, issue, alternative).
-- Note which user-proposed criteria they identified vs missed in relevant rows.
-- Do not give a numeric grade.
-- State option titles plainly, with no surrounding quotation marks (e.g. write Option Title, not 'Option Title') - the app highlights option names visually, so quotes are redundant clutter. Reserve quotation marks only for verbatim excerpts of the user's own written text.`;
+${coachingContract({
+  title: input.title,
+  requiredRefs: input.requiredRefs,
+  verdictRules:
+    "CORRECT: confirm plainly, then say what puts it there. DIFFERENT: explain which axis the user misjudged and why, in simple words; the model's view is a reasoned reference, so say \"the model sees it as...\", not \"you are wrong\". NOT PLACED: explain where it belongs.",
+})}`;
 }
 
 export function buildEvaluativeScoringPerspectivePrompt(input: {
   title: string;
   domain: string;
   exercise: EvaluativeScoringRow;
+  result: ScoringResult;
+  requiredRefs: string[];
   confidenceBefore: number;
   userContext?: string;
 }): string {
-  const crit = input.exercise.criteria
-    .map(
-      (c) =>
-        `- ${c.id} ${c.label} (AI suggested weight ${c.suggestedWeight}): ${c.description}`,
-    )
-    .join("\n");
-  const opts = input.exercise.options
-    .map((o) => {
-      const sug = JSON.stringify(o.suggestedScores);
-      const usr = JSON.stringify(input.exercise.scores[o.id] ?? {});
-      const w = JSON.stringify(
-        Object.fromEntries(
-          input.exercise.criteria.map((c) => [
-            c.id,
-            input.exercise.criterionWeights[c.id] ?? "",
-          ]),
-        ),
-      );
-      return `Option ${o.id} (${o.title})\n  AI suggested scores: ${sug}\n  User weights (by criterion id): ${w}\n  User scores: ${usr}\n  AI note: ${o.explanation}`;
+  const ex = input.exercise;
+  const optionTitle = (id: string) => ex.options.find((o) => o.id === id)?.title ?? id;
+  const cases = input.result.criteria
+    .map((c) => {
+      const crit = ex.criteria.find((x) => x.id === c.criterionId)!;
+      const weight =
+        c.gap === 0
+          ? `SAME WEIGHT - both ${c.userWeight}/5.`
+          : `${Math.abs(c.gap) >= 2 ? "BIG" : "SMALL"} WEIGHT GAP - user ${c.userWeight}/5, model ${c.modelWeight}/5 (user weighted it ${c.gap > 0 ? "higher" : "lower"}).`;
+      const cells = input.result.bigCells
+        .filter((cell) => cell.criterionId === c.criterionId)
+        .map((cell) => `${optionTitle(cell.optionId)}: user ${cell.user}, model ${cell.model}`);
+      return [
+        `criterion_${crit.id} - ${crit.label}${crit.isDealbreaker ? " (dealbreaker: a score under 3 rules an option out)" : ""}: ${crit.description}`,
+        `  User: ${weight}`,
+        cells.length ? `  Scores far from the model: ${cells.join("; ")}` : "  Scores: close to the model.",
+      ].join("\n");
     })
     .join("\n\n");
-  const hidden = input.exercise.hiddenCriteria
-    .map((h) => `- ${h.label}: ${h.description}`)
-    .join("\n");
-  const ctx = input.userContext?.trim() ? `\nUser context: ${input.userContext}` : "";
-  const proposed = input.exercise.userProposedCriteria ?? null;
-  const geoBlock =
-    input.exercise.isGeopolitics || input.exercise.stakeholderNote
-      ? `
-
-Geopolitics stakeholder context:
-AI stakeholder ground truth:
-${input.exercise.stakeholderNote ?? "(none)"}
-
-User stakeholder mapping (before scoring):
-${JSON.stringify(input.exercise.userStakeholderMapping ?? [], null, 2)}
-
-Acknowledge stakeholders the user named vs missed; relate weight divergence to whose interests are overweighted or neglected. Surface hiddenCriteria as blind spots gently in relevant critiqueMatrix rows.`
+  const ranking = (ids: string[]) => (ids.length ? ids.map(optionTitle).join(" > ") : "(none left)");
+  const geo =
+    ex.isGeopolitics || ex.stakeholderNote
+      ? `\nStakeholders (geopolitics): model view: ${ex.stakeholderNote ?? "(none)"}; user's mapping: ${JSON.stringify(ex.userStakeholderMapping ?? [])}.`
       : "";
 
-  const clarity = buildPerspectiveClarityPreamble();
+  return `${header("weighing options against several criteria", input.domain, input.title, ex.scenario, input.confidenceBefore, input.userContext)}
 
-  return `You are a collaborative thinking coach.
+Criteria the user proposed before seeing the table: ${JSON.stringify(ex.userProposedCriteria ?? [])}
+Criteria the model thinks are easy to miss (hidden): ${ex.hiddenCriteria.map((h) => `${h.label} - ${h.description}`).join("; ") || "(none)"}${geo}
+Model notes per option: ${ex.options.map((o) => `${o.title}: ${o.explanation}`).join(" | ")}
 
-${clarity}
+COMPARISON (decided by code - final). Weights and scores are judgment calls: the model's numbers are a reasoned reference, not the one right answer.
+- User's ranking: ${ranking(input.result.userOrder)}
+- Model's ranking: ${ranking(input.result.modelOrder)}
+- Same best option: ${input.result.topMatch ? "yes" : "no"}
 
-Domain: ${input.domain}
-Title: ${input.title}
-Scenario:
-${input.exercise.scenario}
+CASES:
+${cases}
 
-User confidence before this reflection: ${input.confidenceBefore}%${ctx}
-
-User proposed these criteria before seeing the framework:
-${JSON.stringify(proposed, null, 2)}
-
-Criteria:
-${crit}
-
-Options and comparisons:
-${opts}
-
-Hidden criteria the user may not have weighted (surface gently):
-${hidden}
-
-Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
-{
-  "perspectiveFormat": "clarity_v2",
-  "title": string (echo exercise title),
-  "suitableFor": "Suitable for <concrete audience>",
-  "critiqueMatrix": [
-    {
-      "criterionId": "c1",
-      "criterionLabel": "human label",
-      "userAssignedWeight": 4,
-      "userValueContext": "You weighted Alliance Credibility at 4/5 and scored Option A as 3, Option B as 5 on this criterion (summarize all user weights/scores for this row)",
-      "aiEvaluationText": "You weighted Alliance Credibility as 4 because you noted that '...'. However, from an oppositional stakeholder standpoint..."
-    }
-  ],
-  "openQuestions": ["optional 1-3 strings"]
-}
-
-Rules:
-- One critiqueMatrix row per criterion in the exercise.
-- userValueContext must summarize the user's weight AND per-option scores for that criterion (even if only numeric).
-- Compare to suggestedWeight and suggestedScores in aiEvaluationText.
-- Note which criteria the user identified vs missed.${geoBlock}
-- State criterion and option names plainly, with no surrounding quotation marks (e.g. write Alliance Credibility, not 'Alliance Credibility') - the app highlights them visually, so quotes are redundant clutter. Reserve quotation marks only for verbatim excerpts of the user's own written text.
-
-No numeric grade for the user.`;
+${coachingContract({
+  title: input.title,
+  requiredRefs: input.requiredRefs,
+  metaNote: `2-3 short sentences comparing the criteria the user proposed with the table's criteria and the hidden ones${geo ? ", and whose interests their stakeholder mapping left out" : ""}.`,
+  verdictRules:
+    "SAME or SMALL gap: say briefly why that weight makes sense. BIG gap: explain what in the scenario makes this criterion matter more or less, and how it changed the ranking. For scores far from the model, name the fact about the option that the user may have missed. Never call a weight wrong - say how the model sees it differently.",
+})}`;
 }
 
 export function buildEvaluativeUncertaintyPerspectivePrompt(input: {
   title: string;
   domain: string;
   exercise: EvaluativeUncertaintyRow;
+  result: UncertaintyResult;
+  requiredRefs: string[];
   confidenceBefore: number;
   userContext?: string;
 }): string {
-  const opts = input.exercise.options
-    .map((o) => {
-      const userOutcomes = o.outcomes.map((out) => ({
-        probability: input.exercise.userProbabilities[o.id]?.[out.id] ?? 0,
-        payoff: input.exercise.userPayoffs[o.id]?.[out.id] ?? 0,
-      }));
-      const aiOutcomes = o.outcomes.map((out) => ({
-        probability: out.probability,
-        payoff: out.payoff,
-      }));
-      const userEv = computeOptionEv(userOutcomes);
-      const aiEv = computeOptionEv(aiOutcomes);
-      const rows = o.outcomes
+  const ex = input.exercise;
+  const optionTitle = (id: string) => ex.options.find((o) => o.id === id)?.title ?? id;
+  const cases = input.result.options
+    .map((r) => {
+      const o = ex.options.find((x) => x.id === r.optionId)!;
+      const outcomes = o.outcomes
         .map((out) => {
-          const userP = input.exercise.userProbabilities[o.id]?.[out.id];
-          const userPay = input.exercise.userPayoffs[o.id]?.[out.id];
-          return `  - ${out.id} (${out.label}): AI probability ${out.probability}, AI payoff ${out.payoff}; user probability ${userP ?? "n/a"}, user payoff ${userPay ?? "n/a"} - ${out.explanation}`;
+          const p = ex.userProbabilities[o.id]?.[out.id];
+          const pay = ex.userPayoffs[o.id]?.[out.id];
+          return `    ${out.label}: model chance ${out.probability}, payoff ${out.payoff}; user chance ${p ?? "n/a"}, payoff ${pay ?? "n/a"} - ${out.explanation}`;
         })
         .join("\n");
-      return `Option ${o.id} (${o.title}): ${o.description}\n${rows}\n  Implied user EV: ${userEv ?? "n/a"}; AI EV: ${aiEv ?? "n/a"}`;
+      const verdict =
+        r.userEv == null
+          ? "NO EXPECTED VALUE - the user's chances do not add up to 100%."
+          : r.modelEv == null
+            ? `User expected value ${r.userEv}.`
+            : Math.abs(r.userEv - r.modelEv) <= Math.max(1, Math.abs(r.modelEv) * 0.1)
+              ? `CLOSE - user expected value ${r.userEv}, model ${r.modelEv}.`
+              : `${r.userEv > r.modelEv ? "MORE OPTIMISTIC" : "MORE CAUTIOUS"} - user expected value ${r.userEv}, model ${r.modelEv}.`;
+      return `option_${o.id} - ${o.title}: ${o.description}\n${outcomes}\n  User: ${verdict}`;
     })
     .join("\n\n");
-  const ctx = input.userContext?.trim() ? `\nUser context: ${input.userContext}` : "";
-  const intuition = input.exercise.outcomeIntuitionText?.trim()
-    ? `\nUser's initial intuition (before estimating): ${input.exercise.outcomeIntuitionText.trim()}`
-    : "";
-  const clarity = buildPerspectiveClarityPreamble();
+  const ranking = (ids: string[]) => (ids.length ? ids.map(optionTitle).join(" > ") : "(none)");
+  const intuition = ex.outcomeIntuitionText?.trim() ? `\nThe user's first intuition: ${ex.outcomeIntuitionText.trim()}` : "";
 
-  return `You are a collaborative thinking coach.
+  return `${header("deciding under uncertainty (chances and payoffs)", input.domain, input.title, ex.scenario, input.confidenceBefore, input.userContext)}${intuition}
 
-${clarity}
+COMPARISON (decided by code - final). The model's chances are a reasoned reference, not certain truth.
+- User's ranking by expected value: ${ranking(input.result.userOrder)}
+- Model's ranking: ${ranking(input.result.modelOrder)}
+- Same best option: ${input.result.topMatch ? "yes" : "no"}
 
-Domain: ${input.domain}
-Title: ${input.title}
-Scenario:
-${input.exercise.scenario}
+CASES:
+${cases}
 
-User confidence before this reflection: ${input.confidenceBefore}%${ctx}${intuition}
-
-Options, AI ground-truth outcomes, and user estimates (with computed expected values):
-${opts}
-
-Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
-{
-  "perspectiveFormat": "clarity_v2",
-  "title": string (echo exercise title),
-  "suitableFor": "Suitable for <concrete audience>",
-  "outcomeCritiques": [
-    {
-      "optionId": "o1",
-      "optionTitle": "option title from exercise",
-      "userImpliedEv": number or null (the implied user EV given above, echoed back),
-      "aiEv": number or null (the AI EV given above, echoed back),
-      "critique": "Compare the user's implied EV for Option Title to the AI's; note which probability or payoff estimates drove the gap, and whether the user's ranking of options by EV matches the AI's."
-    }
-  ],
-  "openQuestions": ["optional 1-3 strings"]
-}
-
-Rules:
-- One outcomeCritiques row per option in the exercise.
-- critique should reference specific outcomes (over- or under-estimated probability or payoff), not just restate the EV numbers.
-- If userImpliedEv or aiEv is null (probabilities didn't sum to ~1), say so plainly rather than inventing a number.
-- Do not give a numeric grade.
-- State option and outcome titles plainly, with no surrounding quotation marks - the app highlights them visually, so quotes are redundant clutter. Reserve quotation marks only for verbatim excerpts of the user's own written text.`;
+${coachingContract({
+  title: input.title,
+  requiredRefs: input.requiredRefs,
+  verdictRules:
+    "CLOSE: confirm and say which estimate mattered most. MORE OPTIMISTIC / MORE CAUTIOUS: name the one chance or payoff that drove the gap and what in the scenario suggests the model's number. NO EXPECTED VALUE: explain that chances for one option must add up to 100%.",
+})}`;
 }
