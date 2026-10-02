@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { EmbeddedIssue, TagType, UserHighlight, ValidPoint } from "@/lib/types/exercise";
-import { scoreAnalytical, sentenceRangeAt } from "./analytical-score";
+import { analyticalResultOf, scoreAnalytical, sentenceRangeAt } from "./analytical-score";
 
 const passage = [
   "Start each day at 5 a.m. to win. If you do not run at dawn, you will never gain the discipline needed for high pay.",
@@ -127,5 +127,23 @@ describe("scoreAnalytical", () => {
   it("handles a sound-reasoning passage with no issues", () => {
     const r = scoreAnalytical({ passage, embeddedIssues: [], validPoints, highlights: [] });
     expect(r).toMatchObject({ found: 0, total: 0, trapsHit: 0, decoyTotal: 2 });
+  });
+});
+
+describe("analyticalResultOf", () => {
+  const row = {
+    passage,
+    embeddedIssues: issues,
+    validPoints,
+    userHighlights: [hl("only sensible choice", "bias")],
+  };
+
+  it("scores an older row that has no stored result", () => {
+    expect(analyticalResultOf(row).found).toBe(1);
+  });
+
+  it("returns the stored result when there is one", () => {
+    const stored = { ...score([]), found: 3 };
+    expect(analyticalResultOf({ ...row, result: stored })).toBe(stored);
   });
 });
