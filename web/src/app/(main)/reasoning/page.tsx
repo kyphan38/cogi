@@ -18,7 +18,7 @@ import { ExercisePickerCard } from "@/components/dashboard/ExercisePickerCard";
 import { DomainInput } from "@/components/shared/DomainInput";
 import { listRecentDomains } from "@/lib/db/exercises";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
-import { ALL_EXERCISE_CARDS } from "@/lib/exercise/exercise-mode-cards";
+import { PRACTICE_EXERCISE_CARDS } from "@/lib/exercise/exercise-mode-cards";
 
 type ModeRecommendation = { mode: string; reason: string };
 
@@ -49,16 +49,12 @@ export default function ReasoningPage() {
   }, [recommendations]);
 
   const orderedCards = useMemo(() => {
-    if (!recMap) return ALL_EXERCISE_CARDS;
-    const ranked = ALL_EXERCISE_CARDS
-      .filter((c) => c.type !== "combo")
-      .sort((a, b) => {
-        const idxA = recommendations!.findIndex((r) => r.mode === a.type);
-        const idxB = recommendations!.findIndex((r) => r.mode === b.type);
-        return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
-      });
-    const combo = ALL_EXERCISE_CARDS.find((c) => c.type === "combo");
-    return combo ? [...ranked, combo] : ranked;
+    if (!recMap) return PRACTICE_EXERCISE_CARDS;
+    return [...PRACTICE_EXERCISE_CARDS].sort((a, b) => {
+      const idxA = recommendations!.findIndex((r) => r.mode === a.type);
+      const idxB = recommendations!.findIndex((r) => r.mode === b.type);
+      return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+    });
   }, [recMap, recommendations]);
 
   const fetchRecommendation = useCallback(async () => {
@@ -92,7 +88,7 @@ export default function ReasoningPage() {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
       <div className="space-y-1">
-        <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Reasoning</h1>
+        <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">New exercise</h1>
         <p className="text-muted-foreground mt-1 text-sm">
           Applied critical thinking, analytical frameworks, and logic evaluation practice.
         </p>

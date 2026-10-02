@@ -54,6 +54,17 @@ export const ALL_EXERCISE_CARDS: {
   },
 ];
 
+/**
+ * Exercise types offered in the app, most used first (2026-10-02: evaluative 4,
+ * systems 3, analytical 1 of 9 exercises). The other types are hidden, not removed:
+ * their routes still work and old exercises still show in History.
+ */
+export const PRACTICE_EXERCISE_TYPES = ["evaluative", "systems", "analytical"] as const;
+
+export const PRACTICE_EXERCISE_CARDS = PRACTICE_EXERCISE_TYPES.map(
+  (type) => ALL_EXERCISE_CARDS.find((c) => c.type === type)!,
+);
+
 export const TYPE_LABEL: Record<string, string> = {
   analytical: "Analytical",
   sequential: "Sequential",

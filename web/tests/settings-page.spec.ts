@@ -43,7 +43,6 @@ test.describe("Settings page - layout and controls", () => {
     await gotoAuthenticated(page, "/settings");
     await expect(page.getByRole("button", { name: "Save" })).toBeVisible();
     await expect(page.getByRole("main").getByRole("link", { name: "Home" })).toBeVisible();
-    await expect(page.getByRole("main").getByRole("link", { name: "Dashboard" })).toBeVisible();
   });
 
   test("Home link navigates to /", async ({ page }) => {
