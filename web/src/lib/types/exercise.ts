@@ -55,6 +55,43 @@ export interface UserHighlight {
   tag: TagType;
 }
 
+/** How one embedded issue was handled, scored in code (`lib/exercise/analytical-score.ts`). */
+export interface AnalyticalIssueOutcome {
+  /** Index into `embeddedIssues`. */
+  index: number;
+  type: EmbeddedIssue["type"];
+  severity: IssueSeverity;
+  /** The highlight that covers this issue, if any (it may carry a non-issue tag). */
+  highlightId: string | null;
+  userTag: TagType | null;
+  /** Covered by a highlight whose tag says "problem". */
+  found: boolean;
+  /** Found, and tagged with the issue's own type. */
+  tagCorrect: boolean;
+}
+
+/** How one decoy (valid point) was handled. */
+export interface AnalyticalDecoyOutcome {
+  /** Index into `validPoints`. */
+  index: number;
+  highlightId: string | null;
+  userTag: TagType | null;
+  /** The user tagged this sound statement as a problem. */
+  trapped: boolean;
+}
+
+export interface AnalyticalResult {
+  issues: AnalyticalIssueOutcome[];
+  decoys: AnalyticalDecoyOutcome[];
+  /** Highlights that match neither an issue nor a decoy. */
+  extraHighlightIds: string[];
+  found: number;
+  total: number;
+  tagsCorrect: number;
+  trapsHit: number;
+  decoyTotal: number;
+}
+
 /** Persisted analytical exercise (extends generated payload + user state). */
 export interface AnalyticalExerciseRow {
   id: string;
@@ -80,6 +117,8 @@ export interface AnalyticalExerciseRow {
   embeddedIssues: EmbeddedIssue[];
   validPoints: ValidPoint[];
   userHighlights: UserHighlight[];
+  /** Highlights scored against the answer key when submitted. Older rows lack it. */
+  result?: AnalyticalResult | null;
   confidenceBefore: number | null;
   aiPerspective: string | null;
   aiPerspectiveStructured?: AIPerspectiveStructured | null;
