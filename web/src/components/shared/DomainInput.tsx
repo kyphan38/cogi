@@ -256,7 +256,7 @@ export function DomainInput({
           select(domain);
         }}
       >
-        <span className="truncate">{domain}</span>
+        <span className="min-w-0 truncate">{domain}</span>
         <button
           type="button"
           aria-label={`Remove "${domain}" from suggestions`}
