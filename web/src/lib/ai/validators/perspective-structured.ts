@@ -4,6 +4,7 @@ import type {
   AIPerspectiveStructured,
   AnalyticalCoachingStructured,
   ClarityPerspectiveStructured,
+  CoachingStructured,
   LegacyPerspectiveStructured,
 } from "@/lib/types/perspective";
 
@@ -104,17 +105,29 @@ const coachingItemSchema = z.object({
   subtypeName: z.string().min(1).optional(),
 });
 
-export const analyticalCoachingSchema = z.object({
-  perspectiveFormat: z.literal("analytical_v3"),
-  title: z.string().min(1),
-  items: z.array(coachingItemSchema),
-  takeaways: z.array(z.string().min(1)).min(1).max(2),
-  metaNote: z.string().min(1).optional(),
-});
+function coachingSchemaFor<F extends "analytical_v3" | "coaching_v3">(format: F) {
+  return z.object({
+    perspectiveFormat: z.literal(format),
+    title: z.string().min(1),
+    items: z.array(coachingItemSchema),
+    takeaways: z.array(z.string().min(1)).min(1).max(2),
+    metaNote: z.string().min(1).optional(),
+  });
+}
+
+export const analyticalCoachingSchema = coachingSchemaFor("analytical_v3");
+/** Systems and Evaluative coaching (plan phase 6a): same fields, its own format tag. */
+export const coachingSchema = coachingSchemaFor("coaching_v3");
 
 export type ParseAnalyticalCoachingResult =
   | { success: true; data: AnalyticalCoachingStructured }
   | { success: false; error: string };
+
+export type ParseCoachingResult =
+  | { success: true; data: CoachingStructured }
+  | { success: false; error: string };
+
+type CoachingParseOpts = { requiredRefs: string[]; allowedRefs: string[]; requireMetaNote?: boolean };
 
 /**
  * Parse analytical v3 feedback and check it covers every case the code asked about.
@@ -122,15 +135,28 @@ export type ParseAnalyticalCoachingResult =
  */
 export function parseAnalyticalCoachingJson(
   text: string,
-  opts: { requiredRefs: string[]; allowedRefs: string[]; requireMetaNote?: boolean },
+  opts: CoachingParseOpts,
 ): ParseAnalyticalCoachingResult {
+  return parseCoachingWith(analyticalCoachingSchema, text, opts) as ParseAnalyticalCoachingResult;
+}
+
+/** Systems / Evaluative coaching: same checks as analytical, `coaching_v3` format. */
+export function parseCoachingJson(text: string, opts: CoachingParseOpts): ParseCoachingResult {
+  return parseCoachingWith(coachingSchema, text, opts) as ParseCoachingResult;
+}
+
+function parseCoachingWith(
+  schema: typeof analyticalCoachingSchema | typeof coachingSchema,
+  text: string,
+  opts: CoachingParseOpts,
+): ParseAnalyticalCoachingResult | ParseCoachingResult {
   let parsed: unknown;
   try {
     parsed = JSON.parse(stripJsonFences(text));
   } catch {
     return { success: false, error: "Invalid JSON from model" };
   }
-  const result = analyticalCoachingSchema.safeParse(parsed);
+  const result = schema.safeParse(parsed);
   if (!result.success) {
     return { success: false, error: result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ") };
   }
@@ -151,8 +177,13 @@ export function parseAnalyticalCoachingJson(
   // Keep the answer-key order, whatever order the model used.
   const order = new Map(opts.allowedRefs.map((r, i) => [r, i]));
   items.sort((a, b) => order.get(a.ref)! - order.get(b.ref)!);
-  return { success: true, data: { ...result.data, items } as AnalyticalCoachingStructured };
+  return { success: true, data: { ...result.data, items } } as
+    | ParseAnalyticalCoachingResult
+    | ParseCoachingResult;
 }
+
+export const COACHING_RETRY_SUFFIX = `Your previous answer was not valid JSON or did not match the required shape.
+Return ONLY a single JSON object (no markdown fences) with perspectiveFormat: "coaching_v3", title, items[{ ref, why, clue, nextTimeAsk }] with one item for every ref listed under CASES, takeaways (1-2 strings), and metaNote when asked.`;
 
 export const ANALYTICAL_COACHING_RETRY_SUFFIX = `Your previous answer was not valid JSON or did not match the required shape.
 Return ONLY a single JSON object (no markdown fences) with perspectiveFormat: "analytical_v3", title, items[{ ref, why, clue, nextTimeAsk, subtypeName? }] with one item for every ref listed under CASES, and takeaways (1-2 strings).`;
@@ -160,6 +191,7 @@ Return ONLY a single JSON object (no markdown fences) with perspectiveFormat: "a
 /** @deprecated Use kind-specific clarity schemas; kept for generic checks. */
 export const aiPerspectiveStructuredSchema = z.union([
   analyticalCoachingSchema,
+  coachingSchema,
   analyticalPerspectiveSchema,
   systemsPerspectiveSchema,
   evaluativeMatrixPerspectiveSchema,
