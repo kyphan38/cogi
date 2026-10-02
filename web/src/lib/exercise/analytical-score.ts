@@ -138,3 +138,22 @@ export function scoreAnalytical(input: {
     decoyTotal: decoys.length,
   };
 }
+
+/** The stored result, or a fresh score for rows saved before results were stored. */
+export function analyticalResultOf(row: {
+  passage: string;
+  embeddedIssues: EmbeddedIssue[];
+  validPoints: ValidPoint[];
+  userHighlights: UserHighlight[];
+  result?: AnalyticalResult | null;
+}): AnalyticalResult {
+  return (
+    row.result ??
+    scoreAnalytical({
+      passage: row.passage,
+      embeddedIssues: row.embeddedIssues,
+      validPoints: row.validPoints,
+      highlights: row.userHighlights,
+    })
+  );
+}
