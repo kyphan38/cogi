@@ -144,6 +144,10 @@ test.describe("Evaluative exercise - 3-step practice loop", () => {
     await expect(page.getByRole("heading", { name: "Takeaway" })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText("Check deal-breakers before weighing the rest.")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Journal" })).toHaveCount(0);
+
+    // Home shows the small progress line instead of a dashboard.
+    await page.getByRole("link", { name: "Practice", exact: true }).click();
+    await expect(page.getByTestId("home-stats")).toHaveText("1 completed · 1 day streak", { timeout: 10_000 });
   });
 });
 
