@@ -45,6 +45,7 @@ import {
 } from "@/lib/types/perspective";
 import { AnalyticalAnswerKey } from "@/components/exercises/AnalyticalAnswerKey";
 import { analyticalResultOf } from "@/lib/exercise/analytical-score";
+import { LEVEL_LABELS } from "@/lib/exercise/levels";
 import type { ClarityPerspectiveKind } from "@/lib/types/perspective";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { Trash2 } from "lucide-react";
@@ -582,6 +583,12 @@ function HistoryPageInner() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             {isAnalyticalExercise(detailEx) ? (
+              <>
+              {detailEx.level ? (
+                <p className="text-muted-foreground" data-testid="history-level">
+                  Level: {LEVEL_LABELS[detailEx.level]}
+                </p>
+              ) : null}
               <AnalyticalAnswerKey
                 exercise={detailEx}
                 result={analyticalResultOf(detailEx)}
@@ -591,6 +598,7 @@ function HistoryPageInner() {
                     : null
                 }
               />
+              </>
             ) : isSystemsExercise(detailEx) ? (
               <>
                 <div>
