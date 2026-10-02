@@ -4,6 +4,7 @@ import {
   advanceEvaluativeToMatrix,
   exerciseSourceCombobox,
   generateExercise,
+  selectEvaluativeTaskType,
 } from "./helpers/exercise-flow";
 
 test.describe("Evaluative exercise - setup phase", () => {
@@ -89,7 +90,7 @@ test.describe("Evaluative exercise - generation and matrix", () => {
     await expect(page.getByText("HTMX + Jinja")).toBeVisible();
   });
 
-  test("continue to confidence is disabled until all options are placed", async ({ page }) => {
+  test("get AI feedback is disabled until all options are placed", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/evaluative");
     await generateExercise(page, "Software Engineering");
 
@@ -100,7 +101,42 @@ test.describe("Evaluative exercise - generation and matrix", () => {
     await advanceEvaluativeToMatrix(page);
 
     await expect(
-      page.getByRole("button", { name: "Continue to confidence" }),
+      page.getByRole("button", { name: "Get AI feedback" }),
     ).toBeDisabled();
   });
 });
+
+test.describe("Evaluative exercise - 3-step practice loop", () => {
+  test.beforeEach(async ({ page }) => {
+    await bypassFirebaseAuth(page);
+    await stubFirestoreReads(page);
+  });
+
+  test("setup -> evaluate with confidence -> AI feedback -> takeaway -> saved", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/evaluative");
+    const progress = page.getByRole("navigation", { name: "Exercise progress" });
+    await expect(progress.getByText(/^\d\. /)).toHaveText(["1. Setup", "2. Evaluate", "3. AI feedback"]);
+
+    await selectEvaluativeTaskType(page, "Dealbreaker check");
+    await generateExercise(page, "Vendor Selection");
+    await expect(page.getByRole("heading", { name: "Vendor Contract Renewal" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/^Part 1 of 2 · /)).toBeVisible();
+
+    await advanceEvaluativeToMatrix(page);
+    await expect(page.getByText(/^Part 2 of 2 · /)).toBeVisible();
+    // Confidence is part of the work step now, not a step of its own.
+    await expect(page.getByText("How confident are you in your evaluation?")).toBeVisible();
+
+    await page.getByRole("button", { name: "Get AI feedback" }).click();
+    await expect(page.getByLabel(/What will you take away/)).toBeVisible({ timeout: 15_000 });
+    await expect(progress.getByText("3. AI feedback")).toHaveClass(/bg-zinc-900/);
+    await expect(page.getByText(/Journal|Action bridge/)).toHaveCount(0);
+
+    await page.getByLabel(/What will you take away/).fill("Check deal-breakers before weighing the rest.");
+    await page.getByRole("button", { name: "Finish" }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Check deal-breakers before weighing the rest.")).toBeVisible();
+    await expect(page.getByRole("link", { name: "New exercise" })).toBeVisible();
+  });
+});
+
