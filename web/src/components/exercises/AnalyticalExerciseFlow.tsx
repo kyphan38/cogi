@@ -56,7 +56,7 @@ import {
   ExerciseStepCard,
   EXERCISE_STEP_META_BADGE,
 } from "@/components/shared/ExerciseStepCard";
-import { GEOPOLITICS_TAG_OPTIONS } from "@/lib/exercise/tag-labels";
+import { ANALYTICAL_TAG_OPTIONS, GEOPOLITICS_TAG_OPTIONS } from "@/lib/exercise/tag-labels";
 import { computeMetaGuessScore } from "@/lib/analytics/geopolitics-meta-guess";
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -722,7 +722,7 @@ export function AnalyticalExerciseFlow({
               highlights={highlights}
               onChange={setHighlights}
               tagOptions={
-                exercise.isGeopolitics ? GEOPOLITICS_TAG_OPTIONS : undefined
+                exercise.isGeopolitics ? GEOPOLITICS_TAG_OPTIONS : ANALYTICAL_TAG_OPTIONS
               }
               onSelectionOverlap={() =>
                 setError("Selection overlaps an existing highlight. Remove or adjust first.")
