@@ -188,7 +188,19 @@ Ví dụ mục tiêu (câu người dùng đã gặp):
 > **Clue:** "If you do not... you will never...". Words like *never, always, only* are warning signs.
 > **Next time, ask:** "Is the writer hiding other options?"
 
-## Phase 3 - Cách chọn (Analytical)
+## Phase 3 - Cách chọn (Analytical) - XONG
+
+**Xong (2026-10-02)**, branch `analytical/phase-3`. Unit 498/498, E2E 94/94, `tsc`
+sạch, eslint 0 lỗi (2 cảnh báo cũ), build production đạt.
+
+- Bài thường dùng chế độ bấm câu; geopolitics giữ kéo chọn (coi như Expert) cho đến
+  Phase 4.
+- Bộ tách câu dùng chung với phần chấm điểm (`lib/text/sentences.ts`), nên câu bấm
+  luôn khớp lỗi bên trong. "5 a.m. to win" và "3.5" không bị tách.
+- Geopolitics giữ nguyên nút có chấm màu (ngoài phạm vi); câu hỏi kiểm tra chỉ hiện
+  cho tag bài thường.
+- Còn lại: trên điện thoại, bộ chọn tag chỉ vừa khoảng 4/6 lựa chọn, phải cuộn để thấy
+  Valid Point / Unclear. Có thể chuyển thành bảng trượt từ dưới lên (bottom sheet) sau.
 
 - **P3.1 Chế độ bấm cả câu.** `lib/text/sentences.ts` tách câu (xử lý số "3.5",
   chữ viết tắt, dấu ngoặc kép). Bấm một câu thì mở bộ chọn tag. Vẫn lưu theo

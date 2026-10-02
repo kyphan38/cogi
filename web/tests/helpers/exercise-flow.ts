@@ -24,9 +24,17 @@ async function fillExerciseDomain(page: Page, domain: string) {
   await expect(input).toHaveValue(domain);
 }
 
-/** Stage passage text and apply the first tag so highlight step can advance. */
+/**
+ * Tag something so the highlight step can advance: tap the first sentence in
+ * sentence mode, or stage and confirm a text selection in free mode.
+ */
 export async function addPassageHighlight(page: Page): Promise<void> {
-  await selectTextInPassage(page);
+  const sentence = page.getByTestId("passage-sentence").first();
+  if (await sentence.isVisible().catch(() => false)) {
+    await sentence.click();
+  } else {
+    await selectTextInPassage(page);
+  }
   const picker = page.getByTestId("tag-picker-region");
   await expect(picker).toBeVisible({ timeout: 5_000 });
   await picker.getByRole("button").first().click();
