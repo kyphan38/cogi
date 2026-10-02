@@ -195,21 +195,29 @@ export function GuidedWalkthrough({
           if (p.candidate == null) return <span key={i} className="text-zinc-500">{p.text}</span>;
           const c = candidates[p.candidate]!;
           const a = answerFor(c);
+          // A span, not a button: buttons break the line and split the paragraph.
           return (
-            <button
+            <span
               key={i}
-              type="button"
+              role="button"
+              tabIndex={0}
               data-testid="guided-sentence"
               aria-current={p.candidate === index ? "step" : undefined}
               onClick={() => goTo(p.candidate!)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  goTo(p.candidate!);
+                }
+              }}
               className={cn(
-                "inline rounded-sm text-left underline decoration-dotted decoration-zinc-400 underline-offset-4",
+                "cursor-pointer rounded-sm underline decoration-dotted decoration-zinc-400 underline-offset-4 focus-visible:outline-2 focus-visible:outline-zinc-900",
                 p.candidate === index && "bg-zinc-900/10 decoration-zinc-900 decoration-solid",
                 a && p.candidate !== index && "decoration-zinc-900 decoration-solid",
               )}
             >
               {p.text}
-            </button>
+            </span>
           );
         })}
       </div>
@@ -238,7 +246,7 @@ export function GuidedWalkthrough({
                 ))}
               </div>
               <Button type="button" variant="ghost" size="sm" onClick={() => setAskingTag(false)}>
-                Back
+                Cancel
               </Button>
             </div>
           ) : (
