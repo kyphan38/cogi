@@ -75,7 +75,7 @@ import {
   type LevelSuggestion,
   type PracticeLevel,
 } from "@/lib/exercise/levels";
-import { analyticalLevelSuggestion } from "@/lib/exercise/level-suggestion";
+import { levelSuggestionFor } from "@/lib/exercise/level-suggestion";
 import { dismissLevelSuggestion, getPracticeLevel, setPracticeLevel } from "@/lib/db/settings";
 import { isAnalyticalCoachingStructured } from "@/lib/types/perspective";
 
@@ -461,7 +461,7 @@ export function AnalyticalExerciseFlow({
       setExercise(saved as AnalyticalExerciseRow);
       setStep(7);
       if (!finalEx.isGeopolitics && finalEx.level) {
-        void analyticalLevelSuggestion(finalEx.level)
+        void levelSuggestionFor("analytical", finalEx.level)
           .then(setLevelSuggestion)
           .catch(() => setLevelSuggestion(null));
       }

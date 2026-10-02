@@ -30,8 +30,10 @@ function toGeminiSchema(schema: z.ZodType): Record<string, unknown> {
 export function evaluativeResponseSchema(
   taskType: EvaluativeTaskType,
   isGeopolitics: boolean,
+  opts: { matrixOnly?: boolean } = {},
 ): Record<string, unknown> {
   if (taskType === "dealbreaker") return toGeminiSchema(scoringPayloadSchema);
+  if (opts.matrixOnly && taskType === "auto" && !isGeopolitics) return toGeminiSchema(matrixPayloadSchema);
   if (taskType === "uncertainty") return toGeminiSchema(uncertaintyPayloadSchema);
   if (isGeopolitics) return toGeminiSchema(geopoliticsScoringPayloadSchema);
   return toGeminiSchema(z.union([matrixPayloadSchema, scoringPayloadSchema]));

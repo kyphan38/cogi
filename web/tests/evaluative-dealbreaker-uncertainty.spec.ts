@@ -3,6 +3,7 @@ import { bypassFirebaseAuth, gotoAuthenticated, stubFirestoreReads } from "./hel
 import {
   advanceEvaluativeToMatrix,
   advanceEvaluativeUncertaintyToEstimate,
+  choosePracticeLevel,
   generateExercise,
   selectEvaluativeTaskType,
 } from "./helpers/exercise-flow";
@@ -15,6 +16,7 @@ test.describe("Evaluative exercise - task type setup", () => {
 
   test("task type selector offers auto, dealbreaker, and uncertainty", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/evaluative");
+    await choosePracticeLevel(page, "Expert");
     await page.getByText("Task type", { exact: true }).locator("..").getByRole("combobox").click();
     await expect(page.getByRole("option", { name: "Surprise me" })).toBeVisible();
     await expect(page.getByRole("option", { name: "Dealbreaker check" })).toBeVisible();
@@ -136,5 +138,27 @@ test.describe("Evaluative exercise - uncertainty task type", () => {
     await expect(
       page.getByRole("button", { name: "Get AI feedback" }),
     ).toBeDisabled();
+  });
+});
+
+test.describe("Evaluative exercise - levels", () => {
+  test.beforeEach(async ({ page }) => {
+    await bypassFirebaseAuth(page);
+    await stubFirestoreReads(page);
+  });
+
+  test("task types other than auto only appear at Expert, and the level is sent", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/evaluative");
+    await choosePracticeLevel(page, "Guided");
+    await expect(page.getByText("Task type", { exact: true })).toHaveCount(0);
+    await choosePracticeLevel(page, "Standard");
+    await expect(page.getByText("Task type", { exact: true })).toHaveCount(0);
+    await choosePracticeLevel(page, "Expert");
+    await expect(page.getByText("Task type", { exact: true })).toBeVisible();
+
+    await choosePracticeLevel(page, "Guided");
+    const request = page.waitForRequest((r) => r.url().endsWith("/api/ai") && r.method() === "POST");
+    await generateExercise(page, "Software Engineering", { level: "Guided" });
+    expect((await request).postDataJSON()).toMatchObject({ exerciseType: "evaluative", level: "guided" });
   });
 });

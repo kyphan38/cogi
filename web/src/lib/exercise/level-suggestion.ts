@@ -1,27 +1,64 @@
 import { listCompletedExercises } from "@/lib/db/exercises";
 import { getAppSettings } from "@/lib/db/settings";
-import { isAnalyticalExercise } from "@/lib/types/exercise";
+import {
+  isAnalyticalExercise,
+  isEvaluativeExercise,
+  isSystemsExercise,
+  type Exercise,
+} from "@/lib/types/exercise";
 import { analyticalResultOf } from "@/lib/exercise/analytical-score";
 import { rateAnalytical } from "@/lib/exercise/analytical-levels";
-import { suggestLevelChange, type LevelSuggestion, type PracticeLevel } from "@/lib/exercise/levels";
+import { rateSystems, systemsResultOf } from "@/lib/exercise/systems-score";
+import { evaluativeResultOf, rateEvaluative } from "@/lib/exercise/evaluative-score";
+import {
+  suggestLevelChange,
+  type LevelledExerciseType,
+  type LevelSuggestion,
+  type PracticeLevel,
+  type ResultRating,
+} from "@/lib/exercise/levels";
 
 /** How many recent finished exercises to look at; streaks need at most 3. */
 const LOOKBACK = 30;
 
 /**
- * Level suggestion after finishing an analytical exercise: rates the plain passages
- * finished at `level` since the last "Not now", newest first.
+ * Rate one finished row of `type`, or null when it should not count: geopolitics rows
+ * (always Expert) and rows of another type.
  */
-export async function analyticalLevelSuggestion(level: PracticeLevel): Promise<LevelSuggestion> {
+function rateRow(type: LevelledExerciseType, row: Exercise): ResultRating | null {
+  if (type === "analytical" && isAnalyticalExercise(row) && !row.isGeopolitics) {
+    return rateAnalytical(analyticalResultOf(row));
+  }
+  if (type === "systems" && isSystemsExercise(row) && !(row.isGeopolitics ?? Boolean(row.perspectiveBName?.trim()))) {
+    return rateSystems(systemsResultOf(row));
+  }
+  const geoScoring =
+    isEvaluativeExercise(row) &&
+    row.variant === "scoring" &&
+    (row.isGeopolitics ?? Boolean(row.stakeholderNote?.trim()));
+  if (type === "evaluative" && isEvaluativeExercise(row) && !geoScoring) {
+    return rateEvaluative(evaluativeResultOf(row));
+  }
+  return null;
+}
+
+/**
+ * Level suggestion after finishing an exercise: rates the exercises of `type` finished
+ * at `level` since the last "Not now", newest first.
+ */
+export async function levelSuggestionFor(
+  type: LevelledExerciseType,
+  level: PracticeLevel,
+): Promise<LevelSuggestion> {
   const [rows, settings] = await Promise.all([
-    listCompletedExercises({ type: "analytical" }, LOOKBACK),
+    listCompletedExercises({ type }, LOOKBACK),
     getAppSettings(),
   ]);
-  const dismissedAt = settings.levelSuggestionDismissedAt?.analytical;
+  const dismissedAt = settings.levelSuggestionDismissedAt?.[type];
   const ratings = rows
-    .filter(isAnalyticalExercise)
-    .filter((r) => !r.isGeopolitics && r.level === level)
+    .filter((r) => (r as { level?: PracticeLevel }).level === level)
     .filter((r) => !dismissedAt || (r.completedAt ?? "") > dismissedAt)
-    .map((r) => rateAnalytical(analyticalResultOf(r)));
+    .map((r) => rateRow(type, r))
+    .filter((r): r is ResultRating => r != null);
   return suggestLevelChange(level, ratings);
 }

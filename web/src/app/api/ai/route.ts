@@ -68,6 +68,7 @@ import {
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 import { isPracticeLevel } from "@/lib/exercise/levels";
 import { ANALYTICAL_LEVELS } from "@/lib/exercise/analytical-levels";
+import { EVALUATIVE_LEVELS } from "@/lib/exercise/evaluative-levels";
 import {
   CUSTOM_DOMAIN_PLACEHOLDER,
   CUSTOM_SCENARIO_MAX_LEN,
@@ -178,9 +179,11 @@ export async function POST(req: Request) {
   // Passed to every prompt builder as its `adaptationAppendix`.
   const adaptationAppendix = languageAppendix?.trim() ? languageAppendix : undefined;
 
-  // Analytical practice level. Requests without one keep the original (expert) behavior.
+  // Practice level. Requests without one keep the original (expert) behavior.
   const rawLevel = (body as { level?: unknown }).level;
-  const analyticalLevel = ANALYTICAL_LEVELS[isPracticeLevel(rawLevel) ? rawLevel : "expert"];
+  const practiceLevel = isPracticeLevel(rawLevel) ? rawLevel : "expert";
+  const analyticalLevel = ANALYTICAL_LEVELS[practiceLevel];
+  const evaluativeLevel = EVALUATIVE_LEVELS[practiceLevel];
 
   try {
     if (exerciseType === "evaluative") {
@@ -195,6 +198,8 @@ export async function POST(req: Request) {
       // never check isGeoEval (see plan §Phase 3.1 scope decision).
       const isGeoEval =
         evaluativeTaskType === "auto" && isGeopoliticsAnalyticalDomain(effectiveDomain);
+      // Guided: always a 2x2 matrix (geopolitics keeps its scoring table).
+      const matrixOnly = evaluativeLevel.matrixOnly && evaluativeTaskType === "auto" && !isGeoEval;
 
       const basePrompt =
         evaluativeTaskType === "dealbreaker"
@@ -223,13 +228,17 @@ export async function POST(req: Request) {
                   userContext,
                   adaptationAppendix,
                   customScenario: scenarioForPrompt,
+                  matrixOnly,
                 });
 
       const computeSem = (data: Parameters<typeof validateEvaluativeSemantics>[0]) => {
         if (evaluativeTaskType === "dealbreaker") {
           return validateEvaluativeDealbreakerSemantics(data);
         }
-        const baseSem = validateEvaluativeSemantics(data);
+        const baseSem = [
+          ...validateEvaluativeSemantics(data),
+          ...(matrixOnly && data.variant !== "matrix" ? ['variant must be "matrix"'] : []),
+        ];
         const geoSem = isGeopoliticsEvaluativePayload(data)
           ? validateGeopoliticsEvaluativeSemantics(data)
           : isGeoEval
@@ -250,7 +259,7 @@ export async function POST(req: Request) {
               : isGeoEval
                 ? GEOPOLITICS_EVALUATIVE_RETRY_SUFFIX
                 : EVALUATIVE_RETRY_SUFFIX,
-        responseJsonSchema: evaluativeResponseSchema(evaluativeTaskType, isGeoEval),
+        responseJsonSchema: evaluativeResponseSchema(evaluativeTaskType, isGeoEval, { matrixOnly }),
       });
       if (!r.ok) return validatedJsonFailureResponse(r);
       return NextResponse.json({ ok: true, data: r.data });
