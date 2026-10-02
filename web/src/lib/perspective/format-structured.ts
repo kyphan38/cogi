@@ -1,11 +1,16 @@
 import type { ClarityPerspectiveKind } from "@/lib/types/perspective";
 import type {
   AIPerspectiveStructured,
+  AnalyticalCoachingStructured,
   ClarityPerspectiveStructured,
   LegacyPerspectiveStructured,
   PerspectivePoint,
 } from "@/lib/types/perspective";
-import { isClarityPerspectiveStructured, isLegacyPerspectiveStructured } from "@/lib/types/perspective";
+import {
+  isAnalyticalCoachingStructured,
+  isClarityPerspectiveStructured,
+  isLegacyPerspectiveStructured,
+} from "@/lib/types/perspective";
 
 export const PERSPECTIVE_UI_SECTIONS = [
   { key: "embedded" as const, title: "What I intentionally embedded" },
@@ -131,10 +136,46 @@ export function getPerspectiveViewModel(
   if (isClarityPerspectiveStructured(structured)) {
     return getClarityPerspectiveViewModel(structured, kind);
   }
+  if (isAnalyticalCoachingStructured(structured)) {
+    // The answer key renders v3 with its context; this is only a plain fallback.
+    return {
+      format: "clarity_v2",
+      suitableFor: "",
+      blocks: structured.items.map((it) => ({
+        id: it.ref,
+        title: it.subtypeName ?? null,
+        userSnippet: null,
+        body: `${it.why}\nClue: ${it.clue}\nNext time, ask: ${it.nextTimeAsk}`,
+        remediation: null,
+      })),
+      openQuestions: structured.takeaways,
+    };
+  }
   if (isLegacyPerspectiveStructured(structured)) {
     return { format: "legacy", sections: getStructuredPerspectiveSections(structured) };
   }
   return { format: "legacy", sections: getStructuredPerspectiveSections(structured as LegacyPerspectiveStructured) };
+}
+
+/**
+ * Flatten analytical v3 feedback to markdown for storage. `heading` turns a ref into a
+ * readable line (the route knows the passage text behind each ref).
+ */
+export function analyticalCoachingToMarkdown(
+  s: AnalyticalCoachingStructured,
+  heading: (ref: string) => string = (ref) => ref,
+): string {
+  const parts = s.items.map((it) =>
+    [
+      `**${heading(it.ref)}**${it.subtypeName ? ` (${it.subtypeName})` : ""}`,
+      `Why: ${it.why}`,
+      `Clue: ${it.clue}`,
+      `Next time, ask: ${it.nextTimeAsk}`,
+    ].join("\n"),
+  );
+  if (s.metaNote) parts.push(`**Perspective:** ${s.metaNote}`);
+  parts.push(legacySection("Take with you", s.takeaways.map((t) => ({ body: t }))));
+  return parts.join("\n\n");
 }
 
 /** Flatten structured perspective to markdown for storage / legacy consumers. */
@@ -142,6 +183,7 @@ export function structuredPerspectiveToMarkdown(
   s: AIPerspectiveStructured,
   kind: ClarityPerspectiveKind,
 ): string {
+  if (isAnalyticalCoachingStructured(s)) return analyticalCoachingToMarkdown(s);
   if (isClarityPerspectiveStructured(s)) {
     const vm = getClarityPerspectiveViewModel(s, kind);
     const parts: string[] = [`### ${vm.suitableFor}`, ""];

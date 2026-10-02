@@ -9,10 +9,17 @@ import { buildSystemsShockPerspectivePrompt } from "@/lib/ai/prompts/systems-sho
 import { generateAnalyticalExerciseRaw } from "@/lib/ai/gemini";
 import type { ClarityPerspectiveKind } from "@/lib/types/perspective";
 import {
+  ANALYTICAL_COACHING_RETRY_SUFFIX,
+  parseAnalyticalCoachingJson,
   parseStructuredPerspectiveJson,
   structuredPerspectiveRetrySuffix,
 } from "@/lib/ai/validators/perspective-structured";
-import { structuredPerspectiveToMarkdown } from "@/lib/perspective/format-structured";
+import {
+  analyticalCoachingToMarkdown,
+  structuredPerspectiveToMarkdown,
+} from "@/lib/perspective/format-structured";
+import { analyticalCoachingRefs, scoreAnalytical } from "@/lib/exercise/analytical-score";
+import { ANALYTICAL_TAG_OPTIONS, GEOPOLITICS_TAG_OPTIONS } from "@/lib/exercise/tag-labels";
 import type { EmbeddedIssue } from "@/lib/types/exercise";
 import type { UserHighlight } from "@/lib/types/exercise";
 import type {
@@ -421,29 +428,56 @@ export async function POST(req: Request) {
   const metaGuessScore =
     typeof b.metaGuessScore === "number" ? b.metaGuessScore : undefined;
 
+  const result = scoreAnalytical({ passage, embeddedIssues, validPoints, highlights: userHighlights });
+  const refs = analyticalCoachingRefs(result, userHighlights);
+  const isGeo = Boolean(hiddenPerspective?.trim());
   const prompt = buildAnalyticalPerspectivePrompt({
     title,
     passage,
     embeddedIssues,
     validPoints,
     userHighlights,
+    result,
+    requiredRefs: refs.required,
     confidenceBefore,
     domain,
     userContext,
+    tagOptions: isGeo ? GEOPOLITICS_TAG_OPTIONS : ANALYTICAL_TAG_OPTIONS,
     hiddenPerspective,
     missingActors,
     userPerspectiveGuess,
     userMissingActorsGuess,
     metaGuessScore,
   });
+  const fullPrompt = [prompt, languageAppendix].filter(Boolean).join("\n\n");
+  const parse = (raw: string) =>
+    parseAnalyticalCoachingJson(raw, {
+      requiredRefs: refs.required,
+      allowedRefs: refs.allowed,
+      requireMetaNote: isGeo,
+    });
 
   try {
-    const { structured, text } = await generateStructuredPerspective(
-      prompt,
-      "analytical",
-      languageAppendix,
-    );
-    return NextResponse.json({ ok: true, structured, text });
+    let parsed = parse(await generateAnalyticalExerciseRaw(fullPrompt, "thinking"));
+    if (!parsed.success) {
+      parsed = parse(
+        await generateAnalyticalExerciseRaw(
+          `${fullPrompt}\n${ANALYTICAL_COACHING_RETRY_SUFFIX}\nReason: ${parsed.error}`,
+          "thinking",
+        ),
+      );
+    }
+    if (!parsed.success) throw new Error(parsed.error);
+    const byId = new Map(userHighlights.map((h) => [h.id, h]));
+    const text = analyticalCoachingToMarkdown(parsed.data, (ref) => {
+      const [kind, n] = ref.split("_");
+      const i = Number(n) - 1;
+      if (kind === "issue") return `Issue: "${embeddedIssues[i]?.textSegment ?? ref}"`;
+      if (kind === "decoy") return `Sound statement: "${validPoints[i]?.textSegment ?? ref}"`;
+      const h = byId.get(result.extraHighlightIds[i] ?? "");
+      return `Your highlight: "${h?.text ?? ref}"`;
+    });
+    return NextResponse.json({ ok: true, structured: parsed.data, text, result });
   } catch (e) {
     const isTimeout =
       e instanceof Error &&
