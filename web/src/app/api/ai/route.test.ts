@@ -391,6 +391,40 @@ describe("POST /api/ai - analytical generated", () => {
     expect(mockGenerateRaw).toHaveBeenCalledTimes(2);
   });
 
+  it("guided level: asks for a short passage and a main-claim quiz, never sound reasoning", async () => {
+    authOk();
+    random.mockReturnValue(0.1);
+    const guided = JSON.parse(validAnalyticalJson());
+    guided.mainClaimQuiz = { options: ["Main claim", "A detail", "Not said"], answerIndex: 0, explanation: "e" };
+    mockGenerateRaw.mockResolvedValue(JSON.stringify(guided));
+    const res = await POST(makeRequest({ domain: "tech", level: "guided" }));
+    expect(res.status).toBe(200);
+    const data = (await res.json()).data;
+    expect(data.isSoundReasoning).toBe(false);
+    expect(data.mainClaimQuiz.answerIndex).toBe(0);
+    const prompt = mockGenerateRaw.mock.calls[0]![0] as string;
+    expect(prompt).toContain("(150-200 words)");
+    expect(prompt).toContain('"mainClaimQuiz"');
+  });
+
+  it("guided level: rejects a reply without the quiz after the retry", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue(validAnalyticalJson());
+    const res = await POST(makeRequest({ domain: "tech", level: "guided" }));
+    expect(res.status).toBe(422);
+    expect(mockGenerateRaw).toHaveBeenCalledTimes(2);
+  });
+
+  it("standard level: no quiz, medium length", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue(validAnalyticalJson());
+    const res = await POST(makeRequest({ domain: "tech", level: "standard" }));
+    expect(res.status).toBe(200);
+    const prompt = mockGenerateRaw.mock.calls[0]![0] as string;
+    expect(prompt).toContain("(220-280 words)");
+    expect(prompt).not.toContain('"mainClaimQuiz"');
+  });
+
   it("marks the sound-reasoning variant from the request, not the model", async () => {
     authOk();
     random.mockReturnValue(0.1);
