@@ -112,7 +112,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="mx-auto max-w-lg p-8">
+    <main className="mx-auto w-full min-w-0 max-w-lg px-4 py-8 sm:p-8">
       <Card>
         <CardHeader className="pb-2">
           <CardTitle>Settings</CardTitle>
