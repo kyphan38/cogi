@@ -77,7 +77,8 @@ export function buildAnalyticalCoachingCases(input: {
   }
   input.result.extraHighlightIds.forEach((id, i) => {
     const h = byId.get(id);
-    if (!h) return;
+    // A plain sentence marked Valid Point or Unclear needs no comment.
+    if (!h || h.tag === "valid_point" || h.tag === "unclear") return;
     blocks.push(
       [
         `extra_${i + 1} - the user's own highlight, not one of the planned cases`,
