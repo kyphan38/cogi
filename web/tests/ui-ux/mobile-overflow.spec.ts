@@ -5,7 +5,14 @@ import {
   gotoAuthenticated,
   stubFirestoreReads,
 } from "../helpers/auth-setup";
-import { addPassageHighlight, generateExercise } from "../helpers/exercise-flow";
+import {
+  addPassageHighlight,
+  addSystemsConnection,
+  advanceEvaluativeToMatrix,
+  advanceSystemsToCanvas,
+  generateExercise,
+  selectEvaluativeTaskType,
+} from "../helpers/exercise-flow";
 
 const LONG_TITLE = "A Daily Routine Plan for Financial and Career Success in a Very Competitive Market";
 const LONG_DOMAIN = "Habit formation & behavior change for ambitious young professionals";
@@ -116,4 +123,27 @@ test.describe("Mobile 390px - nothing runs past the screen edge", () => {
       expect(await overflowing(page)).toEqual([]);
     });
   }
+
+  test("systems: comparison with the model after feedback", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/systems");
+    await generateExercise(page, "Cloud Architecture", { level: "Guided" });
+    await advanceSystemsToCanvas(page);
+    expect(await overflowing(page)).toEqual([]);
+    await addSystemsConnection(page);
+    await page.getByRole("button", { name: "Done connecting" }).click();
+    await page.getByRole("button", { name: "Submit impact and get AI reflection" }).click();
+    await expect(page.getByTestId("systems-answer-key")).toBeVisible({ timeout: 15_000 });
+    expect(await overflowing(page)).toEqual([]);
+  });
+
+  test("evaluative: scoring comparison after feedback", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/evaluative");
+    await selectEvaluativeTaskType(page, "Dealbreaker check");
+    await generateExercise(page, "Vendor Selection");
+    await advanceEvaluativeToMatrix(page);
+    expect(await overflowing(page)).toEqual([]);
+    await page.getByRole("button", { name: "Get AI feedback" }).click();
+    await expect(page.getByTestId("evaluative-answer-key")).toBeVisible({ timeout: 15_000 });
+    expect(await overflowing(page)).toEqual([]);
+  });
 });
