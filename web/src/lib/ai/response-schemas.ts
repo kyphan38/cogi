@@ -5,6 +5,7 @@
  * the model, it does not replace the checks.
  */
 import { judgmentExerciseSchema } from "@/lib/ai/validators/judgment";
+import { strategyExerciseSchema } from "@/lib/ai/validators/strategy";
 import { z } from "zod";
 import { analyticalExerciseSchema } from "@/lib/ai/validators/common";
 import {
@@ -38,6 +39,11 @@ export function evaluativeResponseSchema(
   if (taskType === "uncertainty") return toGeminiSchema(uncertaintyPayloadSchema);
   if (isGeopolitics) return toGeminiSchema(geopoliticsScoringPayloadSchema);
   return toGeminiSchema(z.union([matrixPayloadSchema, scoringPayloadSchema]));
+}
+
+/** Strategic situations (PLAN-learning.md L2). */
+export function strategyResponseSchema(): Record<string, unknown> {
+  return toGeminiSchema(strategyExerciseSchema);
 }
 
 /** Life situations (PLAN-learning.md L1). */
