@@ -16,6 +16,7 @@ import type { Exercise } from "@/lib/types/exercise";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
 import { computeStreak } from "@/lib/exercise/streak";
 import { TrackCard } from "@/components/dashboard/TrackCard";
+import { DISCARD_BUTTON_CLASS } from "@/components/dashboard/discard-button";
 import { cn } from "@/lib/utils";
 
 /** How many in-progress and recently finished exercises the start page lists. */
@@ -52,6 +53,7 @@ export function HomeContent() {
   const [incompleteExercises, setIncompleteExercises] = useState<Exercise[]>([]);
   const [completedExercises, setCompletedExercises] = useState<Exercise[]>([]);
   const [allCompleted, setAllCompleted] = useState<Exercise[] | null>(null);
+  const [allIncomplete, setAllIncomplete] = useState<Exercise[]>([]);
   const [stats, setStats] = useState<{ completed: number; streak: number } | null>(null);
 
   useEffect(() => {
@@ -64,6 +66,7 @@ export function HomeContent() {
         ]);
         if (cancelled) return;
         setIncompleteExercises(incomplete.slice(0, HOME_LIST_SIZE));
+        setAllIncomplete(incomplete);
         setCompletedExercises(completed.slice(0, HOME_LIST_SIZE));
         setAllCompleted(completed);
         setStats({ completed: completed.length, streak: computeStreak(completed) });
@@ -79,13 +82,17 @@ export function HomeContent() {
   const discardIncomplete = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation();
+    // A stray tap on a phone should not lose work.
+    if (!window.confirm("Discard this unfinished exercise? This cannot be undone.")) return;
     setIncompleteExercises((prev) => prev.filter((ex) => ex.id !== id));
+    setAllIncomplete((prev) => prev.filter((ex) => ex.id !== id));
     try {
       await deleteExercise(id);
     } catch {
       // restore on failure
       const rows = await listIncompleteExercises();
       setIncompleteExercises(rows.slice(0, HOME_LIST_SIZE));
+      setAllIncomplete(rows);
     }
   };
 
@@ -107,7 +114,9 @@ export function HomeContent() {
         </Link>
       </div>
 
-      {allCompleted ? <TrackCard completed={allCompleted} /> : null}
+      {allCompleted ? (
+        <TrackCard completed={allCompleted} incomplete={allIncomplete} onDiscard={discardIncomplete} />
+      ) : null}
 
       {incompleteExercises.length > 0 && (
         <Card>
@@ -125,7 +134,7 @@ export function HomeContent() {
                   type="button"
                   aria-label="Discard exercise"
                   onClick={(e) => void discardIncomplete(e, ex.id)}
-                  className="shrink-0 rounded p-1.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 hover:text-destructive focus:opacity-100"
+                  className={DISCARD_BUTTON_CLASS}
                 >
                   <Trash2 className="size-3.5" aria-hidden />
                 </button>

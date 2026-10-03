@@ -62,6 +62,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     howToPractice: [
       "Setup: choose a level and a topic, then press Generate.",
       "Do the work. Your answers save by themselves, so you can stop and come back from Practice > Continue.",
+      "Do not want to finish one? Tap the small bin icon next to it in Continue (on a computer, it shows when you point at the row).",
       "Before feedback, set how sure you are. Later, compare it with your result.",
       "Finish with one takeaway line. History keeps everything.",
     ],
@@ -257,6 +258,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Start from the Learning track card on the Practice page. Press Start for the next step.",
       "The topic is filled in. Choose your level and press Generate.",
       "A step is done when you finish an exercise on that topic. One step a day is plenty.",
+      "If you started a step, the button says Continue. To drop that exercise and start fresh, tap the small bin icon next to it.",
     ],
     tips: ["Each track has a simulator. Try it after a few steps to see the numbers behind the ideas."],
   },
