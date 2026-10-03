@@ -186,6 +186,8 @@ export function SystemsExerciseFlow({
   const [exercise, setExercise] = useState<SystemsExerciseRow | null>(null);
   const [userEdges, setUserEdges] = useState<SystemsUserEdge[]>([]);
   const [nodeImpact, setNodeImpact] = useState<Record<string, SystemsNodeImpact>>({});
+  /** Indirect node -> the node the shock comes through (PLAN-learning.md L4). */
+  const [impactVia, setImpactVia] = useState<Record<string, string>>({});
   const [userCriticalityRanking, setUserCriticalityRanking] = useState<Record<string, number>>(
     {},
   );
@@ -234,6 +236,7 @@ export function SystemsExerciseFlow({
       setExercise(row);
       setUserEdges(row.userEdges ?? []);
       setNodeImpact(row.nodeImpact ?? {});
+      setImpactVia(row.impactVia ?? {});
       setUserCriticalityRanking(row.userCriticalityRanking ?? {});
       setSecondNodeImpact(row.secondNodeImpact ?? {});
       if (row.userProposedComponents && row.userProposedComponents.length > 0) {
@@ -266,6 +269,7 @@ export function SystemsExerciseFlow({
         ...exercise,
         userEdges,
         nodeImpact,
+        impactVia,
         secondNodeImpact,
         userCriticalityRanking,
         currentStep: step,
@@ -277,7 +281,7 @@ export function SystemsExerciseFlow({
       save();
     }, 2000);
     return () => clearTimeout(timer);
-  }, [userEdges, nodeImpact, secondNodeImpact, userCriticalityRanking, step]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userEdges, nodeImpact, impactVia, secondNodeImpact, userCriticalityRanking, step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startGenerate = useCallback(async (
     domainOverride?: string,
@@ -372,6 +376,7 @@ export function SystemsExerciseFlow({
       setExercise(row);
       setUserEdges([]);
       setNodeImpact(emptyImpact(ids));
+      setImpactVia({});
       setUserCriticalityRanking({});
       setSecondNodeImpact(resilienceData ? emptyImpact(ids) : {});
       setUserProposedComponents([]);
@@ -448,6 +453,7 @@ export function SystemsExerciseFlow({
         shockEvent: exercise.shockEvent,
         userEdges,
         nodeImpact,
+        impactVia,
         userProposedComponents: exercise.userProposedComponents ?? null,
         confidenceBefore: confidence,
         userContext: userContext || undefined,
@@ -474,6 +480,7 @@ export function SystemsExerciseFlow({
       ...exercise,
       userEdges,
       nodeImpact,
+      impactVia,
       confidenceBefore: confidence,
       userPerspectiveBNotes: notes ?? exercise.userPerspectiveBNotes,
       result: scoreSystems({
@@ -482,6 +489,7 @@ export function SystemsExerciseFlow({
         shockEvent: exercise.shockEvent,
         userEdges,
         nodeImpact,
+        impactVia,
       }),
       aiPerspective: parsed.text,
       aiPerspectiveStructured: parsed.structured,
@@ -501,6 +509,7 @@ export function SystemsExerciseFlow({
       ...exercise,
       userEdges,
       nodeImpact,
+      impactVia,
       confidenceBefore: confidence,
     };
     if (isResilienceSystemsExercise(exercise)) {
@@ -561,6 +570,7 @@ export function SystemsExerciseFlow({
         ...exercise,
         userEdges,
         nodeImpact,
+        impactVia,
         userPerspectiveBNotes: notes,
       };
       setExercise(partial);
@@ -583,6 +593,7 @@ export function SystemsExerciseFlow({
       ...exercise,
       userEdges,
       nodeImpact,
+      impactVia,
       userProposedComponents: exercise.userProposedComponents ?? null,
       confidenceBefore: confidence,
       aiPerspective: perspectiveText,
@@ -1154,6 +1165,50 @@ export function SystemsExerciseFlow({
                 }));
               }}
             />
+            {(() => {
+              const indirect = exercise.nodes.filter((n) => nodeImpact[n.id] === "indirect");
+              if (indirect.length === 0) return null;
+              return (
+                <div className="space-y-3 rounded-2xl border border-zinc-200 p-4" data-testid="spread-questions">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-900">How does the shock reach each indirect node?</p>
+                    <p className="text-muted-foreground text-xs">
+                      Pick the node it comes through. Tracing the path is how you check an indirect effect.
+                    </p>
+                  </div>
+                  {indirect.map((n) => {
+                    const choices = exercise.nodes.filter(
+                      (m) => m.id !== n.id && (nodeImpact[m.id] ?? "none") !== "none",
+                    );
+                    return (
+                      <div key={n.id} className="space-y-1.5" data-testid="spread-question">
+                        <p className="text-sm">
+                          <span className="font-medium">{n.label}</span> is hit through:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {choices.length === 0 ? (
+                            <span className="text-muted-foreground text-xs">Mark another node as affected first.</span>
+                          ) : (
+                            choices.map((m) => (
+                              <Button
+                                key={m.id}
+                                type="button"
+                                size="sm"
+                                variant={impactVia[n.id] === m.id ? "default" : "outline"}
+                                aria-pressed={impactVia[n.id] === m.id}
+                                onClick={() => setImpactVia((prev) => ({ ...prev, [n.id]: m.id }))}
+                              >
+                                {m.label}
+                              </Button>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
             <ConfidenceSlider
               value={confidence}
               onChange={setConfidence}
