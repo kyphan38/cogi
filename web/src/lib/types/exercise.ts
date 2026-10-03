@@ -4,7 +4,7 @@ import type { SystemsConnectionType } from "@/lib/ai/validators/systems";
 import type { SystemsExercisePayload } from "@/lib/ai/validators/systems";
 import type { SystemsResilienceExercisePayload } from "@/lib/ai/validators/systems";
 import type { SystemsTaskType } from "@/lib/ai/validators/systems";
-import type { AIPerspectiveStructured } from "@/lib/types/perspective";
+import type { AIPerspectiveStructured, AnalyticalDeepDive } from "@/lib/types/perspective";
 import type { PracticeLevel } from "@/lib/exercise/levels";
 import type { SystemsResult } from "@/lib/exercise/systems-score";
 import type { EvaluativeResult } from "@/lib/exercise/evaluative-score";
@@ -150,6 +150,8 @@ export interface AnalyticalExerciseRow {
   confidenceBefore: number | null;
   aiPerspective: string | null;
   aiPerspectiveStructured?: AIPerspectiveStructured | null;
+  /** "Go deeper" analyses the user asked for, keyed by coaching ref (`issue_1`, `decoy_2`). */
+  deepDives?: Record<string, AnalyticalDeepDive>;
   createdAt: string;
   completedAt: string | null;
   currentStep?: number;
