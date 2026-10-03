@@ -86,7 +86,7 @@ test.describe("Mobile 390px - nothing runs past the screen edge", () => {
     expect(await overflowing(page)).toEqual([]);
   });
 
-  for (const path of ["/reasoning", "/exercise/history", "/settings", "/exercise/analytical", "/exercise/evaluative", "/exercise/systems", "/exercise/judgment", "/terms", "/tracks"]) {
+  for (const path of ["/reasoning", "/exercise/history", "/settings", "/exercise/analytical", "/exercise/evaluative", "/exercise/systems", "/exercise/judgment", "/terms", "/tracks", "/exercise/strategy"]) {
     test(`page ${path}`, async ({ page }) => {
       await gotoAuthenticated(page, path);
       await page.waitForTimeout(500);
@@ -164,6 +164,23 @@ test.describe("Mobile 390px - nothing runs past the screen edge", () => {
     expect(await overflowing(page)).toEqual([]);
     await page.getByRole("button", { name: "Get AI feedback" }).click();
     await expect(page.getByTestId("judgment-answer-key")).toBeVisible({ timeout: 15_000 });
+    expect(await overflowing(page)).toEqual([]);
+  });
+
+  test("strategic situations: guided matrix, expert questions and results", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/strategy");
+    await page.getByTestId("level-picker").getByRole("button", { name: /^Expert/ }).click();
+    await page.getByRole("button", { name: "Generate exercise" }).click();
+    await page.getByRole("radio", { name: "Your best choice given the other's choice" }).click({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Start the exercise" }).click();
+    expect(await overflowing(page)).toEqual([]);
+    await page.getByRole("button", { name: "Next: Burrito Bar" }).click();
+    await page.getByRole("button", { name: "Predict the outcome" }).click();
+    expect(await overflowing(page)).toEqual([]);
+    await page.getByTestId("prediction-matrix").getByRole("button", { name: /Outcome 4/ }).click();
+    for (const q of await page.getByTestId("dominant-question").all()) await q.getByRole("button", { name: "Cut price" }).click();
+    await page.getByRole("button", { name: "Get AI feedback" }).click();
+    await expect(page.getByTestId("strategy-answer-key")).toBeVisible({ timeout: 15_000 });
     expect(await overflowing(page)).toEqual([]);
   });
 });
