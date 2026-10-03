@@ -120,8 +120,6 @@ export interface AnalyticalDeepDive {
   core: string;
   /** 2-4 concrete cases (issue: what it ignores; sound statement: why it holds). */
   examples: string[];
-  /** Other names for the same problem. Always empty for a sound statement. */
-  alsoCalled: { name: string; note: string }[];
   fairer: string;
 }
 

@@ -56,20 +56,26 @@ phần phân tích sâu theo khung cố định:
 | --- | --- | --- |
 | `core` | The core problem: điều câu nói ngầm cho là đúng | Why it looks weak |
 | `examples` (2-4) | Real cases it ignores | Why it holds up |
-| `alsoCalled` (0-2) | Also called: tên gọi khác (vd. Non sequitur) + ghi chú "same problem, another name" | (không có) |
 | `fairer` | A fairer way to say it | What would make it a real problem |
 
 Không dùng chữ "Hidden assumption" làm tiêu đề vì trùng tên một tag.
 
-Thuật ngữ: lần đầu nhắc tên một kiểu lỗi, thêm tên tiếng Việt trong ngoặc, ví dụ
-"False dilemma (song đề sai)". Phần còn lại viết tiếng Anh theo Language level.
+Đã bỏ phần "Also called" (2026-10-03, chủ app đồng ý): AI hay đưa từ đồng nghĩa
+("Black-and-white thinking"), trùng với dòng "More specific", và dễ bị hiểu là lỗi thứ
+hai. Ý "kết luận không đi theo từ dữ kiện" (Non sequitur) giờ được nói bằng lời đơn giản
+trong `core`.
+
+Ngôn ngữ: chỉ tiếng Anh, không một chữ tiếng Việt (chủ app đổi ý 2026-10-03, ban đầu có
+kèm tên tiếng Việt trong ngoặc). Validator bắt chữ tiếng Việt và cho AI viết lại; các
+phân tích đã lưu trước đó được bỏ phần ngoặc tiếng Việt khi hiển thị.
 
 Các bước:
 
 1. **Kiểu dữ liệu + validator.** `AnalyticalDeepDive { ref, core, examples[], alsoCalled[{ name,
    note }], fairer }` trong `lib/types/perspective.ts`; `deepDives?: Record<ref,
    AnalyticalDeepDive>` trên `AnalyticalExerciseRow`. Validator zod: đúng ref, 2-4 ví
-   dụ, `alsoCalled` không trùng tên tag/subtype, trap thì `alsoCalled` rỗng.
+   dụ, `alsoCalled` không trùng tên tag/subtype, trap thì `alsoCalled` rỗng, không có chữ
+   tiếng Việt.
 2. **Prompt** `lib/ai/prompts/analytical-deep-dive.ts`: một ref mỗi lần, có đoạn văn,
    câu được đánh dấu, tag, ghi chú của tác giả, `why` đã có (để không lặp lại).
 3. **Route** `POST /api/ai/deep-dive`: đăng nhập, kiểm tra body bằng zod, gọi Gemini
