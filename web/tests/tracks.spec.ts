@@ -42,4 +42,28 @@ test.describe("Learning tracks", () => {
     await expect(page.getByTestId("track-step")).toHaveCount(15);
     await expect(page.getByText("How countries trade and compete")).toBeVisible();
   });
+
+  test("an unfinished step shows Continue with a visible discard icon on phones", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoAuthenticated(page, `/exercise/analytical?domain=${encodeURIComponent(FIRST_DOMAIN)}`);
+    await generateExercise(page, FIRST_DOMAIN);
+    await expect(page.getByText("Structural reasoning passage")).toBeVisible({ timeout: 15_000 });
+    // Leave it unfinished (client navigation keeps the e2e store).
+    await clickMainNavLink(page, "Practice", /\/$/);
+
+    const card = page.getByTestId("track-card");
+    await expect(card.getByTestId("track-next-step")).toHaveText(/Continue/);
+    const discard = card.getByTestId("track-discard");
+    await expect(discard).toBeVisible();
+    expect(Number(await discard.evaluate((el) => getComputedStyle(el).opacity))).toBeGreaterThan(0);
+
+    // Cancel keeps it; accept removes it.
+    page.once("dialog", (d) => void d.dismiss());
+    await discard.click();
+    await expect(card.getByTestId("track-next-step")).toHaveText(/Continue/);
+    page.once("dialog", (d) => void d.accept());
+    await discard.click();
+    await expect(card.getByTestId("track-next-step")).toHaveText(/Start/);
+    await expect(page.getByText("Continue", { exact: true })).toHaveCount(0);
+  });
 });

@@ -175,9 +175,33 @@ export const GEOPOLITICAL_KEYWORDS = [
  * Free-text domains matching these keywords still use the geopolitics exercise schema.
  * Catalog subdomains are always browsable via GEOPOLITICS_DOMAIN_GROUPS in DomainInput.
  */
+/** Keywords that are stems: they match any word that starts with them. */
+const STEM_KEYWORDS = new Set<string>(["geopolit", "de-dollar"]);
+
+/**
+ * Acronyms that are also ordinary English words or word parts ("swift", "bri" in
+ * "bring"): they only count when written in capitals.
+ */
+const CAPITALS_ONLY_KEYWORDS = new Set<string>(["swift", "bri"]);
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * One matcher per keyword. Keywords match whole words or phrases (with an optional
+ * plural -s/-es), never inside another word: "bri" (Belt and Road) must not match
+ * "bring" or "bridge". Stems match at the start of a word.
+ */
+const KEYWORD_MATCHERS: RegExp[] = GEOPOLITICAL_KEYWORDS.map((kw) => {
+  const body = escapeRegExp(kw);
+  const end = STEM_KEYWORDS.has(kw) ? "" : "(?:e?s)?(?![a-z0-9])";
+  if (CAPITALS_ONLY_KEYWORDS.has(kw)) return new RegExp(`(?<![A-Za-z0-9])${body.toUpperCase()}(?:S)?(?![A-Za-z0-9])`);
+  return new RegExp(`(?<![a-z0-9])${body}${end}`, "i");
+});
+
 export function isGeopoliticsRelated(domain: string): boolean {
-  const lower = domain.toLowerCase();
-  return GEOPOLITICAL_KEYWORDS.some((kw) => lower.includes(kw));
+  return KEYWORD_MATCHERS.some((re) => re.test(domain));
 }
 
 /** Standalone analytical generation uses geopolitics exercise schema when true. */
