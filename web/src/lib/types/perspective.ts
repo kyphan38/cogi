@@ -111,6 +111,20 @@ export interface AnalyticalCoachingItem {
   subtypeName?: string;
 }
 
+/**
+ * "Go deeper" on one Analytical answer-key item (`issue_<n>` or `decoy_<n>`), asked
+ * for on demand and saved on the exercise row. Labels differ by kind: for an issue
+ * `fairer` is a fair rewrite; for a sound statement it is what would break it.
+ */
+export interface AnalyticalDeepDive {
+  core: string;
+  /** 2-4 concrete cases (issue: what it ignores; sound statement: why it holds). */
+  examples: string[];
+  /** Other names for the same problem. Always empty for a sound statement. */
+  alsoCalled: { name: string; note: string }[];
+  fairer: string;
+}
+
 export interface AnalyticalCoachingStructured {
   perspectiveFormat: "analytical_v3";
   title: string;
