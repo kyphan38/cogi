@@ -8,8 +8,12 @@ function Slider<Value extends number | readonly number[] = number | readonly num
   value,
   min = 0,
   max = 100,
+  thumbLabel,
   ...props
-}: SliderPrimitive.Root.Props<Value>) {
+}: SliderPrimitive.Root.Props<Value> & {
+  /** Accessible name of the thumb's input (what screen readers announce). */
+  thumbLabel?: string
+}) {
   const _values = Array.isArray(value)
     ? value
     : Array.isArray(defaultValue)
@@ -41,6 +45,7 @@ function Slider<Value extends number | readonly number[] = number | readonly num
           <SliderPrimitive.Thumb
             data-slot="slider-thumb"
             key={index}
+            getAriaLabel={thumbLabel ? () => thumbLabel : undefined}
             className="relative block size-3 shrink-0 rounded-full border border-ring bg-white ring-ring/50 transition-[color,box-shadow] select-none after:absolute after:-inset-2 hover:ring-3 focus-visible:ring-3 focus-visible:outline-hidden active:ring-3 disabled:pointer-events-none disabled:opacity-50"
           />
         ))}

@@ -469,7 +469,9 @@ export async function POST(req: Request) {
       b.secondShockEvent && typeof b.secondShockEvent === "object"
         ? (b.secondShockEvent as SystemsShockEvent)
         : undefined;
-    const result = scoreSystems({ nodes, intendedConnections, shockEvent, userEdges, nodeImpact });
+    const impactVia =
+      b.impactVia && typeof b.impactVia === "object" ? (b.impactVia as Record<string, string>) : undefined;
+    const result = scoreSystems({ nodes, intendedConnections, shockEvent, userEdges, nodeImpact, impactVia });
     const refs = systemsCoachingRefs(result);
     const prompt = buildSystemsShockPerspectivePrompt({
       title,
@@ -506,6 +508,7 @@ export async function POST(req: Request) {
         { ...refs, requireMetaNote: needsMeta },
         (ref) => {
           if (ref.startsWith("node_")) return `Node: ${nodeLabel(ref.slice(5))}`;
+          if (ref.startsWith("via_")) return `How the shock reaches ${nodeLabel(ref.slice(4))}`;
           const [kind, n] = ref.split("_");
           const i = Number(n) - 1;
           if (kind === "conn") {

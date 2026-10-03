@@ -28,6 +28,16 @@ export interface SystemsImpactOutcome {
   correct: boolean;
 }
 
+/** How the user traced the shock to an indirectly affected node (PLAN-learning.md L4). */
+export interface SystemsSpreadOutcome {
+  nodeId: string;
+  /** The node the user says the shock comes through. */
+  via: string;
+  /** Affected nodes the model links to this node: the right answers. */
+  possibleVia: string[];
+  correct: boolean;
+}
+
 /** Systems work scored against the model, in code (plan phase 6a). */
 export interface SystemsResult {
   connections: SystemsConnectionOutcome[];
@@ -39,6 +49,8 @@ export interface SystemsResult {
   connectionsTotal: number;
   impactsCorrect: number;
   impactsTotal: number;
+  /** One row per indirect node the user traced; absent on older results. */
+  spread?: SystemsSpreadOutcome[];
 }
 
 export function expectedImpact(shock: SystemsShockEvent, nodeId: string): SystemsNodeImpact {
@@ -53,6 +65,8 @@ export function scoreSystems(input: {
   shockEvent: SystemsShockEvent;
   userEdges: SystemsUserEdge[];
   nodeImpact: Record<string, SystemsNodeImpact>;
+  /** Indirect node id -> the node the user says the shock comes through. */
+  impactVia?: Record<string, string>;
 }): SystemsResult {
   const used = new Set<string>();
   const connections = input.intendedConnections.map((c, index) => {
@@ -76,8 +90,19 @@ export function scoreSystems(input: {
     const user = input.nodeImpact[n.id] ?? "none";
     return { nodeId: n.id, expected, user, correct: expected === user };
   });
+  const linked = (x: string, y: string) =>
+    input.intendedConnections.some((c) => (c.from === x && c.to === y) || (c.from === y && c.to === x));
+  const spread = Object.entries(input.impactVia ?? {})
+    .filter(([nodeId, via]) => via && (input.nodeImpact[nodeId] ?? "none") === "indirect")
+    .map(([nodeId, via]) => {
+      const possibleVia = input.nodes
+        .map((n): string => n.id)
+        .filter((id) => id !== nodeId && expectedImpact(input.shockEvent, id) !== "none" && linked(id, nodeId));
+      return { nodeId, via, possibleVia, correct: possibleVia.includes(via) };
+    });
   return {
     connections,
+    spread,
     extraEdgeIds: input.userEdges.filter((e) => !used.has(e.id)).map((e) => e.id),
     impacts,
     connectionsFound: connections.filter((c) => c.found).length,
@@ -115,8 +140,9 @@ export function systemsCoachingRefs(r: SystemsResult): { required: string[]; all
         .slice(0, 4)
         .map((c) => `conn_${c.index + 1}`),
       ...extraRefs.slice(0, 2),
+      ...(r.spread ?? []).filter((s) => !s.correct).map((s) => `via_${s.nodeId}`),
     ],
-    allowed: [...nodeRefs, ...connRefs, ...extraRefs],
+    allowed: [...nodeRefs, ...connRefs, ...extraRefs, ...(r.spread ?? []).map((s) => `via_${s.nodeId}`)],
   };
 }
 
@@ -127,6 +153,7 @@ export function systemsResultOf(row: {
   shockEvent: SystemsShockEvent;
   userEdges: SystemsUserEdge[];
   nodeImpact: Record<string, SystemsNodeImpact>;
+  impactVia?: Record<string, string>;
   result?: SystemsResult | null;
 }): SystemsResult {
   return row.result ?? scoreSystems(row);

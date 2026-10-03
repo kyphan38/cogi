@@ -207,6 +207,8 @@ export interface SystemsExerciseRow {
   userEdges: SystemsUserEdge[];
   /** Per node_id impact assessment after shock. */
   nodeImpact: Record<string, SystemsNodeImpact>;
+  /** Indirect node id -> the node the user says the shock comes through. */
+  impactVia?: Record<string, string>;
   confidenceBefore: number | null;
   aiPerspective: string | null;
   aiPerspectiveStructured?: AIPerspectiveStructured | null;

@@ -75,6 +75,21 @@ export function SystemsAnswerKey({
           })}
         </Section>
 
+        {result.spread && result.spread.length > 0 ? (
+          <Section title="How the shock spreads" hint="The node each indirect effect comes through.">
+            {result.spread.map((s) => (
+              <Row
+                key={s.nodeId}
+                status={s.correct ? "right" : "wrong"}
+                heading={`${label(s.nodeId)} (through ${label(s.via)})`}
+                aside={s.correct ? "Same path as the model" : `Model: ${s.possibleVia.map(label).join(" or ") || "-"}`}
+              >
+                <Coaching item={items.get(`via_${s.nodeId}`)} fallback="" />
+              </Row>
+            ))}
+          </Section>
+        ) : null}
+
         <Section title="The model's links" hint="Arrow A -> B, with the kind of link.">
           {result.connections.map((c) => {
             const ic = exercise.intendedConnections[c.index]!;

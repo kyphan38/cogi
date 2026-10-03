@@ -21,6 +21,8 @@ export interface Track {
   title: string;
   area: "finance" | "economics" | "geopolitics";
   description: string;
+  /** Anchor of a related simulator on /simulators (PLAN-learning.md L4). */
+  simulator?: "loan" | "savings" | "import";
   steps: TrackStep[];
 }
 
@@ -36,6 +38,7 @@ export const TRACKS: Track[] = [
     title: "Money and interest rates",
     area: "finance",
     description: "How interest rates move money between savers, borrowers and banks - and how to use that in your own choices.",
+    simulator: "loan",
     steps: [
       {
         id: "rates-winners",
@@ -74,6 +77,7 @@ export const TRACKS: Track[] = [
     title: "Prices and inflation",
     area: "economics",
     description: "Why prices rise, how a shock in one place reaches your shopping basket, and how to read claims about it.",
+    simulator: "savings",
     steps: [
       {
         id: "one-cause",
@@ -112,6 +116,7 @@ export const TRACKS: Track[] = [
     title: "How countries trade and compete",
     area: "geopolitics",
     description: "Taxes on imports, factories moving between countries and currency moves - what they mean for people and companies.",
+    simulator: "import",
     steps: [
       {
         id: "tariffs-who-pays",

@@ -63,3 +63,27 @@ describe("rateSystems", () => {
     expect(rateSystems(score([], {}))).toBe("poor");
   });
 });
+
+describe("scoreSystems - how the shock spreads", () => {
+  it("accepts a path through an affected node the model links to", () => {
+    // Model: node_1 direct, node_2 and node_3 indirect; links 1-2 and 2-3.
+    const r = scoreSystems({
+      nodes, intendedConnections: intended, shockEvent: shock, userEdges: [],
+      nodeImpact: { node_1: "direct", node_2: "indirect", node_3: "indirect" },
+      impactVia: { node_2: "node_1", node_3: "node_1" },
+    });
+    expect(r.spread).toEqual([
+      { nodeId: "node_2", via: "node_1", possibleVia: ["node_1", "node_3"], correct: true },
+      { nodeId: "node_3", via: "node_1", possibleVia: ["node_2"], correct: false },
+    ]);
+    expect(systemsCoachingRefs(r).required).toContain("via_node_3");
+  });
+
+  it("ignores paths for nodes the user did not mark indirect", () => {
+    const r = scoreSystems({
+      nodes, intendedConnections: intended, shockEvent: shock, userEdges: [],
+      nodeImpact: { node_2: "direct" }, impactVia: { node_2: "node_1" },
+    });
+    expect(r.spread).toEqual([]);
+  });
+});
