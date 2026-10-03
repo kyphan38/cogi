@@ -102,10 +102,11 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Each row gives a reason, a clue and a question for next time.",
     ],
     howToPractice: [
-      "Why: the reason in one or two sentences.",
-      "Clue: the words in the text that point to it. Learn to notice these.",
+      "Why: the reason in a few short sentences, ending with a real-life example.",
+      "Clue: the words in the text that point to it, and what kind of signal they are. Learn to notice these.",
       "Next time, ask: the question to ask yourself in a new situation. This is the part to remember.",
       "Take with you: one or two lessons for the next exercise.",
+      "Analytical only: press \"Go deeper\" under a row for a longer explanation. It is saved, so it opens again in History for free.",
     ],
     tips: [
       "For judgment calls (weights, life situations), the app says \"close\" or \"different\", never \"wrong\". The model is a reference, not the only answer.",
@@ -122,6 +123,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     benefits: [
       "You can read news, ads and plans without being fooled by a confident claim.",
       "You learn to say clearly why an argument is weak.",
+      "\"Go deeper\" on any issue or trap: the core problem, more real-life cases, other names for the same problem, and a fairer way to say it.",
     ],
     howToPractice: [
       "Read the whole passage once before you tag anything.",
@@ -137,6 +139,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     tips: [
       "Words like never, always, only and proves are often warning signs.",
       "Finding the problem matters more than the exact tag name.",
+      "In \"Go deeper\", \"Also called\" is the same problem with another name, not a second mistake. Your result does not change.",
     ],
   },
   {
