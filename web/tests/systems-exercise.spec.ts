@@ -126,3 +126,34 @@ test.describe("Systems exercise - levels", () => {
     await expect(page.getByTestId("link-type-guide")).toHaveCount(0);
   });
 });
+
+test.describe("Systems exercise - how the shock spreads", () => {
+  test.beforeEach(async ({ page }) => {
+    await bypassFirebaseAuth(page);
+    await stubFirestoreReads(page);
+  });
+
+  test("an indirect node asks which node the shock comes through, and the results show it", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/systems");
+    await generateExercise(page, "Cloud Architecture");
+    await advanceSystemsToCanvas(page);
+    await addSystemsConnection(page);
+    await page.getByRole("button", { name: "Done connecting" }).click();
+
+    const nodes = page.locator(".react-flow__node");
+    await expect(page.getByTestId("spread-questions")).toHaveCount(0);
+    await nodes.nth(0).click(); // none -> direct
+    await nodes.nth(1).click(); // none -> direct
+    await nodes.nth(1).click(); // direct -> indirect
+    const q = page.getByTestId("spread-question");
+    await expect(q).toHaveCount(1);
+    const choice = q.getByRole("button").first();
+    await choice.click();
+    await expect(choice).toHaveAttribute("aria-pressed", "true");
+
+    await page.getByRole("button", { name: "Submit impact and get AI reflection" }).click();
+    const key = page.getByTestId("systems-answer-key");
+    await expect(key).toBeVisible({ timeout: 15_000 });
+    await expect(key.getByText("How the shock spreads")).toBeVisible();
+  });
+});
