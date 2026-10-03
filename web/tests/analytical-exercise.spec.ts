@@ -249,8 +249,8 @@ test.describe("Analytical exercise - generate and highlight phase", () => {
     await expect(body).toBeVisible();
     await expect(body.getByText("The core problem")).toBeVisible();
     await expect(body.getByText("Mock core: it hides the middle options.")).toBeVisible();
-    await expect(body.getByText("Non sequitur")).toBeVisible();
-    await expect(body.getByText("Same problem, another name.", { exact: false })).toBeVisible();
+    await expect(body.getByText("Cases it ignores")).toBeVisible();
+    await expect(body.getByText("Also called")).toHaveCount(0);
     await expect(body.getByText("A fairer way to say it")).toBeVisible();
 
     await panel.getByRole("button", { name: "Hide" }).click();

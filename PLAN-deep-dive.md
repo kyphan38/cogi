@@ -56,10 +56,14 @@ phần phân tích sâu theo khung cố định:
 | --- | --- | --- |
 | `core` | The core problem: điều câu nói ngầm cho là đúng | Why it looks weak |
 | `examples` (2-4) | Real cases it ignores | Why it holds up |
-| `alsoCalled` (0-2) | Also called: tên gọi khác (vd. Non sequitur) + ghi chú "same problem, another name" | (không có) |
 | `fairer` | A fairer way to say it | What would make it a real problem |
 
 Không dùng chữ "Hidden assumption" làm tiêu đề vì trùng tên một tag.
+
+Đã bỏ phần "Also called" (2026-10-03, chủ app đồng ý): AI hay đưa từ đồng nghĩa
+("Black-and-white thinking"), trùng với dòng "More specific", và dễ bị hiểu là lỗi thứ
+hai. Ý "kết luận không đi theo từ dữ kiện" (Non sequitur) giờ được nói bằng lời đơn giản
+trong `core`.
 
 Ngôn ngữ: chỉ tiếng Anh, không một chữ tiếng Việt (chủ app đổi ý 2026-10-03, ban đầu có
 kèm tên tiếng Việt trong ngoặc). Validator bắt chữ tiếng Việt và cho AI viết lại; các

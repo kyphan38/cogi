@@ -175,7 +175,6 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
         deepDive: {
           core: isDecoy ? "Mock core: it sounds bold at first." : "Mock core: it hides the middle options.",
           examples: ["Mock case one.", "Mock case two."],
-          alsoCalled: isDecoy ? [] : [{ name: "Non sequitur", note: "Mock note: the end does not follow." }],
           fairer: "Mock fairer sentence.",
         },
       }),
