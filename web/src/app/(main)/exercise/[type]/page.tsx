@@ -1,6 +1,7 @@
 import { AnalyticalExerciseFlow } from "@/components/exercises/AnalyticalExerciseFlow";
 import { EvaluativeExerciseFlow } from "@/components/exercises/EvaluativeExerciseFlow";
 import { SystemsExerciseFlow } from "@/components/exercises/SystemsExerciseFlow";
+import { JudgmentExerciseFlow } from "@/components/exercises/JudgmentExerciseFlow";
 import { notFound } from "next/navigation";
 
 type FlowComponent = React.ComponentType<{
@@ -14,6 +15,7 @@ const FLOW_BY_TYPE: Record<string, FlowComponent> = {
   analytical: AnalyticalExerciseFlow,
   systems: SystemsExerciseFlow,
   evaluative: EvaluativeExerciseFlow,
+  judgment: JudgmentExerciseFlow,
 };
 
 const VALID_SOURCES = new Set(["generated", "real_data", "custom_scenario"]);
