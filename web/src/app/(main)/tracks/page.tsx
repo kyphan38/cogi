@@ -34,6 +34,9 @@ export default function TracksPage() {
           Short paths through economics, finance and geopolitics. Each step is one exercise at your level.
           Do them in order, one a day is plenty.
         </p>
+        <Link href="/simulators" className="text-sm underline underline-offset-4">
+          Simulators: play with loans, savings and import prices
+        </Link>
       </div>
       {TRACKS.map((track) => {
         const { doneIds, next } = trackProgress(track, completed ?? []);
@@ -43,6 +46,15 @@ export default function TracksPage() {
               <p className="text-muted-foreground text-xs uppercase">{AREA_LABELS[track.area]}</p>
               <CardTitle className="text-base">{track.title}</CardTitle>
               <p className="text-muted-foreground text-sm">{track.description}</p>
+              {track.simulator ? (
+                <Link
+                  href={`/simulators#${track.simulator}`}
+                  className="text-xs underline underline-offset-4"
+                  data-testid="track-simulator-link"
+                >
+                  Try the simulator for this track
+                </Link>
+              ) : null}
             </CardHeader>
             <CardContent>
               <ol className="space-y-2">
