@@ -3,6 +3,7 @@ import { getAppSettings } from "@/lib/db/settings";
 import {
   isAnalyticalExercise,
   isEvaluativeExercise,
+  isJudgmentExercise,
   isSystemsExercise,
   type Exercise,
 } from "@/lib/types/exercise";
@@ -10,6 +11,7 @@ import { analyticalResultOf } from "@/lib/exercise/analytical-score";
 import { rateAnalytical } from "@/lib/exercise/analytical-levels";
 import { rateSystems, systemsResultOf } from "@/lib/exercise/systems-score";
 import { evaluativeResultOf, rateEvaluative } from "@/lib/exercise/evaluative-score";
+import { rateJudgment } from "@/lib/exercise/judgment-score";
 import {
   suggestLevelChange,
   type LevelledExerciseType,
@@ -38,6 +40,9 @@ function rateRow(type: LevelledExerciseType, row: Exercise): ResultRating | null
     (row.isGeopolitics ?? Boolean(row.stakeholderNote?.trim()));
   if (type === "evaluative" && isEvaluativeExercise(row) && !geoScoring) {
     return rateEvaluative(evaluativeResultOf(row));
+  }
+  if (type === "judgment" && isJudgmentExercise(row)) {
+    return row.result ? rateJudgment(row.result) : null;
   }
   return null;
 }

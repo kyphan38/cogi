@@ -1,5 +1,5 @@
 /** Areas a suggested topic can belong to: one of the exercise types. */
-export type PracticedTopicArea = "analytical" | "systems" | "evaluative";
+export type PracticedTopicArea = "analytical" | "systems" | "evaluative" | "judgment";
 
 export interface PracticedTopicEntry {
   id: string;
