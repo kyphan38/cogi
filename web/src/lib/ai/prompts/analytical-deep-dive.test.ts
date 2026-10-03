@@ -22,15 +22,16 @@ describe("resolveDeepDiveRef", () => {
 });
 
 describe("buildAnalyticalDeepDivePrompt", () => {
-  it("explains an issue with its tag, subtype, the seen why and blocked names", () => {
+  it("explains an issue with its tag, subtype, the seen why, and asks why the conclusion does not follow", () => {
     const target = resolveDeepDiveRef("issue_1", embeddedIssues, validPoints)!;
     const p = buildAnalyticalDeepDivePrompt({ ...base, target, why: "It offers only two options.", subtypeName: "False dilemma" });
     expect(p).toContain('The sentence: "separate accounts prove they do not trust each other"');
     expect(p).toContain('Tag: "Logical Fallacy"');
     expect(p).toContain("More specific kind: False dilemma.");
     expect(p).toContain("It offers only two options.");
-    expect(p).toContain('Never use these names: "Logical Fallacy"');
-    expect(p).toContain('"False dilemma"');
+    expect(p).toContain("why its conclusion does not follow from the facts");
+    expect(p).toContain("Do not add other textbook names.");
+    expect(p).not.toContain("alsoCalled");
     expect(p).toContain("English only, in every field");
     expect(p).not.toMatch(/[\u1EA0-\u1EF9đ]/);
   });
@@ -39,7 +40,6 @@ describe("buildAnalyticalDeepDivePrompt", () => {
     const target = resolveDeepDiveRef("decoy_1", embeddedIssues, validPoints)!;
     const p = buildAnalyticalDeepDivePrompt({ ...base, target });
     expect(p).toContain("It is a SOUND statement.");
-    expect(p).toContain('"alsoCalled": always [].');
     expect(p).not.toContain("Short explanation the learner already saw");
   });
 });

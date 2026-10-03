@@ -22,11 +22,6 @@ export function resolveDeepDiveRef(
   return point ? { kind: "decoy", index, point } : null;
 }
 
-/** Every tag label in the app: an "also called" name must not reuse one. */
-export function allTagNames(): string[] {
-  return Object.values(TAG_LABELS).map((t) => t.label);
-}
-
 function tagName(tag: TagType): string {
   return TAG_LABELS[tag].label;
 }
@@ -63,20 +58,13 @@ export function buildAnalyticalDeepDivePrompt(input: {
           `Author's note: ${target.point.explanation}`,
         ].join("\n");
 
-  const blocked = [
-    ...allTagNames().map((n) => `"${n}"`),
-    ...(input.subtypeName?.trim() ? [`"${input.subtypeName.trim()}"`] : []),
-  ].join(", ");
-
   const rules =
     target.kind === "issue"
-      ? `- "core": 1-2 short sentences. What the sentence quietly takes for granted, and why that step does not follow. Name the specific kind of problem once, e.g. "This is a false dilemma".
+      ? `- "core": 2-3 short sentences. First, what the sentence quietly takes for granted. Then, in plain words, why its conclusion does not follow from the facts it gives. Name the specific kind of problem once, e.g. "This is a false dilemma". Do not add other textbook names.
 - "examples": 2-4 concrete, everyday cases the sentence ignores or gets wrong. One short sentence each. Each case must be a different kind of reason, not the same idea reworded.
-- "alsoCalled": 0-2 other common textbook names for this SAME sentence, seen from another angle. Prefer a name that shows a different side of what goes wrong (e.g. for a false dilemma: "Non sequitur" - the conclusion does not follow from the fact), not a plain synonym ("Either-or fallacy" is just another word for false dilemma). At most one plain synonym. "note": one short sentence on what that name points at. Never use these names: ${blocked}. Use [] when no name fits well - do not force one.
 - "fairer": one sentence. How the writer could say this fairly and keep their point.`
       : `- "core": 1-2 short sentences. Why the sentence can look weak at first: what makes a reader suspicious.
 - "examples": 2-4 concrete reasons or facts that make it hold up. One short sentence each.
-- "alsoCalled": always [].
 - "fairer": one sentence. What change to the sentence would turn it into a real problem, e.g. "If it said tracking spending always fixes money problems, it would claim too much."`;
 
   return `You are a patient coach for a beginner practising analytical reading in the domain: ${input.domain}.
@@ -96,7 +84,6 @@ Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
 {
   "core": string,
   "examples": [string] (2-4 items),
-  "alsoCalled": [{ "name": string, "note": string }] (0-2 items),
   "fairer": string
 }
 

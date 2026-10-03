@@ -92,19 +92,6 @@ export function DeepDivePanel({
               ))}
             </ul>
           </div>
-          {kind === "issue" && deepDive.alsoCalled.length > 0 ? (
-            <div className="space-y-1">
-              <p className="text-foreground font-medium">Also called</p>
-              <p className="text-muted-foreground text-xs">Same problem, another name. Your result does not change.</p>
-              <ul className="list-disc space-y-1 pl-5">
-                {deepDive.alsoCalled.map((a, i) => (
-                  <li key={i}>
-                    <span className="text-foreground font-medium">{clean(a.name)}</span>: {clean(a.note)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
           <div className="space-y-1">
             <p className="text-foreground font-medium">{labels.fairer}</p>
             <p>{clean(deepDive.fairer)}</p>

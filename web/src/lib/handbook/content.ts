@@ -123,7 +123,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     benefits: [
       "You can read news, ads and plans without being fooled by a confident claim.",
       "You learn to say clearly why an argument is weak.",
-      "\"Go deeper\" on any issue or trap: the core problem, more real-life cases, other names for the same problem, and a fairer way to say it.",
+      "\"Go deeper\" on any issue or trap: the core problem, more real-life cases, and a fairer way to say it.",
     ],
     howToPractice: [
       "Read the whole passage once before you tag anything.",
@@ -139,7 +139,6 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     tips: [
       "Words like never, always, only and proves are often warning signs.",
       "Finding the problem matters more than the exact tag name.",
-      "In \"Go deeper\", \"Also called\" is the same problem with another name, not a second mistake. Your result does not change.",
     ],
   },
   {
