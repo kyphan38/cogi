@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { AnalyticalDeepDive } from "@/lib/types/perspective";
+import { stripVietnameseGlosses as clean } from "@/lib/ai/validators/deep-dive";
 
 const LABELS = {
   issue: {
@@ -81,32 +82,19 @@ export function DeepDivePanel({
         <div className="border-muted space-y-3 border-l-2 pl-3" data-testid="deep-dive-body">
           <div className="space-y-1">
             <p className="text-foreground font-medium">{labels.core}</p>
-            <p>{deepDive.core}</p>
+            <p>{clean(deepDive.core)}</p>
           </div>
           <div className="space-y-1">
             <p className="text-foreground font-medium">{labels.examples}</p>
             <ul className="list-disc space-y-1 pl-5">
               {deepDive.examples.map((ex, i) => (
-                <li key={i}>{ex}</li>
+                <li key={i}>{clean(ex)}</li>
               ))}
             </ul>
           </div>
-          {kind === "issue" && deepDive.alsoCalled.length > 0 ? (
-            <div className="space-y-1">
-              <p className="text-foreground font-medium">Also called</p>
-              <p className="text-muted-foreground text-xs">Same problem, another name. Your result does not change.</p>
-              <ul className="list-disc space-y-1 pl-5">
-                {deepDive.alsoCalled.map((a, i) => (
-                  <li key={i}>
-                    <span className="text-foreground font-medium">{a.name}</span>: {a.note}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
           <div className="space-y-1">
             <p className="text-foreground font-medium">{labels.fairer}</p>
-            <p>{deepDive.fairer}</p>
+            <p>{clean(deepDive.fairer)}</p>
           </div>
         </div>
       ) : null}

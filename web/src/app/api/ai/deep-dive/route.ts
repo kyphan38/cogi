@@ -5,7 +5,6 @@ import { buildLanguageLevelAppendix, resolveLanguageLevel } from "@/lib/adaptive
 import { generateValidatedJson, validatedJsonFailureResponse } from "@/lib/ai/generate-validated";
 import { analyticalDeepDiveResponseSchema } from "@/lib/ai/response-schemas";
 import {
-  allTagNames,
   buildAnalyticalDeepDivePrompt,
   resolveDeepDiveRef,
 } from "@/lib/ai/prompts/analytical-deep-dive";
@@ -81,13 +80,12 @@ export async function POST(req: Request) {
   ]
     .filter(Boolean)
     .join("\n\n");
-  const blockedNames = [...allTagNames(), ...(b.subtypeName?.trim() ? [b.subtypeName] : [])];
 
   try {
     const result = await generateValidatedJson({
       prompt,
       parse: parseAnalyticalDeepDiveJson,
-      validate: (d) => validateAnalyticalDeepDive(d, { kind: target.kind, blockedNames }),
+      validate: validateAnalyticalDeepDive,
       retrySuffix: DEEP_DIVE_RETRY_SUFFIX,
       responseJsonSchema: analyticalDeepDiveResponseSchema(),
       timeoutMs: 25_000,
