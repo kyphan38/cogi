@@ -229,6 +229,36 @@ test.describe("Analytical exercise - generate and highlight phase", () => {
     // v3 feedback replaces the old "Stronger alternative" card.
     await expect(page.getByText("Stronger alternative")).toHaveCount(0);
   });
+
+  test("Go deeper asks the AI once, then shows and hides the saved analysis", async ({ page }) => {
+    let calls = 0;
+    page.on("request", (req) => {
+      if (req.url().includes("/api/ai/deep-dive")) calls += 1;
+    });
+    await gotoAuthenticated(page, "/exercise/analytical");
+    await generateExercise(page, "DevOps");
+    await expect(page.getByText("Structural reasoning passage")).toBeVisible({ timeout: 15_000 });
+    await addPassageHighlight(page);
+    await page.getByRole("button", { name: "Get AI feedback" }).click();
+
+    const key = page.getByTestId("analytical-answer-key");
+    await expect(key).toBeVisible({ timeout: 15_000 });
+    const panel = key.getByTestId("deep-dive").first();
+    await panel.getByRole("button", { name: "Go deeper" }).click();
+    const body = panel.getByTestId("deep-dive-body");
+    await expect(body).toBeVisible();
+    await expect(body.getByText("The core problem")).toBeVisible();
+    await expect(body.getByText("Mock core: it hides the middle options.")).toBeVisible();
+    await expect(body.getByText("Non sequitur (kết luận không tất suy)")).toBeVisible();
+    await expect(body.getByText("Same problem, another name.", { exact: false })).toBeVisible();
+    await expect(body.getByText("A fairer way to say it")).toBeVisible();
+
+    await panel.getByRole("button", { name: "Hide" }).click();
+    await expect(body).toHaveCount(0);
+    await panel.getByRole("button", { name: "Go deeper" }).click();
+    await expect(panel.getByTestId("deep-dive-body")).toBeVisible();
+    expect(calls).toBe(1);
+  });
 });
 
 test.describe("Analytical exercise - domain input", () => {

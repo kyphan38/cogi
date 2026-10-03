@@ -60,6 +60,7 @@ import { ANALYTICAL_TAG_OPTIONS, GEOPOLITICS_TAG_OPTIONS } from "@/lib/exercise/
 import { computeMetaGuessScore } from "@/lib/analytics/geopolitics-meta-guess";
 import { analyticalResultOf, scoreAnalytical } from "@/lib/exercise/analytical-score";
 import { AnalyticalAnswerKey } from "@/components/exercises/AnalyticalAnswerKey";
+import { requestAnalyticalDeepDive, withDeepDive } from "@/lib/exercise/deep-dive";
 import { CheckQuestions } from "@/components/exercises/CheckQuestions";
 import {
   GuidedWalkthrough,
@@ -986,6 +987,11 @@ export function AnalyticalExerciseFlow({
             exercise={{ ...exercise, userHighlights: highlights, confidenceBefore: confidence }}
             result={feedbackResult!}
             coaching={isAnalyticalCoachingStructured(feedbackStructured) ? feedbackStructured : null}
+            deepDives={exercise.deepDives}
+            onRequestDeepDive={async (ref) => {
+              const d = await requestAnalyticalDeepDive(exercise, ref);
+              setExercise((prev) => (prev ? withDeepDive(prev, ref, d) : prev));
+            }}
           />
           {/* Feedback saved before the answer key (clarity v2 or plain text). */}
           {!isAnalyticalCoachingStructured(feedbackStructured) ? (

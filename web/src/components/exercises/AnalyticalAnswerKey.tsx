@@ -16,7 +16,8 @@ import type {
   AnalyticalResult,
   TagType,
 } from "@/lib/types/exercise";
-import type { AnalyticalCoachingStructured } from "@/lib/types/perspective";
+import type { AnalyticalCoachingStructured, AnalyticalDeepDive } from "@/lib/types/perspective";
+import { DeepDivePanel } from "@/components/exercises/DeepDivePanel";
 import { TAG_LABELS } from "@/lib/exercise/tag-labels";
 import {
   calibrationLine,
@@ -33,12 +34,15 @@ function tagName(tag: TagType): string {
 /**
  * Answer key after an analytical exercise: what was planned, what the user found,
  * and (when present) the AI's coaching for each case. Right and wrong come from
- * `result`, which code computed; the AI text only explains.
+ * `result`, which code computed; the AI text only explains. With `onRequestDeepDive`,
+ * each planned issue and trap gets a "Go deeper" button (saved in `deepDives`).
  */
 export function AnalyticalAnswerKey({
   exercise,
   result,
   coaching,
+  deepDives,
+  onRequestDeepDive,
 }: {
   exercise: Pick<
     AnalyticalExerciseRow,
@@ -46,6 +50,8 @@ export function AnalyticalAnswerKey({
   >;
   result: AnalyticalResult;
   coaching: AnalyticalCoachingStructured | null;
+  deepDives?: Record<string, AnalyticalDeepDive>;
+  onRequestDeepDive?: (ref: string) => Promise<void>;
 }) {
   const { passage, embeddedIssues, validPoints, userHighlights } = exercise;
   const issues = useMemo(
@@ -154,6 +160,13 @@ export function AnalyticalAnswerKey({
                     </p>
                   ) : null}
                   <Coaching item={item} fallback={issue.explanation} />
+                  {onRequestDeepDive ? (
+                    <DeepDivePanel
+                      kind="issue"
+                      deepDive={deepDives?.[`issue_${outcome.index + 1}`]}
+                      onRequest={() => onRequestDeepDive(`issue_${outcome.index + 1}`)}
+                    />
+                  ) : null}
                 </Row>
               );
             })}
@@ -175,6 +188,13 @@ export function AnalyticalAnswerKey({
               return (
                 <Row key={d.index} marker={decoyMarker(d.index)} status={status} heading={heading} quote={vp.textSegment}>
                   <Coaching item={items.get(`decoy_${d.index + 1}`)} fallback={vp.explanation} />
+                  {onRequestDeepDive ? (
+                    <DeepDivePanel
+                      kind="decoy"
+                      deepDive={deepDives?.[`decoy_${d.index + 1}`]}
+                      onRequest={() => onRequestDeepDive(`decoy_${d.index + 1}`)}
+                    />
+                  ) : null}
                 </Row>
               );
             })}
