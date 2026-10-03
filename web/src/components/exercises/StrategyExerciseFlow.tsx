@@ -471,9 +471,7 @@ export function StrategyExerciseFlow({
                         <>
                           <p className="text-sm" data-testid="best-reply-feedback">
                             <span className="font-medium">{given === best ? "Right. " : "Not quite. "}</span>
-                            {me.name} gets{" "}
-                            {choices.map((c) => `${payoff(c.id)} with "${c.label}"`).join(" and ")} - so the best reply
-                            is &ldquo;{choices.find((c) => c.id === best)?.label}&rdquo;.
+                            {`${me.name} gets ${choices.map((c) => `${payoff(c.id)} with "${c.label}"`).join(" and ")}, so the best reply is "${choices.find((c) => c.id === best)?.label}".`}
                           </p>
                           <Button
                             type="button"
