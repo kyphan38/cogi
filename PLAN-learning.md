@@ -155,7 +155,23 @@ cấp. Ví dụ lộ trình "Tiền và lãi suất":
 Màn hình Practice hiện "mục tiếp theo" của lộ trình đang theo; đánh dấu xong khi làm bài.
 Lộ trình đầu tiên toàn cấp Guided.
 
-## Phase L4 - Systems: dự đoán chuỗi tác động + mô phỏng nhỏ
+## Phase L4 - Systems: dự đoán chuỗi tác động + mô phỏng nhỏ - XONG
+
+**Xong (2026-10-03)**, branch `learning/l4-systems-chains`. Unit 563/563, E2E 132/132,
+`tsc` sạch, eslint 0 lỗi, build production đạt. **Toàn bộ plan L1-L4 đã xong.**
+
+- **Mô phỏng** ở `/simulators` (link từ trang Tracks và từng lộ trình): tiền trả góp theo
+  lãi suất, tiết kiệm so với lạm phát, giá điện thoại nhập khẩu theo tỷ giá và thuế. Chỉ
+  dùng công thức chính xác (`lib/sim/finance.ts`), không dự báo. Mỗi công cụ có câu "đoán
+  trước" với đáp án do code tính; trả lời xong thì thanh trượt nhảy tới đúng trường hợp
+  đó. Biểu đồ đơn sắc (đường thứ hai nét đứt), có tooltip và bảng số liệu.
+- **Đường lan của cú sốc** trong Systems: mỗi node đánh dấu "gián tiếp" hỏi (không bắt
+  buộc) nó bị ảnh hưởng qua node nào; đúng khi đi qua node mà model coi là bị ảnh hưởng và
+  có nối với node đó. Bảng kết quả có mục "How the shock spreads".
+- **Khác plan:** mô phỏng không gắn vào bài Systems mà là trang riêng, vì công thức chính
+  xác chỉ có cho vài chủ đề tiền tệ; bài Systems vẫn do AI tạo cho mọi chủ đề.
+- Component Slider dùng chung có thêm `thumbLabel` để thanh trượt có tên cho trình đọc
+  màn hình.
 
 - Trước khi xem cú sốc lan ra sao, bạn đoán chuỗi A -> B -> C; code so với chuỗi của
   model.
