@@ -9,6 +9,8 @@ import type { PracticeLevel } from "@/lib/exercise/levels";
 import type { SystemsResult } from "@/lib/exercise/systems-score";
 import type { EvaluativeResult } from "@/lib/exercise/evaluative-score";
 import type { JudgmentResult } from "@/lib/exercise/judgment-score";
+import type { StrategyAnswers, StrategyResult } from "@/lib/exercise/strategy-score";
+import type { StrategyExercisePayload } from "@/lib/ai/validators/strategy";
 import type { JudgmentContext } from "@/lib/exercise/judgment-levels";
 import type {
   JudgmentChoiceQuestion,
@@ -19,7 +21,7 @@ import type {
 } from "@/lib/ai/validators/judgment";
 
 /** The exercise types the app offers. Old rows of removed types may still exist in Firestore. */
-export type ThinkingType = "analytical" | "systems" | "evaluative" | "judgment";
+export type ThinkingType = "analytical" | "systems" | "evaluative" | "judgment" | "strategy";
 
 /** Pre-defined combo chains (Phase 6.5). */
 export type { EvaluativeQuadrant };
@@ -426,7 +428,50 @@ export interface JudgmentExerciseRow {
   takeaway?: string | null;
 }
 
-export type Exercise = AnalyticalExerciseRow | SystemsExerciseRow | EvaluativeExerciseRow | JudgmentExerciseRow;
+/** Strategic situation: a 2-player game in a real story (PLAN-learning.md L2). */
+export interface StrategyExerciseRow {
+  id: string;
+  type: "strategy";
+  /** Topic area, e.g. Business & prices. */
+  domain: string;
+  title: string;
+  scenario: string;
+  concepts: StrategyExercisePayload["concepts"];
+  conceptChecks: StrategyExercisePayload["conceptChecks"];
+  players: StrategyExercisePayload["players"];
+  optionsA: StrategyExercisePayload["optionsA"];
+  optionsB: StrategyExercisePayload["optionsB"];
+  cells: StrategyExercisePayload["cells"];
+  /** The model's own label; not shown as fact (the code computes the game). */
+  gameType: string;
+  insight: string;
+  level: PracticeLevel;
+  part?: "learn" | "analyze" | "predict";
+  conceptAnswers?: number[];
+  answers?: StrategyAnswers;
+  /** Why the user predicts that outcome. */
+  userWhy?: string;
+  result?: StrategyResult | null;
+  confidenceBefore: number | null;
+  aiPerspective: string | null;
+  aiPerspectiveStructured?: AIPerspectiveStructured | null;
+  createdAt: string;
+  completedAt: string | null;
+  currentStep?: number;
+  /** Optional one-line "what I take away", written at the end. */
+  takeaway?: string | null;
+}
+
+export type Exercise =
+  | AnalyticalExerciseRow
+  | SystemsExerciseRow
+  | EvaluativeExerciseRow
+  | JudgmentExerciseRow
+  | StrategyExerciseRow;
+
+export function isStrategyExercise(ex: Exercise): ex is StrategyExerciseRow {
+  return ex.type === "strategy";
+}
 
 export function isJudgmentExercise(ex: Exercise): ex is JudgmentExerciseRow {
   return ex.type === "judgment";
