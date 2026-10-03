@@ -142,6 +142,9 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
             : makeMockStandaloneSystemsPayload();
         break;
       }
+      case "judgment":
+        data = makeMockJudgmentPayload(body.level === "guided" ? 3 : 4);
+        break;
       default:
         data = makeMockAnalyticalAiPayload(domain);
     }
@@ -180,6 +183,24 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
               },
             ],
             takeaways: ["Mock takeaway: look for words that shrink the choices."],
+          },
+        }),
+      });
+      return;
+    }
+    if (kind === "judgment") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          text: "Mock judgment coaching.",
+          structured: {
+            perspectiveFormat: "coaching_v3",
+            title: "Mock situation",
+            items: [{ ref: "response_r2", why: "Mock why: a private talk saves face.", clue: "in front of everyone", nextTimeAsk: "Where should this talk happen?" }],
+            takeaways: ["Mock judgment takeaway: talk in private first."],
+            metaNote: "Mock note on your reason.",
           },
         }),
       });
@@ -464,5 +485,33 @@ function makeMockSystemsResiliencePayload() {
       indirectlyAffected: ["node_6"],
       explanation: "The already-strained transformer bank cascades into load-balancing failures.",
     },
+  };
+}
+
+/** A small life situation; `n` ways to respond (3 at Guided, 4 otherwise). r2 is the best. */
+export function makeMockJudgmentPayload(n: 3 | 4) {
+  const responses = [
+    { id: "r1", text: "Argue back in the meeting.", expertRank: n, why: "Public and defensive." },
+    { id: "r2", text: "Talk to the manager in private after the meeting.", expertRank: 1, why: "Saves face and fixes the record." },
+    { id: "r3", text: "Say nothing and fix it quietly.", expertRank: 2, why: "Calm, but the cause stays hidden." },
+    { id: "r4", text: "Complain to coworkers.", expertRank: 3, why: "Spreads blame." },
+  ].slice(0, n);
+  return {
+    title: "Criticized in a meeting",
+    scenario: "Your manager calls your report careless in front of everyone. One number came from another team.",
+    concepts: [
+      { term: "Saving face", plain: "Keeping respect in front of others.", example: "Correct a relative in private." },
+      { term: "Circle of control", plain: "Focus on what you can change.", example: "You cannot stop rain, but you can bring an umbrella." },
+      { term: "Cooling off", plain: "Wait until feelings calm down.", example: "Reply to an angry message tomorrow." },
+    ],
+    conceptChecks: [
+      { question: "Why talk in private?", options: ["To win", "To keep respect on both sides", "To avoid work"], answerIndex: 1, explanation: "Private talks let both sides keep face." },
+    ],
+    lensQuestions: [
+      { lens: "think", question: "What is the real problem?", options: ["The wrong number", "The manager", "The team"], answerIndex: 0, explanation: "Fix the number and its source." },
+      { lens: "people", question: "What might the manager feel?", options: ["Bored", "Stressed about the report", "Happy"], answerIndex: 1, explanation: "Stress, not malice." },
+      { lens: "steady", question: "What can you control?", options: ["Your next step", "The past", "Others' opinions"], answerIndex: 0, explanation: "Focus on what you do next." },
+    ],
+    responses,
   };
 }

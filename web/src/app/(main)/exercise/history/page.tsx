@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import type { ReactNode } from "react";
 import { startTransition, Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -33,6 +35,7 @@ import type { Exercise, ThinkingType } from "@/lib/types/exercise";
 import {
   isAnalyticalExercise,
   isEvaluativeExercise,
+  isJudgmentExercise,
   isSystemsExercise,
 } from "@/lib/types/exercise";
 import {
@@ -46,6 +49,7 @@ import {
 } from "@/lib/types/perspective";
 import { SystemsAnswerKey } from "@/components/exercises/SystemsAnswerKey";
 import { EvaluativeAnswerKey } from "@/components/exercises/EvaluativeAnswerKey";
+import { JudgmentAnswerKey } from "@/components/exercises/JudgmentAnswerKey";
 import { evaluativeResultOf } from "@/lib/exercise/evaluative-score";
 import { systemsResultOf } from "@/lib/exercise/systems-score";
 import { AnalyticalAnswerKey } from "@/components/exercises/AnalyticalAnswerKey";
@@ -431,8 +435,11 @@ function HistoryPageInner() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Exercise history</h1>
+        <Link href="/terms" className="text-sm underline underline-offset-4" data-testid="my-terms-link">
+          My terms
+        </Link>
       </div>
 
       {openExerciseHiddenByFilters ? (
@@ -485,6 +492,7 @@ function HistoryPageInner() {
                 <SelectItem value="analytical">Analytical</SelectItem>
                 <SelectItem value="systems">Systems</SelectItem>
                 <SelectItem value="evaluative">Evaluative</SelectItem>
+                <SelectItem value="judgment">Life situations</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -641,6 +649,27 @@ function HistoryPageInner() {
                       : null
                   }
                 />
+              </>
+            ) : isJudgmentExercise(detailEx) ? (
+              <>
+                <div>
+                  <h3 className="mb-1 font-medium">Situation</h3>
+                  <p className="whitespace-pre-wrap leading-relaxed">{detailEx.scenario}</p>
+                </div>
+                <p className="text-muted-foreground">
+                  Level: {LEVEL_LABELS[detailEx.level]} · {detailEx.context === "vietnam" ? "Vietnam" : "General"}
+                </p>
+                {detailEx.result ? (
+                  <JudgmentAnswerKey
+                    exercise={detailEx}
+                    result={detailEx.result}
+                    coaching={
+                      isCoachingStructured(detailEx.aiPerspectiveStructured)
+                        ? detailEx.aiPerspectiveStructured
+                        : null
+                    }
+                  />
+                ) : null}
               </>
             ) : null}
 
