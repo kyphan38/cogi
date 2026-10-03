@@ -25,6 +25,7 @@ import {
 import {
   analyticalResponseSchema,
   evaluativeResponseSchema,
+  judgmentResponseSchema,
   systemsResponseSchema,
 } from "@/lib/ai/response-schemas";
 import {
@@ -69,6 +70,13 @@ import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 import { isPracticeLevel } from "@/lib/exercise/levels";
 import { ANALYTICAL_LEVELS } from "@/lib/exercise/analytical-levels";
 import { EVALUATIVE_LEVELS } from "@/lib/exercise/evaluative-levels";
+import { JUDGMENT_LEVELS } from "@/lib/exercise/judgment-levels";
+import { buildJudgmentGenerationPrompt } from "@/lib/ai/prompts/judgment";
+import {
+  JUDGMENT_RETRY_SUFFIX,
+  parseJudgmentExerciseJson,
+  validateJudgmentSemantics,
+} from "@/lib/ai/validators/judgment";
 import {
   CUSTOM_DOMAIN_PLACEHOLDER,
   CUSTOM_SCENARIO_MAX_LEN,
@@ -186,6 +194,28 @@ export async function POST(req: Request) {
   const evaluativeLevel = EVALUATIVE_LEVELS[practiceLevel];
 
   try {
+    if (rawType === "judgment") {
+      // Life situations (PLAN-learning.md L1).
+      const cfg = JUDGMENT_LEVELS[practiceLevel];
+      const rawJudgmentContext = (body as { context?: unknown }).context;
+      const r = await generateValidatedJson({
+        prompt: buildJudgmentGenerationPrompt({
+          area: effectiveDomain,
+          context: rawJudgmentContext === "vietnam" ? "vietnam" : "general",
+          level: cfg,
+          userContext,
+          ownSituation: cfg.ownSituation ? scenarioForPrompt : undefined,
+          adaptationAppendix,
+        }),
+        parse: parseJudgmentExerciseJson,
+        validate: (data) => validateJudgmentSemantics(data, { responseCount: cfg.responseCount }),
+        retrySuffix: JUDGMENT_RETRY_SUFFIX,
+        responseJsonSchema: judgmentResponseSchema(),
+      });
+      if (!r.ok) return validatedJsonFailureResponse(r);
+      return NextResponse.json({ ok: true, data: r.data });
+    }
+
     if (exerciseType === "evaluative") {
       const rawEvaluativeTaskType = (body as { evaluativeTaskType?: unknown })
         .evaluativeTaskType;
