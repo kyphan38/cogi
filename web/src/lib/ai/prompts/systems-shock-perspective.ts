@@ -45,6 +45,14 @@ export function buildSystemsCoachingCases(input: {
       ].join("\n"),
     );
   }
+  for (const s of input.result.spread ?? []) {
+    const options = s.possibleVia.map(label).join(" or ") || "no affected neighbour in the model";
+    blocks.push(
+      `via_${s.nodeId} - how the shock reaches "${label(s.nodeId)}"\n  User: ${
+        s.correct ? `CORRECT - through "${label(s.via)}".` : `DIFFERENT - said through "${label(s.via)}"; the model path is through ${options}.`
+      }`,
+    );
+  }
   input.result.extraEdgeIds.forEach((id, i) => {
     const e = input.userEdges.find((x) => x.id === id);
     if (!e) return;
