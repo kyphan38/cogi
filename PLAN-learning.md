@@ -45,7 +45,20 @@ options[3], answerIndex, explanation }]` vào bài; validator kiểm tra số l�
 
 ---
 
-## Phase L1 - Tình huống đời sống (3 lăng kính) `[QUYẾT ĐỊNH: làm trước hay sau L2]`
+## Phase L1 - Tình huống đời sống (3 lăng kính) - XONG
+
+**Xong (2026-10-03)**, branch `learning/l1-life-situations`. Unit 540/540, E2E 118/118,
+`tsc` sạch, eslint 0 lỗi, build production đạt. Chủ app chọn thứ tự L1 -> L3 -> L2 -> L4.
+Gọi Gemini thật: 4/4 bài tạo mới đạt ngay lần đầu (bối cảnh Việt Nam tự nhiên; "Tình huống
+của tôi" giữ đúng sự việc); nhận xét giữ kết luận của code, giải thích qua 3 lăng kính.
+
+- Loại bài `judgment` ("Life situations") ở `/exercise/judgment`; trang "My terms" ở
+  `/terms` (link từ History).
+- AI hay đặt cách tốt nhất ở `r1` (3/3 bài Guided), nên giao diện xáo thứ tự cách phản
+  ứng và các lựa chọn theo id bài.
+- Guided: câu hỏi lăng kính hiện đáp án và giải thích ngay (học ngay tại chỗ), nên phần
+  "Lenses matched" ở cấp này dễ đạt; Standard không hiện đáp án trước.
+- Một lần Gemini trả lỗi 504 (phía máy chủ Gemini); bấm Generate lại là được.
 
 Dạng bài phán đoán tình huống (Situational Judgment Test). Không gọi là "luyện IQ/EQ/
 AQ" (đó là chỉ số, không phải kỹ năng); dùng chúng làm 3 lăng kính:
@@ -78,7 +91,7 @@ tuyệt đối, nên dùng "gần / khác" như Evaluative.
 - Đánh giá cho gợi ý lên cấp: tốt khi cách tốt nhất trùng chuyên gia và thứ hạng gần;
   không bao giờ "yếu" (chủ quan).
 
-## Phase L2 - Tình huống chiến lược (lý thuyết trò chơi) `[QUYẾT ĐỊNH: làm trước hay sau L1]`
+## Phase L2 - Tình huống chiến lược (lý thuyết trò chơi)
 
 **Luồng:** Learn first (ví dụ: player, payoff, dominant strategy, Nash equilibrium) →
 đọc tình huống thật (cuộc chiến giá, đàm phán lương, thuế quan) → xác định người chơi và
