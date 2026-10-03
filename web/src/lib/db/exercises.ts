@@ -7,6 +7,7 @@ import {
   type RowQuery,
 } from "@/lib/db/firestore";
 import type { Exercise, ThinkingType } from "@/lib/types/exercise";
+import type { AnalyticalDeepDive } from "@/lib/types/perspective";
 import { PRACTICE_EXERCISE_TYPES } from "@/lib/exercise/exercise-mode-cards";
 import { e2eDeleteDoc, e2eGetDoc, e2eSetDoc, isE2EAuthBypass } from "@/lib/db/e2e-firestore-memory";
 import { stripUndefinedDeep } from "@/lib/db/strip-undefined-deep";
@@ -18,6 +19,27 @@ export async function putExercise(ex: Exercise): Promise<void> {
     return;
   }
   await setDoc(userDocRef<Exercise>(COGI_COLLECTIONS.exercises, ex.id), data);
+}
+
+/**
+ * Save one "Go deeper" analysis without touching the rest of the row, so two
+ * requests that finish close together cannot overwrite each other.
+ */
+export async function saveDeepDive(exerciseId: string, ref: string, deepDive: AnalyticalDeepDive): Promise<void> {
+  const patch = stripUndefinedDeep({ deepDives: { [ref]: deepDive } }) as Record<string, unknown>;
+  if (isE2EAuthBypass()) {
+    const row = await e2eGetDoc<Exercise & { deepDives?: Record<string, AnalyticalDeepDive> }>(
+      COGI_COLLECTIONS.exercises,
+      exerciseId,
+    );
+    if (!row) return;
+    await e2eSetDoc(COGI_COLLECTIONS.exercises, exerciseId, {
+      ...row,
+      deepDives: { ...row.deepDives, [ref]: deepDive },
+    } as unknown as Record<string, unknown>);
+    return;
+  }
+  await setDoc(userDocRef(COGI_COLLECTIONS.exercises, exerciseId), patch, { merge: true });
 }
 
 export async function getExercise(id: string): Promise<Exercise | undefined> {
