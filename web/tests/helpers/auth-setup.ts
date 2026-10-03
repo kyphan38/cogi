@@ -159,6 +159,29 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
     });
   });
 
+  await page.route("**/api/ai/deep-dive", async (route: Route) => {
+    let ref = "";
+    try {
+      ref = (JSON.parse(route.request().postData() ?? "{}") as { ref?: string }).ref ?? "";
+    } catch {
+      // keep empty
+    }
+    const isDecoy = ref.startsWith("decoy_");
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        deepDive: {
+          core: isDecoy ? "Mock core: it sounds bold at first." : "Mock core: it hides the middle options.",
+          examples: ["Mock case one.", "Mock case two."],
+          alsoCalled: isDecoy ? [] : [{ name: "Non sequitur (kết luận không tất suy)", note: "Mock note: the end does not follow." }],
+          fairer: "Mock fairer sentence.",
+        },
+      }),
+    });
+  });
+
   await page.route("**/api/ai/perspective", async (route: Route) => {
     let kind: unknown;
     try {

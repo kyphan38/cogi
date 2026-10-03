@@ -8,6 +8,7 @@ import { judgmentExerciseSchema } from "@/lib/ai/validators/judgment";
 import { strategyExerciseSchema } from "@/lib/ai/validators/strategy";
 import { z } from "zod";
 import { analyticalExerciseSchema } from "@/lib/ai/validators/common";
+import { analyticalDeepDiveSchema } from "@/lib/ai/validators/deep-dive";
 import {
   geopoliticsScoringPayloadSchema,
   matrixPayloadSchema,
@@ -39,6 +40,11 @@ export function evaluativeResponseSchema(
   if (taskType === "uncertainty") return toGeminiSchema(uncertaintyPayloadSchema);
   if (isGeopolitics) return toGeminiSchema(geopoliticsScoringPayloadSchema);
   return toGeminiSchema(z.union([matrixPayloadSchema, scoringPayloadSchema]));
+}
+
+/** "Go deeper" on one Analytical answer-key item (PLAN-deep-dive.md D2). */
+export function analyticalDeepDiveResponseSchema(): Record<string, unknown> {
+  return toGeminiSchema(analyticalDeepDiveSchema);
 }
 
 /** Strategic situations (PLAN-learning.md L2). */

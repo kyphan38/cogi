@@ -55,6 +55,7 @@ import { StrategyAnswerKey } from "@/components/exercises/StrategyAnswerKey";
 import { evaluativeResultOf } from "@/lib/exercise/evaluative-score";
 import { systemsResultOf } from "@/lib/exercise/systems-score";
 import { AnalyticalAnswerKey } from "@/components/exercises/AnalyticalAnswerKey";
+import { requestAnalyticalDeepDive, withDeepDive } from "@/lib/exercise/deep-dive";
 import { analyticalResultOf } from "@/lib/exercise/analytical-score";
 import { LEVEL_LABELS } from "@/lib/exercise/levels";
 import type { ClarityPerspectiveKind } from "@/lib/types/perspective";
@@ -613,6 +614,13 @@ function HistoryPageInner() {
                     ? detailEx.aiPerspectiveStructured
                     : null
                 }
+                deepDives={detailEx.deepDives}
+                onRequestDeepDive={async (ref) => {
+                  const d = await requestAnalyticalDeepDive(detailEx, ref);
+                  setDetailEx((prev) =>
+                    prev && prev.id === detailEx.id && isAnalyticalExercise(prev) ? withDeepDive(prev, ref, d) : prev,
+                  );
+                }}
               />
               </>
             ) : isSystemsExercise(detailEx) ? (
