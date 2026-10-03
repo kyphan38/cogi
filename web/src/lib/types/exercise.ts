@@ -8,9 +8,18 @@ import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import type { PracticeLevel } from "@/lib/exercise/levels";
 import type { SystemsResult } from "@/lib/exercise/systems-score";
 import type { EvaluativeResult } from "@/lib/exercise/evaluative-score";
+import type { JudgmentResult } from "@/lib/exercise/judgment-score";
+import type { JudgmentContext } from "@/lib/exercise/judgment-levels";
+import type {
+  JudgmentChoiceQuestion,
+  JudgmentConcept,
+  JudgmentLens,
+  JudgmentLensQuestion,
+  JudgmentResponse,
+} from "@/lib/ai/validators/judgment";
 
 /** The exercise types the app offers. Old rows of removed types may still exist in Firestore. */
-export type ThinkingType = "analytical" | "systems" | "evaluative";
+export type ThinkingType = "analytical" | "systems" | "evaluative" | "judgment";
 
 /** Pre-defined combo chains (Phase 6.5). */
 export type { EvaluativeQuadrant };
@@ -376,7 +385,52 @@ export interface EvaluativeUncertaintyRow {
 
 export type EvaluativeExerciseRow = EvaluativeMatrixRow | EvaluativeScoringRow | EvaluativeUncertaintyRow;
 
-export type Exercise = AnalyticalExerciseRow | SystemsExerciseRow | EvaluativeExerciseRow;
+/** Life situation read through three lenses (PLAN-learning.md L1). */
+export interface JudgmentExerciseRow {
+  id: string;
+  type: "judgment";
+  /** Area of life, e.g. Work or Family. */
+  domain: string;
+  context: JudgmentContext;
+  /** "My situation": what really happened, in the user's words. */
+  customScenario?: string;
+  title: string;
+  scenario: string;
+  concepts: JudgmentConcept[];
+  conceptChecks: JudgmentChoiceQuestion[];
+  lensQuestions: JudgmentLensQuestion[];
+  responses: JudgmentResponse[];
+  level: PracticeLevel;
+  /** Where the user is inside the work step, for resuming. */
+  part?: "learn" | "lenses" | "respond";
+  /** Picked option index per concept check (original index, not the shuffled position). */
+  conceptAnswers?: number[];
+  /** Picked option index per lens (choice levels). */
+  lensAnswers?: Partial<Record<JudgmentLens, number>>;
+  /** Free-text readings per lens (Expert). */
+  lensText?: Partial<Record<JudgmentLens, string>>;
+  /** Response ids, best first. */
+  userOrder?: string[];
+  /** Why the first choice, in one or two sentences. */
+  userWhy?: string;
+  /** Expert: the user's own way to respond. */
+  ownResponse?: string;
+  result?: JudgmentResult | null;
+  confidenceBefore: number | null;
+  aiPerspective: string | null;
+  aiPerspectiveStructured?: AIPerspectiveStructured | null;
+  createdAt: string;
+  completedAt: string | null;
+  currentStep?: number;
+  /** Optional one-line "what I take away", written at the end. */
+  takeaway?: string | null;
+}
+
+export type Exercise = AnalyticalExerciseRow | SystemsExerciseRow | EvaluativeExerciseRow | JudgmentExerciseRow;
+
+export function isJudgmentExercise(ex: Exercise): ex is JudgmentExerciseRow {
+  return ex.type === "judgment";
+}
 
 export function isAnalyticalExercise(ex: Exercise): ex is AnalyticalExerciseRow {
   return ex.type === "analytical";
