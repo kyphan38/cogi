@@ -1,16 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Trash2 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { Exercise } from "@/lib/types/exercise";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
 import { currentTrack, trackProgress, trackStepHref } from "@/lib/exercise/tracks";
+import { DISCARD_BUTTON_CLASS } from "@/components/dashboard/discard-button";
 
 /** Home: the topic track in progress and its next step (PLAN-learning.md L3). */
-export function TrackCard({ completed }: { completed: Exercise[] }) {
+export function TrackCard({
+  completed,
+  incomplete = [],
+  onDiscard,
+}: {
+  completed: Exercise[];
+  /** Unfinished exercises; one on the next step's topic is offered to continue. */
+  incomplete?: Exercise[];
+  onDiscard?: (e: React.MouseEvent, id: string) => void;
+}) {
   const track = currentTrack(completed);
   return (
     <Card data-testid="track-card">
@@ -25,6 +35,9 @@ export function TrackCard({ completed }: { completed: Exercise[] }) {
           (() => {
             const { doneIds, next } = trackProgress(track, completed);
             const i = track.steps.findIndex((s) => s.id === next?.id);
+            const inProgress = next
+              ? incomplete.find((e) => e.type === next.type && e.domain.trim() === next.domain)
+              : undefined;
             return (
               <>
                 <div className="min-w-0">
@@ -41,13 +54,26 @@ export function TrackCard({ completed }: { completed: Exercise[] }) {
                       </p>
                       <p className="text-foreground">{next.learn}</p>
                     </div>
-                    <Link
-                      href={trackStepHref(next)}
-                      className={cn(buttonVariants({ size: "sm" }), "inline-flex shrink-0 items-center gap-1")}
-                      data-testid="track-next-step"
-                    >
-                      Start <ChevronRight className="size-4" aria-hidden />
-                    </Link>
+                    <div className="group/item flex shrink-0 items-center gap-1">
+                      <Link
+                        href={inProgress ? `/exercise/${inProgress.type}?resumeId=${inProgress.id}` : trackStepHref(next)}
+                        className={cn(buttonVariants({ size: "sm" }), "inline-flex shrink-0 items-center gap-1")}
+                        data-testid="track-next-step"
+                      >
+                        {inProgress ? "Continue" : "Start"} <ChevronRight className="size-4" aria-hidden />
+                      </Link>
+                      {inProgress && onDiscard ? (
+                        <button
+                          type="button"
+                          aria-label="Discard the unfinished exercise for this step"
+                          onClick={(e) => onDiscard(e, inProgress.id)}
+                          className={DISCARD_BUTTON_CLASS}
+                          data-testid="track-discard"
+                        >
+                          <Trash2 className="size-3.5" aria-hidden />
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 ) : null}
               </>
