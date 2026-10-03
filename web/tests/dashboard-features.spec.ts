@@ -82,7 +82,20 @@ test.describe("AppTopNav navigation", () => {
   test("nav bar renders all primary links", async ({ page }) => {
     await gotoAuthenticated(page, "/");
     const nav = page.getByRole("navigation", { name: "Main" });
-    await expect(nav.getByRole("link")).toHaveText(["Practice", "History", "Settings"]);
+    await expect(nav.getByRole("link")).toHaveText(["Practice", "History", "Settings", "Handbook"]);
+  });
+
+  test("the Handbook tab opens the handbook, active in the nav", async ({ page }) => {
+    await gotoAuthenticated(page, "/");
+    await clickMainNavLink(page, "Handbook", "/handbook");
+    await expect(page.getByRole("heading", { name: "Handbook", level: 1 })).toBeVisible();
+    const nav = page.getByRole("navigation", { name: "Main" });
+    await expect(nav.getByRole("link", { name: "Handbook" })).toHaveClass(/font-medium/);
+    await expect(page.getByTestId("handbook-start")).toContainText("Start here");
+    // Every exercise type and tool has an entry, reachable from the contents.
+    await expect(page.getByTestId("handbook-entry")).toHaveCount(11);
+    await page.getByTestId("handbook-contents").getByRole("link", { name: "Strategic situations" }).click();
+    await expect(page).toHaveURL(/#strategy$/);
   });
 
   test("Practice stays active while picking and doing an exercise", async ({ page }) => {
