@@ -26,6 +26,13 @@ export const ALL_EXERCISE_CARDS: {
     title: "Compare options fairly",
     desc: "Matrix or weighted scoring against hidden tradeoffs.",
   },
+  {
+    type: "judgment",
+    href: "/exercise/judgment",
+    label: "Life situations",
+    title: "Handle real-life situations",
+    desc: "Read a situation through three lenses, then choose how to respond.",
+  },
 ];
 
 /**
@@ -33,7 +40,7 @@ export const ALL_EXERCISE_CARDS: {
  * systems 3, analytical 1 of 9 exercises). Old exercises of removed types still
  * show in History, under their raw type name.
  */
-export const PRACTICE_EXERCISE_TYPES = ["evaluative", "systems", "analytical"] as const;
+export const PRACTICE_EXERCISE_TYPES = ["evaluative", "systems", "analytical", "judgment"] as const;
 
 export const PRACTICE_EXERCISE_CARDS = PRACTICE_EXERCISE_TYPES.map(
   (type) => ALL_EXERCISE_CARDS.find((c) => c.type === type)!,
@@ -43,4 +50,5 @@ export const TYPE_LABEL: Record<string, string> = {
   analytical: "Analytical",
   systems: "Systems",
   evaluative: "Evaluative",
+  judgment: "Life situations",
 };

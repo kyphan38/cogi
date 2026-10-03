@@ -23,7 +23,10 @@ import {
   type ScoringResult,
   type UncertaintyResult,
 } from "@/lib/exercise/evaluative-score";
-import type { EvaluativeExerciseRow } from "@/lib/types/exercise";
+import type { EvaluativeExerciseRow, JudgmentExerciseRow } from "@/lib/types/exercise";
+import { judgmentCoachingRefs, scoreJudgment } from "@/lib/exercise/judgment-score";
+import { JUDGMENT_LEVELS, LENS_INFO } from "@/lib/exercise/judgment-levels";
+import { buildJudgmentPerspectivePrompt } from "@/lib/ai/prompts/judgment-perspective";
 import { ANALYTICAL_TAG_OPTIONS, GEOPOLITICS_TAG_OPTIONS } from "@/lib/exercise/tag-labels";
 import type { EmbeddedIssue } from "@/lib/types/exercise";
 import type { UserHighlight } from "@/lib/types/exercise";
@@ -110,6 +113,52 @@ export async function POST(req: Request) {
   }
   const b = body as Record<string, unknown>;
   const languageAppendix = buildLanguageLevelAppendix(resolveLanguageLevel(b));
+  if (b.kind === "judgment") {
+    const exercise = b.exercise as JudgmentExerciseRow | undefined;
+    if (!exercise || exercise.type !== "judgment" || !Array.isArray(exercise.responses)) {
+      return NextResponse.json({ ok: false, error: "judgment requires the exercise row" }, { status: 400 });
+    }
+    const cfg = JUDGMENT_LEVELS[exercise.level] ?? JUDGMENT_LEVELS.guided;
+    const result = scoreJudgment({
+      responses: exercise.responses,
+      userOrder: exercise.userOrder ?? [],
+      lensQuestions: exercise.lensQuestions,
+      lensAnswers: exercise.lensAnswers ?? {},
+      lensFreeText: cfg.lensMode === "free",
+    });
+    const refs = judgmentCoachingRefs(result, { hasOwnResponse: Boolean(exercise.ownResponse?.trim()) });
+    const prompt = buildJudgmentPerspectivePrompt({
+      exercise,
+      result,
+      requiredRefs: refs.required,
+      userContext: typeof b.userContext === "string" ? b.userContext : undefined,
+    });
+    try {
+      const { structured, text } = await generateCoaching(
+        prompt,
+        languageAppendix,
+        { ...refs, requireMetaNote: true },
+        (ref) => {
+          if (ref === "own") return "Your own response";
+          if (ref.startsWith("lens_")) {
+            const lens = ref.slice(5) as keyof typeof LENS_INFO;
+            return LENS_INFO[lens]?.name ?? ref;
+          }
+          const resp = exercise.responses.find((x) => `response_${x.id}` === ref);
+          return resp ? `Response: ${resp.text}` : ref;
+        },
+      );
+      return NextResponse.json({ ok: true, structured, text, result });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      const timeout = e instanceof Error && (e.name === "AbortError" || /time(d)? ?out/i.test(e.message));
+      return NextResponse.json(
+        { ok: false, error: timeout ? "Exercise generation timed out. Please try again." : message },
+        { status: timeout ? 504 : 500 },
+      );
+    }
+  }
+
   const kind =
     b.kind === "systems"
       ? "systems"
