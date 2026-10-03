@@ -111,7 +111,24 @@ chơi ở Expert.
 | Ma trận | Cho sẵn lợi ích; bạn tìm phản ứng tốt nhất và điểm cân bằng | Bạn tự xếp thứ tự lợi ích từ câu chuyện | Tự dựng từ tin tức thật |
 | Dạng trò chơi | Kinh điển (song đề tù nhân, phối hợp, gà con) | Biến thể đời thực | Bất kỳ |
 
-## Phase L3 - Lộ trình chủ đề kinh tế, tài chính, địa chính trị
+## Phase L3 - Lộ trình chủ đề kinh tế, tài chính, địa chính trị - XONG
+
+**Xong (2026-10-03)**, branch `learning/l3-topic-tracks`. Unit 548/548, E2E 122/122,
+`tsc` sạch, eslint 0 lỗi, build production đạt. Gọi Gemini thật: cả 15 bước tạo bài
+đạt ngay lần đầu ở cấp Guided.
+
+- 3 lộ trình x 5 bước: "Money and interest rates", "Prices and inflation", "How
+  countries trade and compete" (`lib/exercise/tracks.ts`). Home có thẻ "Learning
+  track"; trang `/tracks` liệt kê mọi bước.
+- Không cần dữ liệu mới: một bước xong khi có bài đã hoàn thành cùng loại và cùng chủ
+  đề. Bấm Start mở bài với chủ đề điền sẵn; người dùng vẫn tự chọn cấp và bấm Generate
+  (tránh tạo bài trước khi cấp đã tải xong).
+- Mỗi bước chạy ở cấp hiện tại của người dùng cho loại bài đó (người mới: Guided), thay
+  vì ép Guided, để không kéo người đã lên cấp xuống.
+- Lộ trình địa chính trị viết chủ đề không chứa từ khóa geopolitics, để không bị ép lên
+  Expert; có test chặn.
+- Phát hiện lỗi ngoài phạm vi: từ khóa `"bri"` so khớp chuỗi con ("bring", "bridge"...)
+  nên nhiều chủ đề thường bị coi là geopolitics. Đã tạo việc riêng để sửa.
 
 Gần như không thêm code: danh sách chủ đề có thứ tự, mỗi mục chỉ ra loại bài + chủ đề +
 cấp. Ví dụ lộ trình "Tiền và lãi suất":
