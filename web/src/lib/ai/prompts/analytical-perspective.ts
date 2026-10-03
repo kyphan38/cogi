@@ -178,14 +178,17 @@ Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
 Write one item for each of these refs: ${input.requiredRefs.join(", ") || "(none)"}. You may add items for other refs in CASES, but keep it short.
 
 How to write each item:
-- "why": at most 2 short sentences. Follow the verdict:
+- "why": 2-3 short sentences; the last one is a concrete example (see below). Follow the verdict:
   - CORRECT: confirm it plainly ("Yes - ..."), then say why it is a problem. Do not suggest a "better" tag.
   - FOUND, DIFFERENT TAG: say the planned tag fits better and why, using that tag's question. Be kind - they found the problem.
   - MISSED: explain what the problem is, in simple words.
   - TRAPPED: explain why the statement is actually sound.
   - NOT TOUCHED / NEUTRAL decoy: explain briefly why it looks suspicious but holds up.
   - extra: judge fairly whether the concern holds up. If it is reasonable, say so; if not, say gently why not.
-- "clue": the words in the passage that signal it (quote 2-6 words), and what kind of signal they are.
+  Do not just repeat what the tag means. Make the last sentence ONE concrete, everyday example:
+  - for a problem (issue_ items, and an extra that holds up): a real case the passage ignores or gets wrong, e.g. "A couple can trust each other and still keep separate accounts, e.g. one partner is paying off a student loan."
+  - for a sound statement (decoy_ items, and an extra that does not hold up): the concrete reason it stands, e.g. "Recording spending for 90 days is a common, tested budgeting step."
+- "clue": quote 2-6 words from the passage, then name the signal in plain words. Format: "<quoted words>" - <signal>. Example: "\"single month proves\" - a big rule from one short period". Other signals: an absolute word, a small online poll, a cause claimed from one example. Always include the signal part; no vague phrases like "which forces an unfair choice".
 - "nextTimeAsk": one question to ask yourself next time, at most 15 words.
 - "subtypeName": usually leave it out. Add it only on an issue_ item, and only when the name is a textbook kind of that issue's planned tag (e.g. "False dilemma" for Logical Fallacy, "Small sample" for Weak Evidence). It is shown as "a type of <planned tag>", so it must truly belong under that tag. Never repeat the tag name, never invent new tags, and use it at most twice per reply.
 - Only use the tag names listed above.

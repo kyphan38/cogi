@@ -110,6 +110,13 @@ describe("buildAnalyticalPerspectivePrompt", () => {
     expect(p).toContain("- Missing Actor / Perspective: Who is affected but never mentioned?");
   });
 
+  it("asks for a concrete example in why and a named signal in clue", () => {
+    const p = build([]);
+    expect(p).toContain("Do not just repeat what the tag means");
+    expect(p).toContain("ONE concrete, everyday example");
+    expect(p).toContain("then name the signal in plain words");
+  });
+
   it("omits the perspective block for plain passages", () => {
     expect(build([])).not.toContain("PERSPECTIVE GUESS");
   });
