@@ -2,6 +2,12 @@
 
 Viết ngày 2026-10-03, sau buổi trao đổi với chủ app.
 
+**Trạng thái: D1 + D2 XONG (2026-10-03)** trên branch `feedback/deep-dive`, chưa merge.
+Unit 578/578, E2E 136/136, `tsc` sạch, eslint 0 lỗi, build production đạt. Gemini thật:
+D1 mỗi mục đều có ví dụ cụ thể và clue gọi tên tín hiệu; D2 khoảng 7 giây mỗi lần, ra
+"Non sequitur" làm góc nhìn khác cho false dilemma. Lưu bằng Firestore merge trên
+`deepDives.<ref>` để hai lần bấm gần nhau không ghi đè nhau.
+
 Quy trình giống các plan trước: một branch `feedback/deep-dive` (worktree riêng
 `../cogi-deep-dive`), mỗi mục một commit. Cuối: `tsc`, `eslint`, `vitest`, Playwright,
 build production, gọi Gemini thật để xem chất lượng, chụp màn hình desktop + mobile,
