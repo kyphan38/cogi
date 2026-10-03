@@ -86,7 +86,7 @@ test.describe("Mobile 390px - nothing runs past the screen edge", () => {
     expect(await overflowing(page)).toEqual([]);
   });
 
-  for (const path of ["/reasoning", "/exercise/history", "/settings", "/exercise/analytical", "/exercise/evaluative", "/exercise/systems"]) {
+  for (const path of ["/reasoning", "/exercise/history", "/settings", "/exercise/analytical", "/exercise/evaluative", "/exercise/systems", "/exercise/judgment", "/terms"]) {
     test(`page ${path}`, async ({ page }) => {
       await gotoAuthenticated(page, path);
       await page.waitForTimeout(500);
@@ -144,6 +144,26 @@ test.describe("Mobile 390px - nothing runs past the screen edge", () => {
     expect(await overflowing(page)).toEqual([]);
     await page.getByRole("button", { name: "Get AI feedback" }).click();
     await expect(page.getByTestId("evaluative-answer-key")).toBeVisible({ timeout: 15_000 });
+    expect(await overflowing(page)).toEqual([]);
+  });
+
+  test("life situations: learn first, lenses, ranking and comparison", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/judgment");
+    await page.getByTestId("level-picker").getByRole("button", { name: /^Standard/ }).click();
+    await page.getByRole("button", { name: "Generate exercise" }).click();
+    await expect(page.getByTestId("learn-first")).toBeVisible({ timeout: 15_000 });
+    expect(await overflowing(page)).toEqual([]);
+    await page.getByRole("radio", { name: "To keep respect on both sides" }).click();
+    await page.getByRole("button", { name: "Start the exercise" }).click();
+    for (const answer of ["The wrong number", "Stressed about the report", "Your next step"]) {
+      await page.getByRole("radio", { name: answer }).click();
+    }
+    expect(await overflowing(page)).toEqual([]);
+    await page.getByRole("button", { name: "Choose a response" }).click();
+    await page.getByLabel(/Why is your first choice/).fill("It keeps respect.");
+    expect(await overflowing(page)).toEqual([]);
+    await page.getByRole("button", { name: "Get AI feedback" }).click();
+    await expect(page.getByTestId("judgment-answer-key")).toBeVisible({ timeout: 15_000 });
     expect(await overflowing(page)).toEqual([]);
   });
 });
