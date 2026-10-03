@@ -15,6 +15,7 @@ import { logFirestoreQueryError } from "@/lib/db/firestore";
 import type { Exercise } from "@/lib/types/exercise";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
 import { computeStreak } from "@/lib/exercise/streak";
+import { TrackCard } from "@/components/dashboard/TrackCard";
 import { cn } from "@/lib/utils";
 
 /** How many in-progress and recently finished exercises the start page lists. */
@@ -50,6 +51,7 @@ const rowLinkClass =
 export function HomeContent() {
   const [incompleteExercises, setIncompleteExercises] = useState<Exercise[]>([]);
   const [completedExercises, setCompletedExercises] = useState<Exercise[]>([]);
+  const [allCompleted, setAllCompleted] = useState<Exercise[] | null>(null);
   const [stats, setStats] = useState<{ completed: number; streak: number } | null>(null);
 
   useEffect(() => {
@@ -63,6 +65,7 @@ export function HomeContent() {
         if (cancelled) return;
         setIncompleteExercises(incomplete.slice(0, HOME_LIST_SIZE));
         setCompletedExercises(completed.slice(0, HOME_LIST_SIZE));
+        setAllCompleted(completed);
         setStats({ completed: completed.length, streak: computeStreak(completed) });
       } catch (e) {
         if (!cancelled) logFirestoreQueryError("HomeContent", "listExercises", e);
@@ -103,6 +106,8 @@ export function HomeContent() {
           New exercise
         </Link>
       </div>
+
+      {allCompleted ? <TrackCard completed={allCompleted} /> : null}
 
       {incompleteExercises.length > 0 && (
         <Card>
