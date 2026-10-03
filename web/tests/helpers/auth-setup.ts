@@ -142,6 +142,9 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
             : makeMockStandaloneSystemsPayload();
         break;
       }
+      case "strategy":
+        data = makeMockStrategyPayload(body.level === "expert");
+        break;
       case "judgment":
         data = makeMockJudgmentPayload(body.level === "guided" ? 3 : 4);
         break;
@@ -183,6 +186,24 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
               },
             ],
             takeaways: ["Mock takeaway: look for words that shrink the choices."],
+          },
+        }),
+      });
+      return;
+    }
+    if (kind === "strategy") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          text: "Mock strategy coaching.",
+          structured: {
+            perspectiveFormat: "coaching_v3",
+            title: "Food truck price war",
+            items: [{ ref: "prediction", why: "Mock why: cutting is each side's best reply.", clue: "steal the crowd", nextTimeAsk: "What is my best reply to each choice?" }],
+            takeaways: ["Mock strategy takeaway: look for each side's best reply first."],
+            metaNote: "Mock note on your reason.",
           },
         }),
       });
@@ -513,5 +534,50 @@ export function makeMockJudgmentPayload(n: 3 | 4) {
       { lens: "steady", question: "What can you control?", options: ["Your next step", "The past", "Others' opinions"], answerIndex: 0, explanation: "Focus on what you do next." },
     ],
     responses,
+  };
+}
+
+/** A food-truck price war (prisoner's dilemma): equilibrium a2|b2 (both cut). Expert adds a third choice. */
+export function makeMockStrategyPayload(expert: boolean) {
+  const optionsA = [
+    { id: "a1", label: "Keep price" },
+    { id: "a2", label: "Cut price" },
+    ...(expert ? [{ id: "a3", label: "Add a free drink" }] : []),
+  ];
+  const cells = [
+    { a: "a1", b: "b1", payoffA: 7, payoffB: 7, story: "Both keep prices and share good profits." },
+    { a: "a1", b: "b2", payoffA: 1, payoffB: 10, story: "Burrito Bar cuts and steals the crowd." },
+    { a: "a2", b: "b1", payoffA: 10, payoffB: 1, story: "Taco Town cuts and steals the crowd." },
+    { a: "a2", b: "b2", payoffA: 3, payoffB: 3, story: "Both cut and barely profit." },
+    ...(expert
+      ? [
+          { a: "a3", b: "b1", payoffA: 6, payoffB: 4, story: "A free drink wins some customers from a steady rival." },
+          { a: "a3", b: "b2", payoffA: 2, payoffB: 6, story: "The free drink cannot beat a price cut." },
+        ]
+      : []),
+  ];
+  return {
+    title: "Food truck price war",
+    scenario: "Taco Town and Burrito Bar park side by side and set prices each morning without talking.",
+    concepts: [
+      { term: "Best reply", plain: "Your best choice given what the other side does.", example: "Bring an umbrella if rain is coming." },
+      { term: "Nash equilibrium", plain: "An outcome where nobody wants to change alone.", example: "Everyone drives on the same side of the road." },
+      { term: "Dominant strategy", plain: "A choice that is best whatever others do.", example: "Studying helps whatever the exam is." },
+    ],
+    conceptChecks: [
+      { question: "What is a best reply?", options: ["Your best choice given the other's choice", "The fairest choice", "The first choice"], answerIndex: 0, explanation: "It depends on what the other side does." },
+    ],
+    players: [
+      { id: "A", name: "Taco Town", goal: "the most profit" },
+      { id: "B", name: "Burrito Bar", goal: "the most profit" },
+    ],
+    optionsA,
+    optionsB: [
+      { id: "b1", label: "Keep price" },
+      { id: "b2", label: "Cut price" },
+    ],
+    cells,
+    gameType: "prisoners_dilemma",
+    insight: "Each side's best reply leads both to a worse outcome.",
   };
 }

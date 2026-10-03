@@ -33,6 +33,13 @@ export const ALL_EXERCISE_CARDS: {
     title: "Handle real-life situations",
     desc: "Read a situation through three lenses, then choose how to respond.",
   },
+  {
+    type: "strategy",
+    href: "/exercise/strategy",
+    label: "Strategic situations",
+    title: "Think like a game theorist",
+    desc: "Find each side's best reply and predict where they end up.",
+  },
 ];
 
 /**
@@ -40,7 +47,7 @@ export const ALL_EXERCISE_CARDS: {
  * systems 3, analytical 1 of 9 exercises). Old exercises of removed types still
  * show in History, under their raw type name.
  */
-export const PRACTICE_EXERCISE_TYPES = ["evaluative", "systems", "analytical", "judgment"] as const;
+export const PRACTICE_EXERCISE_TYPES = ["evaluative", "systems", "analytical", "judgment", "strategy"] as const;
 
 export const PRACTICE_EXERCISE_CARDS = PRACTICE_EXERCISE_TYPES.map(
   (type) => ALL_EXERCISE_CARDS.find((c) => c.type === type)!,
@@ -51,4 +58,5 @@ export const TYPE_LABEL: Record<string, string> = {
   systems: "Systems",
   evaluative: "Evaluative",
   judgment: "Life situations",
+  strategy: "Strategic situations",
 };
