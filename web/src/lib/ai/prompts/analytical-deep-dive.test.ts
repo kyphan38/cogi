@@ -31,7 +31,8 @@ describe("buildAnalyticalDeepDivePrompt", () => {
     expect(p).toContain("It offers only two options.");
     expect(p).toContain('Never use these names: "Logical Fallacy"');
     expect(p).toContain('"False dilemma"');
-    expect(p).toContain("Vietnamese name in brackets");
+    expect(p).toContain("English only, in every field");
+    expect(p).not.toMatch(/[\u1EA0-\u1EF9đ]/);
   });
 
   it("explains a sound statement without other names", () => {

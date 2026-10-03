@@ -61,15 +61,17 @@ phần phân tích sâu theo khung cố định:
 
 Không dùng chữ "Hidden assumption" làm tiêu đề vì trùng tên một tag.
 
-Thuật ngữ: lần đầu nhắc tên một kiểu lỗi, thêm tên tiếng Việt trong ngoặc, ví dụ
-"False dilemma (song đề sai)". Phần còn lại viết tiếng Anh theo Language level.
+Ngôn ngữ: chỉ tiếng Anh, không một chữ tiếng Việt (chủ app đổi ý 2026-10-03, ban đầu có
+kèm tên tiếng Việt trong ngoặc). Validator bắt chữ tiếng Việt và cho AI viết lại; các
+phân tích đã lưu trước đó được bỏ phần ngoặc tiếng Việt khi hiển thị.
 
 Các bước:
 
 1. **Kiểu dữ liệu + validator.** `AnalyticalDeepDive { ref, core, examples[], alsoCalled[{ name,
    note }], fairer }` trong `lib/types/perspective.ts`; `deepDives?: Record<ref,
    AnalyticalDeepDive>` trên `AnalyticalExerciseRow`. Validator zod: đúng ref, 2-4 ví
-   dụ, `alsoCalled` không trùng tên tag/subtype, trap thì `alsoCalled` rỗng.
+   dụ, `alsoCalled` không trùng tên tag/subtype, trap thì `alsoCalled` rỗng, không có chữ
+   tiếng Việt.
 2. **Prompt** `lib/ai/prompts/analytical-deep-dive.ts`: một ref mỗi lần, có đoạn văn,
    câu được đánh dấu, tag, ghi chú của tác giả, `why` đã có (để không lặp lại).
 3. **Route** `POST /api/ai/deep-dive`: đăng nhập, kiểm tra body bằng zod, gọi Gemini
