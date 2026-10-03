@@ -26,6 +26,7 @@ import {
   analyticalResponseSchema,
   evaluativeResponseSchema,
   judgmentResponseSchema,
+  strategyResponseSchema,
   systemsResponseSchema,
 } from "@/lib/ai/response-schemas";
 import {
@@ -71,6 +72,13 @@ import { isPracticeLevel } from "@/lib/exercise/levels";
 import { ANALYTICAL_LEVELS } from "@/lib/exercise/analytical-levels";
 import { EVALUATIVE_LEVELS } from "@/lib/exercise/evaluative-levels";
 import { JUDGMENT_LEVELS } from "@/lib/exercise/judgment-levels";
+import { STRATEGY_LEVELS } from "@/lib/exercise/strategy-levels";
+import { buildStrategyGenerationPrompt } from "@/lib/ai/prompts/strategy";
+import {
+  STRATEGY_RETRY_SUFFIX,
+  parseStrategyExerciseJson,
+  validateStrategySemantics,
+} from "@/lib/ai/validators/strategy";
 import { buildJudgmentGenerationPrompt } from "@/lib/ai/prompts/judgment";
 import {
   JUDGMENT_RETRY_SUFFIX,
@@ -194,6 +202,20 @@ export async function POST(req: Request) {
   const evaluativeLevel = EVALUATIVE_LEVELS[practiceLevel];
 
   try {
+    if (rawType === "strategy") {
+      // Strategic situations (PLAN-learning.md L2).
+      const cfg = STRATEGY_LEVELS[practiceLevel];
+      const r = await generateValidatedJson({
+        prompt: buildStrategyGenerationPrompt({ area: effectiveDomain, level: cfg, userContext, adaptationAppendix }),
+        parse: parseStrategyExerciseJson,
+        validate: (data) => validateStrategySemantics(data, { aOptionCount: cfg.aOptionCount }),
+        retrySuffix: STRATEGY_RETRY_SUFFIX,
+        responseJsonSchema: strategyResponseSchema(),
+      });
+      if (!r.ok) return validatedJsonFailureResponse(r);
+      return NextResponse.json({ ok: true, data: r.data });
+    }
+
     if (rawType === "judgment") {
       // Life situations (PLAN-learning.md L1).
       const cfg = JUDGMENT_LEVELS[practiceLevel];
