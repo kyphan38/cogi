@@ -91,7 +91,22 @@ tuyệt đối, nên dùng "gần / khác" như Evaluative.
 - Đánh giá cho gợi ý lên cấp: tốt khi cách tốt nhất trùng chuyên gia và thứ hạng gần;
   không bao giờ "yếu" (chủ quan).
 
-## Phase L2 - Tình huống chiến lược (lý thuyết trò chơi)
+## Phase L2 - Tình huống chiến lược (lý thuyết trò chơi) - XONG
+
+**Xong (2026-10-03)**, branch `learning/l2-strategic-situations`. Unit 556/556, E2E
+127/127, `tsc` sạch, eslint 0 lỗi, build production đạt. Gọi Gemini thật: 5/5 bài tạo
+mới hợp lệ ngay lần đầu ở cả 3 cấp; nhận xét dùng đúng số điểm, tìm ra cả 2 điểm cân
+bằng của trò "săn hươu", và ghi nhận khi dự đoán đi đúng từ bảng xếp hạng của người dùng.
+
+- Loại bài `strategy` ("Strategic situations") ở `/exercise/strategy`. Phần toán
+  (`lib/exercise/game.ts`) tính phản ứng tốt nhất, cân bằng Nash, chiến lược trội, ô tốt
+  hơn cho cả hai; feedback dùng các kết quả này làm sự thật.
+- **Khác plan:** Expert chưa có cây trò chơi (lượt đi nối tiếp). Thay vào đó Expert là
+  ma trận 3x2 không có số, thêm câu hỏi chiến lược trội và "tốt hơn cho cả hai". Cây trò
+  chơi để sau nếu cần.
+- Nhãn loại trò chơi do AI gán (ví dụ "coordination") có lúc sai so với toán, nên app
+  không hiển thị nhãn đó.
+- Hình minh họa: "phương pháp gạch chân" của sách giáo khoa trong bảng kết quả.
 
 **Luồng:** Learn first (ví dụ: player, payoff, dominant strategy, Nash equilibrium) →
 đọc tình huống thật (cuộc chiến giá, đàm phán lương, thuế quan) → xác định người chơi và

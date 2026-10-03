@@ -23,7 +23,9 @@ import {
   type ScoringResult,
   type UncertaintyResult,
 } from "@/lib/exercise/evaluative-score";
-import type { EvaluativeExerciseRow, JudgmentExerciseRow } from "@/lib/types/exercise";
+import type { EvaluativeExerciseRow, JudgmentExerciseRow, StrategyExerciseRow } from "@/lib/types/exercise";
+import { scoreStrategy, strategyCoachingRefs } from "@/lib/exercise/strategy-score";
+import { buildStrategyPerspectivePrompt } from "@/lib/ai/prompts/strategy-perspective";
 import { judgmentCoachingRefs, scoreJudgment } from "@/lib/exercise/judgment-score";
 import { JUDGMENT_LEVELS, LENS_INFO } from "@/lib/exercise/judgment-levels";
 import { buildJudgmentPerspectivePrompt } from "@/lib/ai/prompts/judgment-perspective";
@@ -113,6 +115,43 @@ export async function POST(req: Request) {
   }
   const b = body as Record<string, unknown>;
   const languageAppendix = buildLanguageLevelAppendix(resolveLanguageLevel(b));
+  if (b.kind === "strategy") {
+    const exercise = b.exercise as StrategyExerciseRow | undefined;
+    if (!exercise || exercise.type !== "strategy" || !Array.isArray(exercise.cells) || !exercise.answers) {
+      return NextResponse.json({ ok: false, error: "strategy requires the exercise row with answers" }, { status: 400 });
+    }
+    const result = scoreStrategy({
+      aOptions: exercise.optionsA.map((o) => o.id),
+      bOptions: exercise.optionsB.map((o) => o.id),
+      cells: exercise.cells,
+      answers: exercise.answers,
+    });
+    const refs = strategyCoachingRefs(result);
+    const prompt = buildStrategyPerspectivePrompt({
+      exercise,
+      result,
+      requiredRefs: refs.required,
+      userContext: typeof b.userContext === "string" ? b.userContext : undefined,
+    });
+    try {
+      const { structured, text } = await generateCoaching(prompt, languageAppendix, { ...refs, requireMetaNote: true }, (ref) => {
+        if (ref === "prediction") return "Where they end up";
+        if (ref === "better") return "Better for both";
+        if (ref.startsWith("rank_")) return `How ${exercise.players.find((p) => p.id === ref.slice(5))?.name ?? ref} ranks the outcomes`;
+        if (ref.startsWith("dominant_")) return `Dominant choice of ${exercise.players.find((p) => p.id === ref.slice(9))?.name ?? ref}`;
+        return "Best reply";
+      });
+      return NextResponse.json({ ok: true, structured, text, result });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      const timeout = e instanceof Error && (e.name === "AbortError" || /time(d)? ?out/i.test(e.message));
+      return NextResponse.json(
+        { ok: false, error: timeout ? "Exercise generation timed out. Please try again." : message },
+        { status: timeout ? 504 : 500 },
+      );
+    }
+  }
+
   if (b.kind === "judgment") {
     const exercise = b.exercise as JudgmentExerciseRow | undefined;
     if (!exercise || exercise.type !== "judgment" || !Array.isArray(exercise.responses)) {
