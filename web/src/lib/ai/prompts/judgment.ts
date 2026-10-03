@@ -4,7 +4,7 @@ import { JUDGMENT_LENSES } from "@/lib/ai/validators/judgment";
 
 const CONTEXT_LINES: Record<JudgmentContext, string> = {
   vietnam:
-    "Set the situation in Vietnam. Names, workplaces and family life should feel natural there (respect for seniority, saving face, family obligations, money between relatives). The best response must work in that culture, not only in a Western one.",
+    "Set the situation in Vietnam. Names, workplaces and family life should feel natural there (respect for seniority, saving face, family obligations, money between relatives). The best response must work in that culture, not only in a Western one. Write in English only: no Vietnamese words (say 'older colleague', not 'anh' or 'chi'), and write names without accent marks (Minh, Lan, Huong).",
   general: "Set the situation in a neutral, international setting.",
 };
 
