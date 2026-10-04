@@ -59,8 +59,8 @@ cấp trước khi merge.
     câu không đánh dấu được tính là "Realistic".
   - Guided giữ lựa chọn đầu tiên cho mỗi suy nghĩ rồi mới hiện đáp án, nên điểm vẫn trung
     thực.
-- **An toàn "My situation":** server kiểm tra từ ngữ khủng hoảng (Anh + Việt, có test tránh
-  báo nhầm "mệt muốn chết", "tu tu" = "từ từ") trước khi gọi AI; model cũng có thể trả
+- **An toàn "My situation":** server kiểm tra từ ngữ khủng hoảng tiếng Anh (app chỉ dùng
+  tiếng Anh; có test tránh báo nhầm "killing me") trước khi gọi AI; model cũng có thể trả
   `safety: "concern"`. Cả hai trường hợp hiện lời nhắn hỗ trợ, không tạo bài.
 - **Còn chờ chủ app:** số đường dây hỗ trợ ở Việt Nam (hiện chỉ ghi "liên hệ dịch vụ khẩn
   cấp / người tin cậy / chuyên gia"); tên "Reframe" giữ tạm.
