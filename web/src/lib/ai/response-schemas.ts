@@ -10,6 +10,7 @@ import { strategyExerciseSchema } from "@/lib/ai/validators/strategy";
 import { z } from "zod";
 import { analyticalExerciseSchema } from "@/lib/ai/validators/common";
 import { analyticalDeepDiveSchema } from "@/lib/ai/validators/deep-dive";
+import { geoStraitExplanationSchema } from "@/lib/ai/validators/geo-strait";
 import {
   geopoliticsScoringPayloadSchema,
   matrixPayloadSchema,
@@ -41,6 +42,11 @@ export function evaluativeResponseSchema(
   if (taskType === "uncertainty") return toGeminiSchema(uncertaintyPayloadSchema);
   if (isGeopolitics) return toGeminiSchema(geopoliticsScoringPayloadSchema);
   return toGeminiSchema(z.union([matrixPayloadSchema, scoringPayloadSchema]));
+}
+
+/** "Close the strait" note in the Geo Lab (PLAN-geopolitics.md G2). */
+export function geoStraitResponseSchema(): Record<string, unknown> {
+  return toGeminiSchema(geoStraitExplanationSchema);
 }
 
 /** "Go deeper" on one Analytical answer-key item (PLAN-deep-dive.md D2). */
