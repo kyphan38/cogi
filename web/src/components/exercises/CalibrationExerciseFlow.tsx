@@ -25,6 +25,8 @@ import { isCalibrationExercise, type CalibrationExerciseRow } from "@/lib/types/
 import { isCoachingStructured, type AIPerspectiveStructured } from "@/lib/types/perspective";
 import { useSaveOnLeave } from "@/lib/hooks/useSaveOnLeave";
 import { CALIBRATION_CATEGORIES } from "@/lib/exercise/calibration-bank";
+import { catalogGroupOf } from "@/lib/exercise/exercise-domain-catalog";
+import { GEOPOLITICS_DOMAIN_GROUPS } from "@/lib/exercise/geopolitics-domains";
 import {
   BINARY_CONFIDENCE_STEPS,
   CALIBRATION_CHECKS,
@@ -34,6 +36,7 @@ import {
 import {
   BASE_RATE_POPULATION,
   buildCalibrationItems,
+  calibrationTopicFor,
   type BaseRateItem,
   type CalibrationItem,
   type CalibrationTopic,
@@ -57,6 +60,12 @@ const PART_LABELS = {
 } as const;
 
 const TOPICS: CalibrationTopic[] = ["Mixed", ...CALIBRATION_CATEGORIES];
+
+/** The Practice-page group a domain comes from, so the topic can start close to it. */
+function groupIdOf(domain: string): string | undefined {
+  const d = domain.trim();
+  return catalogGroupOf(d)?.id ?? GEOPOLITICS_DOMAIN_GROUPS.find((g) => (g.domains as readonly string[]).includes(d))?.id;
+}
 
 /** "1,200" or "1 200" -> 1200; empty or not a number -> undefined. */
 export function parseNumber(text: string): number | undefined {
@@ -112,8 +121,8 @@ export function CalibrationExerciseFlow({
   const { show: showToast } = useToast();
   const [step, setStep] = useState<FlowStep>(0);
   const [level, setLevel] = useState<PracticeLevel>(DEFAULT_PRACTICE_LEVEL);
-  const [topic, setTopic] = useState<CalibrationTopic>(
-    TOPICS.find((t) => t === initialDomain?.trim()) ?? "Mixed",
+  const [topic, setTopic] = useState<CalibrationTopic>(() =>
+    calibrationTopicFor(initialDomain, initialDomain ? groupIdOf(initialDomain) : undefined),
   );
   const [exercise, setExercise] = useState<CalibrationExerciseRow | null>(null);
   /** What is typed in number boxes, so "1." or "1,2" stays while typing. */
