@@ -1,7 +1,7 @@
 # Plan: gợi ý chủ đề cụ thể bằng AI ("Topic ideas")
 
 Viết ngày 2026-10-04, sau khi chủ app thử "A mode > Life situations" và thích việc AI đưa
-ra một chủ đề cụ thể để dễ bắt đầu. Chưa bắt đầu.
+ra một chủ đề cụ thể để dễ bắt đầu. T1-T4 xong ngày 2026-10-04.
 
 Quy trình giống các plan trước: mỗi phase một branch, mỗi mục một commit. Cuối phase:
 `tsc`, `eslint`, `vitest`, Playwright (`--workers=1`), build production, gọi Gemini thật,
@@ -148,6 +148,12 @@ kiểm tra 390px; chụp màn hình desktop + mobile. `ModeTopicPanel` và route
 - E2E + 390px.
 
 ## Phase T4 - Dọn dẹp và tài liệu
+
+**Xong (2026-10-04)**, branch `topics/t1-topic-ideas`. Đã xóa `ModeTopicPanel`, route
+`/api/ai/domain-suggestions` cùng prompt, parser, test và mock E2E của nó. Handbook đã cập nhật ở
+T2/T3. Gemini thật: bấm Generate 3 lần liên tiếp với "All modes": 0 chủ đề lặp, mỗi danh sách
+trải trên 10 nhóm và 5-6 mode, 16-22 giây; từng mode trong 6 mode: đủ 10 chủ đề, 10 domain khác
+nhau, 8-11 giây. Giữ `listRecentDomains` (các bài Analytical / Systems / Evaluative vẫn dùng).
 
 - Xóa code không còn dùng (ô Domain tự gõ trên trang này, gợi ý domain gần đây, phần xếp hạng
   mode nếu không còn chỗ nào dùng).
