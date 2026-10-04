@@ -278,6 +278,37 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     ],
   },
   {
+    id: "calibration",
+    title: "Calibration",
+    href: "/exercise/calibration",
+    group: "exercise",
+    exerciseType: "calibration",
+    trains: "Knowing how sure to be: your confidence should match how often you are right.",
+    benefits: [
+      "You notice when you are more sure than the facts allow.",
+      "Better plans and bets, because you know how much to trust your own guess.",
+      "You learn base rates: how rare something is matters as much as a test result.",
+    ],
+    howToPractice: [
+      "Learn first: what \"80% sure\" means, overconfidence, and base rates.",
+      "Do not look anything up. The point is to see what you really know.",
+      "For two-answer questions, pick one and say how sure you are. 50% means a pure guess.",
+      "For ranges, give a low and a high number. Make the range wide enough that you are really 80% (or 90%) sure.",
+      "For base-rate problems, think \"out of 10,000 people\": how many have it, and how many test positive by mistake?",
+      "Look at History over time. One exercise has only a few questions.",
+    ],
+    levels: {
+      guided: "8 questions with two answers, plus 1 base-rate problem with an \"out of 10,000\" table.",
+      standard: "4 two-answer questions, 4 ranges you are 80% sure of, and 2 base-rate problems. The tips and tables are behind a button.",
+      expert: "7 ranges you are 90% sure of and 3 base-rate problems, one with two tests in a row. No tips.",
+    },
+    tips: [
+      "Most people's ranges are too narrow. Start from a number that is surely too low, then one that is surely too high.",
+      "A positive test for something rare is often still a false alarm.",
+      "The answers come from checked sources and exact math, not from the AI.",
+    ],
+  },
+  {
     id: "tracks",
     title: "Learning tracks",
     href: "/tracks",

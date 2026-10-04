@@ -26,9 +26,13 @@ import {
 import type {
   EvaluativeExerciseRow,
   JudgmentExerciseRow,
+  CalibrationExerciseRow,
   ReframeExerciseRow,
   StrategyExerciseRow,
 } from "@/lib/types/exercise";
+import { calibrationCoachingRefs, scoreCalibration } from "@/lib/exercise/calibration-score";
+import { CALIBRATION_LEVELS } from "@/lib/exercise/calibration-levels";
+import { buildCalibrationPerspectivePrompt } from "@/lib/ai/prompts/calibration-perspective";
 import { reframeCoachingRefs, scoreReframe } from "@/lib/exercise/reframe-score";
 import { REFRAME_LEVELS } from "@/lib/exercise/reframe-levels";
 import { buildReframePerspectivePrompt } from "@/lib/ai/prompts/reframe-perspective";
@@ -148,6 +152,42 @@ export async function POST(req: Request) {
         if (ref.startsWith("rank_")) return `How ${exercise.players.find((p) => p.id === ref.slice(5))?.name ?? ref} ranks the outcomes`;
         if (ref.startsWith("dominant_")) return `Dominant choice of ${exercise.players.find((p) => p.id === ref.slice(9))?.name ?? ref}`;
         return "Best reply";
+      });
+      return NextResponse.json({ ok: true, structured, text, result });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      const timeout = e instanceof Error && (e.name === "AbortError" || /time(d)? ?out/i.test(e.message));
+      return NextResponse.json(
+        { ok: false, error: timeout ? "Exercise generation timed out. Please try again." : message },
+        { status: timeout ? 504 : 500 },
+      );
+    }
+  }
+
+  if (b.kind === "calibration") {
+    const exercise = b.exercise as CalibrationExerciseRow | undefined;
+    if (!exercise || exercise.type !== "calibration" || !Array.isArray(exercise.items)) {
+      return NextResponse.json({ ok: false, error: "calibration requires the exercise row" }, { status: 400 });
+    }
+    const cfg = CALIBRATION_LEVELS[exercise.level] ?? CALIBRATION_LEVELS.guided;
+    const result = scoreCalibration({
+      items: exercise.items,
+      answers: exercise.answers ?? {},
+      intervalTarget: cfg.intervalTarget,
+    });
+    const refs = calibrationCoachingRefs(result);
+    const prompt = buildCalibrationPerspectivePrompt({
+      exercise,
+      result,
+      requiredRefs: refs.required,
+      userContext: typeof b.userContext === "string" ? b.userContext : undefined,
+    });
+    try {
+      const { structured, text } = await generateCoaching(prompt, languageAppendix, refs, (ref) => {
+        if (ref === "pattern") return "The overall picture";
+        const item = exercise.items.find((x) => `item_${x.id}` === ref);
+        if (!item) return ref;
+        return item.kind === "baserate" ? `Base rate: ${item.question}` : item.question;
       });
       return NextResponse.json({ ok: true, structured, text, result });
     } catch (e) {

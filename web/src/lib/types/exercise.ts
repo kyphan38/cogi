@@ -14,6 +14,9 @@ import type { StrategyExercisePayload } from "@/lib/ai/validators/strategy";
 import type { JudgmentContext } from "@/lib/exercise/judgment-levels";
 import type { ReframeResult } from "@/lib/exercise/reframe-score";
 import type { ReframeAnswer, ReframeExercisePayload } from "@/lib/ai/validators/reframe";
+import type { CalibrationItem, CalibrationTopic } from "@/lib/exercise/calibration-math";
+import type { CalibrationAnswer, CalibrationResult } from "@/lib/exercise/calibration-score";
+import type { CALIBRATION_CONCEPTS, CALIBRATION_CHECKS } from "@/lib/exercise/calibration-levels";
 import type {
   JudgmentChoiceQuestion,
   JudgmentConcept,
@@ -23,7 +26,7 @@ import type {
 } from "@/lib/ai/validators/judgment";
 
 /** The exercise types the app offers. Old rows of removed types may still exist in Firestore. */
-export type ThinkingType = "analytical" | "systems" | "evaluative" | "judgment" | "strategy" | "reframe";
+export type ThinkingType = "analytical" | "systems" | "evaluative" | "judgment" | "strategy" | "reframe" | "calibration";
 
 /** Pre-defined combo chains (Phase 6.5). */
 export type { EvaluativeQuadrant };
@@ -512,13 +515,44 @@ export interface ReframeExerciseRow {
   takeaway?: string | null;
 }
 
+/** Calibration: how sure vs how right (PLAN-psychology.md P2). Built in code, not by the AI. */
+export interface CalibrationExerciseRow {
+  id: string;
+  type: "calibration";
+  /** The topic of the questions ("Mixed" or a bank category). */
+  domain: CalibrationTopic;
+  title: string;
+  /** Snapshot of the questions, so later bank edits never change an old exercise. */
+  items: CalibrationItem[];
+  concepts: (typeof CALIBRATION_CONCEPTS)[number][];
+  conceptChecks: (typeof CALIBRATION_CHECKS)[number][];
+  level: PracticeLevel;
+  part?: "learn" | "answer";
+  conceptAnswers?: number[];
+  answers?: Partial<Record<string, CalibrationAnswer>>;
+  result?: CalibrationResult | null;
+  confidenceBefore: number | null;
+  aiPerspective: string | null;
+  aiPerspectiveStructured?: AIPerspectiveStructured | null;
+  createdAt: string;
+  completedAt: string | null;
+  currentStep?: number;
+  /** Optional one-line "what I take away", written at the end. */
+  takeaway?: string | null;
+}
+
 export type Exercise =
   | AnalyticalExerciseRow
   | SystemsExerciseRow
   | EvaluativeExerciseRow
   | JudgmentExerciseRow
   | StrategyExerciseRow
-  | ReframeExerciseRow;
+  | ReframeExerciseRow
+  | CalibrationExerciseRow;
+
+export function isCalibrationExercise(ex: Exercise): ex is CalibrationExerciseRow {
+  return ex.type === "calibration";
+}
 
 export function isReframeExercise(ex: Exercise): ex is ReframeExerciseRow {
   return ex.type === "reframe";

@@ -37,6 +37,7 @@ import {
   isEvaluativeExercise,
   isJudgmentExercise,
   isReframeExercise,
+  isCalibrationExercise,
   isStrategyExercise,
   isSystemsExercise,
 } from "@/lib/types/exercise";
@@ -54,6 +55,8 @@ import { EvaluativeAnswerKey } from "@/components/exercises/EvaluativeAnswerKey"
 import { JudgmentAnswerKey } from "@/components/exercises/JudgmentAnswerKey";
 import { StrategyAnswerKey } from "@/components/exercises/StrategyAnswerKey";
 import { ReframeAnswerKey } from "@/components/exercises/ReframeAnswerKey";
+import { CalibrationAnswerKey } from "@/components/exercises/CalibrationAnswerKey";
+import { CalibrationHistoryCard } from "@/components/exercises/CalibrationHistoryCard";
 import { evaluativeResultOf } from "@/lib/exercise/evaluative-score";
 import { systemsResultOf } from "@/lib/exercise/systems-score";
 import { AnalyticalAnswerKey } from "@/components/exercises/AnalyticalAnswerKey";
@@ -481,6 +484,8 @@ function HistoryPageInner() {
         </CardContent>
       </Card>
 
+      <CalibrationHistoryCard rows={rows} />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Filters</CardTitle>
@@ -500,6 +505,7 @@ function HistoryPageInner() {
                 <SelectItem value="judgment">Life situations</SelectItem>
                 <SelectItem value="strategy">Strategic situations</SelectItem>
                 <SelectItem value="reframe">Reframe</SelectItem>
+                <SelectItem value="calibration">Calibration</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -675,6 +681,23 @@ function HistoryPageInner() {
                 </p>
                 {detailEx.result ? (
                   <JudgmentAnswerKey
+                    exercise={detailEx}
+                    result={detailEx.result}
+                    coaching={
+                      isCoachingStructured(detailEx.aiPerspectiveStructured)
+                        ? detailEx.aiPerspectiveStructured
+                        : null
+                    }
+                  />
+                ) : null}
+              </>
+            ) : isCalibrationExercise(detailEx) ? (
+              <>
+                <p className="text-muted-foreground">
+                  Level: {LEVEL_LABELS[detailEx.level]} · {detailEx.domain}
+                </p>
+                {detailEx.result ? (
+                  <CalibrationAnswerKey
                     exercise={detailEx}
                     result={detailEx.result}
                     coaching={

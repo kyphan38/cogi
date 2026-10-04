@@ -47,6 +47,13 @@ export const ALL_EXERCISE_CARDS: {
     title: "Spot thinking traps",
     desc: "Name the traps in a hard moment, then rewrite one thought fairly.",
   },
+  {
+    type: "calibration",
+    href: "/exercise/calibration",
+    label: "Calibration",
+    title: "Know how sure to be",
+    desc: "Answer, say how sure you are, and see if your confidence matches your results.",
+  },
 ];
 
 /**
@@ -54,7 +61,7 @@ export const ALL_EXERCISE_CARDS: {
  * systems 3, analytical 1 of 9 exercises). Old exercises of removed types still
  * show in History, under their raw type name.
  */
-export const PRACTICE_EXERCISE_TYPES = ["evaluative", "systems", "analytical", "judgment", "strategy", "reframe"] as const;
+export const PRACTICE_EXERCISE_TYPES = ["evaluative", "systems", "analytical", "judgment", "strategy", "reframe", "calibration"] as const;
 
 export const PRACTICE_EXERCISE_CARDS = PRACTICE_EXERCISE_TYPES.map(
   (type) => ALL_EXERCISE_CARDS.find((c) => c.type === type)!,
@@ -67,4 +74,5 @@ export const TYPE_LABEL: Record<string, string> = {
   judgment: "Life situations",
   strategy: "Strategic situations",
   reframe: "Reframe",
+  calibration: "Calibration",
 };
