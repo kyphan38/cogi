@@ -4,13 +4,13 @@ import { z } from "zod";
 export const JUDGMENT_LENSES = ["think", "people", "steady"] as const;
 export type JudgmentLens = (typeof JUDGMENT_LENSES)[number];
 
-const conceptSchema = z.object({
+export const conceptSchema = z.object({
   term: z.string().min(1),
   plain: z.string().min(1),
   example: z.string().min(1),
 });
 
-const choiceQuestionSchema = z.object({
+export const choiceQuestionSchema = z.object({
   question: z.string().min(1),
   options: z.array(z.string()),
   answerIndex: z.number().int(),
@@ -45,7 +45,7 @@ export type JudgmentChoiceQuestion = z.infer<typeof choiceQuestionSchema>;
 export type JudgmentLensQuestion = z.infer<typeof lensQuestionSchema>;
 export type JudgmentResponse = z.infer<typeof responseSchema>;
 
-function stripJsonFences(text: string): string {
+export function stripJsonFences(text: string): string {
   const trimmed = text.trim();
   const m = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
   return m?.[1] ? m[1].trim() : trimmed;
@@ -67,7 +67,7 @@ export function parseJudgmentExerciseJson(
   return { success: true, data: result.data };
 }
 
-function choiceErrors(q: JudgmentChoiceQuestion, where: string): string[] {
+export function choiceErrors(q: JudgmentChoiceQuestion, where: string): string[] {
   const errors: string[] = [];
   const options = q.options.map((o) => o.trim());
   if (options.length !== 3 || options.some((o) => !o)) {

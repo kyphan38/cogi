@@ -23,7 +23,15 @@ import {
   type ScoringResult,
   type UncertaintyResult,
 } from "@/lib/exercise/evaluative-score";
-import type { EvaluativeExerciseRow, JudgmentExerciseRow, StrategyExerciseRow } from "@/lib/types/exercise";
+import type {
+  EvaluativeExerciseRow,
+  JudgmentExerciseRow,
+  ReframeExerciseRow,
+  StrategyExerciseRow,
+} from "@/lib/types/exercise";
+import { reframeCoachingRefs, scoreReframe } from "@/lib/exercise/reframe-score";
+import { REFRAME_LEVELS } from "@/lib/exercise/reframe-levels";
+import { buildReframePerspectivePrompt } from "@/lib/ai/prompts/reframe-perspective";
 import { scoreStrategy, strategyCoachingRefs } from "@/lib/exercise/strategy-score";
 import { buildStrategyPerspectivePrompt } from "@/lib/ai/prompts/strategy-perspective";
 import { judgmentCoachingRefs, scoreJudgment } from "@/lib/exercise/judgment-score";
@@ -140,6 +148,43 @@ export async function POST(req: Request) {
         if (ref.startsWith("rank_")) return `How ${exercise.players.find((p) => p.id === ref.slice(5))?.name ?? ref} ranks the outcomes`;
         if (ref.startsWith("dominant_")) return `Dominant choice of ${exercise.players.find((p) => p.id === ref.slice(9))?.name ?? ref}`;
         return "Best reply";
+      });
+      return NextResponse.json({ ok: true, structured, text, result });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      const timeout = e instanceof Error && (e.name === "AbortError" || /time(d)? ?out/i.test(e.message));
+      return NextResponse.json(
+        { ok: false, error: timeout ? "Exercise generation timed out. Please try again." : message },
+        { status: timeout ? 504 : 500 },
+      );
+    }
+  }
+
+  if (b.kind === "reframe") {
+    const exercise = b.exercise as ReframeExerciseRow | undefined;
+    if (!exercise || exercise.type !== "reframe" || !Array.isArray(exercise.thoughts) || !exercise.rewrite) {
+      return NextResponse.json({ ok: false, error: "reframe requires the exercise row" }, { status: 400 });
+    }
+    const cfg = REFRAME_LEVELS[exercise.level] ?? REFRAME_LEVELS.guided;
+    const result = scoreReframe({
+      thoughts: exercise.thoughts,
+      answers: exercise.answers ?? {},
+      rewrite: exercise.rewrite,
+      rewriteChoice: exercise.rewriteChoice,
+      rewriteWritten: cfg.rewrite !== "choose",
+    });
+    const refs = reframeCoachingRefs(result);
+    const prompt = buildReframePerspectivePrompt({
+      exercise,
+      result,
+      requiredRefs: refs.required,
+      userContext: typeof b.userContext === "string" ? b.userContext : undefined,
+    });
+    try {
+      const { structured, text } = await generateCoaching(prompt, languageAppendix, refs, (ref) => {
+        if (ref === "rewrite") return "Your balanced thought";
+        const t = exercise.thoughts.find((x) => `thought_${x.id}` === ref);
+        return t ? `Thought: ${t.text}` : ref;
       });
       return NextResponse.json({ ok: true, structured, text, result });
     } catch (e) {

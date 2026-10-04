@@ -26,6 +26,7 @@ import {
   analyticalResponseSchema,
   evaluativeResponseSchema,
   judgmentResponseSchema,
+  reframeResponseSchema,
   strategyResponseSchema,
   systemsResponseSchema,
 } from "@/lib/ai/response-schemas";
@@ -85,6 +86,14 @@ import {
   parseJudgmentExerciseJson,
   validateJudgmentSemantics,
 } from "@/lib/ai/validators/judgment";
+import { REFRAME_LEVELS } from "@/lib/exercise/reframe-levels";
+import { buildReframeGenerationPrompt } from "@/lib/ai/prompts/reframe";
+import {
+  REFRAME_RETRY_SUFFIX,
+  parseReframeExerciseJson,
+  validateReframeSemantics,
+} from "@/lib/ai/validators/reframe";
+import { hasCrisisLanguage, REFRAME_SUPPORT_MESSAGE } from "@/lib/exercise/reframe-safety";
 import {
   CUSTOM_DOMAIN_PLACEHOLDER,
   CUSTOM_SCENARIO_MAX_LEN,
@@ -213,6 +222,40 @@ export async function POST(req: Request) {
         responseJsonSchema: strategyResponseSchema(),
       });
       if (!r.ok) return validatedJsonFailureResponse(r);
+      return NextResponse.json({ ok: true, data: r.data });
+    }
+
+    if (rawType === "reframe") {
+      // Reframe: thinking traps (PLAN-psychology.md P1).
+      const cfg = REFRAME_LEVELS[practiceLevel];
+      const ownSituation = cfg.ownSituation ? scenarioForPrompt : undefined;
+      // A situation that needs real support gets a support message, never an exercise.
+      const concern = () =>
+        NextResponse.json({ ok: false, safety: "concern", error: REFRAME_SUPPORT_MESSAGE.title });
+      if (ownSituation && hasCrisisLanguage(ownSituation)) return concern();
+      const rawReframeContext = (body as { context?: unknown }).context;
+      const r = await generateValidatedJson({
+        prompt: buildReframeGenerationPrompt({
+          area: effectiveDomain,
+          context: rawReframeContext === "vietnam" ? "vietnam" : "general",
+          level: cfg,
+          userContext,
+          ownSituation,
+          adaptationAppendix,
+        }),
+        parse: parseReframeExerciseJson,
+        validate: (data) =>
+          validateReframeSemantics(data, {
+            thoughtCount: cfg.thoughtCount,
+            realistic: cfg.realistic,
+            tags: cfg.tags,
+            ownSituation: Boolean(ownSituation),
+          }),
+        retrySuffix: REFRAME_RETRY_SUFFIX,
+        responseJsonSchema: reframeResponseSchema(),
+      });
+      if (!r.ok) return validatedJsonFailureResponse(r);
+      if (r.data.safety === "concern") return concern();
       return NextResponse.json({ ok: true, data: r.data });
     }
 

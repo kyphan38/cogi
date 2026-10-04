@@ -5,6 +5,7 @@
  * the model, it does not replace the checks.
  */
 import { judgmentExerciseSchema } from "@/lib/ai/validators/judgment";
+import { reframeExerciseSchema } from "@/lib/ai/validators/reframe";
 import { strategyExerciseSchema } from "@/lib/ai/validators/strategy";
 import { z } from "zod";
 import { analyticalExerciseSchema } from "@/lib/ai/validators/common";
@@ -55,6 +56,11 @@ export function strategyResponseSchema(): Record<string, unknown> {
 /** Life situations (PLAN-learning.md L1). */
 export function judgmentResponseSchema(): Record<string, unknown> {
   return toGeminiSchema(judgmentExerciseSchema);
+}
+
+/** Reframe (PLAN-psychology.md P1). */
+export function reframeResponseSchema(): Record<string, unknown> {
+  return toGeminiSchema(reframeExerciseSchema);
 }
 
 export function systemsResponseSchema(

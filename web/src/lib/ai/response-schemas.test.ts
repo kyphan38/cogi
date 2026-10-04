@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   analyticalResponseSchema,
   evaluativeResponseSchema,
+  reframeResponseSchema,
   systemsResponseSchema,
 } from "./response-schemas";
 
@@ -47,5 +48,15 @@ describe("Gemini response schemas", () => {
     expect(geo.required).toContain("perspectiveAName");
     const plain = systemsResponseSchema("auto", false) as unknown as Obj;
     expect(plain.properties).not.toHaveProperty("perspectiveAName");
+  });
+
+  it("give Reframe thoughts a plain enum (no null) that includes realistic", () => {
+    const schema = reframeResponseSchema() as unknown as {
+      properties: { thoughts: { items: { properties: { trap: { enum: string[]; anyOf?: unknown } } } } };
+    };
+    const trap = schema.properties.thoughts.items.properties.trap;
+    expect(trap.anyOf).toBeUndefined();
+    expect(trap.enum).toContain("realistic");
+    expect(trap.enum).toContain("mind_reading");
   });
 });

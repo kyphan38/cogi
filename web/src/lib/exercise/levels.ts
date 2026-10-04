@@ -8,7 +8,7 @@ export type PracticeLevel = "guided" | "standard" | "expert";
 export const PRACTICE_LEVELS: readonly PracticeLevel[] = ["guided", "standard", "expert"];
 
 /** Exercise types that have levels. */
-export type LevelledExerciseType = "analytical" | "systems" | "evaluative" | "judgment" | "strategy";
+export type LevelledExerciseType = "analytical" | "systems" | "evaluative" | "judgment" | "strategy" | "reframe";
 
 export const DEFAULT_PRACTICE_LEVEL: PracticeLevel = "guided";
 
