@@ -233,6 +233,20 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
     });
   });
 
+  await page.route("**/api/ai/geo-strait", async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        explanation: {
+          summary: "Mock note: you found most of the main users.",
+          points: ["Mock point one about who depends on it.", "Mock point two about the way around."],
+        },
+      }),
+    });
+  });
+
   await page.route("**/api/ai/perspective", async (route: Route) => {
     let kind: unknown;
     try {

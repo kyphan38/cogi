@@ -85,13 +85,13 @@ export function GeoMap({
   const [cross, setCross] = useState<[number, number] | null>(null);
 
   const bboxKey = bbox.join(",");
-  const { projection, height, countryPaths } = useMemo(() => {
+  const { projection, height, countryPaths, spherePath } = useMemo(() => {
     const fit = fitProjection(bbox, MAP_WIDTH);
     const path = geoPath(fit.projection);
     const countryPaths = countryFeatures()
       .map((f) => ({ id: String(f.id ?? ""), d: path(f) ?? "" }))
       .filter((c) => c.d);
-    return { ...fit, countryPaths };
+    return { ...fit, countryPaths, spherePath: path({ type: "Sphere" }) ?? "" };
     // bbox is compared by value.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bboxKey]);
@@ -159,6 +159,7 @@ export function GeoMap({
           onPointerLeave={() => setTip(null)}
           data-height={height}
         >
+          <path d={spherePath} fill="#fafafa" aria-hidden />
           <g>
             {countryPaths.map((c) => {
               const state = countryStates?.[c.id];
@@ -254,7 +255,7 @@ export function GeoMap({
                       x={x > MAP_WIDTH - 140 ? -10 : 10}
                       y={-9}
                       textAnchor={x > MAP_WIDTH - 140 ? "end" : "start"}
-                      fontSize={13}
+                      fontSize={15}
                       fontWeight={600}
                       fill="#18181b"
                       stroke="#ffffff"

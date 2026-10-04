@@ -38,6 +38,7 @@ import {
   isJudgmentExercise,
   isReframeExercise,
   isCalibrationExercise,
+  isGeoLabExercise,
   isStrategyExercise,
   isSystemsExercise,
 } from "@/lib/types/exercise";
@@ -57,6 +58,7 @@ import { StrategyAnswerKey } from "@/components/exercises/StrategyAnswerKey";
 import { ReframeAnswerKey } from "@/components/exercises/ReframeAnswerKey";
 import { CalibrationAnswerKey } from "@/components/exercises/CalibrationAnswerKey";
 import { CalibrationHistoryCard } from "@/components/exercises/CalibrationHistoryCard";
+import { GeoLabHistoryCard } from "@/components/geo/GeoLabHistoryCard";
 import { evaluativeResultOf } from "@/lib/exercise/evaluative-score";
 import { systemsResultOf } from "@/lib/exercise/systems-score";
 import { AnalyticalAnswerKey } from "@/components/exercises/AnalyticalAnswerKey";
@@ -70,7 +72,7 @@ import { logFirestoreQueryError } from "@/lib/db/firestore";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { computeStreak } from "@/lib/exercise/streak";
 
-type ThinkingTypeFilter = "all" | ThinkingType;
+type ThinkingTypeFilter = "all" | ThinkingType | "geo";
 
 function perspectiveKindForExercise(ex: Exercise): ClarityPerspectiveKind | null {
   if (isAnalyticalExercise(ex)) return "analytical";
@@ -506,6 +508,7 @@ function HistoryPageInner() {
                 <SelectItem value="strategy">Strategic situations</SelectItem>
                 <SelectItem value="reframe">Reframe</SelectItem>
                 <SelectItem value="calibration">Calibration</SelectItem>
+                <SelectItem value="geo">Geo Lab</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -729,6 +732,8 @@ function HistoryPageInner() {
                   />
                 ) : null}
               </>
+            ) : isGeoLabExercise(detailEx) ? (
+              <GeoLabHistoryCard row={detailEx} />
             ) : isStrategyExercise(detailEx) ? (
               <>
                 <div>
@@ -751,7 +756,8 @@ function HistoryPageInner() {
             ) : null}
 
             {/* v3 coaching lives inside the answer key above. */}
-            {isAnalyticalCoachingStructured(detailEx.aiPerspectiveStructured) ||
+            {isGeoLabExercise(detailEx) ||
+            isAnalyticalCoachingStructured(detailEx.aiPerspectiveStructured) ||
             isCoachingStructured(detailEx.aiPerspectiveStructured) ? null : (
               <div>
                 <h3 className="mb-1 font-medium">AI perspective</h3>

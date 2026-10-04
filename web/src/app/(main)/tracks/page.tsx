@@ -34,9 +34,14 @@ export default function TracksPage() {
           Short paths through economics, finance and geopolitics. Each step is one exercise at your level.
           Do them in order, one a day is plenty.
         </p>
-        <Link href="/simulators" className="text-sm underline underline-offset-4">
-          Simulators: play with loans, savings and import prices
-        </Link>
+        <div className="flex flex-col gap-1">
+          <Link href="/simulators" className="text-sm underline underline-offset-4">
+            Simulators: play with loans, savings and import prices
+          </Link>
+          <Link href="/geo" className="text-sm underline underline-offset-4" data-testid="tracks-geo-lab-link">
+            Geo Lab: maps, sea routes and a daily map quiz
+          </Link>
+        </div>
       </div>
       {TRACKS.map((track) => {
         const { doneIds, next } = trackProgress(track, completed ?? []);
@@ -46,6 +51,11 @@ export default function TracksPage() {
               <p className="text-muted-foreground text-xs uppercase">{AREA_LABELS[track.area]}</p>
               <CardTitle className="text-base">{track.title}</CardTitle>
               <p className="text-muted-foreground text-sm">{track.description}</p>
+              {track.area === "geopolitics" ? (
+                <Link href="/geo" className="text-xs underline underline-offset-4" data-testid="track-geo-lab-link">
+                  See it on the map in the Geo Lab
+                </Link>
+              ) : null}
               {track.simulator ? (
                 <Link
                   href={`/simulators#${track.simulator}`}

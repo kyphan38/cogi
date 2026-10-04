@@ -6,7 +6,7 @@ import {
   userDocRef,
   type RowQuery,
 } from "@/lib/db/firestore";
-import type { Exercise, ThinkingType } from "@/lib/types/exercise";
+import type { Exercise } from "@/lib/types/exercise";
 import type { AnalyticalDeepDive } from "@/lib/types/perspective";
 import { PRACTICE_EXERCISE_TYPES } from "@/lib/exercise/exercise-mode-cards";
 import { e2eDeleteDoc, e2eGetDoc, e2eSetDoc, isE2EAuthBypass } from "@/lib/db/e2e-firestore-memory";
@@ -60,7 +60,7 @@ export async function deleteExercise(id: string): Promise<void> {
 }
 
 export type CompletedExerciseFilter = {
-  type?: ThinkingType | "all";
+  type?: Exercise["type"] | "all";
   domainContains?: string;
   completedAfter?: string;
   completedBefore?: string;
@@ -142,6 +142,8 @@ export async function listRecentDomains(limit: number = 20): Promise<string[]> {
   });
   const freq = new Map<string, { count: number; latest: string }>();
   for (const ex of rows) {
+    // Geo Lab rows have a fixed domain, not a topic the user picked.
+    if (ex.type === "geo") continue;
     const d = ex.domain.trim();
     if (!d) continue;
     const prev = freq.get(d);

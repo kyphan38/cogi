@@ -40,6 +40,10 @@ describe("chokepoints data", () => {
       expect(validSource(g.detour.source), c.id).toBe(true);
       expect(g.routeOptions, c.id).toContain(g.route);
       expect(new Set(g.routeOptions).size, c.id).toBe(3);
+      expect(bboxContains(g.view, c.coords), `${c.id} view`).toBe(true);
+      for (const path of ALT_ROUTES[g.route].paths) {
+        for (const p of path) expect(bboxContains(g.view, p), `${c.id} view ${p}`).toBe(true);
+      }
     }
   });
 

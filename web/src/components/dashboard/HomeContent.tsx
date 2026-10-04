@@ -16,6 +16,7 @@ import type { Exercise } from "@/lib/types/exercise";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
 import { computeStreak } from "@/lib/exercise/streak";
 import { TrackCard } from "@/components/dashboard/TrackCard";
+import { GeoLabCard } from "@/components/dashboard/GeoLabCard";
 import { DISCARD_BUTTON_CLASS } from "@/components/dashboard/discard-button";
 import { cn } from "@/lib/utils";
 
@@ -117,6 +118,8 @@ export function HomeContent() {
       {allCompleted ? (
         <TrackCard completed={allCompleted} incomplete={allIncomplete} onDiscard={discardIncomplete} />
       ) : null}
+
+      <GeoLabCard completed={allCompleted} />
 
       {incompleteExercises.length > 0 && (
         <Card>

@@ -1,4 +1,5 @@
 import type { CountryId } from "@/lib/geo/countries";
+import type { Bbox } from "@/lib/geo/regions";
 import { wikiSource, type GeoSource, type LonLat } from "@/lib/geo/types";
 
 /**
@@ -140,6 +141,8 @@ export interface StraitGame {
   decoys: CountryId[];
   route: RouteId;
   routeOptions: [RouteId, RouteId, RouteId];
+  /** Map view for the answer: the strait, the countries on the list and the way around. */
+  view: Bbox;
   /** What the detour costs, from the source. Numbers only when the source gives them. */
   detour: {
     text: string;
@@ -188,6 +191,7 @@ export const CHOKEPOINTS: Chokepoint[] = [
       decoys: ["840", "276", "076", "036"],
       route: "gulf-pipelines",
       routeOptions: ["cape", "gulf-pipelines", "indonesia"],
+      view: [25, -5, 150, 50],
       detour: {
         text: "There is no other sea route. Pipelines in Saudi Arabia and the UAE could carry about 4.7 million barrels a day around the strait, much less than the 20.9 million that pass it.",
         source: SOURCES.eia,
@@ -218,6 +222,7 @@ export const CHOKEPOINTS: Chokepoint[] = [
       decoys: ["276", "076", "566", "484"],
       route: "indonesia",
       routeOptions: ["indonesia", "cape", "south-america"],
+      view: [70, -15, 150, 50],
       detour: {
         text: "Ships can go through Indonesia instead, by the Lombok or Sunda Strait. That adds roughly 1,000 to 1,500 nautical miles, or three to five days at sea.",
         source: SOURCES.malaccaDetour,
@@ -247,6 +252,7 @@ export const CHOKEPOINTS: Chokepoint[] = [
       decoys: ["076", "036", "484", "124"],
       route: "cape",
       routeOptions: ["south-america", "cape", "indonesia"],
+      view: [-35, -40, 80, 70],
       detour: {
         text: "Ships sail around Africa instead. For oil tankers, that adds about 15 days from the Arabian Sea to Europe.",
         source: SOURCES.eia,
@@ -275,6 +281,7 @@ export const CHOKEPOINTS: Chokepoint[] = [
       decoys: ["076", "036", "484", "124"],
       route: "cape",
       routeOptions: ["cape", "gulf-pipelines", "south-america"],
+      view: [-35, -40, 80, 70],
       detour: {
         text: "Ships sail around Africa instead. In early 2024 this made deliveries 10 days or more later on average.",
         source: SOURCES.imfRedSea,
@@ -303,6 +310,7 @@ export const CHOKEPOINTS: Chokepoint[] = [
       decoys: ["356", "818", "643", "276"],
       route: "south-america",
       routeOptions: ["south-america", "kiel", "indonesia"],
+      view: [-180, -60, 180, 78],
       detour: {
         text: "Ships go around South America. Between the US East and West Coasts, that adds about 8,000 nautical miles (15,000 km).",
         source: SOURCES.panamaBritannica,
@@ -331,6 +339,7 @@ export const CHOKEPOINTS: Chokepoint[] = [
       decoys: ["364", "276", "682", "818"],
       route: "caspian-pipeline",
       routeOptions: ["kiel", "caspian-pipeline", "cape"],
+      view: [15, 30, 95, 65],
       detour: {
         text: "There is no other sea way out of the Black Sea. Some oil can go by pipeline instead, such as the Baku-Tbilisi-Ceyhan pipeline from Azerbaijan to Türkiye.",
         source: SOURCES.eia,
@@ -358,6 +367,7 @@ export const CHOKEPOINTS: Chokepoint[] = [
       decoys: ["724", "380", "300", "620"],
       route: "kiel",
       routeOptions: ["cape", "kiel", "caspian-pipeline"],
+      view: [-5, 45, 50, 71],
       detour: {
         text: "The Kiel Canal in Germany is the other way, but it only takes small tankers. It carried nearly 200,000 barrels a day, against 4.9 million through the straits.",
         source: SOURCES.eia,

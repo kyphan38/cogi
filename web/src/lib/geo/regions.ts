@@ -20,7 +20,7 @@ export type RegionId =
   | "oceania";
 
 export const REGIONS: Record<RegionId, { label: string; bbox: Bbox }> = {
-  world: { label: "World", bbox: [-180, -56, 180, 78] },
+  world: { label: "World", bbox: [-180, -60, 180, 78] },
   "east-asia": { label: "East Asia", bbox: [98, 15, 150, 50] },
   "southeast-asia": { label: "Southeast Asia", bbox: [88, -12, 132, 25] },
   "west-pacific": { label: "Western Pacific", bbox: [100, -5, 165, 55] },
