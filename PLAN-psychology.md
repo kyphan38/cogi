@@ -171,6 +171,29 @@ Người dùng có thể viết chuyện rất nặng. Trước khi tạo bài t
 
 ## Phase P2 - Calibration (độ tự tin khớp với sự thật)
 
+**Xong phần code (2026-10-04)**, branch `claude/nice-tesla-0trqiz`. Unit 610/610, E2E
+147/147 (chạy `--workers=1`), `tsc` sạch, eslint 0 lỗi, chụp màn hình desktop + mobile. Chưa gọi
+Gemini thật cho phần feedback (container không có key); phần đề và đáp án không dùng AI.
+
+- Loại bài `calibration` ở `/exercise/calibration`, có trong Practice, History, Handbook.
+- **Ngân hàng câu hỏi: 126 câu** (68 câu hai lựa chọn, 58 câu khoảng) trong
+  `lib/exercise/calibration-bank.ts`, mỗi câu có nguồn. Ít hơn mục tiêu 200: ưu tiên câu
+  chắc chắn đúng. **Chủ app cần kiểm tra ngẫu nhiên khoảng 20%** (đặc biệt các câu có số
+  thay đổi theo năm: dân số Việt Nam 2024, metro số 1). Đủ cho mọi cấp ở mọi nhóm; khi
+  hết câu chưa gặp thì lặp lại câu cũ nhất.
+- **Khác plan:**
+  - Không gọi AI để tạo đề. Bài base rate dùng 6 khung câu chuyện cố định trong code
+    (`calibration-math.ts`); code chọn số và tính đáp án. Learn first cũng cố định. Nhờ vậy
+    đề tạo tức thì và không thể sai đáp án vì AI.
+  - Câu khoảng không dùng năm (năm làm phép "rộng bao nhiêu lần" vô nghĩa); câu về năm
+    nằm ở dạng hai lựa chọn.
+  - Thay interval score bằng quy tắc dễ hiểu: khoảng "rất rộng" khi đầu cao lớn hơn 10 lần
+    đầu thấp; trúng hết nhưng quá nửa số khoảng rất rộng thì chỉ là "ok".
+  - "Sai hết base rate" chỉ tính là poor khi có từ 2 bài base rate (Guided chỉ có 1).
+- Biểu đồ "How sure vs how right" trên History hiện khi có từ 30 câu trả lời: chấm theo
+  mức tự tin so với đường chéo "perfect", kèm tooltip và bảng số liệu. Chưa gộp
+  `confidenceBefore` của các loại bài khác (để sau, như đã đề xuất).
+
 **Luyện gì:** biết mình chắc đến đâu. Người hay quá tự tin: khi nói "chắc 80%", họ thường
 chỉ đúng khoảng 50%. Thêm bài toán base rate (bỏ quên tỉ lệ nền) vì đây là lỗi xác suất
 phổ biến nhất. Gốc: Tetlock (*Superforecasting*), Kahneman & Tversky.
