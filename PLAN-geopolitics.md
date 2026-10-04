@@ -291,6 +291,28 @@ ranh đỏ đã tuyên bố công khai, đòn bẩy, điểm yếu, đối tác 
 
 ## Phase G4 - Dòng thời gian có điểm quyết định
 
+**Xong phần code (2026-10-04)**, branch `geo/g4-timelines`. Unit 692/692, `tsc` sạch, eslint
+0 lỗi, E2E mới `geo-timelines.spec.ts` (toàn bộ 168/168), build production, chụp màn hình
+desktop + mobile. Không dùng AI. Chủ app giao cho tự quyết 5 ca đầu.
+
+- **5 ca (đã quyết)** `lib/geo/timelines.ts`: khủng hoảng tên lửa Cuba 1962, khủng hoảng Suez
+  1956, cấm vận dầu 1973-1974, vụ trọng tài Biển Đông 2013-2016, Việt Nam gia nhập WTO
+  1995-2007. Mỗi ca 6-8 mốc có ngày và nguồn (Office of the Historian, PCA, Bộ Ngoại giao Trung
+  Quốc, WTO, CRS, IEA), đối chiếu web 2026-10-04; 2 điểm quyết định, mỗi điểm 3 lựa chọn.
+- **Giao diện** (Geo Lab > Timelines): trục thời gian SVG theo ngày trên desktop (tooltip khi
+  hover / focus, chỉ hiện mốc đã qua), danh sách dọc trên mobile (cũng là bảng số liệu). Ở điểm
+  quyết định: chọn + độ tự tin, rồi xem "close / different" so với lịch sử, hệ quả và nguồn.
+- **Cuối ca:** xếp 4 mốc theo thứ tự; với 3 ca khủng hoảng, chọn "off-ramp" (bước hạ nhiệt);
+  tóm tắt độ tự tin so với tỉ lệ "close"; "Use the cards". Lưu dòng `type: "geo"`, xem ở History.
+- Handbook: entry "Geo Lab" thêm Timelines.
+- **Khác plan:**
+  - Thay Hiệp định Paris 1973 bằng khủng hoảng Suez 1956 (nối với eo Suez ở G2; tránh ca có cách
+    kể lịch sử còn nhiều tranh cãi).
+  - Thang leo thang thay bằng "xếp theo thứ tự thời gian" + "tìm off-ramp": mức độ leo thang là
+    nhận định, thứ tự ngày và bước hạ nhiệt thì có nguồn.
+  - Độ tự tin hiện trong tóm tắt của ca (tự tin trung bình so với tỉ lệ "close"), chưa đưa vào
+    biểu đồ Calibration: "close" không phải đúng/sai nên không trộn với câu hỏi có đáp án.
+
 - Bộ ca cố định `lib/geo/cases.ts`, mỗi ca 5-8 mốc có ngày tháng và nguồn. Ví dụ:
   khủng hoảng tên lửa Cuba, khủng hoảng dầu 1973, Hiệp định Paris 1973, Biển Đông
   2009-2016 (phán quyết trọng tài), Việt Nam gia nhập WTO.
