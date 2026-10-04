@@ -51,7 +51,7 @@ export function ExercisePickerCard({
         {desc ? (
           <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{desc}</p>
         ) : null}
-        {recommended && reason ? (
+        {reason ? (
           <p className="mt-1 text-xs leading-relaxed text-zinc-600 italic">{reason}</p>
         ) : null}
       </div>

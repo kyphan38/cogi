@@ -62,6 +62,44 @@ test.describe("Reasoning page - exercise picker and navigation", () => {
     await expect(page.getByRole("button", { name: "Find best mode" })).toBeVisible();
   });
 
+  test("start from a topic: AI ranks all modes and shows reasons for the top three", async ({ page }) => {
+    await gotoAuthenticated(page, "/reasoning");
+    await page.getByLabel("Domain").fill("Perfectionism & self-criticism");
+    await page.getByRole("button", { name: "Find best mode" }).click();
+    const first = page.getByRole("link").filter({ hasText: "best fit" }).first();
+    await expect(first).toContainText("Reframe");
+    await expect(page.getByText("Mock reason: handle the people side.")).toBeVisible();
+    await expect(page.getByText("Mock reason: not shown, ranked fourth.")).toHaveCount(0);
+    await expect(first).toHaveAttribute("href", /\/exercise\/reframe\?domain=Perfectionism/);
+  });
+
+  test("start from a mode: AI topic ideas and catalog areas lead into the exercise", async ({ page }) => {
+    await gotoAuthenticated(page, "/reasoning");
+    await page.getByRole("radio", { name: "A mode" }).click();
+    await expect(page.getByLabel("Domain")).toHaveCount(0);
+    await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: /Strategic situations/ }).click();
+    const panel = page.getByTestId("mode-topic-panel");
+    await expect(panel.getByTestId("mode-topic-ideas")).toContainText("Mock idea for strategy");
+    await expect(panel.getByText("Competition, negotiation & games")).toBeVisible();
+
+    await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: /Calibration/ }).click();
+    await expect(panel).toContainText("checked question bank");
+    await panel.getByRole("link", { name: "Vietnam" }).click();
+    await page.waitForURL(/\/exercise\/calibration\?domain=Vietnam/, { timeout: 15_000 });
+    await expect(page.getByTestId("calibration-topics").getByRole("button", { name: "Vietnam", exact: true })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("the mode choice is remembered and an idea opens the exercise with the topic", async ({ page }) => {
+    await gotoAuthenticated(page, "/reasoning");
+    await page.getByRole("radio", { name: "A mode" }).click();
+    await gotoAuthenticated(page, "/reasoning");
+    await expect(page.getByRole("radio", { name: "A mode" })).toHaveAttribute("aria-checked", "true");
+    await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: /Reframe/ }).click();
+    await page.getByTestId("mode-topic-ideas").getByRole("link").first().click();
+    await page.waitForURL(/\/exercise\/reframe\?domain=/, { timeout: 15_000 });
+    await expect(page.getByLabel("Other area")).toHaveValue(/Mock idea for reframe/);
+  });
+
   test("clicking an exercise picker card navigates to that exercise", async ({
     page,
   }) => {
@@ -93,7 +131,7 @@ test.describe("AppTopNav navigation", () => {
     await expect(nav.getByRole("link", { name: "Handbook" })).toHaveClass(/font-medium/);
     await expect(page.getByTestId("handbook-start")).toContainText("Start here");
     // Every exercise type and tool has an entry, reachable from the contents.
-    await expect(page.getByTestId("handbook-entry")).toHaveCount(13);
+    await expect(page.getByTestId("handbook-entry")).toHaveCount(14);
     await page.getByTestId("handbook-contents").getByRole("link", { name: "Strategic situations" }).click();
     await expect(page).toHaveURL(/#strategy$/);
   });

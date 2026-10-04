@@ -171,6 +171,42 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
     });
   });
 
+  await page.route("**/api/ai/recommend-mode", async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        recommendations: [
+          { mode: "reframe", reason: "Mock reason: practise spotting traps in this topic." },
+          { mode: "judgment", reason: "Mock reason: handle the people side." },
+          { mode: "evaluative", reason: "Mock reason: weigh the options." },
+          { mode: "analytical", reason: "Mock reason: not shown, ranked fourth." },
+        ],
+      }),
+    });
+  });
+
+  await page.route("**/api/ai/domain-suggestions", async (route: Route) => {
+    let mode = "";
+    try {
+      mode = (JSON.parse(route.request().postData() ?? "{}") as { mode?: string }).mode ?? "";
+    } catch {
+      // keep empty
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        suggestions: [
+          { domain: "Work", subdomain: "Mock idea for " + mode + ": a harsh comment from a manager", why: "Mock why one." },
+          { domain: "Family", subdomain: "Mock idea: parents push a career choice", why: "Mock why two." },
+        ],
+      }),
+    });
+  });
+
   await page.route("**/api/ai/deep-dive", async (route: Route) => {
     let ref = "";
     try {

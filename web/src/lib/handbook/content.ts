@@ -72,6 +72,28 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     ],
   },
   {
+    id: "choosing",
+    title: "Choosing what to practise",
+    href: "/reasoning",
+    group: "basics",
+    trains: "Two ways to start on the Practice page: from a topic, or from a mode.",
+    benefits: [
+      "You never get stuck on a blank topic box.",
+      "Every topic ends up in the exercise that trains it best.",
+    ],
+    howToPractice: [
+      "Start from a topic: pick or type a domain, then press \"Find best mode\". AI ranks all the modes and says why for the top three.",
+      "Start from a mode: pick a mode. AI suggests topic ideas (an area and a specific topic), or you can browse the areas that fit that mode.",
+      "Tap a topic to open the exercise with it filled in. You still choose your level there.",
+      "Inside an exercise, the quick buttons (Work, Family, Negotiation...) are a shortcut for a broad area. The Practice page is for a specific topic.",
+      "Calibration uses a checked question bank, so it offers its own topics (Science, History, Vietnam...).",
+    ],
+    tips: [
+      "Press \"New ideas\" for a fresh set; topics you saw are not repeated.",
+      "Your choice of topic or mode is remembered on this device.",
+    ],
+  },
+  {
     id: "levels",
     title: "Levels: Guided, Standard, Expert",
     href: "/reasoning",

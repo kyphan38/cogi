@@ -19,11 +19,20 @@ import { DomainInput } from "@/components/shared/DomainInput";
 import { listRecentDomains } from "@/lib/db/exercises";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { PRACTICE_EXERCISE_CARDS } from "@/lib/exercise/exercise-mode-cards";
+import { ModeTopicPanel } from "@/components/dashboard/ModeTopicPanel";
+import { cn } from "@/lib/utils";
+import type { ThinkingType } from "@/lib/types/exercise";
 
 type ModeRecommendation = { mode: string; reason: string };
 
 /** SessionStorage key for passing source text from Reasoning → exercise flow. */
 const HOME_SOURCE_TEXT_KEY = "cogi:home-source-text";
+/** Remembers "start from a topic / a mode" on this device. */
+const START_FROM_KEY = "cogi:practice-start-from";
+/** How many ranked modes show their reason. */
+const REASONS_SHOWN = 3;
+
+type StartFrom = "topic" | "mode";
 
 export default function ReasoningPage() {
   const { show: showToast } = useToast();
@@ -34,6 +43,25 @@ export default function ReasoningPage() {
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [recommendations, setRecommendations] = useState<ModeRecommendation[] | null>(null);
   const [recLoading, setRecLoading] = useState(false);
+  const [startFrom, setStartFrom] = useState<StartFrom>("topic");
+  const [pickedMode, setPickedMode] = useState<ThinkingType | null>(null);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(START_FROM_KEY) === "mode") setStartFrom("mode");
+    } catch {
+      // Storage blocked: start from a topic.
+    }
+  }, []);
+
+  const chooseStart = (next: StartFrom) => {
+    setStartFrom(next);
+    try {
+      localStorage.setItem(START_FROM_KEY, next);
+    } catch {
+      // Only a convenience.
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -94,6 +122,38 @@ export default function ReasoningPage() {
         </p>
       </div>
 
+      <div className="space-y-2">
+        <p className="text-sm font-medium">Start from</p>
+        <div className="inline-flex rounded-xl border border-zinc-200 p-1" role="radiogroup" aria-label="Start from">
+          {(
+            [
+              ["topic", "A topic"],
+              ["mode", "A mode"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={startFrom === value}
+              onClick={() => chooseStart(value)}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-sm",
+                startFrom === value ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-50",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="text-muted-foreground text-xs">
+          {startFrom === "topic"
+            ? "You know what to practise on: pick a domain, then let AI rank the modes for it."
+            : "You know which skill to train: pick a mode, then choose from AI topic ideas or the areas that fit it."}
+        </p>
+      </div>
+
+      {startFrom === "topic" ? (
       <div className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
           <div className="min-w-0">
@@ -187,6 +247,36 @@ export default function ReasoningPage() {
         ) : null}
       </div>
 
+      ) : null}
+
+      {startFrom === "mode" ? (
+        <div className="space-y-4">
+          <div className="grid gap-2.5 sm:grid-cols-2" role="radiogroup" aria-label="Exercise mode">
+            {PRACTICE_EXERCISE_CARDS.map((c) => (
+              <button
+                key={c.type}
+                type="button"
+                role="radio"
+                aria-checked={pickedMode === c.type}
+                onClick={() => setPickedMode(c.type as ThinkingType)}
+                className={cn(
+                  "rounded-xl border bg-white p-4 text-left transition-colors hover:bg-zinc-50/80",
+                  pickedMode === c.type ? "border-zinc-900 ring-1 ring-zinc-900" : "border-zinc-200 hover:border-zinc-300",
+                )}
+              >
+                <p className="section-label mb-1 text-zinc-500">{c.label}</p>
+                <p className="text-sm font-medium text-zinc-900">{c.title}</p>
+                {c.desc ? <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{c.desc}</p> : null}
+              </button>
+            ))}
+          </div>
+          {pickedMode ? (
+            <ModeTopicPanel key={pickedMode} mode={pickedMode} recentDomains={domainSuggestions} />
+          ) : (
+            <p className="text-muted-foreground text-sm">Pick a mode to see topic ideas.</p>
+          )}
+        </div>
+      ) : (
       <div className="grid gap-2.5 sm:grid-cols-2">
         {orderedCards.map((c, i) => {
           const isTopRec = recMap !== null && i === 0;
@@ -203,7 +293,7 @@ export default function ReasoningPage() {
               title={c.title}
               desc={c.desc}
               recommended={isTopRec}
-              reason={isTopRec ? recMap?.get(c.type) : undefined}
+              reason={recMap !== null && i < REASONS_SHOWN ? recMap.get(c.type) : undefined}
               onClick={needsSessionData ? () => {
                 try {
                   sessionStorage.setItem(
@@ -222,6 +312,7 @@ export default function ReasoningPage() {
           );
         })}
       </div>
+      )}
     </main>
   );
 }

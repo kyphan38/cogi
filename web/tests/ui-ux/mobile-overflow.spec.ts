@@ -231,4 +231,13 @@ test.describe("Mobile 390px - nothing runs past the screen edge", () => {
     await expect(page.getByTestId("calibration-answer-key")).toBeVisible({ timeout: 15_000 });
     expect(await overflowing(page)).toEqual([]);
   });
+
+  test("practice page: start from a mode with topic ideas and areas open", async ({ page }) => {
+    await gotoAuthenticated(page, "/reasoning");
+    await page.getByRole("radio", { name: "A mode" }).click();
+    await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: /Life situations/ }).click();
+    await expect(page.getByTestId("mode-topic-ideas")).toBeVisible({ timeout: 15_000 });
+    for (const d of await page.getByTestId("mode-topic-panel").locator("details").all()) await d.locator("summary").click();
+    expect(await overflowing(page)).toEqual([]);
+  });
 });
