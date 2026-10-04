@@ -32,6 +32,23 @@ export const GEOPOLITICS_SEMANTIC_ACCENTS: Record<
   },
 };
 
+/**
+ * Markers for the two tags that are not problems, so every row in the geopolitics
+ * picker lines up. Colour stays reserved for the four problem types: a hollow ring
+ * means "no problem here", a grey dot means "not decided".
+ */
+export const NEUTRAL_TAG_MARKERS: Record<"valid_point" | "unclear", string> = {
+  valid_point: "border border-zinc-500 bg-transparent",
+  unclear: "bg-zinc-300",
+};
+
+export function tagMarkerClass(tag: TagType): string | null {
+  if (tag === "valid_point" || tag === "unclear") return NEUTRAL_TAG_MARKERS[tag];
+  return tag in GEOPOLITICS_SEMANTIC_ACCENTS
+    ? GEOPOLITICS_SEMANTIC_ACCENTS[tag as GeopoliticsSemanticTagType].dotClass
+    : null;
+}
+
 export const GEOPOLITICS_SEMANTIC_TAG_SET = new Set<TagType>(
   Object.keys(GEOPOLITICS_SEMANTIC_ACCENTS) as GeopoliticsSemanticTagType[],
 );
