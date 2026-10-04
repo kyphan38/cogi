@@ -16,6 +16,7 @@ import { createPortal } from "react-dom";
 import type { TagType, UserHighlight } from "@/lib/types/exercise";
 import {
   GEOPOLITICS_SEMANTIC_ACCENTS,
+  NEUTRAL_TAG_MARKERS,
   isGeopoliticsSemanticTag,
   ANALYTICAL_TAG_OPTIONS,
   TAG_LABELS,
@@ -130,7 +131,7 @@ function computeFloatingPosition(
   };
 }
 
-function HighlightTagBadge({ tag }: { tag: TagType }) {
+function HighlightTagBadge({ tag, geoContext = false }: { tag: TagType; geoContext?: boolean }) {
   if (isGeopoliticsSemanticTag(tag)) {
     const accent = GEOPOLITICS_SEMANTIC_ACCENTS[tag];
     return (
@@ -151,10 +152,13 @@ function HighlightTagBadge({ tag }: { tag: TagType }) {
   return (
     <span
       className={cn(
-        "mr-2 rounded px-2 py-0.5 text-xs font-medium",
+        "mr-2 inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium",
         TAG_LABELS[tag].colorClass,
       )}
     >
+      {geoContext && (tag === "valid_point" || tag === "unclear") ? (
+        <span className={cn("size-2 shrink-0 rounded-full", NEUTRAL_TAG_MARKERS[tag])} aria-hidden />
+      ) : null}
       {TAG_LABELS[tag].label}
     </span>
   );
@@ -595,7 +599,7 @@ export function HighlightTag({
               className="flex flex-wrap items-start justify-between gap-2 rounded-2xl border border-zinc-200 p-3"
             >
               <div>
-                <HighlightTagBadge tag={h.tag} />
+                <HighlightTagBadge tag={h.tag} geoContext={tagOptions.some(isGeopoliticsSemanticTag)} />
                 <q className="text-zinc-500">{h.text}</q>
               </div>
               <Button type="button" variant="ghost" size="sm" onClick={() => remove(h.id)}>

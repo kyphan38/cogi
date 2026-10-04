@@ -7,6 +7,7 @@ import {
   isGeopoliticsSemanticTag,
   TAG_CHECK_QUESTIONS,
   TAG_LABELS,
+  tagMarkerClass,
 } from "@/lib/exercise/tag-labels";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +42,8 @@ export function SemanticTagPicker({
     if (autoFocusFirst) firstRef.current?.focus();
   }, [autoFocusFirst]);
 
+  const geoPicker = options.some(isGeopoliticsSemanticTag);
+
   return (
     <div
       role="toolbar"
@@ -51,8 +54,11 @@ export function SemanticTagPicker({
       )}
     >
       {options.map((tag, i) => {
-        const geo = isGeopoliticsSemanticTag(tag);
-        const label = geo
+        // A geopolitics picker gives every row a marker (colour for problems, neutral
+        // for Valid Point / Unclear) so the labels line up.
+        const geo = geoPicker;
+        const marker = geo ? tagMarkerClass(tag) : null;
+        const label = isGeopoliticsSemanticTag(tag)
           ? GEOPOLITICS_SEMANTIC_ACCENTS[tag].label
           : TAG_LABELS[tag].label;
         const question = TAG_CHECK_QUESTIONS[tag];
@@ -74,12 +80,8 @@ export function SemanticTagPicker({
               isSelected ? "border-zinc-900 bg-zinc-50" : "border-zinc-200 bg-white",
             )}
           >
-            {geo ? (
-              <span
-                data-testid="semantic-tag-dot"
-                className={cn("size-2 shrink-0 rounded-full", GEOPOLITICS_SEMANTIC_ACCENTS[tag].dotClass)}
-                aria-hidden
-              />
+            {marker ? (
+              <span data-testid="semantic-tag-dot" className={cn("size-2 shrink-0 rounded-full", marker)} aria-hidden />
             ) : null}
             <span className={geo ? undefined : "font-medium"}>{label}</span>
             {!geo && showQuestions && question ? (

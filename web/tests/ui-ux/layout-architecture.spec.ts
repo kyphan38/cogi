@@ -115,6 +115,15 @@ test.describe("Nordic Mono layout architecture", () => {
       await assertVerticalCenterAligned(button, dot, label);
     });
 
+    test("valid point and unclear get a neutral marker aligned like the others", async ({ page }) => {
+      for (const name of [/^Valid Point/, /^Unclear/]) {
+        const button = page.getByRole("button", { name });
+        const dot = button.getByTestId("semantic-tag-dot");
+        await expect(dot).toBeVisible();
+        await assertVerticalCenterAligned(button, dot, button.locator("span").nth(1));
+      }
+    });
+
     test("semantic tag toolbar uses grid layout at desktop", async ({ page }) => {
       const toolbar = page.getByRole("toolbar", {
         name: "Apply tag to selection",
