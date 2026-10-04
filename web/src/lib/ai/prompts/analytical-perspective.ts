@@ -1,3 +1,4 @@
+import type { GeoGuessResult } from "@/lib/exercise/geo-guess";
 import type {
   AnalyticalResult,
   EmbeddedIssue,
@@ -113,6 +114,9 @@ export function buildAnalyticalPerspectivePrompt(input: {
   userPerspectiveGuess?: string;
   userMissingActorsGuess?: string[];
   metaGuessScore?: number;
+  /** Geopolitics G1: how the picks went, and each lens (question, right reading, user's reading). */
+  geoGuess?: GeoGuessResult | null;
+  lensLines?: string[];
 }): string {
   const ctx = input.userContext?.trim() || "(none)";
   const isGeo = Boolean(input.hiddenPerspective?.trim());
@@ -133,7 +137,7 @@ PERSPECTIVE GUESS (geopolitics):
 - Missing actors: ${JSON.stringify(input.missingActors ?? [])}
 - User's perspective guess: ${input.userPerspectiveGuess?.trim() || "(none)"}
 - User's missing-actor guesses: ${JSON.stringify(input.userMissingActorsGuess ?? [])}
-Write "metaNote": 2-3 short sentences on how close the guesses were and one clue in the text that reveals the viewpoint.`
+${input.geoGuess ? `- Scored in code (final): viewpoint ${input.geoGuess.perspectiveCorrect ? "RIGHT" : "WRONG"}; missing actors ${input.geoGuess.actorsFound}/${input.geoGuess.actorsTotal} found, ${input.geoGuess.wrongActors} picked that are not missing.\n` : ""}${input.lensLines?.length ? `LENSES (the user read the passage through four lenses):\n${input.lensLines.join("\n")}\n` : ""}Write "metaNote": 2-3 short sentences on how close the guesses were and one clue in the text that reveals the viewpoint.${input.lensLines?.length ? " Then one sentence on the lens the user read least well, using the passage." : ""}`
     : "";
 
   return `You are a friendly coach helping a learner practice analytical reading in the domain: ${input.domain}.

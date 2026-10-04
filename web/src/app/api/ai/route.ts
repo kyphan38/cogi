@@ -70,7 +70,7 @@ import {
 } from "@/lib/adaptive/language-level";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 import { isPracticeLevel } from "@/lib/exercise/levels";
-import { ANALYTICAL_LEVELS } from "@/lib/exercise/analytical-levels";
+import { ANALYTICAL_LEVELS, GEO_ANALYTICAL_LEVELS } from "@/lib/exercise/analytical-levels";
 import { EVALUATIVE_LEVELS } from "@/lib/exercise/evaluative-levels";
 import { JUDGMENT_LEVELS } from "@/lib/exercise/judgment-levels";
 import { STRATEGY_LEVELS } from "@/lib/exercise/strategy-levels";
@@ -208,6 +208,7 @@ export async function POST(req: Request) {
   const rawLevel = (body as { level?: unknown }).level;
   const practiceLevel = isPracticeLevel(rawLevel) ? rawLevel : "expert";
   const analyticalLevel = ANALYTICAL_LEVELS[practiceLevel];
+  const geoAnalyticalLevel = GEO_ANALYTICAL_LEVELS[practiceLevel];
   const evaluativeLevel = EVALUATIVE_LEVELS[practiceLevel];
 
   try {
@@ -293,8 +294,11 @@ export async function POST(req: Request) {
       // never check isGeoEval (see plan §Phase 3.1 scope decision).
       const isGeoEval =
         evaluativeTaskType === "auto" && isGeopoliticsAnalyticalDomain(effectiveDomain);
-      // Guided: always a 2x2 matrix (geopolitics keeps its scoring table).
-      const matrixOnly = evaluativeLevel.matrixOnly && evaluativeTaskType === "auto" && !isGeoEval;
+      // Guided: always a 2x2 matrix. Geopolitics at Guided is a matrix of two stakeholder
+      // interests (PLAN-geopolitics.md G1.1); at other levels it keeps its scoring table.
+      const geoMatrix = isGeoEval && evaluativeLevel.matrixOnly;
+      const matrixOnly = evaluativeLevel.matrixOnly && evaluativeTaskType === "auto";
+      const useGeoScoring = isGeoEval && !geoMatrix;
 
       const basePrompt =
         evaluativeTaskType === "dealbreaker"
@@ -311,7 +315,7 @@ export async function POST(req: Request) {
                 adaptationAppendix,
                 customScenario: scenarioForPrompt,
               })
-            : isGeoEval
+            : useGeoScoring
               ? buildGeopoliticsEvaluativePrompt({
                   domain: effectiveDomain,
                   userContext,
@@ -324,6 +328,7 @@ export async function POST(req: Request) {
                   adaptationAppendix,
                   customScenario: scenarioForPrompt,
                   matrixOnly,
+                  stakeholderAxes: geoMatrix,
                 });
 
       const computeSem = (data: Parameters<typeof validateEvaluativeSemantics>[0]) => {
@@ -336,7 +341,7 @@ export async function POST(req: Request) {
         ];
         const geoSem = isGeopoliticsEvaluativePayload(data)
           ? validateGeopoliticsEvaluativeSemantics(data)
-          : isGeoEval
+          : useGeoScoring
             ? ["Expected geopolitics scoring payload with stakeholderNote"]
             : [];
         return [...baseSem, ...geoSem];
@@ -351,10 +356,10 @@ export async function POST(req: Request) {
             ? EVALUATIVE_DEALBREAKER_RETRY_SUFFIX
             : evaluativeTaskType === "uncertainty"
               ? EVALUATIVE_UNCERTAINTY_RETRY_SUFFIX
-              : isGeoEval
+              : useGeoScoring
                 ? GEOPOLITICS_EVALUATIVE_RETRY_SUFFIX
                 : EVALUATIVE_RETRY_SUFFIX,
-        responseJsonSchema: evaluativeResponseSchema(evaluativeTaskType, isGeoEval, { matrixOnly }),
+        responseJsonSchema: evaluativeResponseSchema(evaluativeTaskType, useGeoScoring, { matrixOnly }),
       });
       if (!r.ok) return validatedJsonFailureResponse(r);
       return NextResponse.json({ ok: true, data: r.data });
@@ -412,6 +417,7 @@ export async function POST(req: Request) {
                 userContext,
                 adaptationAppendix,
                 customScenario: scenarioForPrompt,
+                level: geoAnalyticalLevel,
               });
             }
             const base = useSoundReasoning
@@ -522,7 +528,7 @@ export async function POST(req: Request) {
       parse: (raw) => parseAndRepairAnalytical(raw),
       validate: (data) =>
         useGeopoliticsAnalytical
-          ? validateGeopoliticsAnalyticalSemantics(data)
+          ? validateGeopoliticsAnalyticalSemantics(data, { level: geoAnalyticalLevel })
           : validateAnalyticalSemantics(data, {
               expectSound: useSoundReasoning,
               expectMainClaimQuiz: analyticalLevel.walkthrough,
@@ -532,6 +538,7 @@ export async function POST(req: Request) {
         : ANALYTICAL_RETRY_SUFFIX,
       responseJsonSchema: analyticalResponseSchema(useGeopoliticsAnalytical, {
         withMainClaimQuiz: !useGeopoliticsAnalytical && analyticalLevel.walkthrough,
+        withGeoExtras: useGeopoliticsAnalytical,
       }),
     });
     if (!r.ok) return validatedJsonFailureResponse(r);

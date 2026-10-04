@@ -1,3 +1,4 @@
+import { GEO_FACT_RULE } from "@/lib/ai/prompts/geo-rules";
 import { buildDomainHint, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
 
 export function buildSystemsGenerationPrompt(input: {
@@ -136,6 +137,8 @@ export function buildGeopoliticsSystemsPrompt(input: {
 USER context: ${ctx}${domainHint}
 
 ${topicIntro}
+
+${GEO_FACT_RULE}
 
 Requirements:
 - Exactly 6 nodes representing key actors, institutions, or forces (ids MUST be "node_1" through "node_6")

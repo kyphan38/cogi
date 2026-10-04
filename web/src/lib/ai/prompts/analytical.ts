@@ -1,4 +1,6 @@
 import { buildDomainHint, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
+import { GEO_FACT_RULE } from "@/lib/ai/prompts/geo-rules";
+import { GEO_LENSES, GEO_LENS_INFO, type GeoAnalyticalLevelConfig } from "@/lib/exercise/analytical-levels";
 
 const ANALYTICAL_ISSUE_SHAPE_BLOCK = `Return a single JSON object with this exact shape:
 {
@@ -206,21 +208,49 @@ const GEOPOLITICS_PERSPECTIVE_POOL = [
 
 const TEXT_SEGMENT_RULE = `CRITICAL textSegment rule: Each textSegment MUST be copied verbatim from passage (case-sensitive, character-for-character). Before returning JSON, verify every textSegment appears in passage; if not, fix the segment or passage.`;
 
+const GEO_ISSUE_LINES: Record<string, string> = {
+  framing_bias: "1 framing bias (the analysis takes one actor's interests as the default \"reasonable\" position)",
+  missing_actor: "1 missing actor or missing perspective (a relevant stakeholder whose interests are never mentioned)",
+  assumed_causation: "1 assumed causation (correlation or sequence presented as causal without evidence)",
+  analogy_misuse: "1 historical analogy that partially fits but breaks down on closer examination",
+};
+
 export function buildGeopoliticsAnalyticalPrompt(input: {
   domain: string;
   userContext?: string;
   adaptationAppendix?: string;
   customScenario?: string;
+  /** Level config (PLAN-geopolitics.md G1). Without it: the full Expert brief. */
+  level?: GeoAnalyticalLevelConfig;
 }): string {
   const ctx = input.userContext?.trim() || "(none provided)";
   const adapt = input.adaptationAppendix?.trim();
   const scenarioBlock = formatUserScenarioBlock(input.customScenario);
   const domainHint = buildDomainHint(input.domain);
   const perspectivePick = `Pick ONE unstated perspective at random from this pool (vary across generations): ${GEOPOLITICS_PERSPECTIVE_POOL.join("; ")}. Do NOT reveal which you chose in the passage.`;
+  const lv = input.level;
+  const words = lv?.passageWords ?? "300-400";
+  const types = lv?.issueTypes ?? ["framing_bias", "missing_actor", "assumed_causation", "analogy_misuse"];
+  const decoys = lv?.decoys ?? 2;
+  const severities =
+    types.length === 2 ? "Set one issue severity to obvious and one to moderate." : "Set one issue severity to obvious, two to moderate, one to subtle.";
 
   const topicLine = scenarioBlock
-    ? `${scenarioBlock}\n\nWrite a passage (300-400 words) clearly grounded in the scenario above about: ${input.domain}.`
-    : `Generate a passage (300-400 words) that reads like a real geopolitical analysis or policy brief about: ${input.domain}.`;
+    ? `${scenarioBlock}\n\nWrite a passage (${words} words) clearly grounded in the scenario above about: ${input.domain}.`
+    : `Generate a passage (${words} words) that reads like a geopolitical analysis or policy brief about: ${input.domain}.`;
+
+  const extras = lv
+    ? `,
+  "concepts": [ { "term": string, "plain": string (one simple sentence), "example": string (one real-world example everyone agrees on) } ] (exactly 3 ideas that help read THIS passage, e.g. "security dilemma", "chokepoint", "balancing", "sanctions leakage"),
+  "conceptChecks": [ { "question": string, "options": [string, string, string], "answerIndex": 0 | 1 | 2, "explanation": string } ] (exactly 1, testing one of the concepts),
+  "perspectiveOptions": [string, string, string, string] (exactly 4 viewpoints from the pool above: the hiddenPerspective word for word, plus 3 others that are plausible for this passage; shuffle so the right one is not always first),
+  "actorCandidates": [string] (4-6 short actor names: every missingActors entry word for word, plus plausible actors that ARE mentioned or are irrelevant; shuffle),
+  "lensQuestions": [
+    { "lens": "realist" | "liberal" | "constructivist" | "political_economy", "question": string, "options": [string, string, string], "answerIndex": 0 | 1 | 2, "explanation": string }
+  ] (exactly 4, one per lens, about THIS passage. The lens meanings:
+${GEO_LENSES.map((l) => `    ${l} = ${GEO_LENS_INFO[l].name}: ${GEO_LENS_INFO[l].question}`).join("\n")}
+    The right option is the reading that lens gives; the others are readings from other lenses or common misreadings. Vary which index is right.)`
+    : "";
 
   return `You are generating a geopolitical analysis exercise. Return ONLY valid JSON (no markdown, no prose).
 
@@ -233,26 +263,25 @@ ${topicLine}
 
 The passage must be written from the chosen SPECIFIC but unstated perspective. Do NOT reveal the perspective explicitly - the user must identify it.
 
+${GEO_FACT_RULE}
+
 Embed exactly:
-- 1 framing bias (the analysis takes one actor's interests as the default "reasonable" position)
-- 1 missing actor or missing perspective (a relevant stakeholder whose interests are never mentioned)
-- 1 assumed causation (correlation or sequence presented as causal without evidence)
-- 1 historical analogy that partially fits but breaks down on closer examination
+${types.map((t) => `- ${GEO_ISSUE_LINES[t]}`).join("\n")}
 
 Also include:
-- 2 "decoy" statements that LOOK biased but are actually well-supported claims
+- ${decoys} "decoy" statement${decoys === 1 ? "" : "s"} that LOOK biased but are actually well-supported claims
 
 ${TEXT_SEGMENT_RULE}
 ${PARAGRAPH_RULE}
 
 ${GEOPOLITICS_ISSUE_SHAPE_PREFIX}
   "hiddenPerspective": string (whose viewpoint is this written from - revealed after user attempts),
-  "missingActors": [string] (1-2 actors/stakeholders whose interests are absent from the passage)
+  "missingActors": [string] (1-2 actors/stakeholders whose interests are absent from the passage)${extras}
 }
 
-embeddedIssues must have exactly 4 items (1 of each type listed above).
-validPoints must have exactly 2 items.
-Set one issue severity to obvious, two to moderate, one to subtle.${adapt ? `\n\n${adapt}` : ""}`;
+embeddedIssues must have exactly ${types.length} items (1 of each type listed above).
+validPoints must have exactly ${decoys} item${decoys === 1 ? "" : "s"}.
+${severities}${adapt ? `\n\n${adapt}` : ""}`;
 }
 
 export function buildAnalyticalFromUserTextPrompt(input: {
