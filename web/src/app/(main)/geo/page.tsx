@@ -7,14 +7,16 @@ import { useToast } from "@/components/ui/toast";
 import Link from "next/link";
 import { ActorCards } from "@/components/geo/ActorCards";
 import { CloseTheStrait } from "@/components/geo/CloseTheStrait";
+import { TimelineGame } from "@/components/geo/TimelineGame";
 import { MapQuiz, MapQuizResults } from "@/components/geo/MapQuiz";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
 import type { ChokepointId, RouteId } from "@/lib/geo/chokepoints";
 import { GEO_GAME_CASES } from "@/lib/geo/game-cases";
+import { TIMELINE_CASES, timelineById } from "@/lib/geo/timelines";
 import { listGeoLabRows, requestStraitExplanation, saveGeoLabRow } from "@/lib/geo/client";
 import type { Place } from "@/lib/geo/places";
 import { localDay, pickQuizPlaces, QUIZ_LENGTH, reviewCounts, type GeoQuizAnswer } from "@/lib/geo/quiz";
-import { makeQuizRow, makeStraitRow, placesAskedOn, quizAttempts, quizDoneOn, quizRows } from "@/lib/geo/rows";
+import { makeQuizRow, makeStraitRow, makeTimelineRow, placesAskedOn, quizAttempts, quizDoneOn, quizRows } from "@/lib/geo/rows";
 import type { StraitResult } from "@/lib/geo/strait";
 import type { Exercise, GeoLabExerciseRow } from "@/lib/types/exercise";
 
@@ -23,7 +25,9 @@ type View =
   | { kind: "quiz"; places: Place[]; startedAt: string }
   | { kind: "results"; places: Place[]; answers: GeoQuizAnswer[] }
   | { kind: "strait"; startedAt: string }
-  | { kind: "cards" };
+  | { kind: "cards" }
+  | { kind: "timelines" }
+  | { kind: "timeline"; caseId: string; startedAt: string };
 
 /**
  * Geo Lab (PLAN-geopolitics.md G2): a daily map quiz with spaced review, and "Close
@@ -181,6 +185,20 @@ export default function GeoLabPage() {
             </CardContent>
           </Card>
 
+          <Card data-testid="geo-timelines-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Timelines</CardTitle>
+              <p className="text-muted-foreground text-sm">
+                Follow a real crisis or negotiation step by step. Decide at key moments, then see what really happened.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Button type="button" variant="outline" onClick={() => setView({ kind: "timelines" })} data-testid="geo-timelines-open">
+                Choose a timeline
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card data-testid="geo-cards-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Country cards</CardTitle>
@@ -238,6 +256,31 @@ export default function GeoLabPage() {
             Done
           </Button>
         </div>
+      ) : null}
+
+      {view.kind === "timelines" ? (
+        <div className="grid gap-2 sm:grid-cols-2" data-testid="timeline-picker">
+          {TIMELINE_CASES.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setView({ kind: "timeline", caseId: c.id, startedAt: new Date().toISOString() })}
+              className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-left text-sm hover:bg-zinc-50"
+              data-testid={`timeline-option-${c.id}`}
+            >
+              <span className="block font-medium">{c.title}</span>
+              <span className="text-muted-foreground block text-xs">{c.when}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {view.kind === "timeline" && timelineById(view.caseId) ? (
+        <TimelineGame
+          key={view.caseId}
+          timeline={timelineById(view.caseId)!}
+          onFinish={(result) => void save(makeTimelineRow(result, view.startedAt))}
+        />
       ) : null}
 
       {view.kind === "cards" ? (

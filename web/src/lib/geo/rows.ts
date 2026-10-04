@@ -1,6 +1,7 @@
 import { CHOKEPOINTS, type ChokepointId, type RouteId } from "@/lib/geo/chokepoints";
 import { localDay, type GeoQuizAnswer, type QuizAttempt } from "@/lib/geo/quiz";
 import type { StraitResult } from "@/lib/geo/strait";
+import { timelineById, type TimelineResult } from "@/lib/geo/timelines";
 import type { Exercise, GeoLabExerciseRow, GeoStraitExplanation } from "@/lib/types/exercise";
 
 /** Domain of every Geo Lab row; kept out of topic suggestions. */
@@ -40,6 +41,22 @@ export function makeStraitRow(
     domain: GEO_LAB_DOMAIN,
     title: `Close the strait: ${name}`,
     strait: { ...input, explanation: input.explanation ?? null },
+    confidenceBefore: null,
+    aiPerspective: null,
+    createdAt: startedAt,
+    completedAt: now.toISOString(),
+  };
+}
+
+export function makeTimelineRow(result: TimelineResult, startedAt: string, now = new Date()): GeoLabExerciseRow {
+  const title = timelineById(result.caseId)?.title ?? result.caseId;
+  return {
+    id: newId(),
+    type: "geo",
+    variant: "timeline",
+    domain: GEO_LAB_DOMAIN,
+    title: `Timeline: ${title}`,
+    timeline: result,
     confidenceBefore: null,
     aiPerspective: null,
     createdAt: startedAt,

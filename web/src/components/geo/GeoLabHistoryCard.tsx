@@ -5,6 +5,7 @@ import { Check, X } from "lucide-react";
 import { ALT_ROUTES, chokepointById } from "@/lib/geo/chokepoints";
 import { countryName } from "@/lib/geo/countries";
 import { placeById } from "@/lib/geo/places";
+import { timelineById } from "@/lib/geo/timelines";
 import type { GeoLabExerciseRow } from "@/lib/types/exercise";
 
 const names = (ids: string[]) => (ids.length ? ids.map((id) => countryName(id) ?? id).join(", ") : "none");
@@ -30,6 +31,31 @@ export function GeoLabHistoryCard({ row }: { row: GeoLabExerciseRow }) {
         <Link href="/geo" className="text-xs underline underline-offset-4">
           Open the Geo Lab
         </Link>
+      </div>
+    );
+  }
+  if (row.variant === "timeline") {
+    const t = row.timeline;
+    const tl = t ? timelineById(t.caseId) : undefined;
+    if (!t || !tl) return null;
+    return (
+      <div className="space-y-2" data-testid="history-geo-timeline">
+        <p className="font-medium">{tl.title}</p>
+        <ul className="space-y-1">
+          {t.answers.map((a) => {
+            const d = tl.decisions.find((x) => x.id === a.decisionId);
+            return (
+              <li key={a.decisionId}>
+                {d?.question} You chose: {d?.options.find((o) => o.id === a.optionId)?.text ?? a.optionId} ({a.confidence}% sure).{" "}
+                <span className="font-medium">{a.verdict === "close" ? "Close to history." : "Different from history."}</span>
+              </li>
+            );
+          })}
+        </ul>
+        <p>
+          Order: {t.orderCorrect} of {t.orderTotal} in the right place.
+          {t.offRampCorrect != null ? ` Off-ramp: ${t.offRampCorrect ? "found" : "missed"}.` : ""}
+        </p>
       </div>
     );
   }

@@ -22,6 +22,7 @@ import type { CALIBRATION_CONCEPTS, CALIBRATION_CHECKS } from "@/lib/exercise/ca
 import type { GeoQuizAnswer } from "@/lib/geo/quiz";
 import type { StraitResult } from "@/lib/geo/strait";
 import type { ChokepointId, RouteId } from "@/lib/geo/chokepoints";
+import type { TimelineResult } from "@/lib/geo/timelines";
 import type {
   JudgmentChoiceQuestion,
   JudgmentConcept,
@@ -583,7 +584,7 @@ export interface GeoStraitExplanation {
 export interface GeoLabExerciseRow {
   id: string;
   type: "geo";
-  variant: "map_quiz" | "strait";
+  variant: "map_quiz" | "strait" | "timeline";
   /** Always "Geo Lab"; kept out of topic suggestions. */
   domain: string;
   title: string;
@@ -597,6 +598,8 @@ export interface GeoLabExerciseRow {
     result: StraitResult;
     explanation?: GeoStraitExplanation | null;
   };
+  /** timeline: decisions, order and off-ramp answers (PLAN-geopolitics.md G4). */
+  timeline?: TimelineResult;
   confidenceBefore: null;
   aiPerspective: null;
   /** Shared row fields; Geo Lab rows never use them. */
