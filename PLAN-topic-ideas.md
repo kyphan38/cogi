@@ -35,6 +35,8 @@ merge.
    rồi bấm Generate (không tự tạo bài).
 7. Bỏ "Find best mode" và 7 thẻ mode bên dưới A topic.
 8. Không tự gọi AI khi mở trang hay chọn mode: **luôn có nút Generate**.
+9. Specific scenario với Analytical: văn bản **>= 120 từ** thì phân tích chính văn bản đó;
+   ngắn hơn thì AI viết bài quanh tình huống (chốt 2026-10-04).
 
 ## Thiết kế màn hình
 
@@ -69,6 +71,18 @@ merge.
 ---
 
 ## Phase T1 - API gợi ý 10 chủ đề + quy tắc trong code
+
+**Xong (2026-10-04)**, branch `topics/t1-topic-ideas`. Unit 709/709, `tsc` sạch, eslint 0 lỗi,
+gọi Gemini thật cho 6 bộ lọc (All, Life situations, Reframe có loại trừ, Strategy + domain,
+Geopolitics 2 lần): đủ 10 chủ đề cụ thể, đúng mode, không trùng; 9-17 giây. Chưa có giao diện
+(T2, T3).
+
+- Route mới `/api/ai/topic-ideas` (giữ route cũ `domain-suggestions` đến T4); lõi ở
+  `lib/ai/topic-ideas-generate.ts`, quy tắc thuần ở `lib/topics/topic-ideas.ts`, client ở
+  `lib/topics/client.ts` (gửi tối đa 100 chủ đề đã làm + 10 chủ đề đang hiện).
+- **Khác plan:** giới hạn mỗi mode = max(2, 10 / số mode hợp bộ lọc), số mode tối thiểu =
+  min(4, số mode hợp). Lý do: nhóm Geopolitics chỉ hợp 4 mode, giới hạn cứng 2/mode chỉ ra
+  được 8 dòng.
 
 - Mở rộng `/api/ai/domain-suggestions` (hoặc route mới `/api/ai/topic-ideas`): đầu vào
   `{ mode: ThinkingType | "all", group?, domain?, exclude: string[] }`, trả về 10
