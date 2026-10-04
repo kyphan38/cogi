@@ -102,6 +102,24 @@ Geopolitics 2 lần): đủ 10 chủ đề cụ thể, đúng mode, không trùn
 
 ## Phase T2 - Màn hình A topic
 
+**Xong (2026-10-04)**, branch `topics/t1-topic-ideas` (cùng branch với T1). Unit 712/712,
+`tsc` sạch, eslint 0 lỗi, build production, E2E toàn bộ 171/171 (mới: `topic-ideas.spec.ts`),
+chụp màn hình desktop + 390px.
+
+- `components/dashboard/TopicIdeasPanel.tsx` (dùng lại ở T3 với `fixedMode`): Domain /
+  Specific scenario; Area > Domain (select 2 cấp), Mode (All + 7 mode); Generate; 10 dòng có
+  mode; Calibration hiện danh sách ngân hàng câu hỏi, không gọi AI.
+- Specific scenario: một ô; "Suggest modes" -> 3 mode nhận được tình huống (bỏ Strategy,
+  Calibration); bấm -> mở setup với văn bản đã điền (`lib/topics/scenario-handoff.ts`).
+- Trang New exercise: bỏ ô Domain tự gõ, Source, "Find best mode" và 7 thẻ mode.
+- **Lỗi tìm ra và đã sửa:**
+  - Analytical / Systems / Evaluative chỉ đọc văn bản được chuyển sang khi tự tạo bài: giờ
+    luôn đọc, chỉ tự tạo bài khi được yêu cầu, và mở sẵn chế độ "Type your own" để thấy ô
+    văn bản.
+  - Life situations / Reframe chưa nhận văn bản: giờ điền vào "My situation", tự chuyển lên
+    Standard nếu cấp hiện tại không có ô này.
+  - Ở chế độ dev, React chạy effect hai lần làm mất văn bản: giờ chỉ đọc một lần.
+
 - Hàng bộ lọc: Domain (select 2 cấp, mặc định Any) / chuyển sang Specific scenario; Mode
   (select, mặc định All); nút Generate. Danh sách 10 dòng; trạng thái đang tải; lỗi có nút
   thử lại.
