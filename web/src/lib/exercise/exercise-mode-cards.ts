@@ -40,6 +40,13 @@ export const ALL_EXERCISE_CARDS: {
     title: "Think like a game theorist",
     desc: "Find each side's best reply and predict where they end up.",
   },
+  {
+    type: "reframe",
+    href: "/exercise/reframe",
+    label: "Reframe",
+    title: "Spot thinking traps",
+    desc: "Name the traps in a hard moment, then rewrite one thought fairly.",
+  },
 ];
 
 /**
@@ -47,7 +54,7 @@ export const ALL_EXERCISE_CARDS: {
  * systems 3, analytical 1 of 9 exercises). Old exercises of removed types still
  * show in History, under their raw type name.
  */
-export const PRACTICE_EXERCISE_TYPES = ["evaluative", "systems", "analytical", "judgment", "strategy"] as const;
+export const PRACTICE_EXERCISE_TYPES = ["evaluative", "systems", "analytical", "judgment", "strategy", "reframe"] as const;
 
 export const PRACTICE_EXERCISE_CARDS = PRACTICE_EXERCISE_TYPES.map(
   (type) => ALL_EXERCISE_CARDS.find((c) => c.type === type)!,
@@ -59,4 +66,5 @@ export const TYPE_LABEL: Record<string, string> = {
   evaluative: "Evaluative",
   judgment: "Life situations",
   strategy: "Strategic situations",
+  reframe: "Reframe",
 };

@@ -36,6 +36,7 @@ import {
   isAnalyticalExercise,
   isEvaluativeExercise,
   isJudgmentExercise,
+  isReframeExercise,
   isStrategyExercise,
   isSystemsExercise,
 } from "@/lib/types/exercise";
@@ -52,6 +53,7 @@ import { SystemsAnswerKey } from "@/components/exercises/SystemsAnswerKey";
 import { EvaluativeAnswerKey } from "@/components/exercises/EvaluativeAnswerKey";
 import { JudgmentAnswerKey } from "@/components/exercises/JudgmentAnswerKey";
 import { StrategyAnswerKey } from "@/components/exercises/StrategyAnswerKey";
+import { ReframeAnswerKey } from "@/components/exercises/ReframeAnswerKey";
 import { evaluativeResultOf } from "@/lib/exercise/evaluative-score";
 import { systemsResultOf } from "@/lib/exercise/systems-score";
 import { AnalyticalAnswerKey } from "@/components/exercises/AnalyticalAnswerKey";
@@ -497,6 +499,7 @@ function HistoryPageInner() {
                 <SelectItem value="evaluative">Evaluative</SelectItem>
                 <SelectItem value="judgment">Life situations</SelectItem>
                 <SelectItem value="strategy">Strategic situations</SelectItem>
+                <SelectItem value="reframe">Reframe</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -672,6 +675,27 @@ function HistoryPageInner() {
                 </p>
                 {detailEx.result ? (
                   <JudgmentAnswerKey
+                    exercise={detailEx}
+                    result={detailEx.result}
+                    coaching={
+                      isCoachingStructured(detailEx.aiPerspectiveStructured)
+                        ? detailEx.aiPerspectiveStructured
+                        : null
+                    }
+                  />
+                ) : null}
+              </>
+            ) : isReframeExercise(detailEx) ? (
+              <>
+                <div>
+                  <h3 className="mb-1 font-medium">Situation</h3>
+                  <p className="whitespace-pre-wrap leading-relaxed">{detailEx.scenario}</p>
+                </div>
+                <p className="text-muted-foreground">
+                  Level: {LEVEL_LABELS[detailEx.level]} · {detailEx.context === "vietnam" ? "Vietnam" : "General"}
+                </p>
+                {detailEx.result ? (
+                  <ReframeAnswerKey
                     exercise={detailEx}
                     result={detailEx.result}
                     coaching={

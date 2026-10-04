@@ -86,7 +86,7 @@ test.describe("Mobile 390px - nothing runs past the screen edge", () => {
     expect(await overflowing(page)).toEqual([]);
   });
 
-  for (const path of ["/reasoning", "/exercise/history", "/settings", "/exercise/analytical", "/exercise/evaluative", "/exercise/systems", "/exercise/judgment", "/terms", "/tracks", "/exercise/strategy", "/simulators", "/handbook"]) {
+  for (const path of ["/reasoning", "/exercise/history", "/settings", "/exercise/analytical", "/exercise/evaluative", "/exercise/systems", "/exercise/judgment", "/terms", "/tracks", "/exercise/strategy", "/exercise/reframe", "/simulators", "/handbook"]) {
     test(`page ${path}`, async ({ page }) => {
       await gotoAuthenticated(page, path);
       await page.waitForTimeout(500);
@@ -182,5 +182,28 @@ test.describe("Mobile 390px - nothing runs past the screen edge", () => {
     await page.getByRole("button", { name: "Get AI feedback" }).click();
     await expect(page.getByTestId("strategy-answer-key")).toBeVisible({ timeout: 15_000 });
     expect(await overflowing(page)).toEqual([]);
+  });
+
+  test("reframe: thought list, monologue, rewrite and answer key", async ({ page }) => {
+    for (const level of ["Standard", "Expert"] as const) {
+      await gotoAuthenticated(page, "/exercise/reframe");
+      await page.getByTestId("level-picker").getByRole("button", { name: new RegExp(`^${level}`) }).click();
+      await page.getByRole("button", { name: "Generate exercise" }).click();
+      await page.getByRole("radio", { name: "I missed the deadline by a day" }).click({ timeout: 15_000 });
+      await page.getByRole("button", { name: "Start the exercise" }).click();
+      await page.getByRole("radiogroup", { name: "Main feeling" }).getByRole("radio", { name: "Overwhelmed" }).click();
+      if (level === "Standard") {
+        for (const q of await page.getByTestId("thought-question").all()) await q.getByRole("radio", { name: "Realistic" }).click();
+      } else {
+        await page.getByTestId("monologue").getByRole("button", { name: "I always mess things up." }).click();
+      }
+      expect(await overflowing(page)).toEqual([]);
+      await page.getByRole("button", { name: "Reframe a thought" }).click();
+      for (const box of await page.getByRole("textbox").all()) await box.fill("I made one mistake, and I can fix it today.");
+      expect(await overflowing(page)).toEqual([]);
+      await page.getByRole("button", { name: "Get AI feedback" }).click();
+      await expect(page.getByTestId("reframe-answer-key")).toBeVisible({ timeout: 15_000 });
+      expect(await overflowing(page)).toEqual([]);
+    }
   });
 });
