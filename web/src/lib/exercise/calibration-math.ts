@@ -1,5 +1,6 @@
 import {
   CALIBRATION_BANK,
+  CALIBRATION_CATEGORIES,
   type BinaryBankItem,
   type CalibrationCategory,
   type IntervalBankItem,
@@ -226,4 +227,19 @@ export function buildCalibrationItems(input: {
     ),
   );
   return [...binary, ...interval, ...baseRates];
+}
+
+/**
+ * The bank topic to start with when a Calibration exercise opens with a domain from the
+ * Practice page: a bank category by name, or the closest group; otherwise "Mixed".
+ */
+export function calibrationTopicFor(domain: string | undefined, groupId?: string): CalibrationTopic {
+  const d = domain?.trim() ?? "";
+  const byName = (["Mixed", ...CALIBRATION_CATEGORIES] as CalibrationTopic[]).find((t) => t.toLowerCase() === d.toLowerCase());
+  if (byName) return byName;
+  if (groupId === "science-research" || groupId === "health-medicine") return "Science";
+  if (groupId === "personal-money" || groupId === "risk-forecasting" || groupId === "business-economy") return "Money & numbers";
+  if (groupId === "vietnam" || /vietnam/i.test(d)) return "Vietnam";
+  if (groupId?.startsWith("geo-")) return "Geography";
+  return "Mixed";
 }

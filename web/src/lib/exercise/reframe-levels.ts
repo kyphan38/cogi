@@ -117,5 +117,5 @@ export const FEELING_WORDS = [
   "Overwhelmed",
 ] as const;
 
-/** Life areas offered as quick picks at setup. */
-export const REFRAME_AREAS = ["Work", "Study", "Family", "Friends", "Relationships", "Money", "Health & habits"] as const;
+/** Life areas offered as quick picks at setup: the same list as Life situations. */
+export { LIFE_AREAS as REFRAME_AREAS } from "@/lib/exercise/judgment-levels";

@@ -8,17 +8,24 @@ import {
   GEOPOLITICS_DOMAIN_GROUPS,
   GEOPOLITICS_SUBDOMAINS,
 } from "@/lib/exercise/geopolitics-domains";
+import type { ThinkingType } from "@/lib/types/exercise";
 
 export type ExerciseDomainGroup = {
   id: string;
   label: string;
   domains: readonly string[];
+  /**
+   * Exercise types this group fits best (a hint for "Find best mode" and a check that
+   * every exercise type has topics). Geopolitics groups leave it out.
+   */
+  bestFor?: readonly ThinkingType[];
 };
 
 export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
   {
     id: "technology",
     label: "Technology & engineering",
+    bestFor: ["systems", "evaluative", "analytical"],
     domains: [
       "DevOps / SRE",
       "Platform & reliability engineering",
@@ -35,6 +42,7 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
   {
     id: "data-ai",
     label: "Data, AI & ML",
+    bestFor: ["systems", "evaluative", "analytical"],
     domains: [
       "MLOps",
       "Data engineering",
@@ -51,13 +59,18 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
   {
     id: "business-economy",
     label: "Business & economy",
+    bestFor: ["systems", "evaluative", "strategy", "analytical"],
     domains: [
       "Macroeconomics & markets",
       "Microeconomics & pricing",
+      "Interest rates & central banks",
+      "Inflation & cost of living",
+      "Exchange rates & imported goods",
+      "Jobs, wages & the labour market",
+      "Housing market & real estate",
       "Business strategy & operations",
       "Entrepreneurship & product-market fit",
-      "Supply chain & operations",
-      "Personal finance & investing basics",
+      "Logistics & operations management",
       "Mergers & acquisitions",
       "Pricing & monetization strategy",
       "Marketing & growth strategy",
@@ -65,27 +78,172 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
     ],
   },
   {
-    id: "life-personal",
-    label: "Life & personal development",
+    id: "personal-money",
+    label: "Personal money",
+    bestFor: ["evaluative", "calibration", "judgment"],
     domains: [
       "Financial planning",
       "Household budgeting & shared finances",
+      "Personal finance & investing basics",
+      "Saving vs paying off debt",
+      "Loans, credit cards & buying on credit",
+      "Renting vs buying a home",
+      "Insurance choices",
+      "Side income & freelancing",
+      "Retirement & long-term saving",
+      "Big purchases (car, phone, home)",
+    ],
+  },
+  {
+    id: "life-personal",
+    label: "Life & personal development",
+    bestFor: ["judgment", "evaluative", "reframe"],
+    domains: [
       "Life strategy",
       "Career planning & job decisions",
+      "Changing jobs or careers",
       "Study abroad & education choices",
+      "Choosing a university major",
       "Time management & priorities",
+      "Health & wellness tradeoffs",
+      "Habit formation & behavior change",
+      "Moving out & living on your own",
+      "Travel & relocation planning",
+    ],
+  },
+  {
+    id: "mind-emotions",
+    label: "Mind & emotions",
+    bestFor: ["reframe", "judgment"],
+    domains: [
+      "Stress & pressure at work",
+      "Exam & performance anxiety",
+      "Perfectionism & self-criticism",
+      "Procrastination & motivation",
+      "Social media & comparing yourself",
+      "Criticism & rejection",
+      "Burnout & recovery",
+      "Confidence & impostor feelings",
+      "Anger & frustration",
+      "Loneliness & belonging",
+      "Worry about the future",
+      "Mistakes & setbacks",
+    ],
+  },
+  {
+    id: "relationships-family",
+    label: "Relationships & family",
+    bestFor: ["judgment", "reframe", "strategy"],
+    domains: [
       "Social & communication",
+      "Parents & adult children",
+      "Couples & partners",
+      "In-laws & extended family",
+      "Money between relatives & friends",
+      "Friendship conflicts",
+      "Boss & manager relationships",
+      "Colleagues & office politics",
+      "Parenting & family logistics",
+      "Raising teenagers",
+      "Family expectations & career choices",
+      "Neighbours & community life",
+    ],
+  },
+  {
+    id: "competition-negotiation",
+    label: "Competition, negotiation & games",
+    bestFor: ["strategy", "judgment", "evaluative"],
+    domains: [
       "Negotiation & conflict resolution",
       "Persuasion & stakeholder alignment",
-      "Health & wellness tradeoffs",
-      "Parenting & family logistics",
-      "Habit formation & behavior change",
-      "Travel & relocation planning",
+      "Salary & job offer negotiation",
+      "Price wars & competing businesses",
+      "Auctions & bidding",
+      "Teamwork & free riders",
+      "Shared resources & the commons",
+      "Escalation & arms races",
+      "Coordination & industry standards",
+      "Elections & voting",
+      "Sports & game tactics",
+      "Haggling & market bargaining",
+      "Platforms & network effects",
+      "Trust & reputation in repeated deals",
+    ],
+  },
+  {
+    id: "risk-forecasting",
+    label: "Probability, risk & forecasting",
+    bestFor: ["calibration", "evaluative", "analytical"],
+    domains: [
+      "Risk & uncertainty",
+      "Medical tests & screening results",
+      "Insurance & everyday risk",
+      "Lotteries, gambling & odds",
+      "Forecasts & predictions",
+      "Polls & surveys",
+      "Everyday statistics & base rates",
+      "Scams & online fraud",
+      "Natural hazards & weather",
+      "Investment risk & returns",
+      "Estimation & quick math",
+    ],
+  },
+  {
+    id: "media-claims",
+    label: "News, media & claims",
+    bestFor: ["analytical", "calibration"],
+    domains: [
+      "Critical reading & media literacy",
+      "Advertising & product claims",
+      "Health claims & wellness trends",
+      "News headlines & statistics",
+      "Rumours on social media",
+      "Science in the news",
+      "Political speeches & debates",
+      "Product reviews & ratings",
+      "Influencer marketing",
+      "AI-generated content & deepfakes",
+    ],
+  },
+  {
+    id: "society-environment",
+    label: "Cities, society & environment",
+    bestFor: ["systems", "evaluative", "strategy"],
+    domains: [
+      "Traffic & public transport",
+      "Housing & urban growth",
+      "Ecosystems & biodiversity",
+      "Food systems & farming",
+      "Water, floods & droughts",
+      "Air pollution",
+      "Waste & recycling",
+      "Tourism & local communities",
+      "Ageing population & pensions",
+      "Energy transition & electricity",
+    ],
+  },
+  {
+    id: "vietnam",
+    label: "Vietnam today",
+    bestFor: ["judgment", "systems", "evaluative", "calibration"],
+    domains: [
+      "Vietnamese family life & traditions",
+      "Working in a Vietnamese company",
+      "University entrance exams & study in Vietnam",
+      "Housing & real estate in Vietnam",
+      "Traffic & motorbikes in Vietnamese cities",
+      "Gold, savings & investing in Vietnam",
+      "Small family businesses in Vietnam",
+      "Mekong Delta farming & rising seas",
+      "Tourism in Vietnam",
+      "E-commerce & the digital economy in Vietnam",
+      "Foreign investment & factories in Vietnam",
     ],
   },
   {
     id: "professional",
     label: "Professional judgment",
+    bestFor: ["judgment", "evaluative", "strategy"],
     domains: [
       "Organizational change & leadership",
       "Project & program management",
@@ -102,6 +260,7 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
   {
     id: "science-research",
     label: "Science & research",
+    bestFor: ["analytical", "calibration", "systems"],
     domains: [
       "Research methodology & study design",
       "Statistical inference & causal claims",
@@ -118,6 +277,7 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
   {
     id: "health-medicine",
     label: "Health & medicine",
+    bestFor: ["evaluative", "analytical", "calibration"],
     domains: [
       "Health policy & health systems",
       "Clinical decision-making",
@@ -134,6 +294,7 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
   {
     id: "law-governance",
     label: "Law & governance",
+    bestFor: ["analytical", "evaluative", "strategy"],
     domains: [
       "Contract law & negotiation",
       "Regulatory compliance",
@@ -150,6 +311,7 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
   {
     id: "education-learning",
     label: "Education & learning",
+    bestFor: ["evaluative", "analytical", "judgment"],
     domains: [
       "Curriculum design & pedagogy",
       "Standardized testing & assessment",
@@ -166,10 +328,9 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
   {
     id: "general",
     label: "General practice",
+    bestFor: ["evaluative", "analytical", "judgment"],
     domains: [
       "Everyday decisions",
-      "Risk & uncertainty",
-      "Critical reading & media literacy",
       "Legal reasoning & case analysis",
       "Consumer decisions & purchases",
       "Home & DIY projects",
@@ -180,6 +341,12 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
     ],
   },
 ] as const;
+
+/** The catalog group a domain belongs to (exact match), if any. */
+export function catalogGroupOf(domain: string): ExerciseDomainGroup | undefined {
+  const d = domain.trim();
+  return EXERCISE_DOMAIN_CATALOG.find((g) => g.domains.includes(d));
+}
 
 const ALL_CATALOG_GROUPS: ExerciseDomainGroup[] = [
   ...EXERCISE_DOMAIN_CATALOG,
