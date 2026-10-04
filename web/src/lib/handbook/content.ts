@@ -404,7 +404,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     title: "Geo Lab",
     href: "/geo",
     group: "tool",
-    trains: "Knowing where key places are on the map, why some sea routes matter so much, and what the main players want.",
+    trains: "Knowing where key places are on the map, why some sea routes matter so much, what the main players want, and how real crises unfolded.",
     benefits: [
       "World news makes more sense when you can picture the place.",
       "You learn which countries depend on which sea routes, from checked sources.",
@@ -419,10 +419,13 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Every answer links to its source. The AI adds a short coach's note, using only those facts.",
       "Country cards: open a card to see what a country or group says it wants, its red lines, strengths, weak spots and groups.",
       "Geopolitical games: pick a real case to play it as a game in Strategic situations.",
+      "Timelines: follow a real crisis or negotiation one event at a time. At two moments, choose what you would do and say how sure you are. Then see what really happened.",
+      "At the end of a timeline, put events in order and find the \"off-ramp\": the step that calmed the crisis.",
     ],
     tips: [
       "Guess before you look. A wrong guess that you then fix is easier to remember.",
       "A sea only counts if you tap on water.",
+      "On a timeline, \"close\" or \"different\" is not right or wrong: history has no single right answer. Compare your confidence with how often you were close.",
       "Open \"Show the data\" to see every number and its source.",
       "The map shows country shapes only. It does not name disputed areas.",
       "On the cards, \"Says it wants\" and \"Red lines\" are each side's own words. Read them as claims, not as facts about what will happen.",
