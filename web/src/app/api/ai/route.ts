@@ -74,10 +74,12 @@ import { ANALYTICAL_LEVELS, GEO_ANALYTICAL_LEVELS } from "@/lib/exercise/analyti
 import { EVALUATIVE_LEVELS } from "@/lib/exercise/evaluative-levels";
 import { JUDGMENT_LEVELS } from "@/lib/exercise/judgment-levels";
 import { STRATEGY_LEVELS } from "@/lib/exercise/strategy-levels";
-import { buildStrategyGenerationPrompt } from "@/lib/ai/prompts/strategy";
+import { buildGeoStrategyPrompt, buildStrategyGenerationPrompt } from "@/lib/ai/prompts/strategy";
+import { geoGameCaseById } from "@/lib/geo/game-cases";
 import {
   STRATEGY_RETRY_SUFFIX,
   parseStrategyExerciseJson,
+  validateGeoStrategySemantics,
   validateStrategySemantics,
 } from "@/lib/ai/validators/strategy";
 import { buildJudgmentGenerationPrompt } from "@/lib/ai/prompts/judgment";
@@ -215,6 +217,23 @@ export async function POST(req: Request) {
     if (rawType === "strategy") {
       // Strategic situations (PLAN-learning.md L2).
       const cfg = STRATEGY_LEVELS[practiceLevel];
+      const rawGeoCaseId = (body as { geoCaseId?: unknown }).geoCaseId;
+      if (typeof rawGeoCaseId === "string") {
+        // Geopolitical games (PLAN-geopolitics.md G3): a made-up story shaped like a real case.
+        const gameCase = geoGameCaseById(rawGeoCaseId);
+        if (!gameCase) {
+          return NextResponse.json({ ok: false, error: `Unknown case: ${rawGeoCaseId}` }, { status: 400 });
+        }
+        const r = await generateValidatedJson({
+          prompt: buildGeoStrategyPrompt({ gameCase, level: cfg, adaptationAppendix }),
+          parse: parseStrategyExerciseJson,
+          validate: (data) => validateGeoStrategySemantics(data, gameCase),
+          retrySuffix: STRATEGY_RETRY_SUFFIX,
+          responseJsonSchema: strategyResponseSchema(),
+        });
+        if (!r.ok) return validatedJsonFailureResponse(r);
+        return NextResponse.json({ ok: true, data: r.data });
+      }
       const r = await generateValidatedJson({
         prompt: buildStrategyGenerationPrompt({ area: effectiveDomain, level: cfg, userContext, adaptationAppendix }),
         parse: parseStrategyExerciseJson,

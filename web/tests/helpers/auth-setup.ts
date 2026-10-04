@@ -145,7 +145,10 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
         break;
       }
       case "strategy":
-        data = makeMockStrategyPayload(body.level === "expert");
+        data =
+          typeof body.geoCaseId === "string"
+            ? makeMockGeoStrategyPayload()
+            : makeMockStrategyPayload(body.level === "expert");
         break;
       case "judgment":
         data = makeMockJudgmentPayload(body.level === "guided" ? 3 : 4);
@@ -701,6 +704,39 @@ export function makeMockStrategyPayload(expert: boolean) {
     cells,
     gameType: "prisoners_dilemma",
     insight: "Each side's best reply leads both to a worse outcome.",
+  };
+}
+
+/**
+ * A geopolitical game (PLAN-geopolitics.md G3): a made-up game of chicken. Equilibria:
+ * Outcome 2 (Norland firm, Estova backs down) and Outcome 3 (the reverse).
+ */
+export function makeMockGeoStrategyPayload() {
+  const base = makeMockStrategyPayload(false);
+  return {
+    ...base,
+    title: "Rockets on the island",
+    scenario: "Suppose Norland finds that Estova has placed rockets on an island near Norland's coast. Both must choose at once.",
+    players: [
+      { id: "A", name: "Norland", goal: "get the rockets removed without a war" },
+      { id: "B", name: "Estova", goal: "keep its rockets without a war" },
+    ],
+    optionsA: [
+      { id: "a1", label: "Keep up the blockade" },
+      { id: "a2", label: "Ease off" },
+    ],
+    optionsB: [
+      { id: "b1", label: "Keep the rockets" },
+      { id: "b2", label: "Remove the rockets" },
+    ],
+    cells: [
+      { a: "a1", b: "b1", payoffA: 0, payoffB: 0, story: "Neither backs down and war breaks out." },
+      { a: "a1", b: "b2", payoffA: 9, payoffB: 2, story: "Estova removes the rockets and looks weak." },
+      { a: "a2", b: "b1", payoffA: 2, payoffB: 9, story: "Norland eases off and the rockets stay." },
+      { a: "a2", b: "b2", payoffA: 6, payoffB: 6, story: "Both step back and talk." },
+    ],
+    gameType: "chicken",
+    insight: "When neither side backs down, both lose the most.",
   };
 }
 

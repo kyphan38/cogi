@@ -4,10 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
+import Link from "next/link";
+import { ActorCards } from "@/components/geo/ActorCards";
 import { CloseTheStrait } from "@/components/geo/CloseTheStrait";
 import { MapQuiz, MapQuizResults } from "@/components/geo/MapQuiz";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
 import type { ChokepointId, RouteId } from "@/lib/geo/chokepoints";
+import { GEO_GAME_CASES } from "@/lib/geo/game-cases";
 import { listGeoLabRows, requestStraitExplanation, saveGeoLabRow } from "@/lib/geo/client";
 import type { Place } from "@/lib/geo/places";
 import { localDay, pickQuizPlaces, QUIZ_LENGTH, reviewCounts, type GeoQuizAnswer } from "@/lib/geo/quiz";
@@ -19,7 +22,8 @@ type View =
   | { kind: "home" }
   | { kind: "quiz"; places: Place[]; startedAt: string }
   | { kind: "results"; places: Place[]; answers: GeoQuizAnswer[] }
-  | { kind: "strait"; startedAt: string };
+  | { kind: "strait"; startedAt: string }
+  | { kind: "cards" };
 
 /**
  * Geo Lab (PLAN-geopolitics.md G2): a daily map quiz with spaced review, and "Close
@@ -177,6 +181,45 @@ export default function GeoLabPage() {
             </CardContent>
           </Card>
 
+          <Card data-testid="geo-cards-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Country cards</CardTitle>
+              <p className="text-muted-foreground text-sm">
+                What 10 countries and groups say they want, their strengths and weak spots. Every line has a source.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Button type="button" variant="outline" onClick={() => setView({ kind: "cards" })} data-testid="geo-cards-open">
+                Open the cards
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card data-testid="geo-games-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Geopolitical games</CardTitle>
+              <p className="text-muted-foreground text-sm">
+                Game theory with real cases: play a made-up version first, then see what really happened.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-1.5 text-sm">
+                {GEO_GAME_CASES.map((c) => (
+                  <li key={c.id}>
+                    <Link
+                      href={`/exercise/strategy?domain=${c.id}`}
+                      className="underline underline-offset-4"
+                      data-testid={`geo-game-link-${c.id}`}
+                    >
+                      {c.title}
+                    </Link>{" "}
+                    <span className="text-muted-foreground text-xs">{c.when}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+
           <p className="text-muted-foreground text-xs">
             The map shows country shapes only. It does not name disputed areas. Where a sea has more than one common name,
             the quiz gives both.
@@ -194,6 +237,16 @@ export default function GeoLabPage() {
           <Button type="button" onClick={() => setView({ kind: "home" })} data-testid="geo-results-done">
             Done
           </Button>
+        </div>
+      ) : null}
+
+      {view.kind === "cards" ? (
+        <div className="space-y-3">
+          <p className="text-sm">
+            &quot;Says it wants&quot; and &quot;Red lines&quot; are in each side&apos;s own words, with who said it and when.
+            Strengths and weak spots are facts and numbers from neutral sources such as the World Bank and the EIA.
+          </p>
+          <ActorCards openFirst />
         </div>
       ) : null}
 

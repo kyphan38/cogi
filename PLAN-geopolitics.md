@@ -223,6 +223,37 @@ sách ngắn, có nguồn: EIA, UNCTAD, IMF PortWatch...). Đối chiếu bằng
 
 ## Phase G3 - Strategy "Geopolitical games" + thẻ quốc gia
 
+**Xong phần code (2026-10-04)**, branch `geo/g3-geo-games`. Unit 685/685, `tsc` sạch, eslint
+0 lỗi, E2E mới `geo-games.spec.ts`, gọi Gemini thật (5 ca, đều đúng hình dạng ở lần đầu), chụp
+màn hình desktop + mobile. Chủ app giao cho tự quyết các `[QUYẾT ĐỊNH]` của G3.
+
+- **Thẻ quốc gia** `lib/geo/actors.ts`: 10 tác nhân (Mỹ, Trung Quốc, Nga, EU, Nhật, Ấn Độ, Việt
+  Nam, ASEAN, Saudi Arabia, Iran). Mỗi thẻ: "Says it wants", "Red lines and commitments",
+  "Strengths", "Weak spots", "Groups and treaties"; mỗi dòng có nguồn, đối chiếu web 2026-10-04.
+  Xem trong Geo Lab (thẻ "Country cards") và trong "Use the cards" sau mỗi ca thật.
+- **Cách viết trung lập (đã quyết):** "Says" và "Red lines" chỉ ghi điều chính phủ / tổ chức đó
+  tự tuyên bố, ghi rõ ai nói và năm (văn kiện chính thức hoặc lời lãnh đạo); "Strengths" và
+  "Weak spots" chỉ là số liệu và dữ kiện từ nguồn trung lập (World Bank, EIA, FAS, USGS, UN).
+- **5 ca thật** `lib/geo/game-cases.ts`: khủng hoảng tên lửa Cuba 1962 (chicken), chạy đua hạt
+  nhân + Hiệp ước INF (prisoner's dilemma), trần giá dầu Nga 2022 (free rider), OPEC+ cắt giảm
+  2020 (stag hunt), "tấm séc khống" 1914 (cam kết đồng minh). Mỗi ca: tóm tắt, hai bên và lựa
+  chọn thật, "What really happened", bài học, nguồn.
+- **Strategic situations:** ở setup chọn "Or start from a real case"; AI viết truyện giả định
+  (bắt đầu bằng "Suppose", tên nước bịa) cùng dạng trò chơi. Code kiểm tra: đúng hình dạng trò
+  chơi của ca (`geo-game-shape.ts`), không dùng tên thật của ca. Feedback AI chỉ nói về truyện.
+  Cuối bài: "What really happened" từ dữ liệu + "Use the cards". Link thẳng từ Geo Lab
+  (`/exercise/strategy?domain=<id ca>`).
+- Handbook: cập nhật "Strategic situations" và "Geo Lab".
+- **Khác plan:**
+  - 10 tác nhân thay vì 15 (bỏ Thổ Nhĩ Kỳ, Hàn Quốc, Úc, Brazil, Indonesia, để sau): ưu tiên
+    mỗi dòng có nguồn chắc chắn.
+  - Mở cho cả 3 cấp (plan ghi Standard, Expert), vì người mới cần Guided có số; ca thật luôn 2
+    lựa chọn mỗi bên để kiểm tra được hình dạng trò chơi.
+  - Truyện trong bài dùng tên nước bịa, nên thẻ quốc gia hiện ở cuối bài ("Use the cards") thay
+    vì là đầu vào khi làm bài.
+  - Bài học "trò chơi nào" là mô hình dạy học của app, không phải dữ kiện lịch sử; ca Cuba có
+    thêm ghi chú có nguồn rằng mô hình chicken còn tranh luận.
+
 ### Biến thể Strategy
 
 Task type mới `geopolitics` trong Strategy (Standard, Expert). Dùng lại ma trận lợi ích,

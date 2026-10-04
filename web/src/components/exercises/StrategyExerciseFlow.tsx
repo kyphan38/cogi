@@ -42,6 +42,7 @@ import { seededHash } from "@/lib/exercise/guided-candidates";
 import { DEFAULT_PRACTICE_LEVEL, LEVEL_LABELS, type LevelSuggestion, type PracticeLevel } from "@/lib/exercise/levels";
 import { levelSuggestionFor } from "@/lib/exercise/level-suggestion";
 import { useSaveOnLeave } from "@/lib/hooks/useSaveOnLeave";
+import { GEO_GAME_CASES, geoGameCaseById } from "@/lib/geo/game-cases";
 
 type FlowStep = 0 | 1 | 4 | 7;
 const FEEDBACK_STEP = 4;
@@ -77,7 +78,11 @@ export function StrategyExerciseFlow({
   const { show: showToast } = useToast();
   const [step, setStep] = useState<FlowStep>(0);
   const [level, setLevel] = useState<PracticeLevel>(DEFAULT_PRACTICE_LEVEL);
-  const [area, setArea] = useState(initialDomain?.trim() || "Business & prices");
+  const initialCase = geoGameCaseById(initialDomain?.trim());
+  const [area, setArea] = useState(initialCase ? "" : initialDomain?.trim() || "Business & prices");
+  /** Geopolitical games (PLAN-geopolitics.md G3): a real case to base the story on. */
+  const [geoCaseId, setGeoCaseId] = useState<string | null>(initialCase?.id ?? null);
+  const pickedCase = geoGameCaseById(geoCaseId);
   const [exercise, setExercise] = useState<StrategyExerciseRow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -140,7 +145,8 @@ export function StrategyExerciseFlow({
 
   const generate = async () => {
     setError(null);
-    if (!area.trim()) {
+    const gameCase = pickedCase;
+    if (!gameCase && !area.trim()) {
       setError("Pick a topic area.");
       return;
     }
@@ -152,7 +158,8 @@ export function StrategyExerciseFlow({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           exerciseType: "strategy",
-          domain: area.trim(),
+          domain: gameCase ? gameCase.title : area.trim(),
+          ...(gameCase ? { geoCaseId: gameCase.id } : {}),
           level,
           userContext: userContext || undefined,
           languageLevel,
@@ -170,7 +177,8 @@ export function StrategyExerciseFlow({
       const row: StrategyExerciseRow = {
         id,
         type: "strategy",
-        domain: area.trim(),
+        domain: gameCase ? gameCase.title : area.trim(),
+        ...(gameCase ? { geoCaseId: gameCase.id } : {}),
         title: d.title,
         scenario: d.scenario,
         concepts: d.concepts,
@@ -307,6 +315,11 @@ export function StrategyExerciseFlow({
 
   const storyBlock = exercise && A && B ? (
     <div className="space-y-2">
+      {exercise.geoCaseId ? (
+        <p className="text-muted-foreground text-xs" data-testid="geo-scenario-label">
+          Scenario: a made-up story shaped like a real case. The real case comes at the end.
+        </p>
+      ) : null}
       <div className="whitespace-pre-wrap rounded-2xl border border-zinc-200 bg-white p-4 text-base leading-relaxed text-zinc-900">
         {exercise.scenario}
       </div>
@@ -357,11 +370,14 @@ export function StrategyExerciseFlow({
                 <button
                   key={a}
                   type="button"
-                  aria-pressed={area === a}
-                  onClick={() => setArea(a)}
+                  aria-pressed={!pickedCase && area === a}
+                  onClick={() => {
+                    setArea(a);
+                    setGeoCaseId(null);
+                  }}
                   className={cn(
                     "rounded-full border px-3 py-1.5 text-sm",
-                    area === a ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
+                    !pickedCase && area === a ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
                   )}
                 >
                   {a}
@@ -372,8 +388,41 @@ export function StrategyExerciseFlow({
               aria-label="Other topic"
               placeholder="Or type another topic"
               value={(STRATEGY_AREAS as readonly string[]).includes(area) ? "" : area}
-              onChange={(e) => setArea(e.target.value)}
+              onChange={(e) => {
+                setArea(e.target.value);
+                setGeoCaseId(null);
+              }}
             />
+          </div>
+          <div className="grid gap-2" data-testid="geo-cases">
+            <Label>Or start from a real case (geopolitics)</Label>
+            <p className="text-muted-foreground text-xs">
+              You play a made-up story with the same game. At the end you see what really happened, with sources.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {GEO_GAME_CASES.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  aria-pressed={geoCaseId === c.id}
+                  onClick={() => setGeoCaseId(geoCaseId === c.id ? null : c.id)}
+                  className={cn(
+                    "rounded-xl border px-3 py-2 text-left text-sm",
+                    geoCaseId === c.id ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
+                  )}
+                  data-testid={`geo-case-${c.id}`}
+                >
+                  <span className="block font-medium">{c.title}</span>
+                  <span className={cn("block text-xs", geoCaseId === c.id ? "text-zinc-300" : "text-muted-foreground")}>{c.when}</span>
+                </button>
+              ))}
+            </div>
+            {pickedCase ? (
+              <div className="space-y-1 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm" data-testid="geo-case-summary">
+                <p className="leading-relaxed">{pickedCase.summary}</p>
+                <p className="text-muted-foreground text-xs">Real cases use 2 choices for each side at every level.</p>
+              </div>
+            ) : null}
           </div>
           <div>
             <Button type="button" disabled={loading} onClick={() => void generate()}>
