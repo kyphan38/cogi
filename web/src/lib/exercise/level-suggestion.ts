@@ -5,6 +5,7 @@ import {
   isEvaluativeExercise,
   isJudgmentExercise,
   isReframeExercise,
+  isCalibrationExercise,
   isStrategyExercise,
   isSystemsExercise,
   type Exercise,
@@ -16,6 +17,7 @@ import { evaluativeResultOf, rateEvaluative } from "@/lib/exercise/evaluative-sc
 import { rateJudgment } from "@/lib/exercise/judgment-score";
 import { rateStrategy } from "@/lib/exercise/strategy-score";
 import { rateReframe } from "@/lib/exercise/reframe-score";
+import { rateCalibration } from "@/lib/exercise/calibration-score";
 import {
   suggestLevelChange,
   type LevelledExerciseType,
@@ -47,6 +49,9 @@ function rateRow(type: LevelledExerciseType, row: Exercise): ResultRating | null
   }
   if (type === "strategy" && isStrategyExercise(row)) {
     return row.result ? rateStrategy(row.result) : null;
+  }
+  if (type === "calibration" && isCalibrationExercise(row)) {
+    return row.result ? rateCalibration(row.result) : null;
   }
   if (type === "reframe" && isReframeExercise(row)) {
     return row.result ? rateReframe(row.result) : null;
