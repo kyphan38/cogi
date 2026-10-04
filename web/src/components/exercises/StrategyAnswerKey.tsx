@@ -7,6 +7,8 @@ import { OutcomeStories, PayoffMatrix, outcomeNumbers } from "@/components/exerc
 import type { StrategyExerciseRow } from "@/lib/types/exercise";
 import type { AnalyticalCoachingStructured, CoachingStructured } from "@/lib/types/perspective";
 import type { StrategyResult } from "@/lib/exercise/strategy-score";
+import { GeoCasePanel } from "@/components/geo/GeoCasePanel";
+import { geoGameCaseById } from "@/lib/geo/game-cases";
 
 /**
  * Strategic-situation results: the full matrix with the underline method, then each
@@ -18,7 +20,7 @@ export function StrategyAnswerKey({
   result,
   coaching,
 }: {
-  exercise: Pick<StrategyExerciseRow, "players" | "optionsA" | "optionsB" | "cells" | "answers">;
+  exercise: Pick<StrategyExerciseRow, "players" | "optionsA" | "optionsB" | "cells" | "answers" | "geoCaseId">;
   result: StrategyResult;
   coaching: AnalyticalCoachingStructured | CoachingStructured | null;
 }) {
@@ -31,6 +33,7 @@ export function StrategyAnswerKey({
   const optB = (id: string) => exercise.optionsB.find((o) => o.id === id)?.label ?? id;
   const f = result.facts;
   const brRight = result.bestReplies.filter((b) => b.correct).length;
+  const gameCase = geoGameCaseById(exercise.geoCaseId);
 
   return (
     <Card data-testid="strategy-answer-key">
@@ -140,6 +143,8 @@ export function StrategyAnswerKey({
         ) : null}
 
         <CoachingFooter coaching={coaching} metaTitle="Your reason" />
+
+        {gameCase ? <GeoCasePanel gameCase={gameCase} /> : null}
       </CardContent>
     </Card>
   );

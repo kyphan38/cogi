@@ -252,20 +252,24 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     benefits: [
       "You understand price wars, negotiations and teamwork problems.",
       "You can predict an outcome by asking what each side's best reply is.",
+      "With real cases, you see how the same games shape crises, arms races, sanctions and alliances.",
     ],
     howToPractice: [
       "Learn first: best reply, Nash equilibrium, dominant strategy.",
       "For each choice of the other side, find the best reply. Then look for the outcome where nobody wants to change.",
       "In the results, the underline method shows it: each side's best reply is underlined; where both are underlined is the equilibrium.",
+      "Geopolitics: at setup, pick a real case (for example the Cuban Missile Crisis). You play a made-up story with the same game. At the end, \"What really happened\" shows the real case, with sources.",
+      "Under the real case, open \"Use the cards\" to see the players today.",
     ],
     levels: {
       guided: "2 players, 2 choices each, with numbers. Answer best-reply questions, then predict.",
       standard: "No numbers: rank what each side prefers from the story, then predict.",
-      expert: "One side has 3 choices. Also find dominant choices and outcomes better for both.",
+      expert: "One side has 3 choices. Also find dominant choices and outcomes better for both. Real cases keep 2 choices for each side at every level.",
     },
     tips: [
       "Do not pick the fairest or the best outcome for both. Pick the one where nobody wants to change alone.",
       "Some games have two equilibria. Pick both.",
+      "A game is a simple model of a real case. Use it to see the pressure on each side, not to explain everything.",
     ],
   },
   {
@@ -400,7 +404,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     title: "Geo Lab",
     href: "/geo",
     group: "tool",
-    trains: "Knowing where key places are on the map, and why some sea routes matter so much.",
+    trains: "Knowing where key places are on the map, why some sea routes matter so much, and what the main players want.",
     benefits: [
       "World news makes more sense when you can picture the place.",
       "You learn which countries depend on which sea routes, from checked sources.",
@@ -413,12 +417,15 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Places you miss come back after 1 day, then after 3 days and 7 days.",
       "Close the strait: pick a chokepoint and imagine it is closed. Guess which countries are hit hardest and how ships get around it. Then see the answer on the map.",
       "Every answer links to its source. The AI adds a short coach's note, using only those facts.",
+      "Country cards: open a card to see what a country or group says it wants, its red lines, strengths, weak spots and groups.",
+      "Geopolitical games: pick a real case to play it as a game in Strategic situations.",
     ],
     tips: [
       "Guess before you look. A wrong guess that you then fix is easier to remember.",
       "A sea only counts if you tap on water.",
       "Open \"Show the data\" to see every number and its source.",
       "The map shows country shapes only. It does not name disputed areas.",
+      "On the cards, \"Says it wants\" and \"Red lines\" are each side's own words. Read them as claims, not as facts about what will happen.",
     ],
   },
   {
