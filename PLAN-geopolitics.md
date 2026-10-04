@@ -141,6 +141,38 @@ Sau phần làm bài, trước feedback: cùng sự kiện trong bài, mỗi lă
 
 ## Phase G2 - Bản đồ: eo biển chiến lược + quiz bản đồ
 
+**Xong phần code (2026-10-04)**, branch `geo/g2-geo-lab`. Unit 671/671, `tsc` sạch, eslint
+0 lỗi, E2E mới `geo-lab.spec.ts` + `/geo` trong `mobile-overflow.spec.ts`, đã gọi Gemini thật
+(ghi chú cho 7 eo), chụp màn hình desktop + mobile (390px).
+
+- **Nơi đặt:** thẻ "Geo Lab" trên trang Practice (kèm trạng thái quiz hôm nay) và link từ
+  Learning tracks (lộ trình geopolitics). Trang `/geo`.
+- **Nền bản đồ:** `components/geo/GeoMap.tsx`: Equal Earth, nước xám nhạt viền trắng, điểm và
+  tuyến màu mực; tooltip khi hover / chạm / focus; vùng chạm 24px; chú giải + bảng "Show the
+  data"; điều khiển bằng phím (mũi tên + Enter) cho câu hỏi chạm bản đồ. Chỉ các nước có trong
+  câu hỏi mới có tên; mọi hình khác không ghi tên.
+- **Dữ liệu:** `lib/geo/chokepoints.ts` 9 điểm (7 chơi được), nguồn EIA (03/2026), IMF, Panama
+  Canal Authority, Britannica, UN, The Conversation; `lib/geo/places.ts` 98 địa điểm, tọa độ từ
+  Wikipedia. Tất cả đối chiếu trên web ngày 2026-10-04. Test kiểm tra: có nguồn, không trùng,
+  biển nằm ngoài đất liền, thủ đô nằm trong đất liền, điểm nằm trong khung bản đồ.
+- **Close the strait:** chọn eo -> đoán nước bị ảnh hưởng nặng (chạm bản đồ hoặc nút) -> đoán
+  đường vòng (3 lựa chọn) -> đáp án trên bản đồ (zoom vào vùng liên quan, tuyến vòng nét đứt) +
+  số liệu có nguồn. Code chấm; AI viết "Coach's note" ngắn chỉ từ dữ kiện cố định, validator
+  chặn mọi con số không có trong dữ kiện.
+- **Quiz bản đồ:** 5 câu, chấm theo km (điểm hoặc đường, ví dụ dãy Andes, chuỗi đảo thứ nhất);
+  câu về biển chạm vào đất liền là sai. Câu sai quay lại sau 1, 3, 7 ngày. Người mới bắt đầu
+  với địa điểm dễ, đủ 5 loại. Lưu thành dòng `type: "geo"` trong `exercises`, hiện trong
+  History, tính vào streak.
+- Handbook: entry "Geo Lab" (nhóm Tools) + một mẹo trong "Geopolitics topics".
+- **Khác plan:**
+  - Eo Dover thay bằng Danish Straits (EIA có số liệu). Eo Đài Loan và Dover chỉ có trong quiz:
+    không tìm được số liệu có nguồn tốt cho "đóng eo".
+  - Hàng hóa hiện trong đáp án nhưng không chấm: không có danh sách hàng hóa đầy đủ có nguồn,
+    chấm một danh sách thiếu sẽ dạy sai.
+  - Chọn nước từ 7-9 nước cho sẵn thay vì chạm bất kỳ nước nào: dễ chạm trên điện thoại và
+    không phải ghi tên mọi vùng (kể cả vùng tranh chấp).
+  - 98 địa điểm thay vì khoảng 80.
+
 Nơi đặt: trang mới **Geo Lab** (`/geo`), link từ Practice và từ lộ trình địa chính trị.
 `[QUYẾT ĐỊNH]` Đặt thành tab riêng trên thanh điều hướng hay chỉ là thẻ trong Practice
 (đề xuất: thẻ trong Practice, như Simulators).
