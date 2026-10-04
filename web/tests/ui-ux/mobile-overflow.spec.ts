@@ -86,7 +86,7 @@ test.describe("Mobile 390px - nothing runs past the screen edge", () => {
     expect(await overflowing(page)).toEqual([]);
   });
 
-  for (const path of ["/reasoning", "/exercise/history", "/settings", "/exercise/analytical", "/exercise/evaluative", "/exercise/systems", "/exercise/judgment", "/terms", "/tracks", "/exercise/strategy", "/exercise/reframe", "/simulators", "/handbook"]) {
+  for (const path of ["/reasoning", "/exercise/history", "/settings", "/exercise/analytical", "/exercise/evaluative", "/exercise/systems", "/exercise/judgment", "/terms", "/tracks", "/exercise/strategy", "/exercise/reframe", "/exercise/calibration", "/simulators", "/handbook"]) {
     test(`page ${path}`, async ({ page }) => {
       await gotoAuthenticated(page, path);
       await page.waitForTimeout(500);
@@ -205,5 +205,30 @@ test.describe("Mobile 390px - nothing runs past the screen edge", () => {
       await expect(page.getByTestId("reframe-answer-key")).toBeVisible({ timeout: 15_000 });
       expect(await overflowing(page)).toEqual([]);
     }
+  });
+
+  test("calibration: questions, ranges, base rate table and answer key", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/calibration");
+    await page.getByTestId("level-picker").getByRole("button", { name: /^Standard/ }).click();
+    await page.getByRole("button", { name: "Start exercise" }).click();
+    await page.getByRole("radio", { name: "About 9" }).click();
+    await page.getByRole("button", { name: "Start the exercise" }).click();
+    await page.getByRole("button", { name: "Show the table for 10,000" }).first().click();
+    for (const card of await page.getByTestId("calibration-item").all()) {
+      const radios = card.getByRole("radiogroup");
+      if ((await radios.count()) === 2) {
+        await radios.nth(0).getByRole("radio").first().click();
+        await radios.nth(1).getByRole("radio", { name: "100%" }).click();
+      } else if ((await card.getByLabel("Low").count()) > 0) {
+        await card.getByLabel("Low").fill("123,456,789");
+        await card.getByLabel("High").fill("987,654,321");
+      } else {
+        await card.getByLabel("Your answer").fill("12.5");
+      }
+    }
+    expect(await overflowing(page)).toEqual([]);
+    await page.getByRole("button", { name: "Check my answers" }).click();
+    await expect(page.getByTestId("calibration-answer-key")).toBeVisible({ timeout: 15_000 });
+    expect(await overflowing(page)).toEqual([]);
   });
 });

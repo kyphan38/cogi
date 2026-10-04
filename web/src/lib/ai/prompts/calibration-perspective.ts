@@ -31,7 +31,7 @@ export function buildCalibrationPerspectivePrompt(input: {
           a.low == null || a.high == null
             ? "(no answer)"
             : `range ${fmt(a.low)} to ${fmt(a.high)} - ${o.correct ? "HIT" : o.missed === "too-low" ? "MISSED: the whole range was too low" : "MISSED: the whole range was too high"}${o.veryWide ? " (very wide: high end over 10 times the low end)" : ""}`;
-        return `item_${item.id} - ${item.question}\n  Answer: ${fmt(item.answer)} ${item.unit}. ${item.explanation}\n  User: ${user}`;
+        return `item_${item.id} - ${item.question}\n  Answer: ${item.unit === "$" ? `$${fmt(item.answer)}` : `${fmt(item.answer)} ${item.unit}`}. ${item.explanation}\n  User: ${user}`;
       }
       const user =
         a.estimate == null

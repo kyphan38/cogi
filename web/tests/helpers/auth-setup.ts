@@ -243,6 +243,23 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
       });
       return;
     }
+    if (kind === "calibration") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          text: "Mock calibration coaching.",
+          structured: {
+            perspectiveFormat: "coaching_v3",
+            title: "How sure are you?",
+            items: [{ ref: "pattern", why: "Mock why: in this set you were a little overconfident.", clue: "90% sure", nextTimeAsk: "Would I bet on this?" }],
+            takeaways: ["Mock calibration takeaway: start ranges from a number that is surely too low."],
+          },
+        }),
+      });
+      return;
+    }
     if (kind === "reframe") {
       await route.fulfill({
         status: 200,

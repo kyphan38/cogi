@@ -140,3 +140,46 @@ export function calibrationCoachingRefs(r: CalibrationResult): { required: strin
     allowed: ["pattern", ...r.items.map((o) => `item_${o.id}`)],
   };
 }
+
+/** Below this many answered questions, the History summary stays hidden: too noisy. */
+export const CALIBRATION_HISTORY_MIN = 30;
+
+export interface CalibrationHistory {
+  /** Answered questions of every kind. */
+  answered: number;
+  exercises: number;
+  /** Two-answer questions, per confidence step. */
+  buckets: { confidence: number; count: number; right: number }[];
+  /** Ranges per target (80 and 90). */
+  ranges: { target: number; count: number; hits: number }[];
+  baseRate: { count: number; right: number };
+}
+
+/** "How sure vs how right" across finished Calibration exercises (PLAN-psychology.md P2). */
+export function aggregateCalibration(results: CalibrationResult[]): CalibrationHistory {
+  const buckets = new Map<number, { count: number; right: number }>();
+  const ranges = new Map<number, { count: number; hits: number }>();
+  let baseCount = 0;
+  let baseRight = 0;
+  let answered = 0;
+  for (const r of results) {
+    answered += r.items.filter((o) => o.answered).length;
+    for (const bk of r.binary.buckets) {
+      const prev = buckets.get(bk.confidence) ?? { count: 0, right: 0 };
+      buckets.set(bk.confidence, { count: prev.count + bk.count, right: prev.right + bk.right });
+    }
+    if (r.interval.count > 0) {
+      const prev = ranges.get(r.interval.target) ?? { count: 0, hits: 0 };
+      ranges.set(r.interval.target, { count: prev.count + r.interval.count, hits: prev.hits + r.interval.hits });
+    }
+    baseCount += r.baseRate.count;
+    baseRight += r.baseRate.right;
+  }
+  return {
+    answered,
+    exercises: results.length,
+    buckets: [...buckets.entries()].sort((a, b) => a[0] - b[0]).map(([confidence, v]) => ({ confidence, ...v })),
+    ranges: [...ranges.entries()].sort((a, b) => a[0] - b[0]).map(([target, v]) => ({ target, ...v })),
+    baseRate: { count: baseCount, right: baseRight },
+  };
+}

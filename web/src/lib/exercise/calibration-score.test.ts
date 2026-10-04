@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CalibrationItem } from "./calibration-math";
-import { calibrationCoachingRefs, rateCalibration, scoreCalibration } from "./calibration-score";
+import { aggregateCalibration, calibrationCoachingRefs, rateCalibration, scoreCalibration } from "./calibration-score";
 
 const items: CalibrationItem[] = [
   { id: "b1", kind: "binary", category: "Science", question: "A or B?", options: ["A", "B"], answerIndex: 0, explanation: "A.", source: "S" },
@@ -95,5 +95,21 @@ describe("calibrationCoachingRefs", () => {
       intervalTarget: 80,
     });
     expect(calibrationCoachingRefs(r).required).toEqual(["pattern", "item_b2", "item_n2", "item_br-1"]);
+  });
+});
+
+describe("aggregateCalibration", () => {
+  it("adds up confidence steps, ranges per target and base rates across exercises", () => {
+    const a = scoreCalibration({ items, answers: { b1: { choice: 0, confidence: 90 }, n1: { low: 150, high: 250 } }, intervalTarget: 80 });
+    const b = scoreCalibration({ items, answers: { b2: { choice: 0, confidence: 90 }, n2: { low: 1, high: 2 }, "br-1": { estimate: 9 } }, intervalTarget: 90 });
+    const h = aggregateCalibration([a, b]);
+    expect(h.exercises).toBe(2);
+    expect(h.answered).toBe(5);
+    expect(h.buckets).toEqual([{ confidence: 90, count: 2, right: 1 }]);
+    expect(h.ranges).toEqual([
+      { target: 80, count: 2, hits: 1 },
+      { target: 90, count: 2, hits: 0 },
+    ]);
+    expect(h.baseRate).toEqual({ count: 2, right: 1 });
   });
 });
