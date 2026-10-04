@@ -75,4 +75,5 @@ export const TYPE_LABEL: Record<string, string> = {
   strategy: "Strategic situations",
   reframe: "Reframe",
   calibration: "Calibration",
+  geo: "Geo Lab",
 };

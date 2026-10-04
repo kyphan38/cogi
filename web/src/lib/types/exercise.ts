@@ -19,6 +19,9 @@ import type { ReframeAnswer, ReframeExercisePayload } from "@/lib/ai/validators/
 import type { CalibrationItem, CalibrationTopic } from "@/lib/exercise/calibration-math";
 import type { CalibrationAnswer, CalibrationResult } from "@/lib/exercise/calibration-score";
 import type { CALIBRATION_CONCEPTS, CALIBRATION_CHECKS } from "@/lib/exercise/calibration-levels";
+import type { GeoQuizAnswer } from "@/lib/geo/quiz";
+import type { StraitResult } from "@/lib/geo/strait";
+import type { ChokepointId, RouteId } from "@/lib/geo/chokepoints";
 import type {
   JudgmentChoiceQuestion,
   JudgmentConcept,
@@ -564,7 +567,45 @@ export interface CalibrationExerciseRow {
   takeaway?: string | null;
 }
 
+/** The AI's short note after "Close the strait"; it may only use the fixed facts. */
+export interface GeoStraitExplanation {
+  summary: string;
+  points: string[];
+}
+
+/**
+ * Geo Lab (PLAN-geopolitics.md G2): a daily map quiz or one "Close the strait" round.
+ * Built in code from fixed, sourced data; saved only when finished. Not a practice
+ * type: it has no page under /exercise and no level.
+ */
+export interface GeoLabExerciseRow {
+  id: string;
+  type: "geo";
+  variant: "map_quiz" | "strait";
+  /** Always "Geo Lab"; kept out of topic suggestions. */
+  domain: string;
+  title: string;
+  /** map_quiz: the answers, in the order asked. */
+  quiz?: GeoQuizAnswer[];
+  /** strait: what the user guessed and how it scored. */
+  strait?: {
+    chokepointId: ChokepointId;
+    picked: string[];
+    route: RouteId | null;
+    result: StraitResult;
+    explanation?: GeoStraitExplanation | null;
+  };
+  confidenceBefore: null;
+  aiPerspective: null;
+  /** Shared row fields; Geo Lab rows never use them. */
+  aiPerspectiveStructured?: null;
+  currentStep?: number;
+  createdAt: string;
+  completedAt: string | null;
+}
+
 export type Exercise =
+  | GeoLabExerciseRow
   | AnalyticalExerciseRow
   | SystemsExerciseRow
   | EvaluativeExerciseRow
@@ -572,6 +613,10 @@ export type Exercise =
   | StrategyExerciseRow
   | ReframeExerciseRow
   | CalibrationExerciseRow;
+
+export function isGeoLabExercise(ex: Exercise): ex is GeoLabExerciseRow {
+  return ex.type === "geo";
+}
 
 export function isCalibrationExercise(ex: Exercise): ex is CalibrationExerciseRow {
   return ex.type === "calibration";

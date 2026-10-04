@@ -357,6 +357,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Ask \"who would write it this way?\" before you tag anything.",
       "A trap can sound one-sided and still be a well-supported fact.",
       "For real practice, paste an article from a think tank or newspaper (Source: Use my own text).",
+      "To see the places and sea routes on a map, open the Geo Lab.",
     ],
   },
   {
@@ -393,6 +394,32 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Then move one slider at a time and watch what changes.",
     ],
     tips: ["Open \"Show the numbers\" under a chart to see every value."],
+  },
+  {
+    id: "geo-lab",
+    title: "Geo Lab",
+    href: "/geo",
+    group: "tool",
+    trains: "Knowing where key places are on the map, and why some sea routes matter so much.",
+    benefits: [
+      "World news makes more sense when you can picture the place.",
+      "You learn which countries depend on which sea routes, from checked sources.",
+      "A short daily quiz builds your mental map, a little each day.",
+    ],
+    howToPractice: [
+      "Open it from the Geo Lab card on the Practice page, or from the geopolitics track.",
+      "Daily map quiz: 5 places, about 2 minutes. Tap where each place is. The question tells you how close you need to be.",
+      "Not sure? Press \"I don't know\" to see the answer. That is fine.",
+      "Places you miss come back after 1 day, then after 3 days and 7 days.",
+      "Close the strait: pick a chokepoint and imagine it is closed. Guess which countries are hit hardest and how ships get around it. Then see the answer on the map.",
+      "Every answer links to its source. The AI adds a short coach's note, using only those facts.",
+    ],
+    tips: [
+      "Guess before you look. A wrong guess that you then fix is easier to remember.",
+      "A sea only counts if you tap on water.",
+      "Open \"Show the data\" to see every number and its source.",
+      "The map shows country shapes only. It does not name disputed areas.",
+    ],
   },
   {
     id: "terms",

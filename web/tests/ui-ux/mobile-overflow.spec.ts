@@ -86,7 +86,7 @@ test.describe("Mobile 390px - nothing runs past the screen edge", () => {
     expect(await overflowing(page)).toEqual([]);
   });
 
-  for (const path of ["/reasoning", "/exercise/history", "/settings", "/exercise/analytical", "/exercise/evaluative", "/exercise/systems", "/exercise/judgment", "/terms", "/tracks", "/exercise/strategy", "/exercise/reframe", "/exercise/calibration", "/simulators", "/handbook"]) {
+  for (const path of ["/reasoning", "/exercise/history", "/settings", "/exercise/analytical", "/exercise/evaluative", "/exercise/systems", "/exercise/judgment", "/terms", "/tracks", "/exercise/strategy", "/exercise/reframe", "/exercise/calibration", "/simulators", "/handbook", "/geo"]) {
     test(`page ${path}`, async ({ page }) => {
       await gotoAuthenticated(page, path);
       await page.waitForTimeout(500);
