@@ -39,38 +39,18 @@ test.describe("Reasoning page - exercise picker and navigation", () => {
     await stubFirestoreReads(page);
   });
 
-  test("renders the reasoning heading and exercise picker cards", async ({
-    page,
-  }) => {
+  test("renders the reasoning heading and the mode cards under A mode", async ({ page }) => {
     await gotoAuthenticated(page, "/reasoning");
-    await expect(
-      page.getByRole("heading", { name: "New exercise" }),
-    ).toBeVisible();
-
+    await expect(page.getByRole("heading", { name: "New exercise" })).toBeVisible();
+    await page.getByRole("radio", { name: "A mode" }).click();
+    const modes = page.getByRole("radiogroup", { name: "Exercise mode" });
     for (const name of [/Evaluative.*Compare options fairly/, /Systems.*Map feedback loops/, /Analytical.*Spot flawed reasoning/]) {
-      await expect(page.getByRole("link", { name })).toBeVisible();
+      await expect(modes.getByRole("radio", { name })).toBeVisible();
     }
     // Removed types (PLAN-simplify.md) have no card.
     for (const name of [/Combo/, /Sequential/, /Generative/]) {
-      await expect(page.getByRole("link", { name })).toHaveCount(0);
+      await expect(modes.getByRole("radio", { name })).toHaveCount(0);
     }
-  });
-
-  test("reasoning page shows domain input and find-best-mode button", async ({ page }) => {
-    await gotoAuthenticated(page, "/reasoning");
-    await expect(page.getByLabel("Domain")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Find best mode" })).toBeVisible();
-  });
-
-  test("start from a topic: AI ranks all modes and shows reasons for the top three", async ({ page }) => {
-    await gotoAuthenticated(page, "/reasoning");
-    await page.getByLabel("Domain").fill("Perfectionism & self-criticism");
-    await page.getByRole("button", { name: "Find best mode" }).click();
-    const first = page.getByRole("link").filter({ hasText: "best fit" }).first();
-    await expect(first).toContainText("Reframe");
-    await expect(page.getByText("Mock reason: handle the people side.")).toBeVisible();
-    await expect(page.getByText("Mock reason: not shown, ranked fourth.")).toHaveCount(0);
-    await expect(first).toHaveAttribute("href", /\/exercise\/reframe\?domain=Perfectionism/);
   });
 
   test("start from a mode: AI topic ideas and catalog areas lead into the exercise", async ({ page }) => {
@@ -98,16 +78,6 @@ test.describe("Reasoning page - exercise picker and navigation", () => {
     await page.getByTestId("mode-topic-ideas").getByRole("link").first().click();
     await page.waitForURL(/\/exercise\/reframe\?domain=/, { timeout: 15_000 });
     await expect(page.getByLabel("Other area")).toHaveValue(/Mock idea for reframe/);
-  });
-
-  test("clicking an exercise picker card navigates to that exercise", async ({
-    page,
-  }) => {
-    await gotoAuthenticated(page, "/reasoning");
-    await page
-      .getByRole("link", { name: /Systems.*Map feedback loops/ })
-      .click();
-    await page.waitForURL(/\/exercise\/systems/, { timeout: 15_000 });
   });
 });
 

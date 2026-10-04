@@ -236,6 +236,23 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
     });
   });
 
+  await page.route("**/api/ai/topic-ideas", async (route: Route) => {
+    let body: { mode?: string; domain?: string; exclude?: string[] } = {};
+    try {
+      body = JSON.parse(route.request().postData() ?? "{}");
+    } catch {
+      // defaults
+    }
+    const modes = ["judgment", "evaluative", "strategy", "systems", "analytical", "reframe"];
+    // Different titles each call: the exclude list grows with the list on screen.
+    const round = (body.exclude ?? []).filter((t) => t.startsWith("Mock topic")).length > 0 ? 2 : 1;
+    const ideas = Array.from({ length: 10 }, (_, i) => {
+      const mode = body.mode && body.mode !== "all" ? body.mode : modes[i % modes.length]!;
+      return { title: `Mock topic ${round}.${i + 1} about a real situation`, mode, groupId: "life-personal", domain: body.domain ?? "Family" };
+    });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, ideas }) });
+  });
+
   await page.route("**/api/ai/geo-strait", async (route: Route) => {
     await route.fulfill({
       status: 200,
