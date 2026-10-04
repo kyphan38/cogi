@@ -56,7 +56,7 @@ test.describe("Reasoning page - exercise picker and navigation", () => {
   test("start from a mode: no AI until Generate; filters fit the mode; rows show no mode", async ({ page }) => {
     let calls = 0;
     page.on("request", (r) => {
-      if (r.url().includes("/api/ai/topic-ideas") || r.url().includes("/api/ai/domain-suggestions")) calls += 1;
+      if (r.url().includes("/api/ai/topic-ideas")) calls += 1;
     });
     await gotoAuthenticated(page, "/reasoning");
     await page.getByRole("radio", { name: "A mode" }).click();

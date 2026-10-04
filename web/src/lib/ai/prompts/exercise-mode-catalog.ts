@@ -1,4 +1,4 @@
-/** Shared across recommend-mode.ts, topic-suggestions.ts and domain-suggestions.ts - one description per exercise mode. */
+/** Shared across recommend-mode.ts, topic-suggestions.ts and topic-ideas.ts - one description per exercise mode. */
 export const EXERCISE_MODE_DESCRIPTIONS: Record<string, string> = {
   analytical: "spotting flawed reasoning, logical fallacies, and hidden assumptions in arguments",
   systems: "mapping feedback loops, cause-and-effect networks, and system dynamics",
