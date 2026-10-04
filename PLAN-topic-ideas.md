@@ -133,6 +133,13 @@ chụp màn hình desktop + 390px.
 
 ## Phase T3 - Màn hình A mode
 
+**Xong (2026-10-04)**, branch `topics/t1-topic-ideas`. Dùng lại `TopicIdeasPanel` với
+`fixedMode`: chọn mode -> Area > Domain (chỉ các nhóm hợp mode) + Generate -> 10 chủ đề không
+ghi mode; Strategy không có Specific scenario; Calibration hiện ngân hàng câu hỏi; Specific
+scenario vào thẳng setup của mode. Không còn tự gọi AI khi chọn mode. E2E A mode viết lại,
+kiểm tra 390px; chụp màn hình desktop + mobile. `ModeTopicPanel` và route
+`domain-suggestions` không còn dùng: xóa ở T4.
+
 - Giữ 7 thẻ mode; chọn mode -> hàng bộ lọc (Domain / Specific scenario) + Generate -> 10 chủ
   đề (không ghi mode). Bỏ việc tự gọi AI trong `ModeTopicPanel`.
 - Domain select chỉ hiện các nhóm hợp với mode đó (`bestFor`).
