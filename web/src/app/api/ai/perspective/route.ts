@@ -56,6 +56,7 @@ import type {
   SystemsNodeImpact,
 } from "@/lib/types/exercise";
 import type { CoachingStructured } from "@/lib/types/perspective";
+import type { GeoGuessResult } from "@/lib/exercise/geo-guess";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 import { buildLanguageLevelAppendix, resolveLanguageLevel } from "@/lib/adaptive/language-level";
 
@@ -657,6 +658,11 @@ export async function POST(req: Request) {
     : undefined;
   const metaGuessScore =
     typeof b.metaGuessScore === "number" ? b.metaGuessScore : undefined;
+  const geoGuess =
+    typeof b.geoGuess === "object" && b.geoGuess !== null ? (b.geoGuess as GeoGuessResult) : undefined;
+  const lensLines = Array.isArray(b.lensLines)
+    ? (b.lensLines as unknown[]).filter((l): l is string => typeof l === "string").slice(0, 4)
+    : undefined;
 
   const result = scoreAnalytical({ passage, embeddedIssues, validPoints, highlights: userHighlights });
   const refs = analyticalCoachingRefs(result, userHighlights);
@@ -678,6 +684,8 @@ export async function POST(req: Request) {
     userPerspectiveGuess,
     userMissingActorsGuess,
     metaGuessScore,
+    geoGuess,
+    lensLines,
   });
   const fullPrompt = [prompt, languageAppendix].filter(Boolean).join("\n\n");
   const parse = (raw: string) =>

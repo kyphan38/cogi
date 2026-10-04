@@ -1,3 +1,4 @@
+import { GEO_FACT_RULE } from "@/lib/ai/prompts/geo-rules";
 import { buildDomainHint, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
 
 export function buildEvaluativeGenerationPrompt(input: {
@@ -7,6 +8,8 @@ export function buildEvaluativeGenerationPrompt(input: {
   customScenario?: string;
   /** Guided level: always a 2x2 matrix with the two criteria that matter most. */
   matrixOnly?: boolean;
+  /** Geopolitics at Guided (PLAN-geopolitics.md G1.1): the two axes are stakeholder interests. */
+  stakeholderAxes?: boolean;
 }): string {
   const ctx = input.userContext?.trim()
     ? `\nUser context (optional): ${input.userContext.trim()}`
@@ -22,7 +25,11 @@ export function buildEvaluativeGenerationPrompt(input: {
 
 ${
     input.matrixOnly
-      ? `Use the MATRIX variant ONLY (variant must be "matrix"): pick the TWO criteria that matter most for this decision as the axes. Do not return scoring.`
+      ? `Use the MATRIX variant ONLY (variant must be "matrix"): pick the TWO criteria that matter most for this decision as the axes. Do not return scoring.${
+          input.stakeholderAxes
+            ? `\nThis is a geopolitics decision: name in the scenario the country or organization that decides. Each axis must be the interest of a DIFFERENT stakeholder (for example "Domestic political support" and "Alliance credibility"), not an abstract quality like "feasibility".\n\n${GEO_FACT_RULE}`
+            : ""
+        }`
       : `Decide variant:
 - MATRIX (variant "matrix") when the decision is naturally framed with exactly TWO evaluation criteria as axes (2x2 quadrants).
 - SCORING (variant "scoring") when there are THREE OR MORE criteria / trade-off dimensions (weighted table).
@@ -101,6 +108,8 @@ export function buildGeopoliticsEvaluativePrompt(input: {
 User context: ${ctx}
 
 ${topicLine}
+
+${GEO_FACT_RULE}
 
 Generate a policy decision scenario where a country or organization must choose between 3–4 strategic options.
 

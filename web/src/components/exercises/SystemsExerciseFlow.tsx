@@ -364,8 +364,8 @@ export function SystemsExerciseFlow({
         nodeImpact: emptyImpact(ids),
         secondNodeImpact: resilienceData ? emptyImpact(ids) : undefined,
         userCriticalityRanking: resilienceData ? {} : undefined,
-        // Geopolitics always runs at Expert.
-        level: isGeo ? "expert" : level,
+        // Geopolitics has levels too (PLAN-geopolitics.md G1.1); Guided keeps to one perspective.
+        level,
         confidenceBefore: null,
         aiPerspective: null,
         createdAt: new Date().toISOString(),
@@ -519,7 +519,8 @@ export function SystemsExerciseFlow({
       advance(cascadeStep, { ...partial, currentStep: cascadeStep });
       return;
     }
-    if (isGeopoliticsSystemsExercise(exercise)) {
+    // Guided geopolitics stays with one perspective: straight to feedback.
+    if (isGeopoliticsSystemsExercise(exercise) && exercise.level !== "guided") {
       await putExercise({ ...partial, currentStep: 5 });
       setExercise({ ...partial, currentStep: 5 });
       advance(5, { ...partial, currentStep: 5 });
@@ -552,8 +553,12 @@ export function SystemsExerciseFlow({
 
   const submitSwapAndPerspective = async () => {
     if (!exercise) return;
-    const notes = userPerspectiveBNotes.trim();
-    if (notes.length < 40) {
+    if (!exercise.revealedB) {
+      setError(`Predict ${exercise.perspectiveBName ?? "the other actor"}'s view first, then show it.`);
+      return;
+    }
+    const typed = userPerspectiveBNotes.trim();
+    if (typed.length < 40) {
       setError(
         "Describe how the second perspective differs (at least 40 characters).",
       );
@@ -563,6 +568,13 @@ export function SystemsExerciseFlow({
       advance(6);
       return;
     }
+    // The prediction goes to the coach with the notes, so it can comment on it.
+    const predicted = exercise.predictedDirectB ?? [];
+    const label = (id: string) => exercise.nodes.find((n) => n.id === id)?.label ?? id;
+    const actual = exercise.shockEventB?.directlyAffected ?? [];
+    const notes = predicted.length
+      ? `${typed}\n\n(Before seeing ${exercise.perspectiveBName ?? "B"}'s map, I predicted the shock hits directly: ${predicted.map(label).join(", ")}. Their map says: ${actual.map(label).join(", ")}.)`
+      : typed;
     setError(null);
     setLoading(true);
     try {
@@ -571,7 +583,7 @@ export function SystemsExerciseFlow({
         userEdges,
         nodeImpact,
         impactVia,
-        userPerspectiveBNotes: notes,
+        userPerspectiveBNotes: typed,
       };
       setExercise(partial);
       await fetchSystemsPerspective(notes);
@@ -604,7 +616,7 @@ export function SystemsExerciseFlow({
       const saved = await completePracticeExercise({ exercise: finalEx, takeaway });
       setExercise(saved as SystemsExerciseRow);
       setStep(systemsVariantSteps(exercise).doneStep);
-      if (finalEx.level && !isGeopoliticsSystemsExercise(finalEx)) {
+      if (finalEx.level) {
         void levelSuggestionFor("systems", finalEx.level)
           .then(setLevelSuggestion)
           .catch(() => setLevelSuggestion(null));
@@ -632,17 +644,20 @@ export function SystemsExerciseFlow({
       ? GEOPOLITICS_SYSTEMS_STEP_LABELS
       : SYSTEMS_EXERCISE_STEP_LABELS;
   // Work parts are the steps between setup and AI feedback, minus the old confidence step.
-  const workParts = variantLabels.slice(1, perspectiveStep).filter((_, i) => i + 1 !== confidenceStep);
+  // Guided geopolitics skips the perspective swap (step 5).
+  const skipSwap = isGeoExercise && exercise?.level === "guided";
+  const workParts = variantLabels
+    .slice(1, perspectiveStep)
+    .filter((_, i) => i + 1 !== confidenceStep && !(skipSwap && i + 1 === 5));
   const phase = practicePhase(step, perspectiveStep);
   const partIndex = workParts.indexOf(variantLabels[step]);
   const partLabel =
     phase === 1 && partIndex >= 0 ? `Part ${partIndex + 1} of ${workParts.length} · ${workParts[partIndex]}` : undefined;
   const systemsFeedback = perspectiveStructured ?? exercise?.aiPerspectiveStructured ?? null;
   // Older rows have no level: they had the component list and no other hints (Standard).
+  // Geopolitics rows made before levels ran at Expert.
   const exerciseLevel: PracticeLevel = exercise
-    ? isGeoExercise
-      ? "expert"
-      : (exercise.level ?? "standard")
+    ? (exercise.level ?? (isGeoExercise ? "expert" : "standard"))
     : level;
   const exLevel = SYSTEMS_LEVELS[exerciseLevel];
 
@@ -705,7 +720,7 @@ export function SystemsExerciseFlow({
                 standard: SYSTEMS_LEVELS.standard.description,
                 expert: SYSTEMS_LEVELS.expert.description,
               }}
-              note="Geopolitics topics always use Expert for now."
+              note="Geopolitics topics: Guided maps one side's view; Standard and Expert add the other side's view, which you predict first."
             />
 
             {SYSTEMS_LEVELS[level].taskTypes.length > 1 ? (
@@ -1230,7 +1245,7 @@ export function SystemsExerciseFlow({
                   </>
                 ) : isResilienceExercise ? (
                   "Continue to cascade"
-                ) : isGeoExercise ? (
+                ) : isGeoExercise && !skipSwap ? (
                   "Continue to perspective comparison"
                 ) : (
                   "Submit impact and get AI reflection"
@@ -1336,7 +1351,66 @@ export function SystemsExerciseFlow({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {exercise.intendedConnectionsB && exercise.shockEventB ? (
+            {exercise.intendedConnectionsB && exercise.shockEventB && !exercise.revealedB ? (
+              <div className="space-y-3 rounded-2xl border border-zinc-200 p-4" data-testid="predict-b">
+                <p className="text-sm font-medium">
+                  Predict first: from {exercise.perspectiveBName ?? "Actor B"}&apos;s view, which parts does the shock hit
+                  directly?
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {exercise.nodes.map((n) => {
+                    const on = (exercise.predictedDirectB ?? []).includes(n.id);
+                    return (
+                      <button
+                        key={n.id}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => {
+                          const prev = exercise.predictedDirectB ?? [];
+                          const next = { ...exercise, predictedDirectB: on ? prev.filter((x) => x !== n.id) : [...prev, n.id] };
+                          setExercise(next);
+                          void putExercise(next);
+                        }}
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-sm",
+                          on ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
+                        )}
+                      >
+                        {n.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <Button
+                  type="button"
+                  disabled={(exercise.predictedDirectB ?? []).length === 0}
+                  onClick={() => {
+                    const next = { ...exercise, revealedB: true };
+                    setExercise(next);
+                    void putExercise(next);
+                  }}
+                >
+                  Show {exercise.perspectiveBName ?? "Actor B"}&apos;s view
+                </Button>
+              </div>
+            ) : null}
+            {exercise.revealedB && exercise.predictedDirectB?.length && exercise.shockEventB ? (
+              (() => {
+                const actual = new Set(exercise.shockEventB.directlyAffected);
+                const hits = exercise.predictedDirectB.filter((id) => actual.has(id)).length;
+                return (
+                  <p className="text-sm" data-testid="predict-b-result">
+                    Your prediction matched <span className="font-medium">{hits} of {actual.size}</span> directly hit
+                    parts
+                    {exercise.predictedDirectB.length > hits
+                      ? `, with ${exercise.predictedDirectB.length - hits} extra`
+                      : ""}
+                    .
+                  </p>
+                );
+              })()
+            ) : null}
+            {exercise.intendedConnectionsB && exercise.shockEventB && exercise.revealedB ? (
               <SystemsPerspectiveCompare
                 nodes={exercise.nodes}
                 userEdges={userEdges}
@@ -1349,6 +1423,7 @@ export function SystemsExerciseFlow({
                 shockEventB={exercise.shockEventB}
               />
             ) : null}
+            {exercise.revealedB ? (
             <div className="grid gap-2">
               <Label htmlFor="perspective-b-notes">
                 What structural differences matter most for{" "}
@@ -1362,6 +1437,7 @@ export function SystemsExerciseFlow({
                 placeholder="e.g. Different central hubs, reversed dependencies, who bears shock risk…"
               />
             </div>
+            ) : null}
             {loading ? <PerspectiveLoadingCard /> : null}
             <div className="flex gap-2">
               <Button type="button" variant="secondary" disabled={loading} onClick={() => setStep(4)}>

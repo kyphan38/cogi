@@ -110,7 +110,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     ],
     tips: [
       "Moving up is not a test. Use the level where you can think, not the level that looks impressive.",
-      "Geopolitics topics always run at Expert for now.",
+      "Geopolitics topics have their own levels. See \"Geopolitics topics\" below.",
     ],
   },
   {
@@ -328,6 +328,35 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Most people's ranges are too narrow. Start from a number that is surely too low, then one that is surely too high.",
       "A positive test for something rare is often still a false alarm.",
       "The answers come from checked sources and exact math, not from the AI.",
+    ],
+  },
+  {
+    id: "geopolitics",
+    title: "Geopolitics topics",
+    href: "/reasoning",
+    group: "exercise",
+    trains: "Reading world events like an analyst: whose view a text takes, who is left out, and how one event looks through different lenses.",
+    benefits: [
+      "You can tell when a news story or policy brief speaks for one side.",
+      "You notice the countries and people a story leaves out.",
+      "You learn four lenses that experts use: Realist, Liberal, Constructivist and Political economy.",
+    ],
+    howToPractice: [
+      "Pick a geopolitics topic (for example \"US-China strategic competition\") in Analytical, Systems or Evaluative.",
+      "Analytical: Learn first, then tag the brief. Then say whose view it is, who is missing, and read it through the four lenses.",
+      "Systems: map the system from one side. From Standard, predict how the other side sees the shock before you see it.",
+      "Evaluative: weigh options by the interests of each side, not by abstract qualities.",
+      "AI-written briefs may contain made-up details. Learn to read them; do not learn facts from them.",
+    ],
+    levels: {
+      guided: "Analytical: a short brief with 2 issues and 1 trap; pick the viewpoint and the missing actors from lists. Systems: one side's view only. Evaluative: a 2x2 board of two sides' interests.",
+      standard: "Analytical: all 4 issue types and 2 traps; you know how many issues there are; pick from lists. Systems: predict the other side, then compare. Evaluative: a scoring table with criteria to pick from.",
+      expert: "Analytical: the full brief, free selection, no hints; write the viewpoint before you pick it, and write each lens yourself. Systems and Evaluative: no hints.",
+    },
+    tips: [
+      "Ask \"who would write it this way?\" before you tag anything.",
+      "A trap can sound one-sided and still be a well-supported fact.",
+      "For real practice, paste an article from a think tank or newspaper (Source: Use my own text).",
     ],
   },
   {

@@ -424,11 +424,10 @@ export function EvaluativeExerciseFlow({
       }
       const id = crypto.randomUUID();
       const base = payloadToRow(id, d, json.data, customScenarioOut);
-      const geo = base.variant === "scoring" && (base.isGeopolitics ?? Boolean(base.stakeholderNote?.trim()));
       const row: EvaluativeExerciseRow = {
         ...base,
-        // Geopolitics always runs at Expert.
-        level: geo ? "expert" : level,
+        // Geopolitics has levels too (PLAN-geopolitics.md G1.1).
+        level,
         currentStep: 1,
       };
       await putExercise(row);
@@ -787,7 +786,7 @@ export function EvaluativeExerciseFlow({
       const saved = await completePracticeExercise({ exercise: finalEx, takeaway });
       setExercise(saved as EvaluativeExerciseRow);
       setStep(7);
-      if (finalEx.level && !isGeopoliticsEvaluativeExercise(finalEx)) {
+      if (finalEx.level) {
         void levelSuggestionFor("evaluative", finalEx.level)
           .then(setLevelSuggestion)
           .catch(() => setLevelSuggestion(null));
@@ -830,10 +829,9 @@ export function EvaluativeExerciseFlow({
   const isGeoExercise = exercise ? isGeopoliticsEvaluativeExercise(exercise) : false;
   const evaluativeFeedback = perspectiveStructured ?? exercise?.aiPerspectiveStructured ?? null;
   // Older rows have no level: they had the criteria list (Standard).
+  // Geopolitics rows made before levels ran at Expert.
   const exerciseLevel: PracticeLevel = exercise
-    ? isGeoExercise
-      ? "expert"
-      : (exercise.level ?? "standard")
+    ? (exercise.level ?? (isGeoExercise ? "expert" : "standard"))
     : level;
   const exLevel = EVALUATIVE_LEVELS[exerciseLevel];
   // Internal steps 1-2 are the two parts of the work; 4 is AI feedback, 7 saved.
@@ -906,7 +904,7 @@ export function EvaluativeExerciseFlow({
                 standard: EVALUATIVE_LEVELS.standard.description,
                 expert: EVALUATIVE_LEVELS.expert.description,
               }}
-              note="Geopolitics topics always use Expert for now."
+              note="Geopolitics topics: Guided compares two stakeholders' interests on a 2x2 board."
             />
 
             {EVALUATIVE_LEVELS[level].taskTypes.length > 1 ? (

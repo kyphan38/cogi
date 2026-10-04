@@ -81,11 +81,21 @@ const analyticalIssue = analyticalExerciseSchema.shape.embeddedIssues.element;
  */
 export function analyticalResponseSchema(
   isGeopolitics: boolean,
-  opts: { withMainClaimQuiz?: boolean } = {},
+  opts: { withMainClaimQuiz?: boolean; withGeoExtras?: boolean } = {},
 ): Record<string, unknown> {
   if (isGeopolitics) {
-    return toGeminiSchema(
-      analyticalExerciseSchema.omit({ isSoundReasoning: true, mainClaimQuiz: true }).extend({
+    const shape = analyticalExerciseSchema.shape;
+    const geo = analyticalExerciseSchema
+      .omit({
+        isSoundReasoning: true,
+        mainClaimQuiz: true,
+        concepts: true,
+        conceptChecks: true,
+        perspectiveOptions: true,
+        actorCandidates: true,
+        lensQuestions: true,
+      })
+      .extend({
         embeddedIssues: z.array(
           analyticalIssue.extend({
             type: z.enum(["framing_bias", "missing_actor", "assumed_causation", "analogy_misuse"]),
@@ -93,7 +103,18 @@ export function analyticalResponseSchema(
         ),
         hiddenPerspective: z.string(),
         missingActors: z.array(z.string()).min(1).max(2),
-      }),
+      });
+    // Generated geopolitics passages (PLAN-geopolitics.md G1) also carry the learning extras.
+    return toGeminiSchema(
+      opts.withGeoExtras
+        ? geo.extend({
+            concepts: shape.concepts.unwrap(),
+            conceptChecks: shape.conceptChecks.unwrap(),
+            perspectiveOptions: shape.perspectiveOptions.unwrap(),
+            actorCandidates: shape.actorCandidates.unwrap(),
+            lensQuestions: shape.lensQuestions.unwrap(),
+          })
+        : geo,
     );
   }
   const plain = analyticalExerciseSchema

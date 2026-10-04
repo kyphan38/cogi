@@ -139,7 +139,9 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
         data =
           systemsTaskType === "resilience"
             ? makeMockSystemsResiliencePayload()
-            : makeMockStandaloneSystemsPayload();
+            : /strategic competition/i.test(domain)
+              ? makeMockGeoSystemsPayload()
+              : makeMockStandaloneSystemsPayload();
         break;
       }
       case "strategy":
@@ -161,7 +163,9 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
         data = makeMockReframePayload(body.level === "guided" ? "guided" : body.level === "expert" ? "expert" : "standard");
         break;
       default:
-        data = makeMockAnalyticalAiPayload(domain);
+        data = /strategic competition/i.test(domain)
+          ? makeMockGeoAnalyticalPayload(body.level === "guided" ? "guided" : "full")
+          : makeMockAnalyticalAiPayload(domain);
     }
 
     await route.fulfill({
@@ -728,5 +732,67 @@ export function makeMockReframePayload(level: "guided" | "standard" | "expert") 
       explanation: "It keeps the real mistake and drops the worst-case jump.",
       balancedExample: "I made a real mistake, and I can fix it today; one error rarely costs a job.",
     },
+  };
+}
+
+/**
+ * A geopolitics brief (PLAN-geopolitics.md G1). "guided": framing bias + missing actor
+ * and 1 trap; "full": all four issue types and 2 traps. Hidden view: ASEAN neutral broker.
+ */
+export function makeMockGeoAnalyticalPayload(kind: "guided" | "full") {
+  const s1 = "Only a neutral regional forum can keep the peace in these waters.";
+  const s2 = "The plan was agreed by the region's capitals without asking fishing communities.";
+  const s3 = "Because patrols increased in 2023, regional trade slowed that year.";
+  const s4 = "This rivalry is identical to the Cold War between two closed blocs.";
+  const t1 = "Both large powers send many ships through these sea lanes.";
+  const t2 = "Several smaller states trade heavily with both large powers.";
+  const issues = [
+    { description: "d", type: "framing_bias", severity: "obvious", textSegment: s1, explanation: "Treats one view as the only reasonable one." },
+    { description: "d", type: "missing_actor", severity: "moderate", textSegment: s2, explanation: "Fishers are affected but not heard." },
+    ...(kind === "full"
+      ? [
+          { description: "d", type: "assumed_causation", severity: "moderate", textSegment: s3, explanation: "Sequence is not cause." },
+          { description: "d", type: "analogy_misuse", severity: "subtle", textSegment: s4, explanation: "Today's economies are tied together." },
+        ]
+      : []),
+  ];
+  const passage = kind === "full" ? `${s1} ${s2}\n\n${s3} ${s4} ${t1} ${t2}` : `${s1} ${s2}\n\n${t1}`;
+  return {
+    title: "Rivals at sea",
+    passage,
+    embeddedIssues: issues,
+    validPoints: kind === "full" ? [{ textSegment: t1, explanation: "Well documented." }, { textSegment: t2, explanation: "Trade data show it." }] : [{ textSegment: t1, explanation: "Well documented." }],
+    hiddenPerspective: "ASEAN neutral broker framing",
+    missingActors: ["Fishing communities"],
+    concepts: [
+      { term: "Hedging", plain: "Keeping ties with both rivals.", example: "Buying from two suppliers." },
+      { term: "Chokepoint", plain: "A narrow route many ships must use.", example: "The Strait of Malacca." },
+      { term: "Framing", plain: "Making one view look normal.", example: "Calling a tax 'relief'." },
+    ],
+    conceptChecks: [{ question: "What is hedging?", options: ["Keeping ties with both rivals", "Picking one side", "Leaving the region"], answerIndex: 0, explanation: "Small states often hedge." }],
+    perspectiveOptions: ["US-aligned think tank", "ASEAN neutral broker framing", "Chinese state-media framing", "Russian security narrative"],
+    actorCandidates: ["Fishing communities", "Regional capitals", "Large powers", "Shipping firms"],
+    lensQuestions: [
+      { lens: "realist", question: "What does a realist see?", options: ["A contest for control of sea lanes", "A chance for shared rules", "A clash of memories"], answerIndex: 0, explanation: "Power and security first." },
+      { lens: "liberal", question: "What does a liberal see?", options: ["A contest for control", "Room for a rules-based forum", "Who earns from shipping"], answerIndex: 1, explanation: "Institutions can hold it together." },
+      { lens: "constructivist", question: "What does a constructivist see?", options: ["Profits", "Ship counts", "How each side's story of the past shapes trust"], answerIndex: 2, explanation: "Identity and narrative." },
+      { lens: "political_economy", question: "What does political economy see?", options: ["Who gains from trade routes and who pays", "National pride", "Treaty texts"], answerIndex: 0, explanation: "Follow the money." },
+    ],
+  };
+}
+
+/** A two-perspective geopolitics system: from B's view the shock hits node_2 and node_4 directly. */
+export function makeMockGeoSystemsPayload() {
+  const base = makeMockStandaloneSystemsPayload() as Record<string, unknown> & {
+    nodes: { id: string }[];
+    intendedConnections: unknown[];
+    shockEvent: Record<string, unknown>;
+  };
+  return {
+    ...base,
+    perspectiveAName: "Country A",
+    perspectiveBName: "Country B",
+    intendedConnectionsB: base.intendedConnections,
+    shockEventB: { directlyAffected: ["node_2", "node_4"], indirectlyAffected: ["node_1"], explanation: "B depends on other routes." },
   };
 }

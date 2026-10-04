@@ -69,7 +69,10 @@ import {
 } from "@/components/exercises/GuidedWalkthrough";
 import { LevelPicker } from "@/components/exercises/LevelPicker";
 import { LevelSuggestionCard } from "@/components/shared/LevelSuggestionCard";
-import { ANALYTICAL_LEVELS } from "@/lib/exercise/analytical-levels";
+import { ANALYTICAL_LEVELS, GEO_ANALYTICAL_LEVELS } from "@/lib/exercise/analytical-levels";
+import { LearnFirst } from "@/components/exercises/LearnFirst";
+import { GeoGuessStep, GeoReveal, geoGuessMissing, geoLensLines } from "@/components/exercises/GeoGuessStep";
+import { scoreGeoGuess } from "@/lib/exercise/geo-guess";
 import {
   DEFAULT_PRACTICE_LEVEL,
   LEVEL_LABELS,
@@ -267,9 +270,9 @@ export function AnalyticalExerciseFlow({
       const userContext = await getUserContext();
       const userTextForReal = effectiveMode === "real_data" ? sanitizedUserText : undefined;
       const languageLevel = await getLanguageLevelForRequest();
-      // Geopolitics passages have no guided form yet, so they always run at Expert.
+      // Geopolitics passages have their own level settings (PLAN-geopolitics.md G1.1).
       const isGeopolitics = isGeopoliticsAnalyticalDomain(effectiveDomain);
-      const exerciseLevel: PracticeLevel = isGeopolitics ? "expert" : level;
+      const exerciseLevel: PracticeLevel = level;
       const res = await aiFetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -307,6 +310,17 @@ export function AnalyticalExerciseFlow({
         isGeopolitics,
         hiddenPerspective: data.hiddenPerspective,
         missingActors: data.missingActors,
+        concepts: data.concepts,
+        conceptChecks: data.conceptChecks,
+        conceptAnswers: [],
+        learnDone: !(data.concepts?.length),
+        perspectiveOptions: data.perspectiveOptions,
+        perspectiveChoice: null,
+        actorCandidates: data.actorCandidates,
+        actorChoices: [],
+        lensQuestions: data.lensQuestions,
+        lensAnswers: {},
+        lensText: {},
         embeddedIssues: data.embeddedIssues,
         validPoints: data.validPoints,
         userHighlights: [],
@@ -410,6 +424,8 @@ export function AnalyticalExerciseFlow({
           userPerspectiveGuess: ex.userPerspectiveGuess,
           userMissingActorsGuess: ex.userMissingActorsGuess,
           metaGuessScore: ex.metaGuessScore,
+          geoGuess: ex.geoGuess ?? undefined,
+          lensLines: geoCfg && ex.lensQuestions?.length ? geoLensLines(ex, geoCfg) : undefined,
         }),
       });
       const json = await safeAiJson<unknown>(res);
@@ -461,7 +477,7 @@ export function AnalyticalExerciseFlow({
       const saved = await completePracticeExercise({ exercise: finalEx, takeaway });
       setExercise(saved as AnalyticalExerciseRow);
       setStep(7);
-      if (!finalEx.isGeopolitics && finalEx.level) {
+      if (finalEx.level) {
         void levelSuggestionFor("analytical", finalEx.level)
           .then(setLevelSuggestion)
           .catch(() => setLevelSuggestion(null));
@@ -475,6 +491,35 @@ export function AnalyticalExerciseFlow({
 
   const submitMetaGuess = async () => {
     if (!exercise?.isGeopolitics) return;
+    if (geoCfg && exercise.perspectiveOptions?.length) {
+      const missing = geoGuessMissing(exercise, geoCfg);
+      if (missing) {
+        setError(missing);
+        return;
+      }
+      setError(null);
+      const guess = scoreGeoGuess({
+        hiddenPerspective: exercise.hiddenPerspective ?? "",
+        perspectiveOptions: exercise.perspectiveOptions,
+        perspectiveChoice: exercise.perspectiveChoice,
+        missingActors: exercise.missingActors ?? [],
+        actorChoices: exercise.actorChoices ?? [],
+        lensQuestions: exercise.lensQuestions ?? [],
+        lensAnswers: exercise.lensAnswers ?? {},
+        lensFree: geoCfg.lenses === "free",
+      });
+      const picked = exercise.perspectiveChoice != null ? exercise.perspectiveOptions[exercise.perspectiveChoice] : "";
+      const partial: AnalyticalExerciseRow = {
+        ...exercise,
+        userPerspectiveGuess: exercise.userPerspectiveGuess?.trim() || picked,
+        userMissingActorsGuess: exercise.actorChoices ?? [],
+        metaGuessScore: guess.score,
+        geoGuess: guess,
+      };
+      setExercise(partial);
+      await submitHighlightsAndConfidence(partial);
+      return;
+    }
     const perspective = userPerspectiveGuess.trim();
     const actors = [missingActorGuess1, missingActorGuess2]
       .map((a) => a.trim())
@@ -506,12 +551,24 @@ export function AnalyticalExerciseFlow({
 
   const phase = practicePhase(step, FEEDBACK_STEP);
   // Older rows have no level: they were made before levels, with sentence taps.
+  // Geopolitics rows made before levels ran at Expert.
   const exerciseLevel: PracticeLevel | null = exercise
     ? exercise.isGeopolitics
-      ? "expert"
+      ? (exercise.level ?? "expert")
       : (exercise.level ?? "standard")
     : null;
-  const levelConfig = exerciseLevel ? ANALYTICAL_LEVELS[exerciseLevel] : null;
+  const geoCfg = exercise?.isGeopolitics && exerciseLevel ? GEO_ANALYTICAL_LEVELS[exerciseLevel] : null;
+  const plainConfig = exerciseLevel ? ANALYTICAL_LEVELS[exerciseLevel] : null;
+  // Geopolitics uses its own selection, hints and check questions, and no walkthrough.
+  const levelConfig = geoCfg
+    ? { ...plainConfig!, walkthrough: false, selectionMode: geoCfg.selectionMode, countHint: geoCfg.countHint, checkQuestions: geoCfg.checkQuestions }
+    : plainConfig;
+  const saveRow = (patch: Partial<AnalyticalExerciseRow>) => {
+    if (!exercise) return;
+    const updated = { ...exercise, ...patch, userHighlights: highlights };
+    setExercise(updated);
+    void putExercise(updated);
+  };
   const walkCandidates = useMemo(
     () => (exercise && levelConfig?.walkthrough ? guidedCandidatesFor(exercise) : []),
     [exercise, levelConfig?.walkthrough],
@@ -541,9 +598,15 @@ export function AnalyticalExerciseFlow({
   // Geopolitics splits the work into highlight + perspective guess.
   const partLabel =
     phase === 1 && exercise?.isGeopolitics
-      ? step === 1
-        ? "Part 1 of 2 · Highlight & tag"
-        : "Part 2 of 2 · Perspective guess"
+      ? exercise.learnDone === false
+        ? "Part 1 of 3 · Learn first"
+        : step === 1
+          ? exercise.concepts?.length
+            ? "Part 2 of 3 · Highlight & tag"
+            : "Part 1 of 2 · Highlight & tag"
+          : exercise.concepts?.length
+            ? "Part 3 of 3 · Viewpoint & lenses"
+            : "Part 2 of 2 · Perspective guess"
       : phase === 1 && walkPart
         ? walkPart === "main-claim"
           ? "Part 1 of 2 · Main claim"
@@ -587,7 +650,11 @@ export function AnalyticalExerciseFlow({
                 standard: ANALYTICAL_LEVELS.standard.description,
                 expert: ANALYTICAL_LEVELS.expert.description,
               }}
-              note="Geopolitics topics always use Expert for now."
+              note={
+                isGeopoliticsAnalyticalDomain(domain)
+                  ? `Geopolitics topic: ${GEO_ANALYTICAL_LEVELS[level].description}`
+                  : undefined
+              }
             />
             <div className="flex gap-1.5">
               <Button
@@ -809,17 +876,49 @@ export function AnalyticalExerciseFlow({
           }
           bodyClassName="space-y-4"
         >
-            {levelConfig?.walkthrough ? (
+            {exercise.isGeopolitics && exercise.learnDone === false && exercise.concepts && exercise.conceptChecks ? (
+              <LearnFirst
+                concepts={exercise.concepts}
+                checks={exercise.conceptChecks}
+                answers={exercise.conceptAnswers ?? []}
+                seed={exercise.id}
+                onAnswer={(ci, oi) => {
+                  const next = [...(exercise.conceptAnswers ?? [])];
+                  next[ci] = oi;
+                  saveRow({ conceptAnswers: next });
+                }}
+                onDone={() => saveRow({ learnDone: true })}
+              />
+            ) : levelConfig?.walkthrough ? (
               <GuidedWalkthrough ex={exercise} highlights={highlights} onProgress={onWalkProgress} />
             ) : (
               <>
+                {exercise.isGeopolitics && exercise.source !== "real_data" ? (
+                  <p className="text-muted-foreground text-xs" data-testid="fiction-label">
+                    Scenario: some details may be fictional. Do not learn facts from it; learn to read it.
+                  </p>
+                ) : null}
+                {levelConfig?.countHint === "issues-and-traps" && !exercise.isSoundReasoning ? (
+                  <p className="text-sm text-zinc-900" data-testid="issue-count-hint">
+                    This passage has <span className="font-medium">{exercise.embeddedIssues.length} issues</span> and{" "}
+                    <span className="font-medium">
+                      {exercise.validPoints.length} trap{exercise.validPoints.length === 1 ? "" : "s"}
+                    </span>{" "}
+                    (sound statements that only look biased).
+                  </p>
+                ) : null}
                 {levelConfig?.countHint === "issues" && !exercise.isSoundReasoning ? (
                   <p className="text-sm text-zinc-900" data-testid="issue-count-hint">
                     This passage has <span className="font-medium">{exercise.embeddedIssues.length} issues</span>{" "}
                     to find.
                   </p>
                 ) : null}
-                {levelConfig?.checkQuestions === "toggle" ? <CheckQuestions mode="toggle" /> : null}
+                {levelConfig?.checkQuestions === "toggle" ? (
+                  <CheckQuestions mode="toggle" geopolitics={exercise.isGeopolitics === true} />
+                ) : null}
+                {exercise.isGeopolitics && levelConfig?.checkQuestions === "shown" ? (
+                  <CheckQuestions mode="shown" geopolitics />
+                ) : null}
                 <HighlightTag
                   passage={exercise.passage}
                   highlights={highlights}
@@ -855,7 +954,7 @@ export function AnalyticalExerciseFlow({
               <Button type="button" variant="secondary" onClick={regenerate}>
                 Regenerate
               </Button>
-              {walkPart == null || walkPart === "done" ? (
+              {(walkPart == null || walkPart === "done") && exercise.learnDone !== false ? (
               <Button
                 type="button"
                 onClick={() => {
@@ -898,6 +997,10 @@ export function AnalyticalExerciseFlow({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {geoCfg && exercise.perspectiveOptions?.length ? (
+              <GeoGuessStep ex={exercise} cfg={geoCfg} onChange={saveRow} />
+            ) : (
+            <>
             <div className="grid gap-2">
               <Label htmlFor="perspective-guess">
                 Whose perspective is this written from?
@@ -930,6 +1033,8 @@ export function AnalyticalExerciseFlow({
                 placeholder="e.g. fishing communities / informal economy"
               />
             </div>
+            </>
+            )}
             <ConfidenceSlider value={confidence} onChange={setConfidence} />
             {loading ? <PerspectiveLoadingCard /> : null}
             <div className="flex gap-2">
@@ -949,7 +1054,17 @@ export function AnalyticalExerciseFlow({
 
       {(step === 4 || step === 7) && exercise && perspectiveText ? (
         <div className="space-y-4">
-          {exercise.isGeopolitics && exercise.hiddenPerspective ? (
+          {exercise.isGeopolitics && exercise.geoGuess ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Viewpoint, missing actors and lenses</CardTitle>
+                <CardDescription>What the passage hid, compared with your picks.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <GeoReveal ex={exercise} guess={exercise.geoGuess} />
+              </CardContent>
+            </Card>
+          ) : exercise.isGeopolitics && exercise.hiddenPerspective ? (
             <Card>
               <CardHeader>
                 <CardTitle>Ground truth reveal</CardTitle>

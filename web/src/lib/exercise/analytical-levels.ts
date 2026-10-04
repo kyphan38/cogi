@@ -64,3 +64,71 @@ export function rateAnalytical(result: AnalyticalResult): ResultRating {
   if (share <= 0.25) return "poor";
   return "ok";
 }
+
+/** The four geopolitics issue types, in the order the picker shows them. */
+export const GEO_ISSUE_TYPES = ["framing_bias", "missing_actor", "assumed_causation", "analogy_misuse"] as const;
+export type GeoIssueType = (typeof GEO_ISSUE_TYPES)[number];
+
+/** What each level changes for geopolitics passages (PLAN-geopolitics.md G1.1). */
+export interface GeoAnalyticalLevelConfig {
+  description: string;
+  passageWords: string;
+  /** Issue types planted in the passage (one of each). */
+  issueTypes: readonly GeoIssueType[];
+  /** Sound statements that look biased (traps). */
+  decoys: number;
+  selectionMode: "sentence" | "free";
+  countHint: "issues-and-traps" | "issues" | null;
+  checkQuestions: "shown" | "toggle" | "hidden";
+  /** Perspective and missing actors: pick from options, or write first and then pick. */
+  guess: "choice" | "write-then-choose";
+  /** The four lenses: pick a reading, or write one sentence each. */
+  lenses: "choice" | "free";
+}
+
+export const GEO_ANALYTICAL_LEVELS: Record<PracticeLevel, GeoAnalyticalLevelConfig> = {
+  guided: {
+    description: "Short brief with 2 issues and 1 trap. Pick whose view it is and who is missing from a list.",
+    passageWords: "150-200",
+    issueTypes: ["framing_bias", "missing_actor"],
+    decoys: 1,
+    selectionMode: "sentence",
+    countHint: "issues-and-traps",
+    checkQuestions: "shown",
+    guess: "choice",
+    lenses: "choice",
+  },
+  standard: {
+    description: "All 4 issue types and 2 traps. You know how many issues there are. Pick the viewpoint from a list.",
+    passageWords: "250-300",
+    issueTypes: GEO_ISSUE_TYPES,
+    decoys: 2,
+    selectionMode: "sentence",
+    countHint: "issues",
+    checkQuestions: "toggle",
+    guess: "choice",
+    lenses: "choice",
+  },
+  expert: {
+    description: "Full brief, free selection, no hints. Write whose view it is before you see options; write each lens yourself.",
+    passageWords: "300-400",
+    issueTypes: GEO_ISSUE_TYPES,
+    decoys: 2,
+    selectionMode: "free",
+    countHint: null,
+    checkQuestions: "hidden",
+    guess: "write-then-choose",
+    lenses: "free",
+  },
+};
+
+/** The four lenses a geopolitics passage is read through after tagging (G1.3). */
+export const GEO_LENSES = ["realist", "liberal", "constructivist", "political_economy"] as const;
+export type GeoLens = (typeof GEO_LENSES)[number];
+
+export const GEO_LENS_INFO: Record<GeoLens, { name: string; question: string }> = {
+  realist: { name: "Realist", question: "Who gains power or security, and who fears losing it?" },
+  liberal: { name: "Liberal", question: "Which rules, institutions or shared gains could hold this together?" },
+  constructivist: { name: "Constructivist", question: "Which identities, memories or stories shape how each side sees it?" },
+  political_economy: { name: "Political economy", question: "Who makes or loses money, and who pays the cost?" },
+};

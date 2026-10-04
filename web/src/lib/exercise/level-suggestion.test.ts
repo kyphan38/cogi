@@ -32,15 +32,19 @@ describe("levelSuggestionFor - analytical", () => {
     expect(await levelSuggestionFor("analytical", "guided")).toEqual({ direction: "up", to: "standard" });
   });
 
-  it("ignores other levels, geopolitics rows and rows without a level", async () => {
+  it("ignores other levels and rows without a level", async () => {
     mockList.mockResolvedValue([
       row("2026-10-04"),
       row("2026-10-03", { level: "standard" }),
-      row("2026-10-02", { isGeopolitics: true }),
       row("2026-10-01", { level: undefined }),
       row("2026-09-30"),
     ]);
     expect(await levelSuggestionFor("analytical", "guided")).toBeNull();
+  });
+
+  it("counts geopolitics rows at their level (PLAN-geopolitics.md G1)", async () => {
+    mockList.mockResolvedValue([row("2026-10-04"), row("2026-10-03", { isGeopolitics: true }), row("2026-10-02")]);
+    expect(await levelSuggestionFor("analytical", "guided")).toEqual({ direction: "up", to: "standard" });
   });
 
   it("only counts exercises finished after the last Not now", async () => {

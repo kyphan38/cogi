@@ -30,21 +30,17 @@ import {
 const LOOKBACK = 30;
 
 /**
- * Rate one finished row of `type`, or null when it should not count: geopolitics rows
- * (always Expert) and rows of another type.
+ * Rate one finished row of `type`, or null when it is another type.
  */
 function rateRow(type: LevelledExerciseType, row: Exercise): ResultRating | null {
-  if (type === "analytical" && isAnalyticalExercise(row) && !row.isGeopolitics) {
+  // Geopolitics rows count too: they have levels since PLAN-geopolitics.md G1.
+  if (type === "analytical" && isAnalyticalExercise(row)) {
     return rateAnalytical(analyticalResultOf(row));
   }
-  if (type === "systems" && isSystemsExercise(row) && !(row.isGeopolitics ?? Boolean(row.perspectiveBName?.trim()))) {
+  if (type === "systems" && isSystemsExercise(row)) {
     return rateSystems(systemsResultOf(row));
   }
-  const geoScoring =
-    isEvaluativeExercise(row) &&
-    row.variant === "scoring" &&
-    (row.isGeopolitics ?? Boolean(row.stakeholderNote?.trim()));
-  if (type === "evaluative" && isEvaluativeExercise(row) && !geoScoring) {
+  if (type === "evaluative" && isEvaluativeExercise(row)) {
     return rateEvaluative(evaluativeResultOf(row));
   }
   if (type === "strategy" && isStrategyExercise(row)) {
