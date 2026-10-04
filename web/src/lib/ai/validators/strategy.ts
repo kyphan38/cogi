@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { analyzeGame } from "@/lib/exercise/game";
+import { geoGameShapeErrors, realNamesUsed } from "@/lib/exercise/geo-game-shape";
+import type { GeoGameCase } from "@/lib/geo/game-cases";
 
 const conceptSchema = z.object({ term: z.string().min(1), plain: z.string().min(1), example: z.string().min(1) });
 const checkSchema = z.object({
@@ -109,3 +111,27 @@ export function validateStrategySemantics(data: StrategyExercisePayload, opts: {
 
 export const STRATEGY_RETRY_SUFFIX =
   "Your previous JSON failed validation. Fix ALL issues and return ONLY the corrected JSON object.";
+
+/**
+ * Geopolitical games (PLAN-geopolitics.md G3): the usual checks with 2 choices each,
+ * plus the case's game shape, a made-up story that starts with "Suppose", and no real
+ * names from the case.
+ */
+export function validateGeoStrategySemantics(data: StrategyExercisePayload, gameCase: GeoGameCase): string[] {
+  const errors = validateStrategySemantics(data, { aOptionCount: 2 });
+  if (errors.length > 0) return errors;
+  if (!/^suppose\b/i.test(data.scenario.trim())) errors.push('scenario must start with "Suppose" (it is a made-up story)');
+  const texts = [
+    data.title,
+    data.scenario,
+    data.insight,
+    ...data.players.flatMap((p) => [p.name, p.goal]),
+    ...data.optionsA.map((o) => o.label),
+    ...data.optionsB.map((o) => o.label),
+    ...data.cells.map((c) => c.story),
+  ];
+  const used = realNamesUsed(texts, gameCase.realNames);
+  if (used.length) errors.push(`use made-up names only; remove: ${used.join(", ")}`);
+  errors.push(...geoGameShapeErrors(gameCase.gameType, ["a1", "a2"], ["b1", "b2"], data.cells));
+  return errors;
+}

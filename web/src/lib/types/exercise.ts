@@ -480,6 +480,8 @@ export interface StrategyExerciseRow {
   /** The model's own label; not shown as fact (the code computes the game). */
   gameType: string;
   insight: string;
+  /** Geopolitical games (PLAN-geopolitics.md G3): the real case this made-up story is shaped on. */
+  geoCaseId?: string;
   level: PracticeLevel;
   part?: "learn" | "analyze" | "predict";
   conceptAnswers?: number[];

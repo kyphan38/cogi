@@ -68,7 +68,11 @@ export function buildStrategyPerspectivePrompt(input: {
   const ctx = input.userContext?.trim() ? `\nUser context: ${input.userContext.trim()}` : "";
   return `You are a warm, practical coach teaching a beginner game theory through real stories.${ctx}
 
-Story: ${ex.scenario}
+Story: ${ex.scenario}${
+    ex.geoCaseId
+      ? "\nThis story is MADE UP, shaped like a real case that the app shows separately. Talk only about the story: do not add facts about real countries, leaders or history."
+      : ""
+  }
 ${A.name} (A) wants: ${A.goal}. ${B.name} (B) wants: ${B.goal}.
 Outcomes (payoff 0-10, higher is better for that player):
 ${matrix}
