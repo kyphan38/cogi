@@ -54,6 +54,30 @@ thay đổi, hỏi trước khi merge và push.
 
 ## Phase G1 - Sửa phần geo hiện có (không thêm màn hình mới)
 
+**Xong phần code (2026-10-04)**, branch `claude/nice-tesla-0trqiz`. Unit 630/630, `tsc`
+sạch, eslint 0 lỗi, E2E mới `geopolitics-levels.spec.ts`, chụp màn hình desktop + mobile.
+Chưa gọi Gemini thật (container không có key).
+
+- **Analytical geo:** đủ G1.1-G1.5: cấp độ riêng (`GEO_ANALYTICAL_LEVELS`), Learn first,
+  bước 4 lăng kính, chọn góc nhìn và tác nhân từ danh sách, chấm bằng code
+  (`lib/exercise/geo-guess.ts`), nhãn "Scenario: some details may be fictional", check
+  questions geo ở Guided / Standard.
+- **Systems geo:** mọi cấp; Guided chỉ một góc nhìn (đi thẳng tới feedback); Standard /
+  Expert **đoán trước** phần B bị cú sốc đánh trực tiếp rồi mới xem bản đồ của B; dự đoán
+  được gửi kèm ghi chú cho AI nhận xét.
+- **Evaluative geo:** mọi cấp; Guided là bảng 2x2 với hai trục là lợi ích của hai bên khác
+  nhau; Standard / Expert giữ bảng chấm điểm.
+- Quy tắc an toàn dữ kiện (`lib/ai/prompts/geo-rules.ts`) trong cả 3 prompt geo.
+- Gợi ý lên cấp tính cả bài geo; Handbook có entry "Geopolitics topics".
+- 5 mục "lens" đã ra khỏi danh mục topic (bỏ hẳn "Geographical determinism").
+- **Khác plan:**
+  - Expert không chấm góc nhìn bằng AI: người dùng **viết trước rồi chọn** từ 4 phương án,
+    code chấm phần chọn. Đơn giản và chắc hơn.
+  - Learn first và bước lăng kính mới có ở **Analytical** geo. Systems / Evaluative geo
+    để sau (hai luồng này dài, thêm bước cần làm riêng cho cẩn thận).
+  - Văn bản dán vào (Use my own text) giữ cách cũ: không có Learn first / lựa chọn, vì AI
+    không viết đoạn văn đó.
+
 ### G1.1 Cấp độ cho bài geo
 
 Bỏ quy tắc "geo luôn Expert". Cấu hình trong `analytical-levels.ts` (thêm khối geo),

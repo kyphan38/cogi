@@ -6,6 +6,8 @@ import type { SystemsResilienceExercisePayload } from "@/lib/ai/validators/syste
 import type { SystemsTaskType } from "@/lib/ai/validators/systems";
 import type { AIPerspectiveStructured, AnalyticalDeepDive } from "@/lib/types/perspective";
 import type { PracticeLevel } from "@/lib/exercise/levels";
+import type { GeoLens } from "@/lib/exercise/analytical-levels";
+import type { GeoGuessResult } from "@/lib/exercise/geo-guess";
 import type { SystemsResult } from "@/lib/exercise/systems-score";
 import type { EvaluativeResult } from "@/lib/exercise/evaluative-score";
 import type { JudgmentResult } from "@/lib/exercise/judgment-score";
@@ -139,6 +141,23 @@ export interface AnalyticalExerciseRow {
   userPerspectiveGuess?: string;
   userMissingActorsGuess?: string[];
   metaGuessScore?: number;
+  /** Geopolitics learning extras (PLAN-geopolitics.md G1). Older rows lack them. */
+  concepts?: NonNullable<AnalyticalExercise["concepts"]>;
+  conceptChecks?: NonNullable<AnalyticalExercise["conceptChecks"]>;
+  conceptAnswers?: number[];
+  /** Geopolitics: "Learn first" finished, so the passage shows. */
+  learnDone?: boolean;
+  perspectiveOptions?: string[];
+  /** Index into `perspectiveOptions` (original order). */
+  perspectiveChoice?: number | null;
+  actorCandidates?: string[];
+  actorChoices?: string[];
+  lensQuestions?: NonNullable<AnalyticalExercise["lensQuestions"]>;
+  lensAnswers?: Partial<Record<GeoLens, number>>;
+  /** Expert: one sentence per lens. */
+  lensText?: Partial<Record<GeoLens, string>>;
+  /** Scored in code when feedback was requested. */
+  geoGuess?: GeoGuessResult | null;
   embeddedIssues: EmbeddedIssue[];
   validPoints: ValidPoint[];
   userHighlights: UserHighlight[];
@@ -197,6 +216,10 @@ export interface SystemsExerciseRow {
     explanation: string;
   };
   userPerspectiveBNotes?: string;
+  /** Geopolitics G1: parts the user predicted the shock hits directly from B's view, before seeing it. */
+  predictedDirectB?: string[];
+  /** B's map has been shown (the prediction is locked). */
+  revealedB?: boolean;
   /** Resilience audit: two-hop cascade variant. */
   variantKind?: "resilience";
   criticalityGroundTruth?: SystemsNodeCriticalityHint[];

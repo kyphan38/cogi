@@ -35,12 +35,8 @@ export const GEOPOLITICS_SUBDOMAINS = [
   "Transnational crime, cartels & shadow economies",
   "Diaspora politics & soft power",
 
-  // Analytical Frameworks & Lenses
-  "Realist lens - power, security, self-interest",
-  "Liberal institutionalist lens - rules, norms, cooperation",
-  "Constructivist lens - identity, narrative, perception",
-  "Political economy lens - who benefits, follow the money",
-  "Geographical determinism lens - topography, rivers & borders",
+  // The analytical lenses (Realist, Liberal, Constructivist, Political economy) are a
+  // step inside geopolitics exercises now, not topics (PLAN-geopolitics.md G1.3).
 ] as const;
 
 export type GeopoliticsSubdomain = (typeof GEOPOLITICS_SUBDOMAINS)[number];
@@ -101,17 +97,6 @@ export const GEOPOLITICS_DOMAIN_GROUPS = [
       "Violent non-state actors, insurgencies & proxy networks",
       "Transnational crime, cartels & shadow economies",
       "Diaspora politics & soft power",
-    ],
-  },
-  {
-    id: "geo-lenses",
-    label: "Geopolitics - analytical lenses",
-    domains: [
-      "Realist lens - power, security, self-interest",
-      "Liberal institutionalist lens - rules, norms, cooperation",
-      "Constructivist lens - identity, narrative, perception",
-      "Political economy lens - who benefits, follow the money",
-      "Geographical determinism lens - topography, rivers & borders",
     ],
   },
 ] as const;
