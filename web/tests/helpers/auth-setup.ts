@@ -148,6 +148,18 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
       case "judgment":
         data = makeMockJudgmentPayload(body.level === "guided" ? 3 : 4);
         break;
+      case "reframe":
+        if (typeof body.customScenario === "string" && /hopeless|give up on everything/i.test(body.customScenario)) {
+          // The server's support reply (the model flagged the situation).
+          await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({ ok: false, safety: "concern", error: "This needs more than an exercise" }),
+          });
+          return;
+        }
+        data = makeMockReframePayload(body.level === "guided" ? "guided" : body.level === "expert" ? "expert" : "standard");
+        break;
       default:
         data = makeMockAnalyticalAiPayload(domain);
     }
@@ -226,6 +238,23 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
             items: [{ ref: "prediction", why: "Mock why: cutting is each side's best reply.", clue: "steal the crowd", nextTimeAsk: "What is my best reply to each choice?" }],
             takeaways: ["Mock strategy takeaway: look for each side's best reply first."],
             metaNote: "Mock note on your reason.",
+          },
+        }),
+      });
+      return;
+    }
+    if (kind === "reframe") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          text: "Mock reframe coaching.",
+          structured: {
+            perspectiveFormat: "coaching_v3",
+            title: "A comment in the meeting",
+            items: [{ ref: "thought_t2", why: "Mock why: one comment does not end a job.", clue: "I will lose my job", nextTimeAsk: "What is the most likely result?" }],
+            takeaways: ["Mock reframe takeaway: check the facts before the feeling."],
           },
         }),
       });
@@ -601,5 +630,50 @@ export function makeMockStrategyPayload(expert: boolean) {
     cells,
     gameType: "prisoners_dilemma",
     insight: "Each side's best reply leads both to a worse outcome.",
+  };
+}
+
+/**
+ * A Reframe exercise. Guided: 4 thoughts (t4 realistic); Standard and Expert: 6
+ * thoughts (t4 and t6 realistic). t2 (catastrophizing) is the one to rewrite.
+ */
+export function makeMockReframePayload(level: "guided" | "standard" | "expert") {
+  const thoughts = [
+    { id: "t1", text: "She thinks I am useless.", trap: "mind_reading", alsoAccepted: [], why: "It guesses her thoughts." },
+    { id: "t2", text: "I will lose my job over this.", trap: "catastrophizing", alsoAccepted: ["fortune_telling"], why: "It jumps to the worst result." },
+    { id: "t3", text: "I should never make mistakes.", trap: "should_statements", alsoAccepted: ["all_or_nothing"], why: "A rigid rule nobody can meet." },
+    { id: "t4", text: "One number in my report was wrong, and I need to fix it today.", trap: "realistic", alsoAccepted: [], why: "Specific and fair, even if unpleasant." },
+    ...(level === "guided"
+      ? []
+      : [
+          { id: "t5", text: "I always mess things up.", trap: "overgeneralizing", alsoAccepted: ["labeling"], why: "One event becomes always." },
+          { id: "t6", text: "My manager was stressed about the deadline too.", trap: "realistic", alsoAccepted: [], why: "A fact that explains her tone." },
+        ]),
+  ];
+  return {
+    safety: "ok",
+    title: "A comment in the meeting",
+    scenario: "In a team meeting, Minh's manager points out a wrong number in his report. Minh's face goes hot.",
+    concepts: [
+      { term: "Catastrophizing", plain: "Jumping to the worst possible result.", example: "\"One late bus and my whole day is ruined.\"" },
+      { term: "Mind reading", plain: "Guessing what others think without asking.", example: "\"He did not smile, so he hates my idea.\"" },
+      { term: "Realistic thought", plain: "A fair thought based on facts, even if unpleasant.", example: "\"I was late, and I will apologise.\"" },
+    ],
+    conceptChecks: [
+      { question: "Which thought is realistic?", options: ["Everyone hates me", "I missed the deadline by a day", "Nothing ever works"], answerIndex: 1, explanation: "It states a fact, in proportion." },
+    ],
+    thoughts,
+    rewrite: {
+      thoughtId: "t2",
+      question: "Which is the most balanced way to think about it?",
+      options: [
+        "It does not matter at all; everything is fine.",
+        "One wrong number is a real mistake, but people rarely lose a job over one. I can fix it today.",
+        "I am the worst person on this team.",
+      ],
+      answerIndex: 1,
+      explanation: "It keeps the real mistake and drops the worst-case jump.",
+      balancedExample: "I made a real mistake, and I can fix it today; one error rarely costs a job.",
+    },
   };
 }

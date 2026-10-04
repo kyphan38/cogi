@@ -247,6 +247,37 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     ],
   },
   {
+    id: "reframe",
+    title: "Reframe",
+    href: "/exercise/reframe",
+    group: "exercise",
+    exerciseType: "reframe",
+    trains: "Spotting thinking traps in a hard moment, and rewriting a thought in a fair, balanced way.",
+    benefits: [
+      "You notice when a thought is bigger or darker than the facts.",
+      "You can calm a strong feeling by checking the thought behind it.",
+      "You learn that balanced is not the same as positive.",
+    ],
+    howToPractice: [
+      "Learn first: read the traps for this exercise and answer the quick check.",
+      "Name the main feeling with a specific word, and say how strong it is.",
+      "For each thought, ask the check question of each trap. A \"yes\" tells you the trap.",
+      "Some thoughts are fair. Mark them Realistic, even when they are unpleasant.",
+      "Rewrite one thought. Keep the true bad parts; drop what the facts do not show.",
+      "From Standard, use \"My situation\" to practise on something that really happened to you.",
+    ],
+    levels: {
+      guided: "An everyday situation. 4 thoughts, one at a time, with the answer shown. 4 traps to pick from. You know 3 are traps and 1 is realistic. Then choose the balanced thought from 3.",
+      standard: "Work, family or money. 6 thoughts on one screen, 8 traps. You know how many are traps. Write the balanced thought yourself. My situation is available.",
+      expert: "One inner monologue, all 10 traps, no hints. Some thoughts are fair, sometimes most of them. Write the facts for and against, then a balanced thought.",
+    },
+    tips: [
+      "\"Everything will be fine\" is not a reframe. It has no evidence either.",
+      "Finding a trap matters more than its exact name. Traps often overlap.",
+      "This is thinking practice, not therapy. If you are in crisis, talk to a person you trust or a professional.",
+    ],
+  },
+  {
     id: "tracks",
     title: "Learning tracks",
     href: "/tracks",

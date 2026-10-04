@@ -4,6 +4,7 @@ import {
   isAnalyticalExercise,
   isEvaluativeExercise,
   isJudgmentExercise,
+  isReframeExercise,
   isStrategyExercise,
   isSystemsExercise,
   type Exercise,
@@ -14,6 +15,7 @@ import { rateSystems, systemsResultOf } from "@/lib/exercise/systems-score";
 import { evaluativeResultOf, rateEvaluative } from "@/lib/exercise/evaluative-score";
 import { rateJudgment } from "@/lib/exercise/judgment-score";
 import { rateStrategy } from "@/lib/exercise/strategy-score";
+import { rateReframe } from "@/lib/exercise/reframe-score";
 import {
   suggestLevelChange,
   type LevelledExerciseType,
@@ -45,6 +47,9 @@ function rateRow(type: LevelledExerciseType, row: Exercise): ResultRating | null
   }
   if (type === "strategy" && isStrategyExercise(row)) {
     return row.result ? rateStrategy(row.result) : null;
+  }
+  if (type === "reframe" && isReframeExercise(row)) {
+    return row.result ? rateReframe(row.result) : null;
   }
   if (type === "judgment" && isJudgmentExercise(row)) {
     return row.result ? rateJudgment(row.result) : null;

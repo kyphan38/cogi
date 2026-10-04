@@ -12,6 +12,8 @@ import type { JudgmentResult } from "@/lib/exercise/judgment-score";
 import type { StrategyAnswers, StrategyResult } from "@/lib/exercise/strategy-score";
 import type { StrategyExercisePayload } from "@/lib/ai/validators/strategy";
 import type { JudgmentContext } from "@/lib/exercise/judgment-levels";
+import type { ReframeResult } from "@/lib/exercise/reframe-score";
+import type { ReframeAnswer, ReframeExercisePayload } from "@/lib/ai/validators/reframe";
 import type {
   JudgmentChoiceQuestion,
   JudgmentConcept,
@@ -21,7 +23,7 @@ import type {
 } from "@/lib/ai/validators/judgment";
 
 /** The exercise types the app offers. Old rows of removed types may still exist in Firestore. */
-export type ThinkingType = "analytical" | "systems" | "evaluative" | "judgment" | "strategy";
+export type ThinkingType = "analytical" | "systems" | "evaluative" | "judgment" | "strategy" | "reframe";
 
 /** Pre-defined combo chains (Phase 6.5). */
 export type { EvaluativeQuadrant };
@@ -466,12 +468,61 @@ export interface StrategyExerciseRow {
   takeaway?: string | null;
 }
 
+/** Reframe: spot thinking traps, then rewrite a thought (PLAN-psychology.md P1). */
+export interface ReframeExerciseRow {
+  id: string;
+  type: "reframe";
+  /** Area of life, e.g. Work or Family. */
+  domain: string;
+  context: JudgmentContext;
+  /** "My situation": what really happened, in the user's words. */
+  customScenario?: string;
+  title: string;
+  scenario: string;
+  concepts: ReframeExercisePayload["concepts"];
+  conceptChecks: ReframeExercisePayload["conceptChecks"];
+  thoughts: ReframeExercisePayload["thoughts"];
+  rewrite: ReframeExercisePayload["rewrite"];
+  level: PracticeLevel;
+  /** Where the user is inside the work step, for resuming. */
+  part?: "learn" | "spot" | "reframe";
+  conceptAnswers?: number[];
+  /** The feeling the user names first (one word from the list), and how strong, 0-100. */
+  feeling?: string;
+  intensityBefore?: number;
+  /** How strong the feeling is after the rewrite. Not scored. */
+  intensityAfter?: number;
+  /** Thought id -> the trap the user picked, or "realistic". Guided keeps the first pick. */
+  answers?: Partial<Record<string, ReframeAnswer>>;
+  /** Guided: the rewrite option picked (original index, not the shuffled position). */
+  rewriteChoice?: number | null;
+  /** Expert: evidence for and against the thought before rewriting it. */
+  evidenceFor?: string;
+  evidenceAgainst?: string;
+  /** Standard and Expert: the user's own balanced thought. */
+  balancedThought?: string;
+  result?: ReframeResult | null;
+  confidenceBefore: number | null;
+  aiPerspective: string | null;
+  aiPerspectiveStructured?: AIPerspectiveStructured | null;
+  createdAt: string;
+  completedAt: string | null;
+  currentStep?: number;
+  /** Optional one-line "what I take away", written at the end. */
+  takeaway?: string | null;
+}
+
 export type Exercise =
   | AnalyticalExerciseRow
   | SystemsExerciseRow
   | EvaluativeExerciseRow
   | JudgmentExerciseRow
-  | StrategyExerciseRow;
+  | StrategyExerciseRow
+  | ReframeExerciseRow;
+
+export function isReframeExercise(ex: Exercise): ex is ReframeExerciseRow {
+  return ex.type === "reframe";
+}
 
 export function isStrategyExercise(ex: Exercise): ex is StrategyExerciseRow {
   return ex.type === "strategy";
