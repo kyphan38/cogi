@@ -176,11 +176,15 @@ Người dùng có thể viết chuyện rất nặng. Trước khi tạo bài t
 Gemini thật cho phần feedback (container không có key); phần đề và đáp án không dùng AI.
 
 - Loại bài `calibration` ở `/exercise/calibration`, có trong Practice, History, Handbook.
-- **Ngân hàng câu hỏi: 126 câu** (68 câu hai lựa chọn, 58 câu khoảng) trong
+- **Ngân hàng câu hỏi: 125 câu** (68 câu hai lựa chọn, 57 câu khoảng) trong
   `lib/exercise/calibration-bank.ts`, mỗi câu có nguồn. Ít hơn mục tiêu 200: ưu tiên câu
-  chắc chắn đúng. **Chủ app cần kiểm tra ngẫu nhiên khoảng 20%** (đặc biệt các câu có số
-  thay đổi theo năm: dân số Việt Nam 2024, metro số 1). Đủ cho mọi cấp ở mọi nhóm; khi
-  hết câu chưa gặp thì lặp lại câu cũ nhất.
+  chắc chắn đúng. Đủ cho mọi cấp ở mọi nhóm; khi hết câu chưa gặp thì lặp lại câu cũ nhất.
+- **Đã đối chiếu bằng web (2026-10-04):** 24 câu toán tính lại bằng code; khoảng 60 câu
+  dữ kiện tra cứu. Đã sửa: Mekong (4,350-4,900 km), kim tự tháp (146.6 m), Fansipan
+  (3,147 m), dân số Đức (83.6 triệu), lời câu Liên Hợp Quốc. Đã thay hoặc bỏ câu có hai
+  đáp án tùy cách đo: Úc so với 48 bang Mỹ (đất liền hay cả mặt nước), diện tích Sahara
+  (8.6 hay 9.2 triệu km²), bờ biển Việt Nam (3,260 hay 3,444 km). Quy tắc: câu khoảng chỉ
+  dùng số mà các nguồn thống nhất.
 - **Khác plan:**
   - Không gọi AI để tạo đề. Bài base rate dùng 6 khung câu chuyện cố định trong code
     (`calibration-math.ts`); code chọn số và tính đáp án. Learn first cũng cố định. Nhờ vậy
