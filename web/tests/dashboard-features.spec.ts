@@ -53,31 +53,57 @@ test.describe("Reasoning page - exercise picker and navigation", () => {
     }
   });
 
-  test("start from a mode: AI topic ideas and catalog areas lead into the exercise", async ({ page }) => {
+  test("start from a mode: no AI until Generate; filters fit the mode; rows show no mode", async ({ page }) => {
+    let calls = 0;
+    page.on("request", (r) => {
+      if (r.url().includes("/api/ai/topic-ideas") || r.url().includes("/api/ai/domain-suggestions")) calls += 1;
+    });
     await gotoAuthenticated(page, "/reasoning");
     await page.getByRole("radio", { name: "A mode" }).click();
-    await expect(page.getByLabel("Domain")).toHaveCount(0);
     await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: /Strategic situations/ }).click();
-    const panel = page.getByTestId("mode-topic-panel");
-    await expect(panel.getByTestId("mode-topic-ideas")).toContainText("Mock idea for strategy");
-    await expect(panel.getByText("Competition, negotiation & games")).toBeVisible();
+    const panel = page.getByTestId("mode-panel");
+    await expect(panel.getByTestId("topic-mode")).toHaveCount(0);
+    // Strategy takes no own scenario.
+    await expect(panel.getByRole("radio", { name: "Specific scenario" })).toHaveCount(0);
+    // Only areas that fit the mode: Strategy fits Business, not Mind & emotions.
+    await expect(panel.getByTestId("topic-group").locator("option", { hasText: "Business & economy" })).toHaveCount(1);
+    await expect(panel.getByTestId("topic-group").locator("option", { hasText: "Mind & emotions" })).toHaveCount(0);
+    expect(calls).toBe(0);
 
+    const request = page.waitForRequest((r) => r.url().endsWith("/api/ai/topic-ideas"));
+    await panel.getByTestId("topic-generate").click();
+    expect(((await request).postDataJSON() as { mode: string }).mode).toBe("strategy");
+    const rows = panel.getByTestId("topic-row");
+    await expect(rows).toHaveCount(10);
+    await expect(rows.first()).not.toContainText("Strategic situations");
+    await rows.first().click();
+    await page.waitForURL(/\/exercise\/strategy\?domain=Mock%20topic/, { timeout: 15_000 });
+  });
+
+  test("start from a mode: Calibration lists its question bank and opens the topic", async ({ page }) => {
+    await gotoAuthenticated(page, "/reasoning");
+    await page.getByRole("radio", { name: "A mode" }).click();
     await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: /Calibration/ }).click();
-    await expect(panel).toContainText("checked question bank");
-    await panel.getByRole("link", { name: "Vietnam" }).click();
+    const panel = page.getByTestId("mode-panel");
+    await expect(panel.getByTestId("topic-generate")).toHaveCount(0);
+    await panel.getByTestId("topic-row").filter({ hasText: "Vietnam" }).click();
     await page.waitForURL(/\/exercise\/calibration\?domain=Vietnam/, { timeout: 15_000 });
     await expect(page.getByTestId("calibration-topics").getByRole("button", { name: "Vietnam", exact: true })).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("the mode choice is remembered and an idea opens the exercise with the topic", async ({ page }) => {
+  test("the mode choice is remembered; a mode's own scenario goes straight into it", async ({ page }) => {
     await gotoAuthenticated(page, "/reasoning");
     await page.getByRole("radio", { name: "A mode" }).click();
     await gotoAuthenticated(page, "/reasoning");
     await expect(page.getByRole("radio", { name: "A mode" })).toHaveAttribute("aria-checked", "true");
     await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: /Reframe/ }).click();
-    await page.getByTestId("mode-topic-ideas").getByRole("link").first().click();
-    await page.waitForURL(/\/exercise\/reframe\?domain=/, { timeout: 15_000 });
-    await expect(page.getByLabel("Other area")).toHaveValue(/Mock idea for reframe/);
+    const panel = page.getByTestId("mode-panel");
+    await panel.getByRole("radio", { name: "Specific scenario" }).click();
+    const text = "I made a small mistake in a meeting and now I keep thinking everyone sees me as useless.";
+    await panel.getByTestId("topic-scenario").fill(text);
+    await panel.getByTestId("scenario-start").click();
+    await page.waitForURL(/\/exercise\/reframe\?source=custom_scenario/, { timeout: 15_000 });
+    await expect(page.getByLabel("My situation")).toHaveValue(text);
   });
 });
 

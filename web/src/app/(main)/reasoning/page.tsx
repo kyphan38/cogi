@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { PRACTICE_EXERCISE_CARDS } from "@/lib/exercise/exercise-mode-cards";
-import { listRecentDomains } from "@/lib/db/exercises";
-import { ModeTopicPanel } from "@/components/dashboard/ModeTopicPanel";
 import { TopicIdeasPanel } from "@/components/dashboard/TopicIdeasPanel";
 import { cn } from "@/lib/utils";
 import type { ThinkingType } from "@/lib/types/exercise";
@@ -16,10 +14,10 @@ type StartFrom = "topic" | "mode";
 
 /**
  * New exercise. "A topic": filters, Generate, and 10 concrete topics, each with its mode,
- * or your own scenario (PLAN-topic-ideas.md T2). "A mode": pick the skill first.
+ * or your own scenario (PLAN-topic-ideas.md T2). "A mode": pick the skill first, then the
+ * same filters and Generate, without the mode filter (T3).
  */
 export default function ReasoningPage() {
-  const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
   const [startFrom, setStartFrom] = useState<StartFrom>("topic");
   const [pickedMode, setPickedMode] = useState<ThinkingType | null>(null);
 
@@ -42,11 +40,12 @@ export default function ReasoningPage() {
     }
   };
 
-  useEffect(() => {
-    let cancelled = false;
-    void listRecentDomains(20).then((d) => { if (!cancelled) setDomainSuggestions(d); }).catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const pickMode = (m: ThinkingType) => {
+    setPickedMode(m);
+    // On a phone the panel sits below all the mode cards: bring it into view.
+    requestAnimationFrame(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+  };
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
@@ -84,7 +83,7 @@ export default function ReasoningPage() {
         <p className="text-muted-foreground text-xs">
           {startFrom === "topic"
             ? "Not sure what to practise? Get 10 concrete topics, each with a mode, or start from your own situation."
-            : "You know which skill to train: pick a mode, then choose from AI topic ideas or the areas that fit it."}
+            : "You know which skill to train: pick a mode, then generate 10 topics for it or use your own situation."}
         </p>
       </div>
 
@@ -99,7 +98,7 @@ export default function ReasoningPage() {
                 type="button"
                 role="radio"
                 aria-checked={pickedMode === c.type}
-                onClick={() => setPickedMode(c.type as ThinkingType)}
+                onClick={() => pickMode(c.type as ThinkingType)}
                 className={cn(
                   "rounded-xl border bg-white p-4 text-left transition-colors hover:bg-zinc-50/80",
                   pickedMode === c.type ? "border-zinc-900 ring-1 ring-zinc-900" : "border-zinc-200 hover:border-zinc-300",
@@ -111,11 +110,13 @@ export default function ReasoningPage() {
               </button>
             ))}
           </div>
-          {pickedMode ? (
-            <ModeTopicPanel key={pickedMode} mode={pickedMode} recentDomains={domainSuggestions} />
-          ) : (
-            <p className="text-muted-foreground text-sm">Pick a mode to see topic ideas.</p>
-          )}
+          <div ref={panelRef} className="scroll-mt-20" data-testid="mode-panel">
+            {pickedMode ? (
+              <TopicIdeasPanel key={pickedMode} fixedMode={pickedMode} />
+            ) : (
+              <p className="text-muted-foreground text-sm">Pick a mode, then generate topics for it.</p>
+            )}
+          </div>
         </div>
       ) : null}
     </main>
