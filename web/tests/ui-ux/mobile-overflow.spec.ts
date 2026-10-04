@@ -232,12 +232,12 @@ test.describe("Mobile 390px - nothing runs past the screen edge", () => {
     expect(await overflowing(page)).toEqual([]);
   });
 
-  test("practice page: start from a mode with topic ideas and areas open", async ({ page }) => {
+  test("practice page: start from a mode with filters and 10 topics", async ({ page }) => {
     await gotoAuthenticated(page, "/reasoning");
     await page.getByRole("radio", { name: "A mode" }).click();
     await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: /Life situations/ }).click();
-    await expect(page.getByTestId("mode-topic-ideas")).toBeVisible({ timeout: 15_000 });
-    for (const d of await page.getByTestId("mode-topic-panel").locator("details").all()) await d.locator("summary").click();
+    await page.getByTestId("mode-panel").getByTestId("topic-generate").click();
+    await expect(page.getByTestId("topic-row")).toHaveCount(10);
     expect(await overflowing(page)).toEqual([]);
   });
 });

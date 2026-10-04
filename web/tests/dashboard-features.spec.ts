@@ -39,75 +39,71 @@ test.describe("Reasoning page - exercise picker and navigation", () => {
     await stubFirestoreReads(page);
   });
 
-  test("renders the reasoning heading and exercise picker cards", async ({
-    page,
-  }) => {
+  test("renders the reasoning heading and the mode cards under A mode", async ({ page }) => {
     await gotoAuthenticated(page, "/reasoning");
-    await expect(
-      page.getByRole("heading", { name: "New exercise" }),
-    ).toBeVisible();
-
+    await expect(page.getByRole("heading", { name: "New exercise" })).toBeVisible();
+    await page.getByRole("radio", { name: "A mode" }).click();
+    const modes = page.getByRole("radiogroup", { name: "Exercise mode" });
     for (const name of [/Evaluative.*Compare options fairly/, /Systems.*Map feedback loops/, /Analytical.*Spot flawed reasoning/]) {
-      await expect(page.getByRole("link", { name })).toBeVisible();
+      await expect(modes.getByRole("radio", { name })).toBeVisible();
     }
     // Removed types (PLAN-simplify.md) have no card.
     for (const name of [/Combo/, /Sequential/, /Generative/]) {
-      await expect(page.getByRole("link", { name })).toHaveCount(0);
+      await expect(modes.getByRole("radio", { name })).toHaveCount(0);
     }
   });
 
-  test("reasoning page shows domain input and find-best-mode button", async ({ page }) => {
-    await gotoAuthenticated(page, "/reasoning");
-    await expect(page.getByLabel("Domain")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Find best mode" })).toBeVisible();
-  });
-
-  test("start from a topic: AI ranks all modes and shows reasons for the top three", async ({ page }) => {
-    await gotoAuthenticated(page, "/reasoning");
-    await page.getByLabel("Domain").fill("Perfectionism & self-criticism");
-    await page.getByRole("button", { name: "Find best mode" }).click();
-    const first = page.getByRole("link").filter({ hasText: "best fit" }).first();
-    await expect(first).toContainText("Reframe");
-    await expect(page.getByText("Mock reason: handle the people side.")).toBeVisible();
-    await expect(page.getByText("Mock reason: not shown, ranked fourth.")).toHaveCount(0);
-    await expect(first).toHaveAttribute("href", /\/exercise\/reframe\?domain=Perfectionism/);
-  });
-
-  test("start from a mode: AI topic ideas and catalog areas lead into the exercise", async ({ page }) => {
+  test("start from a mode: no AI until Generate; filters fit the mode; rows show no mode", async ({ page }) => {
+    let calls = 0;
+    page.on("request", (r) => {
+      if (r.url().includes("/api/ai/topic-ideas")) calls += 1;
+    });
     await gotoAuthenticated(page, "/reasoning");
     await page.getByRole("radio", { name: "A mode" }).click();
-    await expect(page.getByLabel("Domain")).toHaveCount(0);
     await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: /Strategic situations/ }).click();
-    const panel = page.getByTestId("mode-topic-panel");
-    await expect(panel.getByTestId("mode-topic-ideas")).toContainText("Mock idea for strategy");
-    await expect(panel.getByText("Competition, negotiation & games")).toBeVisible();
+    const panel = page.getByTestId("mode-panel");
+    await expect(panel.getByTestId("topic-mode")).toHaveCount(0);
+    // Strategy takes no own scenario.
+    await expect(panel.getByRole("radio", { name: "Specific scenario" })).toHaveCount(0);
+    // Only areas that fit the mode: Strategy fits Business, not Mind & emotions.
+    await expect(panel.getByTestId("topic-group").locator("option", { hasText: "Business & economy" })).toHaveCount(1);
+    await expect(panel.getByTestId("topic-group").locator("option", { hasText: "Mind & emotions" })).toHaveCount(0);
+    expect(calls).toBe(0);
 
+    const request = page.waitForRequest((r) => r.url().endsWith("/api/ai/topic-ideas"));
+    await panel.getByTestId("topic-generate").click();
+    expect(((await request).postDataJSON() as { mode: string }).mode).toBe("strategy");
+    const rows = panel.getByTestId("topic-row");
+    await expect(rows).toHaveCount(10);
+    await expect(rows.first()).not.toContainText("Strategic situations");
+    await rows.first().click();
+    await page.waitForURL(/\/exercise\/strategy\?domain=Mock%20topic/, { timeout: 15_000 });
+  });
+
+  test("start from a mode: Calibration lists its question bank and opens the topic", async ({ page }) => {
+    await gotoAuthenticated(page, "/reasoning");
+    await page.getByRole("radio", { name: "A mode" }).click();
     await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: /Calibration/ }).click();
-    await expect(panel).toContainText("checked question bank");
-    await panel.getByRole("link", { name: "Vietnam" }).click();
+    const panel = page.getByTestId("mode-panel");
+    await expect(panel.getByTestId("topic-generate")).toHaveCount(0);
+    await panel.getByTestId("topic-row").filter({ hasText: "Vietnam" }).click();
     await page.waitForURL(/\/exercise\/calibration\?domain=Vietnam/, { timeout: 15_000 });
     await expect(page.getByTestId("calibration-topics").getByRole("button", { name: "Vietnam", exact: true })).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("the mode choice is remembered and an idea opens the exercise with the topic", async ({ page }) => {
+  test("the mode choice is remembered; a mode's own scenario goes straight into it", async ({ page }) => {
     await gotoAuthenticated(page, "/reasoning");
     await page.getByRole("radio", { name: "A mode" }).click();
     await gotoAuthenticated(page, "/reasoning");
     await expect(page.getByRole("radio", { name: "A mode" })).toHaveAttribute("aria-checked", "true");
     await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: /Reframe/ }).click();
-    await page.getByTestId("mode-topic-ideas").getByRole("link").first().click();
-    await page.waitForURL(/\/exercise\/reframe\?domain=/, { timeout: 15_000 });
-    await expect(page.getByLabel("Other area")).toHaveValue(/Mock idea for reframe/);
-  });
-
-  test("clicking an exercise picker card navigates to that exercise", async ({
-    page,
-  }) => {
-    await gotoAuthenticated(page, "/reasoning");
-    await page
-      .getByRole("link", { name: /Systems.*Map feedback loops/ })
-      .click();
-    await page.waitForURL(/\/exercise\/systems/, { timeout: 15_000 });
+    const panel = page.getByTestId("mode-panel");
+    await panel.getByRole("radio", { name: "Specific scenario" }).click();
+    const text = "I made a small mistake in a meeting and now I keep thinking everyone sees me as useless.";
+    await panel.getByTestId("topic-scenario").fill(text);
+    await panel.getByTestId("scenario-start").click();
+    await page.waitForURL(/\/exercise\/reframe\?source=custom_scenario/, { timeout: 15_000 });
+    await expect(page.getByLabel("My situation")).toHaveValue(text);
   });
 });
 

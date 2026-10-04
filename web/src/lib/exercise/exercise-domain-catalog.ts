@@ -15,7 +15,7 @@ export type ExerciseDomainGroup = {
   label: string;
   domains: readonly string[];
   /**
-   * Exercise types this group fits best (a hint for "Find best mode" and a check that
+   * Exercise types this group fits best (which modes topic ideas may pair with this group, and a check that
    * every exercise type has topics). Geopolitics groups leave it out.
    */
   bestFor?: readonly ThinkingType[];
