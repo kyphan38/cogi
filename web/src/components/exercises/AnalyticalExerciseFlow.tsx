@@ -38,6 +38,7 @@ import { putExercise, getExercise } from "@/lib/db/exercises";
 import { getUserContext } from "@/lib/db/settings";
 import { completePracticeExercise } from "@/lib/db/complete-exercise";
 import { useSaveOnLeave } from "@/lib/hooks/useSaveOnLeave";
+import { takeScenarioHandoff } from "@/lib/topics/scenario-handoff";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { AIPerspectiveStructured } from "@/lib/types/perspective";
@@ -353,36 +354,33 @@ export function AnalyticalExerciseFlow({
 
   const autoGenerateTriggered = useRef(false);
   const [autoGenerateReady, setAutoGenerateReady] = useState(false);
+  /** A scenario handed over from the New exercise page; read once (dev runs effects twice). */
+  const handoffRead = useRef(false);
   useEffect(() => {
-    if (autoGenerateReady || !autoGenerate || resumeId) return;
-    try {
-      const raw = sessionStorage.getItem("cogi:home-source-text");
-      if (raw) {
-        sessionStorage.removeItem("cogi:home-source-text");
-        const data = JSON.parse(raw) as {
-          source?: string;
-          customScenarioText?: string;
-          realDataText?: string;
-        };
-        if (data.source === "custom_scenario" && data.customScenarioText) {
+    if (autoGenerateReady || resumeId) return;
+    if (!handoffRead.current) {
+      handoffRead.current = true;
+      const data = takeScenarioHandoff();
+      // Show the box that holds the handed-over text.
+      if (data) setEntryMode("manual");
+        if (data?.source === "custom_scenario" && data.customScenarioText) {
           setMode("custom_scenario");
           setCustomScenarioText(data.customScenarioText);
-        } else if (data.source === "real_data" && data.realDataText) {
+        } else if (data?.source === "real_data" && data.realDataText) {
           setMode("real_data");
           setRealText(data.realDataText);
         }
-      }
-    } catch { /* ignore */ }
+    }
     setAutoGenerateReady(true);
-  }, [autoGenerate, autoGenerateReady, resumeId]);
+  }, [autoGenerateReady, resumeId]);
 
   useEffect(() => {
-    if (autoGenerateTriggered.current || !autoGenerateReady || resumeId) return;
+    if (autoGenerateTriggered.current || !autoGenerate || !autoGenerateReady || resumeId) return;
     const d = initialDomain?.trim();
     if (!d) return;
     autoGenerateTriggered.current = true;
     void startGenerate();
-  }, [autoGenerateReady, initialDomain, resumeId, startGenerate]);
+  }, [autoGenerate, autoGenerateReady, initialDomain, resumeId, startGenerate]);
 
   const regenerate = () => {
     if (highlights.length > 0) {

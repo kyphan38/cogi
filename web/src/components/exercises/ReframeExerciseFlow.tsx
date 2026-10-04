@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, X } from "lucide-react";
 import { ExerciseShell, practicePhase, practiceStepLabels } from "@/components/shared/ExerciseShell";
 import { ExerciseStepCard, EXERCISE_STEP_META_BADGE } from "@/components/shared/ExerciseStepCard";
@@ -33,6 +33,7 @@ import {
 } from "@/lib/db/settings";
 import { isReframeExercise, type ReframeExerciseRow } from "@/lib/types/exercise";
 import { useSaveOnLeave } from "@/lib/hooks/useSaveOnLeave";
+import { takeScenarioText } from "@/lib/topics/scenario-handoff";
 import { isCoachingStructured, type AIPerspectiveStructured } from "@/lib/types/perspective";
 import type { ReframeAnswer, ReframeExercisePayload, ReframeThought } from "@/lib/ai/validators/reframe";
 import type { JudgmentContext } from "@/lib/exercise/judgment-levels";
@@ -197,13 +198,26 @@ export function ReframeExerciseFlow({
   const [finishing, setFinishing] = useState(false);
   const [levelSuggestion, setLevelSuggestion] = useState<LevelSuggestion>(null);
 
+  const handedScenario = useRef<string | null | undefined>(undefined);
   const setupLevel = REFRAME_LEVELS[level];
   const cfg = exercise ? REFRAME_LEVELS[exercise.level] : setupLevel;
   const options = answerOptions(cfg);
 
   useEffect(() => {
-    void getPracticeLevel("reframe").then(setLevel);
-  }, []);
+    // A scenario from the New exercise page needs a level with "My situation" (PLAN-topic-ideas.md T2).
+    // Read once: in dev, React runs this effect twice and the text is cleared on read.
+    if (handedScenario.current === undefined) handedScenario.current = resumeId ? null : takeScenarioText();
+    const handed = handedScenario.current;
+    void getPracticeLevel("reframe").then((saved) => {
+      if (!handed) {
+        setLevel(saved);
+        return;
+      }
+      setLevel(REFRAME_LEVELS[saved].ownSituation ? saved : "standard");
+      setSource("custom_scenario");
+      setOwnSituation(handed);
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!resumeId) return;
