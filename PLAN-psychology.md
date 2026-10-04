@@ -46,6 +46,25 @@ hàng câu hỏi có nguồn, tốn công nội dung hơn. `[QUYẾT ĐỊNH]` �
 
 ## Phase P1 - Reframe (lỗi suy nghĩ theo CBT)
 
+**Xong phần code (2026-10-04)**, branch `claude/nice-tesla-0trqiz`. Unit 593/593, E2E
+141/141 (chạy `--workers=1`), `tsc` sạch, eslint 0 lỗi, chụp màn hình desktop + mobile.
+**Chưa gọi Gemini thật** (container không có `GEMINI_API_KEY`): cần thử vài bài ở cả 3
+cấp trước khi merge.
+
+- Loại bài `reframe` ở `/exercise/reframe`, có trong Practice, History, Handbook.
+- **Khác plan:**
+  - Suy nghĩ thực tế là `trap: "realistic"` thay vì `null`, để schema gửi Gemini không
+    cần `anyOf`/`null`.
+  - Expert: độc thoại là các câu bấm được (không chọn tự do từng cụm từ như Analytical);
+    câu không đánh dấu được tính là "Realistic".
+  - Guided giữ lựa chọn đầu tiên cho mỗi suy nghĩ rồi mới hiện đáp án, nên điểm vẫn trung
+    thực.
+- **An toàn "My situation":** server kiểm tra từ ngữ khủng hoảng (Anh + Việt, có test tránh
+  báo nhầm "mệt muốn chết", "tu tu" = "từ từ") trước khi gọi AI; model cũng có thể trả
+  `safety: "concern"`. Cả hai trường hợp hiện lời nhắn hỗ trợ, không tạo bài.
+- **Còn chờ chủ app:** số đường dây hỗ trợ ở Việt Nam (hiện chỉ ghi "liên hệ dịch vụ khẩn
+  cấp / người tin cậy / chuyên gia"); tên "Reframe" giữ tạm.
+
 **Luyện gì:** nhận ra suy nghĩ tự động bị méo (cognitive distortion), tách nó khỏi suy
 nghĩ thực tế, và viết lại thành suy nghĩ cân bằng. Gốc: thought record của CBT (Beck,
 Burns). Đây là bài luyện tư duy, **không phải trị liệu**: ghi rõ trong Setup và Handbook.
