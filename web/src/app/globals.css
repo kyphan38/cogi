@@ -80,7 +80,9 @@
 :root {
   /* Chỉ đen, trắng, xám: giá trị chung của ws/app/DESIGN.md (2026-10-05).
      "destructive" cũng là mực: cảnh báo nói bằng chữ và độ đậm, không bằng đỏ.
-     Bốn bậc semantic-* là chấm nhận dạng loại lỗi, luôn có tên bên cạnh. */
+     Ngoại lệ duy nhất: bốn màu semantic-* của chấm loại lỗi Geopolitics (chủ
+     app chọn giữ, 2026-10-05). Chấm luôn có tên loại lỗi bên cạnh; dùng
+     chung một giá trị cho light và dark như trước. */
   --background: #fafafa;
   --foreground: #171717;
   --card: #ffffff;
@@ -105,10 +107,10 @@
   --chart-4: #636363;
   --chart-5: #3d3d3d;
   --select: rgb(23 23 23 / 0.14);
-  --semantic-framing: #171717;
-  --semantic-missing-actor: #3d3d3d;
-  --semantic-assumed-causation: #636363;
-  --semantic-analogy-misuse: #8a8a8a;
+  --semantic-framing: #6366f1;
+  --semantic-missing-actor: #14b8a6;
+  --semantic-assumed-causation: #f59e0b;
+  --semantic-analogy-misuse: #f43f5e;
   --sidebar: #fafafa;
   --sidebar-foreground: #171717;
   --sidebar-primary: #171717;
@@ -161,10 +163,6 @@
     --chart-4: #9a9a9a;
     --chart-5: #c4c4c4;
     --select: rgb(232 232 232 / 0.18);
-    --semantic-framing: #f0f0f0;
-    --semantic-missing-actor: #c4c4c4;
-    --semantic-assumed-causation: #9a9a9a;
-    --semantic-analogy-misuse: #737373;
     --sidebar: #111111;
     --sidebar-foreground: #e8e8e8;
     --sidebar-primary: #e8e8e8;
@@ -217,10 +215,6 @@
   --chart-4: #9a9a9a;
   --chart-5: #c4c4c4;
   --select: rgb(232 232 232 / 0.18);
-  --semantic-framing: #f0f0f0;
-  --semantic-missing-actor: #c4c4c4;
-  --semantic-assumed-causation: #9a9a9a;
-  --semantic-analogy-misuse: #737373;
   --sidebar: #111111;
   --sidebar-foreground: #e8e8e8;
   --sidebar-primary: #e8e8e8;
