@@ -23,6 +23,8 @@ function isExcludedPath(pathname: string): boolean {
   if (pathname === "/api/auth/verify") return true;
   if (pathname === "/api/auth/session") return true;
   if (pathname.startsWith("/_next/")) return true;
+  // Firebase Auth handler (rewritten to firebaseapp.com in next.config.ts).
+  if (pathname.startsWith("/__/")) return true;
   if (pathname === "/favicon.ico") return true;
   if (/\.[a-z0-9]+$/i.test(pathname)) return true;
   return false;

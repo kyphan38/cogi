@@ -1,10 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import {
+  GoogleAuthProvider,
+  getRedirectResult,
+  signInWithPopup,
+  signInWithRedirect,
+} from "firebase/auth";
 import { cn } from "@/lib/utils";
 import { getFirebaseAuth } from "@/lib/auth/firebase-client";
+
+/** iPhone, iPad (iPadOS says "Macintosh") or the home-screen app. */
+function prefersRedirect(): boolean {
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const standalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  return ios || standalone;
+}
+
+function errorCode(err: unknown): string {
+  return (err as { code?: string })?.code ?? "";
+}
+
+function signInMessage(err: unknown): string | null {
+  switch (errorCode(err)) {
+    case "auth/popup-closed-by-user":
+    case "auth/cancelled-popup-request":
+      return "The sign-in window closed. Please try again.";
+    case "auth/network-request-failed":
+      return "No network connection. Check your connection and try again.";
+    case "auth/unauthorized-domain":
+      return "This domain is not allowed to sign in.";
+    default:
+      return "Sign-in failed. Please try again.";
+  }
+}
 
 type LoginViewProps = {
   appName: string;
@@ -16,15 +49,42 @@ export function LoginView({ appName, subtitle, className }: LoginViewProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Back from a redirect sign-in: success goes through onAuthStateChanged in
+  // LoginClientPage, only errors need showing here.
+  useEffect(() => {
+    getRedirectResult(getFirebaseAuth()).catch((err) => {
+      console.warn("[auth] redirect result failed", err);
+      setError(signInMessage(err));
+    });
+  }, []);
+
   const onGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
+    const auth = getFirebaseAuth();
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    // Redirect only works when the auth handler is on this same domain
+    // (see rewrites in next.config.ts); otherwise Safari loses the result.
+    const sameDomainHandler = auth.config.authDomain === window.location.host;
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-      await signInWithPopup(getFirebaseAuth(), provider);
+      if (sameDomainHandler && prefersRedirect()) {
+        await signInWithRedirect(auth, provider);
+        return; // the page navigates away
+      }
+      await signInWithPopup(auth, provider);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign-in failed.");
+      const code = errorCode(err);
+      if (sameDomainHandler && code === "auth/popup-blocked") {
+        try {
+          await signInWithRedirect(auth, provider);
+          return;
+        } catch (redirectErr) {
+          setError(signInMessage(redirectErr));
+        }
+      } else {
+        setError(signInMessage(err));
+      }
     } finally {
       setLoading(false);
     }
