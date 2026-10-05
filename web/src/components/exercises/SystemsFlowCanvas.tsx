@@ -41,11 +41,13 @@ function SystemFlowNode({ data }: NodeProps) {
     description: string;
     impact: SystemsNodeImpact;
   };
+  // Gray only (DESIGN.md): the impact is said by a word on the node, and
+  // the border just backs it up (solid = direct, dashed = indirect).
   const border =
     d.impact === "direct"
-      ? "border-orange-500 bg-orange-500/15"
+      ? "border-zinc-900 bg-zinc-900/10"
       : d.impact === "indirect"
-        ? "border-red-600 bg-red-600/10"
+        ? "border-dashed border-zinc-900 bg-zinc-900/5"
         : "border-border bg-card";
   return (
     <>
@@ -75,6 +77,9 @@ function SystemFlowNode({ data }: NodeProps) {
           border,
         )}
       >
+        {d.impact !== "none" ? (
+          <div className="text-[9px] font-medium uppercase tracking-wider text-zinc-600">{d.impact}</div>
+        ) : null}
         <div className="font-medium leading-tight">{d.label}</div>
         <div className="text-muted-foreground mt-0.5 line-clamp-3 text-[10px] leading-snug">
           {d.description}

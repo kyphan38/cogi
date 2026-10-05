@@ -110,7 +110,7 @@ export function MapQuiz({
           <span className="flex flex-wrap gap-x-4 gap-y-1">
             <span className="inline-flex items-center gap-1.5">
               <svg width="12" height="12" aria-hidden>
-                <circle cx="6" cy="6" r="4" fill="#18181b" stroke="#fff" strokeWidth="1.5" />
+                <circle cx="6" cy="6" r="4" fill="var(--z-900)" stroke="var(--z-white)" strokeWidth="1.5" />
               </svg>
               {place.name}
             </span>
@@ -118,7 +118,7 @@ export function MapQuiz({
             {answer.tap ? (
               <span className="inline-flex items-center gap-1.5">
                 <svg width="12" height="12" aria-hidden>
-                  <path d="M2,2L10,10M10,2L2,10" stroke="#18181b" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M2,2L10,10M10,2L2,10" stroke="var(--z-900)" strokeWidth="2" strokeLinecap="round" />
                 </svg>
                 Your tap
               </span>

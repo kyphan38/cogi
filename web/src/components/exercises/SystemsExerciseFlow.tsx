@@ -1156,8 +1156,8 @@ export function SystemsExerciseFlow({
           <CardHeader>
             <CardTitle>Shock scenario</CardTitle>
             <CardDescription>
-              Click nodes to cycle: unaffected → directly affected (orange) → indirectly affected
-              (red).
+              Click nodes to cycle: unaffected → directly affected (solid border) → indirectly
+              affected (dashed border). The node also says &quot;direct&quot; or &quot;indirect&quot;.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1297,13 +1297,12 @@ export function SystemsExerciseFlow({
                         key={hint.nodeId}
                         className={cn(
                           "rounded-md border p-2 text-sm",
-                          match
-                            ? "border-green-600 bg-green-600/10"
-                            : "border-amber-500 bg-amber-500/10",
+                          match ? "border-zinc-900" : "border-zinc-300",
                         )}
                       >
                         <span className="font-medium">{node?.label ?? hint.nodeId}</span>
                         {" - "}your rank: {userRank ?? "-"}, model rank: {hint.criticalityRank}
+                        {match ? <span className="font-medium">{" · match"}</span> : null}
                         <p className="text-muted-foreground mt-0.5 text-xs">{hint.rationale}</p>
                       </li>
                     );

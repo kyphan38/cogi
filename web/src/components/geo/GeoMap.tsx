@@ -16,12 +16,12 @@ import { countryFeatures } from "@/lib/geo/world";
 export type CountryState = "candidate" | "picked" | "found" | "missed" | "extra";
 
 const COUNTRY_STYLE: Record<CountryState | "base", { fill: string; stroke: string; strokeWidth: number }> = {
-  base: { fill: "#e4e4e7", stroke: "#ffffff", strokeWidth: 0.6 },
-  candidate: { fill: "#d4d4d8", stroke: "#52525b", strokeWidth: 0.9 },
-  picked: { fill: "#3f3f46", stroke: "#18181b", strokeWidth: 1 },
-  found: { fill: "#18181b", stroke: "#18181b", strokeWidth: 1 },
-  missed: { fill: "#71717a", stroke: "#3f3f46", strokeWidth: 1 },
-  extra: { fill: "#e4e4e7", stroke: "#18181b", strokeWidth: 2 },
+  base: { fill: "var(--map-land)", stroke: "var(--map-sea)", strokeWidth: 0.6 },
+  candidate: { fill: "var(--z-300)", stroke: "var(--z-600)", strokeWidth: 0.9 },
+  picked: { fill: "var(--z-700)", stroke: "var(--z-900)", strokeWidth: 1 },
+  found: { fill: "var(--z-900)", stroke: "var(--z-900)", strokeWidth: 1 },
+  missed: { fill: "var(--z-500)", stroke: "var(--z-700)", strokeWidth: 1 },
+  extra: { fill: "var(--map-land)", stroke: "var(--z-900)", strokeWidth: 2 },
 };
 
 export interface MapMarker {
@@ -159,7 +159,7 @@ export function GeoMap({
           onPointerLeave={() => setTip(null)}
           data-height={height}
         >
-          <path d={spherePath} fill="#fafafa" aria-hidden />
+          <path d={spherePath} fill="var(--map-sea)" aria-hidden />
           <g>
             {countryPaths.map((c) => {
               const state = countryStates?.[c.id];
@@ -190,7 +190,7 @@ export function GeoMap({
               );
             })}
           </g>
-          <g fill="none" stroke="#18181b" strokeLinecap="round" strokeLinejoin="round">
+          <g fill="none" stroke="var(--z-900)" strokeLinecap="round" strokeLinejoin="round">
             {lines.map((l) => (
               <path
                 key={l.id}
@@ -236,19 +236,19 @@ export function GeoMap({
                 >
                   <circle r={HIT_R} fill="transparent" stroke="transparent" strokeWidth={2} />
                   {shape === "tap" ? (
-                    <path d="M-5,-5L5,5M5,-5L-5,5" stroke="#ffffff" strokeWidth={5} strokeLinecap="round" />
+                    <path d="M-5,-5L5,5M5,-5L-5,5" stroke="var(--z-white)" strokeWidth={5} strokeLinecap="round" />
                   ) : null}
                   {shape === "tap" ? (
-                    <path d="M-5,-5L5,5M5,-5L-5,5" stroke="#18181b" strokeWidth={2} strokeLinecap="round" />
+                    <path d="M-5,-5L5,5M5,-5L-5,5" stroke="var(--z-900)" strokeWidth={2} strokeLinecap="round" />
                   ) : shape === "ring" ? (
                     <circle
                       r={m.selected ? 8 : 6}
-                      fill={m.selected ? "#18181b" : "#ffffff"}
-                      stroke="#18181b"
+                      fill={m.selected ? "var(--z-900)" : "var(--z-white)"}
+                      stroke="var(--z-900)"
                       strokeWidth={2}
                     />
                   ) : (
-                    <circle r={5} fill="#18181b" stroke="#ffffff" strokeWidth={2} />
+                    <circle r={5} fill="var(--z-900)" stroke="var(--z-white)" strokeWidth={2} />
                   )}
                   {m.showLabel ? (
                     <text
@@ -257,8 +257,8 @@ export function GeoMap({
                       textAnchor={x > MAP_WIDTH - 140 ? "end" : "start"}
                       fontSize={15}
                       fontWeight={600}
-                      fill="#18181b"
-                      stroke="#ffffff"
+                      fill="var(--z-900)"
+                      stroke="var(--z-white)"
                       strokeWidth={3}
                       paintOrder="stroke"
                       style={{ pointerEvents: "none" }}
@@ -271,7 +271,7 @@ export function GeoMap({
             })}
           </g>
           {cross ? (
-            <g transform={`translate(${cross[0]},${cross[1]})`} stroke="#18181b" strokeWidth={1.5} aria-hidden>
+            <g transform={`translate(${cross[0]},${cross[1]})`} stroke="var(--z-900)" strokeWidth={1.5} aria-hidden>
               <line x1={-10} x2={10} y1={0} y2={0} />
               <line x1={0} x2={0} y1={-10} y2={10} />
             </g>
@@ -314,7 +314,7 @@ export function LineKey({ dashed, label }: { dashed?: boolean; label: string }) 
   return (
     <span className="inline-flex items-center gap-1.5">
       <svg width="22" height="6" aria-hidden>
-        <line x1="1" y1="3" x2="21" y2="3" stroke="#18181b" strokeWidth="2" strokeDasharray={dashed ? "5 3" : undefined} />
+        <line x1="1" y1="3" x2="21" y2="3" stroke="var(--z-900)" strokeWidth="2" strokeDasharray={dashed ? "5 3" : undefined} />
       </svg>
       {label}
     </span>

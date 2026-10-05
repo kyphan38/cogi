@@ -2,14 +2,24 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/* dark: theo Theme trong Settings (data-theme), "system" thì theo máy. */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+}
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-heading: var(--font-sans);
   --color-semantic-framing: var(--semantic-framing);
   --color-semantic-missing-actor: var(--semantic-missing-actor);
   --color-semantic-assumed-causation: var(--semantic-assumed-causation);
@@ -43,6 +53,21 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  /* Cả app viết class zinc-* cứng. Trỏ dải zinc (và white) vào biến theo
+     theme: một chỗ sửa thì mọi class đều có giá trị xám trung tính của
+     DESIGN.md và tự đổi sang dark, không phải sửa ~400 class. */
+  --color-white: var(--z-white);
+  --color-zinc-50: var(--z-50);
+  --color-zinc-100: var(--z-100);
+  --color-zinc-200: var(--z-200);
+  --color-zinc-300: var(--z-300);
+  --color-zinc-400: var(--z-400);
+  --color-zinc-500: var(--z-500);
+  --color-zinc-600: var(--z-600);
+  --color-zinc-700: var(--z-700);
+  --color-zinc-800: var(--z-800);
+  --color-zinc-900: var(--z-900);
+  --color-zinc-950: var(--z-950);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -53,77 +78,172 @@
 }
 
 :root {
-  /* Nordic Mono - light-only cognitive minimal theme */
-  --background: #f9f9fb;
-  --foreground: #1a1a1e;
+  /* Chỉ đen, trắng, xám: giá trị chung của ws/app/DESIGN.md (2026-10-05).
+     "destructive" cũng là mực: cảnh báo nói bằng chữ và độ đậm, không bằng đỏ.
+     Bốn bậc semantic-* là chấm nhận dạng loại lỗi, luôn có tên bên cạnh. */
+  --background: #fafafa;
+  --foreground: #171717;
   --card: #ffffff;
-  --card-foreground: #1a1a1e;
+  --card-foreground: #171717;
   --popover: #ffffff;
-  --popover-foreground: #1a1a1e;
-  --primary: #18181b;
+  --popover-foreground: #171717;
+  --primary: #171717;
   --primary-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #3f3f46;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #3f3f46;
-  --destructive: #dc2626;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #a1a1aa;
-  --chart-1: #e4e4e7;
-  --chart-2: #a1a1aa;
-  --chart-3: #71717a;
-  --chart-4: #52525b;
-  --chart-5: #3f3f46;
-  --radius: 1rem;
-  --semantic-framing: #6366f1;
-  --semantic-missing-actor: #14b8a6;
-  --semantic-assumed-causation: #f59e0b;
-  --semantic-analogy-misuse: #f43f5e;
-  --sidebar: #f9f9fb;
-  --sidebar-foreground: #1a1a1e;
-  --sidebar-primary: #18181b;
+  --secondary: #f4f4f4;
+  --secondary-foreground: #262626;
+  --muted: #f4f4f4;
+  --muted-foreground: #555555;
+  --accent: #f4f4f4;
+  --accent-foreground: #171717;
+  --destructive: #171717;
+  --border: #e5e5e5;
+  --input: #d4d4d4;
+  --ring: #8a8a8a;
+  --chart-1: #d4d4d4;
+  --chart-2: #b0b0b0;
+  --chart-3: #8a8a8a;
+  --chart-4: #636363;
+  --chart-5: #3d3d3d;
+  --select: rgb(23 23 23 / 0.14);
+  --semantic-framing: #171717;
+  --semantic-missing-actor: #3d3d3d;
+  --semantic-assumed-causation: #636363;
+  --semantic-analogy-misuse: #8a8a8a;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #171717;
+  --sidebar-primary: #171717;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f4f4f5;
-  --sidebar-accent-foreground: #3f3f46;
-  --sidebar-border: #e4e4e7;
-  --sidebar-ring: #a1a1aa;
+  --sidebar-accent: #f4f4f4;
+  --sidebar-accent-foreground: #262626;
+  --sidebar-border: #e5e5e5;
+  --sidebar-ring: #8a8a8a;
+  --map-sea: #fafafa;
+  --map-land: #e5e5e5;
+  --z-white: #ffffff;
+  --z-50: #fafafa;
+  --z-100: #f4f4f4;
+  --z-200: #e5e5e5;
+  --z-300: #d4d4d4;
+  --z-400: #a3a3a3;
+  --z-500: #8a8a8a;
+  --z-600: #555555;
+  --z-700: #404040;
+  --z-800: #262626;
+  --z-900: #171717;
+  --z-950: #0a0a0a;
+  --radius: 1rem;
+  color-scheme: light;
 }
 
-.dark {
-  --background: oklch(0.18 0.015 75);
-  --foreground: oklch(0.96 0.008 85);
-  --card: oklch(0.22 0.015 75);
-  --card-foreground: oklch(0.96 0.008 85);
-  --popover: oklch(0.22 0.015 75);
-  --popover-foreground: oklch(0.96 0.008 85);
-  --primary: oklch(0.62 0.16 264);
-  --primary-foreground: oklch(0.15 0.02 264);
-  --secondary: oklch(0.28 0.02 75);
-  --secondary-foreground: oklch(0.94 0.01 85);
-  --muted: oklch(0.28 0.02 75);
-  --muted-foreground: oklch(0.72 0.02 85);
-  --accent: oklch(0.32 0.05 264);
-  --accent-foreground: oklch(0.88 0.06 264);
-  --destructive: oklch(0.62 0.18 25);
-  --border: oklch(0.32 0.02 75);
-  --input: oklch(0.32 0.02 75);
-  --ring: oklch(0.62 0.14 264);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.2 0.015 75);
-  --sidebar-foreground: oklch(0.96 0.008 85);
-  --sidebar-primary: oklch(0.62 0.16 264);
-  --sidebar-primary-foreground: oklch(0.15 0.02 264);
-  --sidebar-accent: oklch(0.28 0.02 75);
-  --sidebar-accent-foreground: oklch(0.94 0.01 85);
-  --sidebar-border: oklch(0.32 0.02 75);
-  --sidebar-ring: oklch(0.62 0.14 264);
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #111111;
+    --foreground: #e8e8e8;
+    --card: #1a1a1a;
+    --card-foreground: #e8e8e8;
+    --popover: #1a1a1a;
+    --popover-foreground: #e8e8e8;
+    --primary: #e8e8e8;
+    --primary-foreground: #111111;
+    --secondary: #222222;
+    --secondary-foreground: #d4d4d4;
+    --muted: #222222;
+    --muted-foreground: #a3a3a3;
+    --accent: #222222;
+    --accent-foreground: #e8e8e8;
+    --destructive: #e8e8e8;
+    --border: #262626;
+    --input: #3a3a3a;
+    --ring: #7a7a7a;
+    --chart-1: #3a3a3a;
+    --chart-2: #525252;
+    --chart-3: #737373;
+    --chart-4: #9a9a9a;
+    --chart-5: #c4c4c4;
+    --select: rgb(232 232 232 / 0.18);
+    --semantic-framing: #f0f0f0;
+    --semantic-missing-actor: #c4c4c4;
+    --semantic-assumed-causation: #9a9a9a;
+    --semantic-analogy-misuse: #737373;
+    --sidebar: #111111;
+    --sidebar-foreground: #e8e8e8;
+    --sidebar-primary: #e8e8e8;
+    --sidebar-primary-foreground: #111111;
+    --sidebar-accent: #222222;
+    --sidebar-accent-foreground: #d4d4d4;
+    --sidebar-border: #262626;
+    --sidebar-ring: #7a7a7a;
+    --map-sea: #111111;
+    --map-land: #3a3a3a;
+    --z-white: #1a1a1a;
+    --z-50: #1f1f1f;
+    --z-100: #222222;
+    --z-200: #262626;
+    --z-300: #3a3a3a;
+    --z-400: #5c5c5c;
+    --z-500: #7a7a7a;
+    --z-600: #a3a3a3;
+    --z-700: #bdbdbd;
+    --z-800: #d4d4d4;
+    --z-900: #e8e8e8;
+    --z-950: #f0f0f0;
+    color-scheme: dark;
+  }
+}
+
+/* Chọn tay trong Settings: thắng cài đặt của máy. */
+:root[data-theme="dark"] {
+  --background: #111111;
+  --foreground: #e8e8e8;
+  --card: #1a1a1a;
+  --card-foreground: #e8e8e8;
+  --popover: #1a1a1a;
+  --popover-foreground: #e8e8e8;
+  --primary: #e8e8e8;
+  --primary-foreground: #111111;
+  --secondary: #222222;
+  --secondary-foreground: #d4d4d4;
+  --muted: #222222;
+  --muted-foreground: #a3a3a3;
+  --accent: #222222;
+  --accent-foreground: #e8e8e8;
+  --destructive: #e8e8e8;
+  --border: #262626;
+  --input: #3a3a3a;
+  --ring: #7a7a7a;
+  --chart-1: #3a3a3a;
+  --chart-2: #525252;
+  --chart-3: #737373;
+  --chart-4: #9a9a9a;
+  --chart-5: #c4c4c4;
+  --select: rgb(232 232 232 / 0.18);
+  --semantic-framing: #f0f0f0;
+  --semantic-missing-actor: #c4c4c4;
+  --semantic-assumed-causation: #9a9a9a;
+  --semantic-analogy-misuse: #737373;
+  --sidebar: #111111;
+  --sidebar-foreground: #e8e8e8;
+  --sidebar-primary: #e8e8e8;
+  --sidebar-primary-foreground: #111111;
+  --sidebar-accent: #222222;
+  --sidebar-accent-foreground: #d4d4d4;
+  --sidebar-border: #262626;
+  --sidebar-ring: #7a7a7a;
+  --map-sea: #111111;
+  --map-land: #3a3a3a;
+  --z-white: #1a1a1a;
+  --z-50: #1f1f1f;
+  --z-100: #222222;
+  --z-200: #262626;
+  --z-300: #3a3a3a;
+  --z-400: #5c5c5c;
+  --z-500: #7a7a7a;
+  --z-600: #a3a3a3;
+  --z-700: #bdbdbd;
+  --z-800: #d4d4d4;
+  --z-900: #e8e8e8;
+  --z-950: #f0f0f0;
+  color-scheme: dark;
 }
 
 @layer base {
@@ -131,6 +251,7 @@
     @apply border-border outline-ring/50;
   }
   html {
+    background: var(--background);
     /* Chi cuon doc, khong bao gio cuon ngang o cap trang. Bang can cuon
        ngang thi tu lo `overflow-x-auto` o ben trong. */
     overflow-x: clip;
@@ -152,12 +273,16 @@
   h4,
   h5,
   h6 {
-    font-family: var(--font-geist-sans), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
     font-weight: 600;
     letter-spacing: -0.025em;
   }
   a:focus-visible {
-    @apply rounded-sm outline-2 outline-offset-2 outline-ring;
+    @apply rounded-sm outline-offset-2;
+    outline: 1.5px solid var(--ring);
+  }
+  ::selection {
+    background: var(--select);
+    color: inherit;
   }
   /* iOS: bo o sang khi cham, bo do tre 300ms. */
   a,
@@ -231,7 +356,7 @@
 
 .toast-cogi-error {
   background: var(--destructive);
-  color: oklch(0.99 0.01 264);
+  color: var(--background);
 }
 
 .toast-cogi-info {

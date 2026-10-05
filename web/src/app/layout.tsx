@@ -1,18 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { ToastLayout } from "@/components/providers/ToastLayout";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
+import { BG_DARK, BG_LIGHT, THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "cogi",
@@ -32,7 +22,10 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#f9f9fb",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: BG_LIGHT },
+    { media: "(prefers-color-scheme: dark)", color: BG_DARK },
+  ],
 };
 
 export default function RootLayout({
@@ -44,9 +37,11 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className="h-full antialiased"
     >
       <head>
+        {/* data-theme is set here, before React hydrates. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){

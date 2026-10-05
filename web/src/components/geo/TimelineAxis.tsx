@@ -48,7 +48,7 @@ export function TimelineAxis({ events, shown, currentId }: { events: TimelineEve
               data-axis-event={e.id}
             >
               <circle cx={cx} cy={28} r={12} fill="transparent" />
-              <circle cx={cx} cy={28} r={current ? 7 : 5} fill="currentColor" stroke="#ffffff" strokeWidth={2} />
+              <circle cx={cx} cy={28} r={current ? 7 : 5} fill="currentColor" stroke="var(--z-white)" strokeWidth={2} />
             </g>
           );
         })}

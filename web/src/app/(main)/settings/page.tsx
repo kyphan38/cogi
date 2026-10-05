@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useState, useSyncExternalStore, type ChangeEvent } from "react";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,9 @@ import {
   LANGUAGE_LEVELS,
 } from "@/lib/adaptive/language-level";
 import { exportAllJsonString, importBackupJson } from "@/lib/db/backup";
+import { themeStore, type Theme } from "@/lib/theme";
+
+const THEMES: readonly Theme[] = ["system", "light", "dark"];
 
 export default function SettingsPage() {
   const [ctx, setCtx] = useState("");
@@ -34,6 +37,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [backupMsg, setBackupMsg] = useState<string | null>(null);
   const [backupErr, setBackupErr] = useState<string | null>(null);
+  const theme = useSyncExternalStore(themeStore.subscribe, themeStore.get, themeStore.getServer);
 
   useEffect(() => {
     void (async () => {
@@ -174,6 +178,29 @@ export default function SettingsPage() {
           {saved ? (
             <p className="text-muted-foreground text-sm">Saved.</p>
           ) : null}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader className="pb-2">
+          <CardTitle>Theme</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* The current choice is ink and medium; the others are faint and tappable. */}
+          <div className="flex gap-4 text-sm" role="radiogroup" aria-label="Theme">
+            {THEMES.map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="radio"
+                aria-checked={theme === t}
+                onClick={() => themeStore.set(t)}
+                className={theme === t ? "text-foreground font-medium" : "text-zinc-500"}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
         </CardContent>
       </Card>
 

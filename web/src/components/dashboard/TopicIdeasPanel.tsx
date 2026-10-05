@@ -298,7 +298,7 @@ export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
       )}
 
       {error ? (
-        <p className="text-sm text-red-700" role="alert" data-testid="topic-error">
+        <p className="text-sm font-medium text-zinc-900" role="alert" data-testid="topic-error">
           {error}{" "}
           <button type="button" className="underline" onClick={() => void (input === "domain" ? generate() : suggestModes())}>
             Try again

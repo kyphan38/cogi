@@ -11,10 +11,9 @@ const badgeVariants = cva(
         default: "border-transparent bg-muted text-muted-foreground",
         outline: "border-border bg-transparent text-foreground",
         secondary: "border-zinc-200 bg-zinc-100 text-zinc-700",
-        positive:
-          "border-transparent bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200",
-        attention:
-          "border-transparent bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200",
+        // Gray only (DESIGN.md): the badge text says what it means.
+        positive: "border-zinc-900 bg-transparent font-medium text-zinc-900",
+        attention: "border-transparent bg-zinc-900 font-medium text-white",
       },
     },
     defaultVariants: {
