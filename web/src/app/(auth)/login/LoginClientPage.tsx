@@ -77,5 +77,5 @@ export function LoginClientPage() {
     };
   }, [router, searchParams, syncServerSession]);
 
-  return <LoginView appName="Cogi" subtitle="Thinking practice" />;
+  return <LoginView appName="cogi" subtitle="Short daily thinking practice." />;
 }
