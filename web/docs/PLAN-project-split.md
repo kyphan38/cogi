@@ -26,7 +26,7 @@ chỗ vấp lúc làm logi. Từng mục đã được vá thẳng vào bước 
    named database, mà Admin SDK đọc named database thì đòi billing. Nếu project
    cũ bị hạ xuống Spark, script copy chết với lỗi *"This API method requires
    billing to be enabled"*. Lúc làm logi đã dính đúng lỗi này. Đừng hạ cả sau
-   khi cogi xong — `noda-db` vẫn nằm đó. → bước 6
+   khi cogi xong - `noda-db` vẫn nằm đó. → bước 6
 
 3. **Vercel CLI không nhận biến `NEXT_PUBLIC_*` kiểu secret** (lỗi
    `public_prefix_requires_type`). Dùng `--type config` cho `NEXT_PUBLIC_*`,
@@ -52,7 +52,7 @@ chỗ vấp lúc làm logi. Từng mục đã được vá thẳng vào bước 
 | Dữ liệu | `users/yjzds6g7Y6VjmwtgW4QTnUqaX0F2/` → 8 subcollection có dữ liệu (18 doc) trong tổng 14 collection được phép |
 | Auth | Google, allowlist theo **UID và email** |
 | Storage | **không dùng** (`storage.rules` đã xoá lần trước) |
-| Cloud Functions | **không có** — mọi logic server nằm ở Next.js API routes |
+| Cloud Functions | **không có** - mọi logic server nằm ở Next.js API routes |
 | FCM | không dùng |
 | Hosting | Vercel (`web/vercel.json`, `maxDuration: 60` cho `/api/ai/**`) |
 | Indexes | 3 composite: `exercises`, `delayedRecallQueue`, `weaknesses` |
@@ -85,12 +85,12 @@ app sẽ tự đăng xuất bạn ngay sau khi đăng nhập.
 2. Authentication → Sign-in method → bật **Google**.
 3. Firestore Database → Create database:
    - Database ID giữ nguyên **`(default)`**
-   - Location **`asia-southeast1`** — **chọn xong không đổi được**
+   - Location **`asia-southeast1`** - **chọn xong không đổi được**
    - **Production mode**
 4. Project settings → Your apps → Add app → **Web**, tên `cogi`. Chép 6 giá trị config.
 5. Project settings → Service accounts → **Generate new private key** → file JSON.
 
-Làm hết 5 bước trên bằng tay trong Console. **Đừng tạo database bằng CLI** —
+Làm hết 5 bước trên bằng tay trong Console. **Đừng tạo database bằng CLI** -
 `firestore.googleapis.com` chưa bật nên nó trả 403, bật xong còn phải chờ lan
 vài phút. Console tự bật API giùm.
 
@@ -98,7 +98,7 @@ vài phút. Console tự bật API giùm.
 không có Storage, database là `(default)`. Spark là đủ.
 (Nếu Console vẫn đòi Blaze khi tạo Firestore thì cứ nâng, dùng ít không mất tiền.)
 
-Nhưng **`kyphan38-apps` thì phải còn Blaze** cho tới lúc copy xong ở bước 6 —
+Nhưng **`kyphan38-apps` thì phải còn Blaze** cho tới lúc copy xong ở bước 6 -
 xem bài học số 2 ở đầu file.
 
 ---
@@ -111,7 +111,7 @@ git status --short                 # phải sạch
 cp web/.env.local /tmp/cogi.env.bak
 ```
 
-Dữ liệu cũ trong `kyphan38-apps/cogi-db` **không xoá** — đó là backup.
+Dữ liệu cũ trong `kyphan38-apps/cogi-db` **không xoá** - đó là backup.
 
 ---
 
@@ -170,7 +170,7 @@ trường, dù cogi không gọi Storage SDK.
 }
 ```
 
-`firebase-client.ts` và `firebaseAdminFirestore.ts` **không cần sửa** — chúng gọi
+`firebase-client.ts` và `firebaseAdminFirestore.ts` **không cần sửa** - chúng gọi
 `getFirestore(app, DB_ID)` / `initializeFirestore(app, {...}, DB_ID)`, và
 `'(default)'` cho ra đúng cùng một thứ với việc bỏ tham số. Giữ
 `firebase-db-id.ts` lại làm một chỗ duy nhất để đổi.
@@ -204,7 +204,7 @@ Tạm bỏ dòng `NEXT_PUBLIC_ALLOWED_USER_UID` trong `.env.local` (xem mẹo �
 npm run dev
 ```
 
-Đăng nhập `kyphan.work@gmail.com`. App sẽ trống — đúng.
+Đăng nhập `kyphan.work@gmail.com`. App sẽ trống - đúng.
 Lấy UID: Console → Authentication → Users → cột User UID.
 
 Điền lại `NEXT_PUBLIC_ALLOWED_USER_UID=<UID mới>` vào `.env.local`.
@@ -226,7 +226,7 @@ Yêu cầu:
 - Nguồn: `kyphan38-apps` / `cogi-db` bằng service account **cũ**
   (đọc từ `/tmp/cogi.env.bak`, hoặc đặt biến `OLD_FIREBASE_ADMIN_*`).
 - Đích: `kyphan38-cogi-app` / `(default)` bằng `FIREBASE_ADMIN_*` mới.
-- Chỉ chép 14 collection trong `COGI_COLLECTIONS`. Đừng chép mù cả `users/{uid}` —
+- Chỉ chép 14 collection trong `COGI_COLLECTIONS`. Đừng chép mù cả `users/{uid}` -
   doc gốc từng dùng chung với logi/noda.
 - Batch 400.
 - In số doc từng collection ở cả dry-run lẫn sau khi commit.
@@ -267,7 +267,7 @@ PATCH https://identitytoolkit.googleapis.com/admin/v2/projects/kyphan38-cogi-app
      ?updateMask=authorizedDomains
 ```
 
-Đọc `authorizedDomains` hiện có trước, gộp thêm, rồi mới PATCH — API này ghi đè
+Đọc `authorizedDomains` hiện có trước, gộp thêm, rồi mới PATCH - API này ghi đè
 cả mảng chứ không cộng dồn.
 
 ---
@@ -295,7 +295,7 @@ Bằng chứng thật là kiểm tra tay:
 - [ ] Bấm một nút gọi `/api/ai/*` → có phản hồi (chứng tỏ Admin SDK đúng project)
 - [ ] Weaknesses: danh sách hiện đúng (chứng tỏ composite index đã xong)
 
-`npm run gate:phase0` cần `GATE_ID_TOKEN` mới — lấy lại token từ project mới nếu muốn chạy.
+`npm run gate:phase0` cần `GATE_ID_TOKEN` mới - lấy lại token từ project mới nếu muốn chạy.
 
 Deploy báo **Ready** cũng chưa chắc bundle đã đúng: build cache cũ hoặc biến env
 thiếu ở đúng môi trường đó đều cho ra Ready. Kiểm tra thẳng bundle production:
@@ -323,7 +323,7 @@ Hai chỗ dễ sai khi tự chế lệnh kiểm tra:
 
 - Trang production hay trả **302** về `/login`. Thiếu `-L` là chỉ nhận được
   body rỗng rồi tưởng "không tìm thấy project mới".
-- Đừng viết `grep -q A && echo OK || echo FAIL` lồng trong vòng lặp — thứ tự
+- Đừng viết `grep -q A && echo OK || echo FAIL` lồng trong vòng lặp - thứ tự
   `&&`/`||` cho kết quả ngược. Lúc làm logi đã báo nhầm "còn project cũ" đúng
   vì lỗi này. Dùng `if` cho chắc.
 

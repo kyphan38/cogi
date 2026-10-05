@@ -4,7 +4,7 @@ function normalizeForMatch(text: string): string {
   return text
     .replace(/[\u2018\u2019]/g, "'")
     .replace(/[\u201C\u201D]/g, '"')
-    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/[\u2012-\u2015]/g, "-") // figure dash, en dash, em dash, horizontal bar
     .replace(/\s+/g, " ")
     .trim();
 }
