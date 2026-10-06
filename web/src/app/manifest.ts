@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'cogi',
     short_name: 'cogi',
     description: 'cogi thinking practice app.',
-    // Mo thang vao man hinh chinh. Do la ly do app ton tai.
+    // Open straight into the main screen. That is why the app exists.
     start_url: '/',
     scope: '/',
     display: 'standalone',
