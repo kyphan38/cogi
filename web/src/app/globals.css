@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* dark: theo Theme trong Settings (data-theme), "system" thì theo máy. */
+/* dark: follows Theme in Settings (data-theme); "system" follows the device. */
 @custom-variant dark {
   &:where([data-theme="dark"], [data-theme="dark"] *) {
     @slot;
@@ -53,9 +53,9 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  /* Cả app viết class zinc-* cứng. Trỏ dải zinc (và white) vào biến theo
-     theme: một chỗ sửa thì mọi class đều có giá trị xám trung tính của
-     DESIGN.md và tự đổi sang dark, không phải sửa ~400 class. */
+  /* The app hardcodes zinc-* classes. Point the zinc scale (and white) at
+     theme variables: one edit gives every class the neutral grays of
+     DESIGN.md and dark mode, without touching ~400 classes. */
   --color-white: var(--z-white);
   --color-zinc-50: var(--z-50);
   --color-zinc-100: var(--z-100);
@@ -78,11 +78,11 @@
 }
 
 :root {
-  /* Chỉ đen, trắng, xám: giá trị chung của ws/app/DESIGN.md (2026-10-05).
-     "destructive" cũng là mực: cảnh báo nói bằng chữ và độ đậm, không bằng đỏ.
-     Ngoại lệ duy nhất: bốn màu semantic-* của chấm loại lỗi Geopolitics (chủ
-     app chọn giữ, 2026-10-05). Chấm luôn có tên loại lỗi bên cạnh; dùng
-     chung một giá trị cho light và dark như trước. */
+  /* Black, white and gray only: shared values from ws/app/DESIGN.md (2026-10-05).
+     "destructive" is ink too: warnings use words and weight, not red.
+     Only exception: the four semantic-* dot colors for Geopolitics error types
+     (owner's choice, 2026-10-05). A dot always has its type name next to it;
+     light and dark share one value, as before. */
   --background: #fafafa;
   --foreground: #171717;
   --card: #ffffff;
@@ -189,7 +189,7 @@
   }
 }
 
-/* Chọn tay trong Settings: thắng cài đặt của máy. */
+/* A manual choice in Settings beats the device setting. */
 :root[data-theme="dark"] {
   --background: #111111;
   --foreground: #e8e8e8;
@@ -246,11 +246,11 @@
   }
   html {
     background: var(--background);
-    /* Chi cuon doc, khong bao gio cuon ngang o cap trang. Bang can cuon
-       ngang thi tu lo `overflow-x-auto` o ben trong. */
+    /* Vertical scroll only, never horizontal at page level. Tables that need
+       it bring their own inner `overflow-x-auto`. */
     overflow-x: clip;
     overscroll-behavior-x: none;
-    /* iOS: chan nhay layout khi ban phim chu bat len */
+    /* iOS: stop layout jumps when the keyboard opens */
     -webkit-text-size-adjust: 100%;
   }
   body {
@@ -287,7 +287,7 @@
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
-  /* Duoi 16px la iOS Safari tu zoom khi focus vao input. */
+  /* Below 16px, iOS Safari zooms in when an input gets focus. */
   input,
   select,
   textarea {

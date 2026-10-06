@@ -1,18 +1,16 @@
 // ============================================================
 // cogi - Service worker
 //
-// Copy tu fina/public/sw.js. Hai viec, khong hon: nhan push, va cache vo app
-// cho nhanh.
+// Copied from fina/public/sw.js. Two jobs, nothing more: receive push, and
+// cache the app shell for speed.
 //
 // --- Cache -------------------------------------------------
 //
-// /_next/static/*  cache-first vinh vien. Ten file co hash noi dung, nen
-//                  ban build moi la ten file moi - khong bao gio cu.
-// HTML             network-first. Cache-first o day la cach chac chan nhat
-//                  de mot hom nao do nguoi dung nhin vao build tuan truoc
-//                  ma khong hieu vi sao.
-// API / Firestore  KHONG dung vao. Du lieu khong bao gio duoc phuc vu tu
-//                  ban cu.
+// /_next/static/*  cache-first forever. File names hash their content, so a
+//                  new build means new names - never stale.
+// HTML             network-first. Cache-first here would one day show last
+//                  week's build with no clue why.
+// API / Firestore  not touched. Data is never served from an old copy.
 // ============================================================
 
 const CACHE_VERSION = 'cogi-v1';
@@ -86,8 +84,8 @@ self.addEventListener('fetch', (event) => {
 
 // --- Push --------------------------------------------------
 //
-// Function gui data-only. Gui kem `notification` payload nua thi iOS hien
-// HAI thong bao cho cung mot loi nhac.
+// The function sends data-only. Adding a `notification` payload makes iOS show
+// TWO notifications for one reminder.
 
 self.addEventListener('push', (event) => {
   let data = {};
@@ -99,7 +97,7 @@ self.addEventListener('push', (event) => {
   const payload = data.data ?? data;
 
   event.waitUntil(
-    // title mang ca noi dung: iOS da hien ten app o tren roi.
+    // title carries the message: iOS already shows the app name above it.
     self.registration.showNotification(payload.title || 'cogi', {
       body: payload.body || undefined,
       icon: '/icons/icon-192.png',
