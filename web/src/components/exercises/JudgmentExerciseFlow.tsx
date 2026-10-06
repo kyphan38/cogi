@@ -384,7 +384,7 @@ export function JudgmentExerciseFlow({
         <ExerciseStepCard
           data-testid="judgment-setup"
           title="Life situations"
-          description="Read a real-life situation through three lenses, then choose how to respond."
+          description="Read a real situation, then choose a response."
         >
           <LevelPicker
             value={level}
@@ -469,7 +469,7 @@ export function JudgmentExerciseFlow({
                     placeholder="What happened, who was involved, and what you have to decide."
                   />
                   <p className="text-muted-foreground text-xs">
-                    This is private: it is saved with your exercises. Leave out real names.
+                    Private. No real names.
                   </p>
                 </>
               ) : null}

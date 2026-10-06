@@ -22,9 +22,6 @@ export default function AppError({
         <h1 className="text-foreground text-xl font-semibold tracking-tight">
           Something went wrong
         </h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          The app hit an unexpected error. You can try again or return home.
-        </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-3">
         <Button type="button" onClick={() => reset()}>

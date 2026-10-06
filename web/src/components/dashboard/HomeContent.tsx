@@ -102,7 +102,6 @@ export function HomeContent() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Practice</h1>
-          <p className="text-muted-foreground text-sm">Pick a topic, work through it, then compare with the AI.</p>
           {stats && stats.completed > 0 ? (
             <p className="text-muted-foreground text-xs tabular-nums" data-testid="home-stats">
               {stats.completed} completed · {stats.streak} day streak

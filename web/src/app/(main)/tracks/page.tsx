@@ -31,8 +31,7 @@ export default function TracksPage() {
       <div className="space-y-1">
         <h1 className="text-2xl tracking-tight">Learning tracks</h1>
         <p className="text-muted-foreground text-sm">
-          Short paths through economics, finance and geopolitics. Each step is one exercise at your level.
-          Do them in order, one a day is plenty.
+          One exercise a day, in order.
         </p>
         <div className="flex flex-col gap-1">
           <Link href="/simulators" className="text-sm underline underline-offset-4">

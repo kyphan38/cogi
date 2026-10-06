@@ -61,8 +61,7 @@ export function ReframeAnswerKey({
           <Stat label={exercise.feeling ? `${exercise.feeling}, before → after` : "Feeling"} value={feeling} />
         </div>
         <p className="text-muted-foreground">
-          Finding a trap matters more than its exact name: traps often overlap. A realistic thought can be unpleasant
-          and still be fair.
+          Spotting a trap matters more than its name.
         </p>
 
         <Section title="Thoughts">

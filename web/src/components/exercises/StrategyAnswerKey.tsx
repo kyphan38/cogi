@@ -56,8 +56,7 @@ export function StrategyAnswerKey({
         <div className="space-y-2">
           <PayoffMatrix game={exercise} showPayoffs facts={f} testId="answer-matrix" />
           <p className="text-muted-foreground text-xs">
-            Underlined: each side&apos;s best reply to what the other does. Where both numbers are underlined, neither
-            side wants to change - that is the equilibrium.
+            Underlined = best reply. Both underlined = equilibrium.
           </p>
           <OutcomeStories game={exercise} />
         </div>

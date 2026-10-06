@@ -95,7 +95,7 @@ export function TimelineGame({ timeline, onFinish }: { timeline: TimelineCase; o
         </h2>
         <p className="text-sm">{timeline.intro}</p>
         <p className="text-muted-foreground text-xs">
-          History has no single right answer. Your choices are compared with what really happened: close or different.
+          Your choices vs what really happened.
         </p>
       </div>
 

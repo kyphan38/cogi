@@ -49,8 +49,7 @@ export function JudgmentAnswerKey({
           />
         </div>
         <p className="text-muted-foreground">
-          There is no single right answer to a real situation. The expert order is a reasoned reference to
-          learn from.
+          No single right answer. The expert order is a reference.
         </p>
 
         <Section title="Ways to respond" hint="In the expert's order, best first.">

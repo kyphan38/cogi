@@ -92,8 +92,7 @@ export function AnalyticalAnswerKey({
         </div>
         {result.total === 0 ? (
           <p className="text-muted-foreground">
-            This passage had no planned issues. The reasoning was sound - the skill here is not
-            flagging statements that only look suspicious.
+            No planned issues: the reasoning was sound.
           </p>
         ) : null}
         {calibration ? <p className="text-muted-foreground">{calibration}</p> : null}
@@ -202,7 +201,7 @@ export function AnalyticalAnswerKey({
         ) : null}
 
         {extras.length > 0 ? (
-          <Section title="Your other highlights" hint="Not one of the planned cases. Some may still be fair points.">
+          <Section title="Your other highlights" hint="Not planned. Some may still be fair.">
             {extras.map(({ h, ref }) => (
               <Row key={h!.id} status="neutral" heading={`Your tag: ${tagName(h!.tag)}`} quote={h!.text}>
                 <Coaching item={items.get(ref)} fallback="Not one of the planned issues." />

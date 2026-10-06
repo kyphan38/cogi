@@ -1113,8 +1113,7 @@ export function EvaluativeExerciseFlow({
             ) : criteriaPhase === "input" ? (
               <div className="space-y-3">
                 <p className="text-muted-foreground text-sm">
-                  What 2–4 criteria would you use to evaluate these options? For each, give a short
-                  name and explain why it matters (up to ~500 words).
+                  Name 2–4 criteria and why each matters.
                 </p>
                 {exLevel.criteriaCandidates &&
                 exercise.criteriaCandidates &&

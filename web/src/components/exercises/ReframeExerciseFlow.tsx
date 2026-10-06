@@ -612,7 +612,7 @@ export function ReframeExerciseFlow({
         <ExerciseStepCard
           data-testid="reframe-setup"
           title="Reframe"
-          description="Spot the thinking traps in a hard moment, then rewrite one thought in a fair, balanced way."
+          description="Spot thinking traps, then rewrite one thought."
         >
           <LevelPicker
             value={level}
@@ -697,8 +697,7 @@ export function ReframeExerciseFlow({
                     placeholder="What happened, and what went through your mind right after."
                   />
                   <p className="text-muted-foreground text-xs">
-                    This is private: it is saved with your exercises. Leave out real names. For everyday setbacks only:
-                    if you are in crisis, please talk to a person you trust or a professional.
+                    Private. No real names. In crisis? Talk to someone you trust.
                   </p>
                 </>
               ) : null}
@@ -777,7 +776,7 @@ export function ReframeExerciseFlow({
                   {target.text}
                 </blockquote>
                 <p className="text-muted-foreground text-xs">
-                  Balanced is not the same as positive. A good rewrite is true to the facts, including the bad ones.
+                  Balanced, not positive. Stay true to the facts.
                 </p>
               </div>
               {cfg.rewrite === "choose" ? (

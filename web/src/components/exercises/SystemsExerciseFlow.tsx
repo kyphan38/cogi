@@ -838,8 +838,7 @@ export function SystemsExerciseFlow({
             {decomposePhase === "input" ? (
               <div className="space-y-3">
                 <p className="text-muted-foreground text-sm">
-                  Before you see any nodes, pick the 6 components or factors you think matter most in this
-                  scenario.
+                  Pick the 6 factors that matter most.
                 </p>
                 {exLevel.componentCandidates &&
                 exercise.componentCandidates &&
@@ -992,9 +991,7 @@ export function SystemsExerciseFlow({
               nodeImpact={nodeImpact}
             />
             <p className="text-muted-foreground text-xs">
-              Drag from one node&apos;s bottom handle to another&apos;s top handle. Max{" "}
-              {20} edges. Select an edge and press Backspace to remove. Set each edge&apos;s type
-              below.
+              Drag bottom → top to link. Max {20}. Backspace deletes.
             </p>
             {userEdges.length > 0 ? (
               <ul className="space-y-2 rounded-md border p-2 text-sm">
@@ -1190,7 +1187,7 @@ export function SystemsExerciseFlow({
                   <div>
                     <p className="text-sm font-medium text-zinc-900">How does the shock reach each indirect node?</p>
                     <p className="text-muted-foreground text-xs">
-                      Pick the node it comes through. Tracing the path is how you check an indirect effect.
+                      Pick the node it passes through.
                     </p>
                   </div>
                   {indirect.map((n) => {

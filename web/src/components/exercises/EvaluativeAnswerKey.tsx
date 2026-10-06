@@ -67,8 +67,7 @@ export function EvaluativeAnswerKey({
               />
             </div>
             <p className="text-muted-foreground">
-              Your ranking: {ranking(result.userOrder)}. Model: {ranking(result.modelOrder)}. Weights are a
-              judgment call - the model is a reference, not the one right answer.
+              Your ranking: {ranking(result.userOrder)}. Model: {ranking(result.modelOrder)}. The model is a reference.
             </p>
             <Section title="Criteria">
               {result.criteria.map((c) => {

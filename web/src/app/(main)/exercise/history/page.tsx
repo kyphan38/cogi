@@ -803,10 +803,9 @@ function HistoryPageInner() {
               Delete exercise?
             </h2>
             <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-              This removes{" "}
+              Deletes{" "}
               <span className="font-medium text-foreground">&quot;{pendingDelete.title}&quot;</span>{" "}
-              and its journal, action, calibration row, perspective disagreements, and delayed-recall
-              reminders from your account. This cannot be undone.
+              and all its data. Can&apos;t be undone.
             </p>
             <div className="mt-4 grid gap-2">
               <Label htmlFor="delete-ex-confirm">

@@ -224,8 +224,7 @@ export default function SimulatorsPage() {
       <div className="space-y-1">
         <h1 className="text-2xl tracking-tight">Simulators</h1>
         <p className="text-muted-foreground text-sm">
-          Move the sliders and watch the numbers. Answer each question before you look - guessing first helps you
-          remember. These are exact formulas, not forecasts.
+          Guess first, then move the sliders.
         </p>
       </div>
       <LoanSim />

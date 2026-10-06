@@ -19,9 +19,6 @@ export default function GlobalError({
       <body className="flex min-h-screen flex-col items-center justify-center gap-6 bg-zinc-950 px-4 text-zinc-100 antialiased">
         <div className="max-w-md text-center">
           <h1 className="text-lg font-semibold">Something went wrong</h1>
-          <p className="mt-2 text-sm text-zinc-400">
-            A critical error occurred. Try reloading or go home.
-          </p>
         </div>
         <div className="flex flex-wrap justify-center gap-3">
           <button

@@ -35,7 +35,7 @@ export default function TermsPage() {
       <div className="space-y-1">
         <h1 className="text-2xl tracking-tight">My terms</h1>
         <p className="text-muted-foreground text-sm">
-          Ideas from &ldquo;Learn first&rdquo; in your exercises. Read them again before your next one.
+          From &ldquo;Learn first&rdquo;. Review before your next exercise.
         </p>
       </div>
       {terms && terms.length > 0 ? (

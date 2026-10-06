@@ -126,7 +126,7 @@ export function GeoGuessStep({
           <div>
             <p className="text-sm font-medium">Read it through four lenses</p>
             <p className="text-muted-foreground text-xs">
-              Each lens asks a different question of the same events. None is the whole truth.
+              Each lens asks a different question. None is the whole truth.
             </p>
           </div>
           {(ex.lensQuestions ?? []).map((q) => {

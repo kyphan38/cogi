@@ -51,9 +51,6 @@ export default function ReasoningPage() {
     <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
       <div className="space-y-1">
         <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">New exercise</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Applied critical thinking, analytical frameworks, and logic evaluation practice.
-        </p>
       </div>
 
       <div className="space-y-2">

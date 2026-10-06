@@ -398,8 +398,7 @@ export function CalibrationExerciseFlow({
               cfg.rangeTip,
               "Show a tip",
               <p className="text-muted-foreground text-xs">
-                Tip: think of a number you are sure is too low, and one you are sure is too high. Most people make
-                ranges too narrow.
+                Tip: most people make ranges too narrow.
               </p>,
             )}
           </>
@@ -430,7 +429,7 @@ export function CalibrationExerciseFlow({
         <ExerciseStepCard
           data-testid="calibration-setup"
           title="Calibration"
-          description="Answer questions and say how sure you are. Then see if your confidence matches your results."
+          description="Say how sure you are, then check."
         >
           <LevelPicker
             value={level}
@@ -440,7 +439,7 @@ export function CalibrationExerciseFlow({
               standard: CALIBRATION_LEVELS.standard.description,
               expert: CALIBRATION_LEVELS.expert.description,
             }}
-            note={`Takes ${setupLevel.minutes}. The answers come from checked sources and exact math, not from the AI.`}
+            note={`Takes ${setupLevel.minutes}. Answers are checked, not AI.`}
           />
           <div className="grid gap-2">
             <Label>Topic</Label>
@@ -500,7 +499,7 @@ export function CalibrationExerciseFlow({
           {part === "answer" ? (
             <>
               <p className="text-muted-foreground text-sm">
-                Do not look anything up. The point is to see how well you know what you know.
+                Don&apos;t look anything up.
               </p>
               <div className="space-y-4">{exercise.items.map(itemCard)}</div>
               <p className="text-muted-foreground text-xs" data-testid="answered-count">

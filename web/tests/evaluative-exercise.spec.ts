@@ -55,7 +55,7 @@ test.describe("Evaluative exercise - generation and matrix", () => {
     await expect(page.getByText(/frontend framework/)).toBeVisible();
     await expect(page.getByText("React + Next.js")).toBeVisible();
     await expect(
-      page.getByText(/What 2–4 criteria would you use/),
+      page.getByText(/Name 2–4 criteria and why each matters/),
     ).toBeVisible();
   });
 
