@@ -351,7 +351,7 @@ export function StrategyExerciseFlow({
         <ExerciseStepCard
           data-testid="strategy-setup"
           title="Strategic situations"
-          description="Game theory in real stories: what each side wants, the best reply, and where they end up."
+          description="Game theory in real stories."
         >
           <LevelPicker
             value={level}

@@ -1,11 +1,11 @@
 // ============================================================
-// cogi - Dang ky service worker
+// cogi - Service worker registration
 //
-// Copy tu fina/src/lib/sw.ts. File nay KHONG import gi ca, co y.
+// Copied from fina/src/lib/sw.ts. This file imports nothing, on purpose.
 //
-// Cache app-shell - thu quyet dinh app mo nhanh hay cham - khong co ly do
-// gi phai cho SDK push tai va khoi tao duoc. Hai viec khong lien quan thi
-// dung de mot cai dung sau cai kia.
+// The app-shell cache decides how fast the app opens. It should not wait for
+// the push SDK to load and start. Unrelated jobs should not queue behind
+// each other.
 // ============================================================
 
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
@@ -13,8 +13,8 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
   try {
     return await navigator.serviceWorker.register('/sw.js', { scope: '/' });
   } catch {
-    // Safari private mode va mot vai ngu canh khac tu choi. App van chay,
-    // chi la khong co cache va khong nhan duoc push.
+    // Safari private mode and some other contexts refuse. The app still
+    // works, just without the cache and push.
     return null;
   }
 }

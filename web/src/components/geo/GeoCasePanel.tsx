@@ -69,7 +69,7 @@ export function GeoCasePanel({ gameCase }: { gameCase: GeoGameCase }) {
         <details className="space-y-2" data-testid="geo-case-cards">
           <summary className="cursor-pointer font-medium text-zinc-900">Use the cards: the players today</summary>
           <p className="text-muted-foreground mt-2 text-xs">
-            Cards show what each side says it wants, in its own words, and facts from neutral sources.
+            Each side in its own words, plus neutral facts.
           </p>
           <div className="mt-2">
             <ActorCards ids={gameCase.actorIds} />

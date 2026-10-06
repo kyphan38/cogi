@@ -118,8 +118,7 @@ export default function GeoLabPage() {
       <div className="space-y-1">
         <h1 className="text-2xl tracking-tight">Geo Lab</h1>
         <p className="text-muted-foreground text-sm">
-          Learn where places are and why they matter. Guess first, then see the answer. Every fact comes from a checked
-          source, linked under the answer.
+          Guess first, then check. Every fact has a source.
         </p>
         {view.kind !== "home" ? (
           <button
@@ -139,7 +138,7 @@ export default function GeoLabPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Daily map quiz</CardTitle>
               <p className="text-muted-foreground text-sm">
-                {QUIZ_LENGTH} places, about 2 minutes. Tap where each one is on the map.
+                {QUIZ_LENGTH} places, about 2 minutes.
               </p>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
@@ -171,7 +170,7 @@ export default function GeoLabPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Close the strait</CardTitle>
               <p className="text-muted-foreground text-sm">
-                Imagine a key sea route is closed. Guess which countries are hit hardest and how ships get around it.
+                A sea route closes. Who gets hit?
               </p>
             </CardHeader>
             <CardContent>
@@ -189,7 +188,7 @@ export default function GeoLabPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Timelines</CardTitle>
               <p className="text-muted-foreground text-sm">
-                Follow a real crisis or negotiation step by step. Decide at key moments, then see what really happened.
+                Decide at key moments of a real crisis.
               </p>
             </CardHeader>
             <CardContent>
@@ -203,7 +202,7 @@ export default function GeoLabPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Country cards</CardTitle>
               <p className="text-muted-foreground text-sm">
-                What 10 countries and groups say they want, their strengths and weak spots. Every line has a source.
+                What 10 players want, with sources.
               </p>
             </CardHeader>
             <CardContent>
@@ -217,7 +216,7 @@ export default function GeoLabPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Geopolitical games</CardTitle>
               <p className="text-muted-foreground text-sm">
-                Game theory with real cases: play a made-up version first, then see what really happened.
+                Play a made-up version, then see the real case.
               </p>
             </CardHeader>
             <CardContent>
@@ -239,8 +238,7 @@ export default function GeoLabPage() {
           </Card>
 
           <p className="text-muted-foreground text-xs">
-            The map shows country shapes only. It does not name disputed areas. Where a sea has more than one common name,
-            the quiz gives both.
+            Shapes only. Disputed areas are not named.
           </p>
         </>
       ) : null}

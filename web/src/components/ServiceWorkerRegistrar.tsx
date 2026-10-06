@@ -5,13 +5,13 @@ import { useEffect } from 'react';
 import { registerServiceWorker } from '@/lib/sw';
 
 /**
- * Dang ky service worker cho TOAN APP.
+ * Registers the service worker for the whole app.
  *
- * Copy tu fina. Khong render gi. Dat o root layout de no chay ke ca tren
- * man hinh dang nhap.
+ * Copied from fina. Renders nothing. Lives in the root layout so it runs on
+ * the sign-in screen too.
  *
- * Import tu `@/lib/sw` chu khong phai tu push: push keo theo ca
- * `firebase/messaging`, va cache app-shell khong co ly do gi phai cho no.
+ * Imports from `@/lib/sw`, not from push: push pulls in all of
+ * `firebase/messaging`, and the app-shell cache should not wait for it.
  */
 export default function ServiceWorkerRegistrar() {
   useEffect(() => {

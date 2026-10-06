@@ -71,7 +71,7 @@ test.describe("Geo Lab", () => {
     const results = page.getByTestId("quiz-results");
     await expect(results).toContainText("3 of 5");
     await expect(results.locator("tbody tr")).toHaveCount(5);
-    await expect(results).toContainText("come back in your quiz after 1 day");
+    await expect(results).toContainText("Misses come back after 1,");
     await page.getByTestId("geo-results-done").click();
 
     await expect(page.getByTestId("geo-quiz-status")).toContainText("Done for today: 3 of 5");

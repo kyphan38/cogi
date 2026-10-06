@@ -28,9 +28,7 @@ export function GeopoliticsRealDataHints({
     <div className="animate-in fade-in-0 min-h-[2.5rem] duration-200">
       {mode === "generated" ? (
         <p className="text-muted-foreground text-xs">
-          Tip: For geopolitics, try pasting a real article or analysis from a think tank, news
-          outlet, or policy brief. Real-world framing biases are more instructive than
-          AI-generated ones.
+          Tip: paste a real article for real bias.
         </p>
       ) : null}
       {mode === "real_data" ? (

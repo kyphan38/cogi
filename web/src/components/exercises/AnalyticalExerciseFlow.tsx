@@ -638,7 +638,7 @@ export function AnalyticalExerciseFlow({
         <ExerciseStepCard
           data-testid="analytical-exercise-card"
           title="Analytical exercise"
-          description="Generate a passage, then highlight and tag issues before reflecting."
+          description="Generate a passage, then tag its issues."
         >
             <LevelPicker
               value={level}

@@ -184,8 +184,7 @@ export function MapQuizResults({ places, answers }: { places: Place[]; answers: 
       </table>
       {right < answers.length ? (
         <p className="text-muted-foreground text-sm">
-          Places you missed come back in your quiz after {REVIEW_INTERVALS[0]} day, then after {REVIEW_INTERVALS[1]} and{" "}
-          {REVIEW_INTERVALS[2]} days.
+          Misses come back after {REVIEW_INTERVALS[0]}, {REVIEW_INTERVALS[1]} and {REVIEW_INTERVALS[2]} days.
         </p>
       ) : null}
     </div>
