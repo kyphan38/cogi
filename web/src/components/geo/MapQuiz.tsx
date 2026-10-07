@@ -99,6 +99,7 @@ export function MapQuiz({
       </div>
 
       <GeoMap
+        key={place.id}
         title={`Map of ${region.label}`}
         bbox={region.bbox}
         onTap={answer ? undefined : (p) => answerWith(p)}

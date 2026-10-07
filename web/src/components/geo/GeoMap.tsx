@@ -1,13 +1,15 @@
 "use client";
 
-import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { geoPath } from "d3-geo";
+import { Maximize2, Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { countryName } from "@/lib/geo/countries";
 import { fitProjection, MAP_WIDTH } from "@/lib/geo/geometry";
 import type { Bbox } from "@/lib/geo/regions";
 import type { LonLat } from "@/lib/geo/types";
 import { countryFeatures } from "@/lib/geo/world";
+import { clampView, IDENTITY_VIEW, MAX_ZOOM, toMap, toView, ZOOM_STEP, zoomAt, type MapView } from "@/lib/geo/zoom";
 
 /**
  * How a country is drawn. Monochrome: states differ by lightness and outline, and
@@ -50,6 +52,8 @@ export interface MapLine {
 const HIT_R = 20;
 /** Arrow-key step for the keyboard crosshair, in SVG units. */
 const KEY_STEP = 8;
+/** A press that moves more than this many CSS pixels is a drag, not a tap. */
+const DRAG_PX = 6;
 
 /**
  * World map in SVG: Natural Earth 1:110m countries on an Equal Earth projection,
@@ -57,6 +61,8 @@ const KEY_STEP = 8;
  * routes are drawn in ink. Supports a free tap (map quiz, with a keyboard crosshair
  * as the alternative), country picks, and markers with tooltips on hover, tap and
  * focus. Only the countries the app names get a tooltip; other shapes stay unnamed.
+ * Zoom with a pinch, the +/- buttons, ctrl + wheel or the +/- keys; drag to pan.
+ * Marks keep their screen size, so taps stay easy when zoomed in.
  */
 export function GeoMap({
   title,
@@ -83,6 +89,12 @@ export function GeoMap({
   const svgRef = useRef<SVGSVGElement>(null);
   const [tip, setTip] = useState<{ x: number; y: number; title: string; detail?: string } | null>(null);
   const [cross, setCross] = useState<[number, number] | null>(null);
+  // Kept with the bbox it belongs to, so a new view starts zoomed out.
+  const [viewState, setViewState] = useState<MapView & { key: string }>({ ...IDENTITY_VIEW, key: "" });
+  /** Active pointers in client pixels, for pan and pinch. */
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const gesture = useRef({ startX: 0, startY: 0, moved: false });
+  const suppressClick = useRef(false);
 
   const bboxKey = bbox.join(",");
   const { projection, height, countryPaths, spherePath } = useMemo(() => {
@@ -97,8 +109,20 @@ export function GeoMap({
   }, [bboxKey]);
   const path = useMemo(() => geoPath(projection), [projection]);
 
-  const project = (p: LonLat) => projection(p) ?? null;
+  const view: MapView = viewState.key === bboxKey ? viewState : IDENTITY_VIEW;
+  const zoomed = view.k > 1;
+  const setView = (next: (v: MapView) => MapView) =>
+    setViewState((prev) => ({ ...clampView(next(prev.key === bboxKey ? prev : IDENTITY_VIEW), MAP_WIDTH, height), key: bboxKey }));
+  const zoomBy = (factor: number, at: [number, number] = [MAP_WIDTH / 2, height / 2]) =>
+    setView((v) => zoomAt(v, factor, at, MAP_WIDTH, height));
 
+  /** Where a map point is drawn in the current view. */
+  const project = (p: LonLat) => {
+    const xy = projection(p);
+    return xy ? toView(view, [xy[0], xy[1]]) : null;
+  };
+
+  /** Client pixels to view units (the SVG viewBox). */
   const svgPoint = (clientX: number, clientY: number): [number, number] | null => {
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect || rect.width === 0) return null;
@@ -106,8 +130,79 @@ export function GeoMap({
   };
 
   const submitAt = (xy: [number, number]) => {
-    const p = projection.invert?.(xy);
+    const p = projection.invert?.(toMap(view, xy));
     if (p && onTap) onTap([p[0], p[1]]);
+  };
+
+  // Ctrl + wheel (also a trackpad pinch) zooms; a plain wheel still scrolls the page.
+  // React wheel handlers are passive, so preventDefault needs a native listener.
+  const wheelZoom = useRef<(e: WheelEvent) => void>(() => {});
+  useEffect(() => {
+    wheelZoom.current = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      const at = svgPoint(e.clientX, e.clientY);
+      if (at) zoomBy(Math.exp(-e.deltaY / 100), at);
+    };
+  });
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => wheelZoom.current(e);
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  const onPointerDown = (e: PointerEvent<SVGSVGElement>) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size === 1) {
+      gesture.current = { startX: e.clientX, startY: e.clientY, moved: false };
+      suppressClick.current = false;
+    } else {
+      // A second finger: this is a pinch, never a tap.
+      gesture.current.moved = true;
+    }
+  };
+
+  const onPointerMove = (e: PointerEvent<SVGSVGElement>) => {
+    const prev = pointers.current.get(e.pointerId);
+    if (!prev) return;
+    const g = gesture.current;
+    // Any drag cancels the tap. Zoomed out, the pan is clamped to no movement.
+    if (!g.moved && Math.hypot(e.clientX - g.startX, e.clientY - g.startY) > DRAG_PX) g.moved = true;
+    if (!g.moved) return;
+    suppressClick.current = true;
+    setTip(null);
+    // Capture only once a drag starts, so a plain tap still reaches the country or mark under it.
+    const svg = svgRef.current;
+    if (svg && !svg.hasPointerCapture(e.pointerId)) svg.setPointerCapture(e.pointerId);
+
+    const other = [...pointers.current.entries()].find(([id]) => id !== e.pointerId)?.[1];
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const a = svgPoint(prev.x, prev.y);
+    const b = svgPoint(e.clientX, e.clientY);
+    if (!a || !b) return;
+    if (!other) {
+      setView((v) => ({ ...v, x: v.x + b[0] - a[0], y: v.y + b[1] - a[1] }));
+      return;
+    }
+    // Pinch: scale by the change in finger distance, and pan with the midpoint.
+    const o = svgPoint(other.x, other.y);
+    if (!o) return;
+    const d0 = Math.hypot(a[0] - o[0], a[1] - o[1]);
+    const d1 = Math.hypot(b[0] - o[0], b[1] - o[1]);
+    if (d0 < 1) return;
+    const mid0: [number, number] = [(a[0] + o[0]) / 2, (a[1] + o[1]) / 2];
+    const mid1: [number, number] = [(b[0] + o[0]) / 2, (b[1] + o[1]) / 2];
+    setView((v) => {
+      const z = zoomAt(v, d1 / d0, mid0, MAP_WIDTH, height);
+      return { ...z, x: z.x + mid1[0] - mid0[0], y: z.y + mid1[1] - mid0[1] };
+    });
+  };
+
+  const onPointerEnd = (e: PointerEvent<SVGSVGElement>) => {
+    pointers.current.delete(e.pointerId);
   };
 
   const showTip = (xy: [number, number] | null, title: string, detail?: string) => {
@@ -125,7 +220,10 @@ export function GeoMap({
       ArrowDown: [0, step],
     };
     const d = move[e.key];
-    if (d) {
+    if (e.key === "+" || e.key === "=" || e.key === "-") {
+      e.preventDefault();
+      zoomBy(e.key === "-" ? 1 / ZOOM_STEP : ZOOM_STEP, cur);
+    } else if (d) {
       e.preventDefault();
       setCross([Math.min(MAP_WIDTH, Math.max(0, cur[0] + d[0])), Math.min(height, Math.max(0, cur[1] + d[1]))]);
     } else if (e.key === "Enter" || e.key === " ") {
@@ -143,64 +241,88 @@ export function GeoMap({
         <svg
           ref={svgRef}
           viewBox={`0 0 ${MAP_WIDTH} ${height}`}
-          className={cn("block w-full touch-manipulation select-none outline-none", onTap && "cursor-crosshair focus-visible:ring-2 focus-visible:ring-zinc-400")}
+          className={cn(
+            "block w-full select-none outline-none",
+            // Zoomed in, every touch moves the map. Zoomed out, one finger still scrolls the page.
+            zoomed ? "touch-none" : "touch-pan-y",
+            onTap && "cursor-crosshair focus-visible:ring-2 focus-visible:ring-zinc-400",
+          )}
           role={onTap ? "application" : "img"}
-          aria-label={onTap ? `${title}. Tap the map to answer. With a keyboard, move with the arrow keys and press Enter.` : title}
+          aria-label={
+            onTap ? `${title}. Tap the map to answer. With a keyboard, move with the arrow keys, zoom with + and -, and press Enter.` : title
+          }
           aria-describedby={`${id}-desc`}
           tabIndex={onTap ? 0 : undefined}
           onKeyDown={onKeyDown}
           onBlur={() => setCross(null)}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerEnd}
+          onPointerCancel={onPointerEnd}
+          onClickCapture={(e) => {
+            // The click after a drag or pinch is not a tap.
+            if (!suppressClick.current) return;
+            suppressClick.current = false;
+            e.stopPropagation();
+            e.preventDefault();
+          }}
           onClick={(e) => {
             setTip(null);
             if (!onTap) return;
             const xy = svgPoint(e.clientX, e.clientY);
             if (xy) submitAt(xy);
           }}
-          onPointerLeave={() => setTip(null)}
+          onPointerLeave={(e) => {
+            setTip(null);
+            if (!svgRef.current?.hasPointerCapture(e.pointerId)) pointers.current.delete(e.pointerId);
+          }}
           data-height={height}
+          data-zoom={view.k}
         >
-          <path d={spherePath} fill="var(--map-sea)" aria-hidden />
-          <g>
-            {countryPaths.map((c) => {
-              const state = countryStates?.[c.id];
-              const style = COUNTRY_STYLE[state ?? "base"];
-              const name = state ? countryName(c.id) : undefined;
-              const toggle = onCountryToggle && state && name ? () => onCountryToggle(c.id) : undefined;
-              return (
+          <g transform={`translate(${view.x},${view.y}) scale(${view.k})`} data-map-view>
+            <path d={spherePath} fill="var(--map-sea)" aria-hidden />
+            <g>
+              {countryPaths.map((c) => {
+                const state = countryStates?.[c.id];
+                const style = COUNTRY_STYLE[state ?? "base"];
+                const name = state ? countryName(c.id) : undefined;
+                const toggle = onCountryToggle && state && name ? () => onCountryToggle(c.id) : undefined;
+                return (
+                  <path
+                    key={c.id || c.d.slice(0, 24)}
+                    d={c.d}
+                    fill={style.fill}
+                    stroke={style.stroke}
+                    strokeWidth={style.strokeWidth / view.k}
+                    strokeLinejoin="round"
+                    data-country={state ? c.id : undefined}
+                    data-state={state}
+                    className={cn(toggle && "cursor-pointer hover:opacity-80")}
+                    onPointerMove={name ? (e) => showTip(svgPoint(e.clientX, e.clientY), name) : undefined}
+                    onClick={
+                      toggle
+                        ? (e) => {
+                            e.stopPropagation();
+                            toggle();
+                          }
+                        : undefined
+                    }
+                  />
+                );
+              })}
+            </g>
+            <g fill="none" stroke="var(--z-900)" strokeLinecap="round" strokeLinejoin="round">
+              {lines.map((l) => (
                 <path
-                  key={c.id || c.d.slice(0, 24)}
-                  d={c.d}
-                  fill={style.fill}
-                  stroke={style.stroke}
-                  strokeWidth={style.strokeWidth}
-                  strokeLinejoin="round"
-                  data-country={state ? c.id : undefined}
-                  data-state={state}
-                  className={cn(toggle && "cursor-pointer hover:opacity-80")}
-                  onPointerMove={name ? (e) => showTip(svgPoint(e.clientX, e.clientY), name) : undefined}
-                  onClick={
-                    toggle
-                      ? (e) => {
-                          e.stopPropagation();
-                          toggle();
-                        }
-                      : undefined
-                  }
+                  key={l.id}
+                  d={path({ type: "LineString", coordinates: l.coords }) ?? ""}
+                  strokeWidth={(l.faint ? 1.25 : 2) / view.k}
+                  strokeOpacity={l.faint ? 0.55 : 1}
+                  strokeDasharray={l.dashed ? `${6 / view.k} ${4 / view.k}` : undefined}
+                  data-line={l.id}
                 />
-              );
-            })}
-          </g>
-          <g fill="none" stroke="var(--z-900)" strokeLinecap="round" strokeLinejoin="round">
-            {lines.map((l) => (
-              <path
-                key={l.id}
-                d={path({ type: "LineString", coordinates: l.coords }) ?? ""}
-                strokeWidth={l.faint ? 1.25 : 2}
-                strokeOpacity={l.faint ? 0.55 : 1}
-                strokeDasharray={l.dashed ? "6 4" : undefined}
-                data-line={l.id}
-              />
-            ))}
+              ))}
+            </g>
           </g>
           <g>
             {markers.map((m) => {
@@ -277,6 +399,19 @@ export function GeoMap({
             </g>
           ) : null}
         </svg>
+        <div className="absolute top-2 right-2 flex flex-col gap-1">
+          <ZoomButton label="Zoom in" onClick={() => zoomBy(ZOOM_STEP)} disabled={view.k >= MAX_ZOOM} testId="map-zoom-in">
+            <Plus className="size-4" aria-hidden />
+          </ZoomButton>
+          <ZoomButton label="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} disabled={!zoomed} testId="map-zoom-out">
+            <Minus className="size-4" aria-hidden />
+          </ZoomButton>
+          {zoomed ? (
+            <ZoomButton label="Show the whole map" onClick={() => setView(() => IDENTITY_VIEW)} testId="map-zoom-reset">
+              <Maximize2 className="size-4" aria-hidden />
+            </ZoomButton>
+          ) : null}
+        </div>
         {tip ? (
           <div
             role="status"
@@ -293,6 +428,34 @@ export function GeoMap({
         {children}
       </figcaption>
     </figure>
+  );
+}
+
+function ZoomButton({
+  label,
+  onClick,
+  disabled,
+  testId,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  testId: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      disabled={disabled}
+      data-testid={testId}
+      className="flex size-9 items-center justify-center rounded-md border border-zinc-200 bg-white/90 text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:opacity-40"
+    >
+      {children}
+    </button>
   );
 }
 

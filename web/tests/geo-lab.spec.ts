@@ -159,4 +159,42 @@ test.describe("Geo Lab on a phone", () => {
     const scrollW = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(scrollW).toBeLessThanOrEqual(390);
   });
+
+  test("zoom in and drag the map; a drag is not an answer, a tap still is", async ({ page }) => {
+    await gotoAuthenticated(page, "/geo");
+    await page.getByTestId("geo-quiz-start").click();
+    const map = page.getByTestId("quiz-map");
+    const svg = map.locator("svg").first();
+    await page.getByTestId("map-zoom-in").click();
+    await page.getByTestId("map-zoom-in").click();
+    await expect(svg).toHaveAttribute("data-zoom", "4");
+    const before = await svg.locator("[data-map-view]").getAttribute("transform");
+
+    const box = (await svg.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 20, { steps: 5 });
+    await page.mouse.up();
+    await expect(svg.locator("[data-map-view]")).not.toHaveAttribute("transform", before!);
+    await expect(page.getByTestId("quiz-feedback")).toHaveCount(0);
+
+    // Tap where the place is drawn in the zoomed view.
+    const question = (await page.getByTestId("quiz-question").textContent())?.trim();
+    const place = PLACES.find((p) => placeQuestion(p) === question)!;
+    const { projection, height } = fitProjection(REGIONS[place.region].bbox, MAP_WIDTH);
+    const [mx, my] = projection(place.target[Math.floor(place.target.length / 2)]!)!;
+    const view = (await svg.locator("[data-map-view]").getAttribute("transform"))!;
+    const [tx, ty, k] = view.match(/-?[\d.]+(?:e-?\d+)?/g)!.map(Number);
+    const vx = mx * k! + tx!;
+    const vy = my * k! + ty!;
+    if (vx < 0 || vx > MAP_WIDTH || vy < 0 || vy > height) {
+      // Out of view at this zoom: zoom back out and tap at full size.
+      await page.getByTestId("map-zoom-reset").click();
+      await expect(svg).toHaveAttribute("data-zoom", "1");
+      await tapRightPlace(page, map);
+    } else {
+      await svg.click({ position: { x: (vx / MAP_WIDTH) * box.width, y: (vy / height) * box.height } });
+    }
+    await expect(page.getByTestId("quiz-feedback")).toHaveAttribute("data-correct", "true");
+  });
 });

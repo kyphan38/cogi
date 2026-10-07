@@ -429,6 +429,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     tips: [
       "Guess before you look. A wrong guess that you then fix is easier to remember.",
       "A sea only counts if you tap on water.",
+      "On a phone, pinch to zoom in before you tap. Drag to move the map. You can also use the + and - buttons.",
       "On a timeline, \"close\" or \"different\" is not right or wrong: history has no single right answer. Compare your confidence with how often you were close.",
       "Open \"Show the data\" to see every number and its source.",
       "The map shows country shapes only. It does not name disputed areas.",
