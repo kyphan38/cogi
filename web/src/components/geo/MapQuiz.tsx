@@ -46,6 +46,8 @@ export function MapQuiz({
 }) {
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<GeoQuizAnswer[]>([]);
+  /** Where the user tapped, before they press Check. Tapping again moves it. */
+  const [pending, setPending] = useState<LonLat | null>(null);
   const finished = useRef(false);
   const place = places[index];
   const answer = answers[index];
@@ -54,9 +56,11 @@ export function MapQuiz({
     if (!place || answer) return;
     const onLand = tap != null && place.kind === "sea" && isOnLand(tap);
     setAnswers((prev) => [...prev, scoreTap(place, tap, onLand)]);
+    setPending(null);
   };
 
   const next = () => {
+    setPending(null);
     if (index + 1 < places.length) {
       setIndex(index + 1);
       return;
@@ -68,14 +72,17 @@ export function MapQuiz({
   };
 
   const marks = useMemo(() => {
-    if (!place || !answer) return { markers: [], lines: [] };
+    if (!place) return { markers: [], lines: [] };
+    if (!answer) {
+      return { markers: pending ? [{ id: "pending", coords: pending, label: "Your tap", shape: "tap" as const }] : [], lines: [] };
+    }
     const m = placeMarks(place);
     if (answer.tap) {
       m.markers.push({ id: "tap", coords: answer.tap, label: "Your tap", shape: "tap" });
       if (place.target.length === 1) m.lines.push({ id: "gap", coords: [answer.tap, place.target[0]!], faint: true });
     }
     return m;
-  }, [place, answer]);
+  }, [place, answer, pending]);
 
   if (!place) return null;
   const region = REGIONS[place.region];
@@ -99,9 +106,10 @@ export function MapQuiz({
       </div>
 
       <GeoMap
+        key={place.id}
         title={`Map of ${region.label}`}
         bbox={region.bbox}
-        onTap={answer ? undefined : (p) => answerWith(p)}
+        onTap={answer ? undefined : setPending}
         markers={marks.markers}
         lines={marks.lines}
         testId="quiz-map"
@@ -125,7 +133,10 @@ export function MapQuiz({
             ) : null}
           </span>
         ) : (
-          <>Tap where you think it is. You are right within {fmtKm(place.toleranceKm)}.</>
+          <>
+            {pending ? "Tap again to move your mark." : "Tap where you think it is."} You are right within{" "}
+            {fmtKm(place.toleranceKm)}.
+          </>
         )}
       </GeoMap>
 
@@ -140,9 +151,14 @@ export function MapQuiz({
           </Button>
         </div>
       ) : (
-        <Button type="button" variant="outline" onClick={() => answerWith(null)} data-testid="quiz-skip">
-          I don&apos;t know
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" disabled={!pending} onClick={() => answerWith(pending)} data-testid="quiz-check">
+            Check
+          </Button>
+          <Button type="button" variant="outline" onClick={() => answerWith(null)} data-testid="quiz-skip">
+            I don&apos;t know
+          </Button>
+        </div>
       )}
     </div>
   );

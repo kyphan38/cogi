@@ -417,6 +417,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     howToPractice: [
       "Open it from the Geo Lab card on the Practice page, or from the geopolitics track.",
       "Daily map quiz: 5 places, about 2 minutes. Tap where each place is. The question tells you how close you need to be.",
+      "Your tap puts a mark on the map. Tap again to move it. Press \"Check\" when you are sure.",
       "Not sure? Press \"I don't know\" to see the answer. That is fine.",
       "Places you miss come back after 1 day, then after 3 days and 7 days.",
       "Close the strait: pick a chokepoint and imagine it is closed. Guess which countries are hit hardest and how ships get around it. Then see the answer on the map.",
@@ -429,6 +430,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     tips: [
       "Guess before you look. A wrong guess that you then fix is easier to remember.",
       "A sea only counts if you tap on water.",
+      "On a phone, pinch to zoom in to check your mark. Drag to move the map. You can also use the + and - buttons.",
       "On a timeline, \"close\" or \"different\" is not right or wrong: history has no single right answer. Compare your confidence with how often you were close.",
       "Open \"Show the data\" to see every number and its source.",
       "The map shows country shapes only. It does not name disputed areas.",

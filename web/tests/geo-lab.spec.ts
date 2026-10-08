@@ -5,7 +5,7 @@ import { PLACES, placeQuestion } from "../src/lib/geo/places";
 import { REGIONS } from "../src/lib/geo/regions";
 
 /** Click the map where the current question's place really is (same projection as the app). */
-async function tapRightPlace(page: Page, map: Locator) {
+async function markRightPlace(page: Page, map: Locator) {
   const question = (await page.getByTestId("quiz-question").textContent())?.trim();
   const place = PLACES.find((p) => placeQuestion(p) === question);
   expect(place, `no place for "${question}"`).toBeTruthy();
@@ -15,6 +15,12 @@ async function tapRightPlace(page: Page, map: Locator) {
   const svg = map.locator("svg").first();
   const box = (await svg.boundingBox())!;
   await svg.click({ position: { x: (x / MAP_WIDTH) * box.width, y: (y / height) * box.height } });
+}
+
+/** Mark the right place, then press Check. */
+async function tapRightPlace(page: Page, map: Locator) {
+  await markRightPlace(page, map);
+  await page.getByTestId("quiz-check").click();
 }
 
 test.describe("Geo Lab", () => {
@@ -46,6 +52,12 @@ test.describe("Geo Lab", () => {
     // Q1: tap the right place.
     await expect(page.getByTestId("quiz-progress")).toHaveText("Question 1 of 5");
     asked.push(await question.textContent());
+    // A tap only places a mark; a second tap moves it; Check answers.
+    await expect(page.getByTestId("quiz-check")).toBeDisabled();
+    const svg = map.locator("svg").first();
+    await svg.click({ position: { x: 40, y: 40 } });
+    await expect(map.locator('[data-marker="pending"]')).toHaveCount(1);
+    await expect(page.getByTestId("quiz-feedback")).toHaveCount(0);
     await tapRightPlace(page, map);
     await expect(page.getByTestId("quiz-feedback")).toHaveAttribute("data-correct", "true");
     await expect(page.getByTestId("quiz-feedback")).toContainText("Right. Your tap was");
@@ -158,5 +170,45 @@ test.describe("Geo Lab on a phone", () => {
     await expect(page.getByTestId("quiz-feedback")).toHaveAttribute("data-correct", "true");
     const scrollW = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(scrollW).toBeLessThanOrEqual(390);
+  });
+
+  test("zoom in and drag the map; a drag is not an answer, a tap still is", async ({ page }) => {
+    await gotoAuthenticated(page, "/geo");
+    await page.getByTestId("geo-quiz-start").click();
+    const map = page.getByTestId("quiz-map");
+    const svg = map.locator("svg").first();
+    await page.getByTestId("map-zoom-in").click();
+    await page.getByTestId("map-zoom-in").click();
+    await expect(svg).toHaveAttribute("data-zoom", "4");
+    const before = await svg.locator("[data-map-view]").getAttribute("transform");
+
+    const box = (await svg.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 20, { steps: 5 });
+    await page.mouse.up();
+    await expect(svg.locator("[data-map-view]")).not.toHaveAttribute("transform", before!);
+    await expect(page.getByTestId("quiz-feedback")).toHaveCount(0);
+    await expect(svg.locator('[data-marker="pending"]')).toHaveCount(0);
+
+    // Tap where the place is drawn in the zoomed view.
+    const question = (await page.getByTestId("quiz-question").textContent())?.trim();
+    const place = PLACES.find((p) => placeQuestion(p) === question)!;
+    const { projection, height } = fitProjection(REGIONS[place.region].bbox, MAP_WIDTH);
+    const [mx, my] = projection(place.target[Math.floor(place.target.length / 2)]!)!;
+    const view = (await svg.locator("[data-map-view]").getAttribute("transform"))!;
+    const [tx, ty, k] = view.match(/-?[\d.]+(?:e-?\d+)?/g)!.map(Number);
+    const vx = mx * k! + tx!;
+    const vy = my * k! + ty!;
+    if (vx < 0 || vx > MAP_WIDTH || vy < 0 || vy > height) {
+      // Out of view at this zoom: zoom back out and tap at full size.
+      await page.getByTestId("map-zoom-reset").click();
+      await expect(svg).toHaveAttribute("data-zoom", "1");
+      await tapRightPlace(page, map);
+    } else {
+      await svg.click({ position: { x: (vx / MAP_WIDTH) * box.width, y: (vy / height) * box.height } });
+      await page.getByTestId("quiz-check").click();
+    }
+    await expect(page.getByTestId("quiz-feedback")).toHaveAttribute("data-correct", "true");
   });
 });
