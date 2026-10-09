@@ -28,8 +28,8 @@ function navLinkClass(href: string, pathname: string | null) {
       ? isPracticePath(pathname)
       : pathname === href || (pathname?.startsWith(href + "/") ?? false);
   return cn(
-    // Tighter on phones so four tabs and Sign out fit a 390px screen.
-    "shrink-0 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground sm:px-2.5",
+    // Tighter on phones so four tabs and Sign out fit a 360px screen.
+    "shrink-0 rounded-md px-1.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground sm:px-2.5",
     active && "bg-zinc-100 font-medium text-zinc-900",
   );
 }
@@ -61,11 +61,14 @@ export function AppTopNav() {
         className="mx-auto flex max-w-5xl items-center gap-0.5 px-3 py-2 sm:gap-2 sm:px-4"
         aria-label="Main"
       >
-        {links.map(({ href, label }) => (
-          <Link key={href} href={href} className={navLinkClass(href, pathname)}>
-            {label}
-          </Link>
-        ))}
+        {/* Scrolls sideways instead of pushing Sign out off screen on very narrow phones. */}
+        <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] sm:gap-2 [&::-webkit-scrollbar]:hidden">
+          {links.map(({ href, label }) => (
+            <Link key={href} href={href} className={navLinkClass(href, pathname)}>
+              {label}
+            </Link>
+          ))}
+        </div>
         <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
           <Button
             type="button"
