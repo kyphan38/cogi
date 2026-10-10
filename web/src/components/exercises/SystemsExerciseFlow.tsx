@@ -1464,7 +1464,7 @@ export function SystemsExerciseFlow({
       {(step === perspectiveStep || step === doneStep) && exercise && perspectiveText ? (
         <div className="space-y-4">
           <SystemsAnswerKey
-            exercise={{ ...exercise, userEdges, confidenceBefore: confidence }}
+            exercise={{ ...exercise, userEdges, confidenceBefore: confidence, userCriticalityRanking }}
             result={systemsResultOf({ ...exercise, userEdges, nodeImpact })}
             coaching={isCoachingStructured(systemsFeedback) ? systemsFeedback : null}
           />

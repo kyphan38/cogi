@@ -37,6 +37,7 @@ import { reframeCoachingRefs, scoreReframe } from "@/lib/exercise/reframe-score"
 import { pickTrapCards } from "@/lib/exercise/reframe-trap-cards";
 import { pickIssueCards } from "@/lib/exercise/analytical-issue-cards";
 import { pickLensCards } from "@/lib/exercise/judgment-lens-cards";
+import { pickSystemsCards, systemsCriticality } from "@/lib/exercise/systems-idea-cards";
 import { sanitizeTrapCards } from "@/lib/exercise/take-with-you";
 import { REFRAME_LEVELS } from "@/lib/exercise/reframe-levels";
 import { buildReframePerspectivePrompt } from "@/lib/ai/prompts/reframe-perspective";
@@ -593,6 +594,12 @@ export async function POST(req: Request) {
       b.impactVia && typeof b.impactVia === "object" ? (b.impactVia as Record<string, string>) : undefined;
     const result = scoreSystems({ nodes, intendedConnections, shockEvent, userEdges, nodeImpact, impactVia });
     const refs = systemsCoachingRefs(result);
+    const cardIdeas = pickSystemsCards({
+      intendedConnections,
+      result,
+      criticality: variantKind ? systemsCriticality(criticalityGroundTruth, userCriticalityRanking) : null,
+    });
+    const cardCtx = { domain, avoid: "" };
     const prompt = buildSystemsShockPerspectivePrompt({
       title,
       domain,
@@ -616,6 +623,7 @@ export async function POST(req: Request) {
       criticalityGroundTruth,
       userCriticalityRanking,
       secondShockEvent,
+      cardIdeas,
     });
     const needsMeta =
       Boolean(perspectiveAName && perspectiveBName && intendedConnectionsB && shockEventB) ||
@@ -625,7 +633,7 @@ export async function POST(req: Request) {
       const { structured, text } = await generateCoaching(
         prompt,
         languageAppendix,
-        { ...refs, requireMetaNote: needsMeta },
+        { ...refs, requireMetaNote: needsMeta, takeawaysOptional: true },
         (ref) => {
           if (ref.startsWith("node_")) return `Node: ${nodeLabel(ref.slice(5))}`;
           if (ref.startsWith("via_")) return `How the shock reaches ${nodeLabel(ref.slice(4))}`;
@@ -638,8 +646,13 @@ export async function POST(req: Request) {
           const e = userEdges.find((x) => x.id === result.extraEdgeIds[i]);
           return e ? `Your connection: ${nodeLabel(e.source)} -> ${nodeLabel(e.target)}` : ref;
         },
+        (data) =>
+          sanitizeTrapCards(data.trapCards, cardIdeas, cardCtx).length < cardIdeas.length
+            ? `trapCards: one complete card for each of ${cardIdeas.join(", ")}`
+            : null,
       );
-      return NextResponse.json({ ok: true, structured, text, result });
+      const checked = { ...structured, takeaways: [], trapCards: sanitizeTrapCards(structured.trapCards, cardIdeas, cardCtx) };
+      return NextResponse.json({ ok: true, structured: checked, text, result });
     } catch (e) {
       const isTimeout =
         e instanceof Error &&

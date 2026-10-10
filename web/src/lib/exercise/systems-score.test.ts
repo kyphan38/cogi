@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SystemsIntendedConnection, SystemsNodeSpec, SystemsUserEdge } from "@/lib/types/exercise";
-import { rateSystems, scoreSystems, systemsCoachingRefs } from "./systems-score";
+import { rateSystems, sameLink, scoreSystems, systemsCoachingRefs } from "./systems-score";
 
 const nodes = (["node_1", "node_2", "node_3", "node_4", "node_5", "node_6"] as const).map(
   (id) => ({ id, label: id, description: "d", x: 50, y: 50 }),
@@ -38,7 +38,26 @@ describe("scoreSystems", () => {
     expect(r.impacts.find((i) => i.nodeId === "node_2")).toMatchObject({ expected: "indirect", user: "direct", correct: false });
     // Unmarked nodes count as "none".
     expect(r.impacts.find((i) => i.nodeId === "node_4")).toMatchObject({ expected: "none", user: "none", correct: true });
-    expect(r.impactsCorrect).toBe(4);
+    // Only nodes someone marks as affected count: node_1 right; node_2 and node_3 not.
+    expect([r.impactsCorrect, r.impactsTotal]).toEqual([1, 3]);
+  });
+
+  it("does not reward a blank map, but counts a wrongly marked untouched node", () => {
+    expect([score([]).impactsCorrect, score([]).impactsTotal]).toEqual([0, 3]);
+    const r = score([], { node_1: "direct", node_2: "indirect", node_3: "indirect", node_6: "indirect" });
+    expect([r.impactsCorrect, r.impactsTotal]).toEqual([3, 4]);
+  });
+
+  it("counts the same meaning drawn another way as exact", () => {
+    // Model: node_1 depends on node_2. "node_2 enables node_1" says the same.
+    const r = score([edge("a", "node_2", "node_1", "enables"), edge("b", "node_3", "node_2", "depends_on")]);
+    expect(r.connections.slice(0, 2).map((c) => [c.found, c.direction, c.exact])).toEqual([
+      [true, "same", true],
+      [true, "same", true],
+    ]);
+    expect(sameLink({ from: "a", to: "b", type: "conflicts_with" }, { from: "b", to: "a", type: "conflicts_with" })).toBe(true);
+    expect(sameLink({ from: "a", to: "b", type: "risks" }, { from: "b", to: "a", type: "risks" })).toBe(false);
+    expect(sameLink({ from: "a", to: "b", type: "depends_on" }, { from: "a", to: "b", type: "enables" })).toBe(false);
   });
 
   it("requires coaching for wrong nodes, missed or reversed connections and extras", () => {
@@ -56,10 +75,10 @@ describe("rateSystems", () => {
       { node_1: "direct", node_2: "indirect", node_3: "indirect" },
     );
     expect(rateSystems(all)).toBe("good");
-    // 2 of 3 connections, 3 of 6 nodes: (0.67 + 0.5) / 2 = 0.58.
-    const some = score([edge("a", "node_1", "node_2", "depends_on"), edge("b", "node_2", "node_3", "enables")], {});
+    // 2 of 3 connections, 1 of 3 affected nodes: (0.67 + 0.33) / 2 = 0.5.
+    const some = score([edge("a", "node_1", "node_2", "depends_on"), edge("b", "node_2", "node_3", "enables")], { node_1: "direct" });
     expect(rateSystems(some)).toBe("ok");
-    // No connections, 3 of 6 nodes: (0 + 0.5) / 2 = 0.25.
+    // No connections, no affected node marked: 0.
     expect(rateSystems(score([], {}))).toBe("poor");
   });
 });

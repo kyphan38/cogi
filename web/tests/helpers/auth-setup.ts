@@ -387,11 +387,18 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
             perspectiveFormat: "coaching_v3",
             title: "Mock exercise",
             items: [],
-            takeaways: [
-              kind === "systems"
-                ? "Mock systems takeaway: follow each arrow from the shock."
-                : "Mock evaluative takeaway: check both axes.",
-            ],
+            // Systems ends with idea cards instead of takeaways.
+            takeaways: kind === "systems" ? [] : ["Mock evaluative takeaway: check both axes."],
+            ...(kind === "systems"
+              ? {
+                  trapCards: ["ripple_effects", "hidden_dependencies", "trade_offs", "risks", "feedback_loops", "single_points_of_failure"].map((trap) => ({
+                    trap,
+                    othersSay: `Mock card (${trap}): if we cut the budget, only this team is hit.`,
+                    youCouldSay: "Mock reply: makes sense. Who depends on that team's work?",
+                    elsewhere: { area: "Family", thought: "Mock: we skip the car service, it saves money.", balanced: "Mock: a later repair may cost more." },
+                  })),
+                }
+              : {}),
             ...(kind === "evaluative-scoring" ? { metaNote: "Mock note on your criteria." } : {}),
           },
         }),
