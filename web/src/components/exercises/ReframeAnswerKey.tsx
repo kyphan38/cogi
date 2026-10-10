@@ -6,9 +6,12 @@ import { Coaching, CoachingFooter, Row, Section, Stat, type Status } from "@/com
 import type { ReframeExerciseRow } from "@/lib/types/exercise";
 import type { AnalyticalCoachingStructured, CoachingStructured } from "@/lib/types/perspective";
 import type { ReframeResult, ReframeThoughtOutcome } from "@/lib/exercise/reframe-score";
-import { answerName } from "@/lib/exercise/reframe-levels";
+import { answerName, REFRAME_TAG_INFO } from "@/lib/exercise/reframe-levels";
 import { pickTrapCards } from "@/lib/exercise/reframe-trap-cards";
-import { ReframeTrapCards } from "@/components/exercises/ReframeTrapCards";
+import { REFRAME_TRAP_GUIDE } from "@/lib/exercise/reframe-trap-guide";
+import { TakeWithYouCards } from "@/components/shared/TakeWithYouCards";
+
+const REFRAME_CARD_LABELS = { self: "When it's you", elsewhere: "Same trap, other place", balanced: "Balanced" };
 
 function thoughtStatus(o: ReframeThoughtOutcome): Status {
   if (o.trap === "realistic") return o.trapped ? "wrong" : "right";
@@ -118,9 +121,14 @@ export function ReframeAnswerKey({
         </Section>
 
         <CoachingFooter coaching={coaching} metaTitle="One more thing" />
-        <ReframeTrapCards
-          traps={pickTrapCards(exercise.thoughts, exercise.rewrite, result)}
-          cards={coaching && "trapCards" in coaching ? coaching.trapCards : undefined}
+        <TakeWithYouCards
+          entries={pickTrapCards(exercise.thoughts, exercise.rewrite, result).map((t) => ({
+            key: t,
+            name: REFRAME_TAG_INFO[t].name,
+            guide: REFRAME_TRAP_GUIDE[t],
+          }))}
+          cards={coaching?.trapCards}
+          labels={REFRAME_CARD_LABELS}
         />
       </CardContent>
     </Card>

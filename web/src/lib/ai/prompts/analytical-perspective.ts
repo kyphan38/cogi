@@ -7,6 +7,11 @@ import type {
   ValidPoint,
 } from "@/lib/types/exercise";
 import { TAG_CHECK_QUESTIONS, TAG_LABELS } from "@/lib/exercise/tag-labels";
+import { ANALYTICAL_ISSUE_GUIDE, SOUND_REASONING_NAME, type AnalyticalCardKey } from "@/lib/exercise/analytical-issue-guide";
+
+function cardName(key: AnalyticalCardKey): string {
+  return key === "sound_reasoning" ? SOUND_REASONING_NAME : TAG_LABELS[key].label;
+}
 
 const SEVERITY_WORDS: Record<EmbeddedIssue["severity"], string> = {
   obvious: "easy to spot",
@@ -117,6 +122,8 @@ export function buildAnalyticalPerspectivePrompt(input: {
   /** Geopolitics G1: how the picks went, and each lens (question, right reading, user's reading). */
   geoGuess?: GeoGuessResult | null;
   lensLines?: string[];
+  /** Issue types that get a "Take with you" card, picked in code (pickIssueCards). */
+  cardKeys?: AnalyticalCardKey[];
 }): string {
   const ctx = input.userContext?.trim() || "(none)";
   const isGeo = Boolean(input.hiddenPerspective?.trim());
@@ -128,6 +135,10 @@ export function buildAnalyticalPerspectivePrompt(input: {
     result: input.result,
   });
   const r = input.result;
+  const cardKeys = input.cardKeys ?? [];
+  const cardLines = cardKeys
+    .map((k) => `- ${k} (${cardName(k)}): ${ANALYTICAL_ISSUE_GUIDE[k].spot} How to respond to others: ${ANALYTICAL_ISSUE_GUIDE[k].othersTip}`)
+    .join("\n");
 
   const geoBlock = isGeo
     ? `
@@ -175,9 +186,13 @@ Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
       "subtypeName": string (optional)
     }
   ],
-  "takeaways": [string] (1-2 items)${isGeo ? `,
-  "metaNote": string` : ""}
+  "takeaways": [] (always empty: the cards below replace them)${isGeo ? `,
+  "metaNote": string` : ""},
+  "trapCards": [ { "trap": string (a key from TAKE-WITH-YOU CARDS), "othersSay": string, "youCouldSay": string, "elsewhere": { "area": string, "thought": string, "balanced": string } } ] (exactly one per key below, same order)
 }
+
+TAKE-WITH-YOU CARDS (the user takes these into real life; the app already shows how to spot each one and what to ask):
+${cardLines || "(none)"}
 
 Write one item for each of these refs: ${input.requiredRefs.join(", ") || "(none)"}. You may add items for other refs in CASES, but keep it short.
 
@@ -197,7 +212,11 @@ How to write each item:
 - "subtypeName": usually leave it out. Add it only on an issue_ item, and only when the name is a textbook kind of that issue's planned tag (e.g. "False dilemma" for Logical Fallacy, "Small sample" for Weak Evidence). It is shown as "a type of <planned tag>", so it must truly belong under that tag. Never repeat the tag name, never invent new tags, and use it at most twice per reply.
 - Only use the tag names listed above.
 
-"takeaways": 1-2 short lessons to carry to the next exercise. Focus on MISSED issues and TRAPPED statements first. If everything was correct, say what to keep doing.
+How to write each card (plain words, not from this passage):
+- "othersSay": one short sentence a colleague, friend, ad or news story might say with this problem.
+- "youCouldSay": a polite reply that asks one question about the facts. Never name the issue type and never call it a fallacy. At most 25 words.
+- "elsewhere": the same problem in a different area of life than "${input.domain}" (for example work, money, health, news, family). "area" is that area in 1-3 words; "thought" is a claim with the problem; "balanced" is a fairer version of that claim.
+- For "sound_reasoning": "othersSay" is a well-supported claim that might look suspicious; "youCouldSay" says what makes it convincing; "elsewhere.thought" is a sound claim that looks suspicious, and "elsewhere.balanced" is why it holds.
 
 Tone: warm and direct, like a patient coach. No numeric scores. No "stronger alternative". No academic words when a simple one works.
 Refs (like issue_1, node_3, option_o1) are only for the "ref" field: in the text, always use names, never ids.`;

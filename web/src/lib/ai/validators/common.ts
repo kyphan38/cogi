@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { findSegmentRange } from "@/lib/text/segment-match";
+import { sentenceRangeAt } from "@/lib/text/sentences";
 import { GEO_LENSES, type GeoAnalyticalLevelConfig } from "@/lib/exercise/analytical-levels";
 
 const embeddedIssueTypeSchema = z.enum([
@@ -91,7 +92,7 @@ export function isGeopoliticsAnalyticalPayload(data: AnalyticalExercise): boolea
  */
 export function validateGeopoliticsAnalyticalSemantics(
   data: AnalyticalExercise,
-  opts: { level?: GeoAnalyticalLevelConfig } = {},
+  opts: { level?: GeoAnalyticalLevelConfig; userText?: boolean } = {},
 ): string[] {
   if (!isGeopoliticsAnalyticalPayload(data)) return [];
 
@@ -124,7 +125,7 @@ export function validateGeopoliticsAnalyticalSemantics(
   errors.push(...severityErrors(data));
   if (opts.level) errors.push(...geoExtraErrors(data));
 
-  return [...errors, ...segmentErrors(data)];
+  return [...errors, ...segmentErrors(data, !opts.userText)];
 }
 
 const norm = (s: string) => s.trim().toLowerCase();
@@ -189,7 +190,8 @@ const PLAIN_ISSUE_TYPES = [
  */
 export function validateAnalyticalSemantics(
   data: AnalyticalExercise,
-  opts: { expectSound?: boolean; expectMainClaimQuiz?: boolean } = {},
+  /** `userText`: the user's own passage, which cannot be rewritten to split sentences. */
+  opts: { expectSound?: boolean; expectMainClaimQuiz?: boolean; userText?: boolean } = {},
 ): string[] {
   const errors: string[] = opts.expectMainClaimQuiz ? mainClaimQuizErrors(data) : [];
 
@@ -200,7 +202,7 @@ export function validateAnalyticalSemantics(
     if (data.validPoints.length < 2 || data.validPoints.length > 3) {
       errors.push("validPoints must have 2-3 items for a sound-reasoning passage");
     }
-    return [...errors, ...segmentErrors(data)];
+    return [...errors, ...segmentErrors(data, !opts.userText)];
   }
 
   if (data.isSoundReasoning === true) {
@@ -219,7 +221,7 @@ export function validateAnalyticalSemantics(
   }
   errors.push(...severityErrors(data));
 
-  return [...errors, ...segmentErrors(data)];
+  return [...errors, ...segmentErrors(data, !opts.userText)];
 }
 
 function mainClaimQuizErrors(data: AnalyticalExercise): string[] {
@@ -253,15 +255,30 @@ function severityErrors(data: AnalyticalExercise): string[] {
     : [];
 }
 
-function segmentErrors(data: AnalyticalExercise): string[] {
+function segmentErrors(data: AnalyticalExercise, onePerSentence = true): string[] {
   const errors: string[] = [];
+  // Sentence start of each segment found: Guided and Standard tap whole sentences, so two
+  // segments in one sentence get one tag. An issue next to a trap could not be scored right.
+  const sentenceOf = new Map<number, string>();
+  const place = (segment: string) => {
+    const r = findSegmentRange(data.passage, segment);
+    if (!r) return false;
+    const start = sentenceRangeAt(data.passage, r[0]).start;
+    const other = sentenceOf.get(start);
+    if (onePerSentence && other != null) {
+      errors.push(`"${other}" and "${segment}" are in the same sentence; put each issue and each validPoint in its own sentence`);
+    } else {
+      sentenceOf.set(start, segment);
+    }
+    return true;
+  };
   for (const issue of data.embeddedIssues) {
-    if (!findSegmentRange(data.passage, issue.textSegment)) {
+    if (!place(issue.textSegment)) {
       errors.push(`textSegment not found in passage for issue type ${issue.type}`);
     }
   }
   for (const vp of data.validPoints) {
-    if (!findSegmentRange(data.passage, vp.textSegment)) {
+    if (!place(vp.textSegment)) {
       errors.push("textSegment not found in passage for a validPoint");
     }
   }

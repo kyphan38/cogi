@@ -1,4 +1,4 @@
-import type { TrapCardAi } from "@/lib/exercise/reframe-trap-cards";
+import type { TrapCardAi } from "@/lib/exercise/take-with-you";
 
 export type PerspectiveKind =
   | "analytical"
@@ -133,6 +133,8 @@ export interface AnalyticalCoachingStructured {
   takeaways: string[];
   /** Geopolitics only: a short note on the user's perspective and missing-actor guesses. */
   metaNote?: string;
+  /** Reframe and Analytical: the AI's examples for the "Take with you" cards, checked in code. */
+  trapCards?: TrapCardAi[];
 }
 
 /**
@@ -141,8 +143,6 @@ export interface AnalyticalCoachingStructured {
  */
 export interface CoachingStructured extends Omit<AnalyticalCoachingStructured, "perspectiveFormat"> {
   perspectiveFormat: "coaching_v3";
-  /** Reframe only: the AI's examples for each trap card, already checked in code. */
-  trapCards?: TrapCardAi[];
 }
 
 export type AIPerspectiveStructured =

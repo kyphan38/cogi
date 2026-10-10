@@ -273,7 +273,14 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
                 subtypeName: "False dilemma",
               },
             ],
-            takeaways: ["Mock takeaway: look for words that shrink the choices."],
+            takeaways: [],
+            // One card per issue type; the answer key shows the ones code picks.
+            trapCards: ["logical_fallacy", "hidden_assumption", "weak_evidence", "bias", "framing_bias", "missing_actor", "assumed_causation", "analogy_misuse"].map((trap) => ({
+              trap,
+              othersSay: `Mock card (${trap}): we must pick plan A or fail.`,
+              youCouldSay: "Mock reply: are there other options we have not looked at?",
+              elsewhere: { area: "Money", thought: "Mock: either I save it all or I am bad with money.", balanced: "Mock: I can save some and still spend a little." },
+            })),
           },
         }),
       });

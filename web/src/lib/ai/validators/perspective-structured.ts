@@ -112,7 +112,7 @@ function coachingSchemaFor<F extends "analytical_v3" | "coaching_v3">(format: F)
     items: z.array(coachingItemSchema),
     takeaways: z.array(z.string().min(1)).max(2),
     metaNote: z.string().min(1).optional(),
-    /** Reframe only: examples for the trap cards; checked in code (reframe-trap-cards.ts). */
+    /** Reframe and Analytical: examples for the "Take with you" cards, checked in code (take-with-you.ts). */
     trapCards: z.array(z.unknown()).optional(),
   });
 }
@@ -194,10 +194,10 @@ function parseCoachingWith(
 }
 
 export const COACHING_RETRY_SUFFIX = `Your previous answer was not valid JSON or did not match the required shape.
-Return ONLY a single JSON object (no markdown fences) with perspectiveFormat: "coaching_v3", title, items[{ ref, why, clue, nextTimeAsk }] with one item for every ref listed under CASES, takeaways (1-2 strings), and metaNote when asked.`;
+Return ONLY a single JSON object (no markdown fences) with perspectiveFormat: "coaching_v3", title, items[{ ref, why, clue, nextTimeAsk }] with one item for every ref listed under CASES, takeaways (as the prompt asks: 1-2 strings, or [] when it asks for trapCards), trapCards when asked, and metaNote when asked.`;
 
 export const ANALYTICAL_COACHING_RETRY_SUFFIX = `Your previous answer was not valid JSON or did not match the required shape.
-Return ONLY a single JSON object (no markdown fences) with perspectiveFormat: "analytical_v3", title, items[{ ref, why, clue, nextTimeAsk, subtypeName? }] with one item for every ref listed under CASES, and takeaways (1-2 strings).`;
+Return ONLY a single JSON object (no markdown fences) with perspectiveFormat: "analytical_v3", title, items[{ ref, why, clue, nextTimeAsk, subtypeName? }] with one item for every ref listed under CASES, takeaways [], trapCards (one per card key), and metaNote when asked.`;
 
 /** @deprecated Use kind-specific clarity schemas; kept for generic checks. */
 export const aiPerspectiveStructuredSchema = z.union([

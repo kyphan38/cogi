@@ -9,7 +9,8 @@ import {
 
 const validAnalytical: AnalyticalExercise = {
   title: "Market Analysis",
-  passage: "The company shows strong evidence of growth through strategic partnerships and aggressive expansion into emerging markets.",
+  passage:
+    "The company shows strong evidence of growth. It relies on strategic partnerships. Sales rose after aggressive expansion. Leaders favour emerging markets. Revenue figures come from audited reports. The expansion into Asia was approved by the board.",
   embeddedIssues: [
     { description: "Fallacy", type: "logical_fallacy", severity: "obvious", textSegment: "strong evidence of growth", explanation: "Vague" },
     { description: "Assumption", type: "hidden_assumption", severity: "moderate", textSegment: "strategic partnerships", explanation: "Unverified" },
@@ -17,14 +18,15 @@ const validAnalytical: AnalyticalExercise = {
     { description: "Bias", type: "bias", severity: "subtle", textSegment: "emerging markets", explanation: "Selective" },
   ],
   validPoints: [
-    { textSegment: "company shows", explanation: "Factual" },
-    { textSegment: "expansion into", explanation: "Supported" },
+    { textSegment: "audited reports", explanation: "Factual" },
+    { textSegment: "approved by the board", explanation: "Supported" },
   ],
 };
 
 const validGeopolitics: AnalyticalExercise = {
   title: "NATO Analysis",
-  passage: "The alliance framing assumes Western interests are universal. Missing actor perspectives remain unaddressed. Historical causation is assumed without evidence. The analogy to Cold War partially fits.",
+  passage:
+    "The alliance framing assumes Western interests are universal. Missing actor perspectives remain unaddressed. Historical causation is assumed without evidence. The analogy to Cold War partially fits. The alliance has 32 members. Its budget rose by 5% last year.",
   embeddedIssues: [
     { description: "Framing", type: "framing_bias", severity: "obvious", textSegment: "framing assumes Western interests are universal", explanation: "One-sided" },
     { description: "Missing", type: "missing_actor", severity: "moderate", textSegment: "Missing actor perspectives remain unaddressed", explanation: "Absent" },
@@ -32,8 +34,8 @@ const validGeopolitics: AnalyticalExercise = {
     { description: "Analogy", type: "analogy_misuse", severity: "subtle", textSegment: "analogy to Cold War partially fits", explanation: "Breaks down" },
   ],
   validPoints: [
-    { textSegment: "The alliance", explanation: "Factual" },
-    { textSegment: "partially fits", explanation: "Fair comparison" },
+    { textSegment: "The alliance has 32 members", explanation: "Factual" },
+    { textSegment: "budget rose by 5% last year", explanation: "Checked figure" },
   ],
   hiddenPerspective: "US-aligned think tank",
   missingActors: ["Russia", "China"],
@@ -240,6 +242,16 @@ describe("validateAnalyticalSemantics", () => {
   it("accepts a sound-reasoning passage with no issues and 2-3 decoys", () => {
     const sound = { ...validAnalytical, embeddedIssues: [], isSoundReasoning: true };
     expect(validateAnalyticalSemantics(sound, { expectSound: true })).toEqual([]);
+  });
+
+  it("rejects two cases in one sentence, except in the user's own text", () => {
+    const shared = {
+      ...validAnalytical,
+      validPoints: [validAnalytical.validPoints[0]!, { textSegment: "It relies on", explanation: "x" }],
+    };
+    const errors = validateAnalyticalSemantics(shared);
+    expect(errors.join("\n")).toMatch(/"strategic partnerships" and "It relies on" are in the same sentence/);
+    expect(validateAnalyticalSemantics(shared, { userText: true })).toEqual([]);
   });
 
   it("rejects a sound-reasoning passage that still has issues", () => {

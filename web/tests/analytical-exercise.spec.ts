@@ -225,7 +225,16 @@ test.describe("Analytical exercise - generate and highlight phase", () => {
     await expect(key.getByText('"binary choice"', { exact: false }).first()).toBeVisible();
     await expect(key.getByText("Mock why: the passage offers only two options.")).toBeVisible();
     await expect(key.getByText("More specific: False dilemma", { exact: false })).toBeVisible();
-    await expect(key.getByTestId("answer-key-takeaways")).toContainText("Mock takeaway");
+    // "Take with you" is now 1-2 cards: the fixed guide plus the AI's examples.
+    await expect(key.getByTestId("answer-key-takeaways")).toHaveCount(0);
+    const cards = key.getByTestId("trap-card");
+    // One card per issue type in the passage, at most 2 (the mock may repeat one type).
+    await expect(cards.first()).toBeVisible();
+    expect(await cards.count()).toBeLessThanOrEqual(2);
+    await expect(cards.first()).toContainText("Spot it");
+    await expect(cards.first()).toContainText("When you read or decide");
+    await expect(cards.first()).toContainText("Mock reply: are there other options we have not looked at?");
+    await expect(cards.first()).toContainText("Same issue, other place: Money");
     // v3 feedback replaces the old "Stronger alternative" card.
     await expect(page.getByText("Stronger alternative")).toHaveCount(0);
   });

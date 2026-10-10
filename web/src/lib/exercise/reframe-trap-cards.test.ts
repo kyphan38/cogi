@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { REFRAME_TAGS } from "@/lib/ai/validators/reframe";
 import { REFRAME_TRAP_GUIDE } from "./reframe-trap-guide";
-import { mostlyRepeats, pickTrapCards, sanitizeTrapCards } from "./reframe-trap-cards";
+import { mostlyRepeats } from "@/lib/text/overlap";
+import { pickTrapCards } from "./reframe-trap-cards";
+import { sanitizeTrapCards } from "./take-with-you";
 import type { ReframeResult } from "./reframe-score";
 
 const thoughts = [
@@ -73,7 +75,7 @@ describe("mostlyRepeats", () => {
 });
 
 describe("sanitizeTrapCards", () => {
-  const ctx = { domain: "School", balanced: "I messed up one slide, but the rest of the presentation was clear." };
+  const ctx = { domain: "School", avoid: "I messed up one slide, but the rest of the presentation was clear." };
   const card = (trap: string, area = "Family") => ({
     trap,
     othersSay: "My boss hates me, she did not reply.",

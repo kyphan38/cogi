@@ -23,7 +23,8 @@ const ANALYTICAL_ISSUE_SHAPE_BLOCK = `Return a single JSON object with this exac
   ]
 }`;
 
-const PARAGRAPH_RULE = `Split the passage into 2-4 short paragraphs separated by a blank line ("\\n\\n"), so it is easy to read.`;
+const PARAGRAPH_RULE = `Split the passage into 2-4 short paragraphs separated by a blank line ("\\n\\n"), so it is easy to read.
+Put each embedded issue and each validPoint in its own sentence: no sentence may hold two of them (the reader tags whole sentences).`;
 
 /**
  * Guided level: a main-claim check before hunting for problems. Appended after the

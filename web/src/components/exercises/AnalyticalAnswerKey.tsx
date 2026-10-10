@@ -18,6 +18,9 @@ import type {
 } from "@/lib/types/exercise";
 import type { AnalyticalCoachingStructured, AnalyticalDeepDive } from "@/lib/types/perspective";
 import { DeepDivePanel } from "@/components/exercises/DeepDivePanel";
+import { TakeWithYouCards } from "@/components/shared/TakeWithYouCards";
+import { ANALYTICAL_ISSUE_GUIDE, SOUND_REASONING_NAME } from "@/lib/exercise/analytical-issue-guide";
+import { pickIssueCards } from "@/lib/exercise/analytical-issue-cards";
 import { TAG_LABELS } from "@/lib/exercise/tag-labels";
 import {
   calibrationLine,
@@ -30,6 +33,8 @@ import {
 function tagName(tag: TagType): string {
   return TAG_LABELS[tag].label;
 }
+
+const CARD_LABELS = { self: "When you read or decide", elsewhere: "Same issue, other place", balanced: "Fairer version" };
 
 /**
  * Answer key after an analytical exercise: what was planned, what the user found,
@@ -211,6 +216,15 @@ export function AnalyticalAnswerKey({
         ) : null}
 
         <CoachingFooter coaching={coaching} />
+        <TakeWithYouCards
+          entries={pickIssueCards(embeddedIssues, result).map((k) =>
+            k === "sound_reasoning"
+              ? { key: k, name: SOUND_REASONING_NAME, guide: ANALYTICAL_ISSUE_GUIDE[k], labels: { elsewhere: "Looks suspicious, but holds", balanced: "Why it holds" } }
+              : { key: k, name: tagName(k), guide: ANALYTICAL_ISSUE_GUIDE[k] },
+          )}
+          cards={coaching?.trapCards}
+          labels={CARD_LABELS}
+        />
       </CardContent>
     </Card>
   );
