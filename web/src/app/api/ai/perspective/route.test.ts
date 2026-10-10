@@ -271,7 +271,7 @@ describe("POST /api/ai/perspective - evaluative-matrix", () => {
     expect(data.result).toMatchObject({ variant: "matrix", correct: 1, total: 2 });
     expect(data.text).toContain("Option: On-prem");
     const prompt = mockGenerateRaw.mock.calls[0]![0] as string;
-    expect(prompt).toContain("DIFFERENT - placed in top-left (Cost: Low, Value: High); the model puts it in bottom-left (Cost: Low, Value: Low).");
+    expect(prompt).toContain("ONE AXIS RIGHT - placed in top-left (Cost: Low, Value: High); the model puts it in bottom-left (Cost: Low, Value: Low).");
     expect(prompt).not.toContain("Clarity Blueprint");
   });
 

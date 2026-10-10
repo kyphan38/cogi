@@ -25,9 +25,23 @@ export const BIG_GAP = 2;
 
 export interface MatrixResult {
   variant: "matrix";
-  placements: { optionId: string; intended: EvaluativeQuadrant; user: EvaluativeQuadrant | null; correct: boolean }[];
+  placements: {
+    optionId: string;
+    intended: EvaluativeQuadrant;
+    user: EvaluativeQuadrant | null;
+    correct: boolean;
+    /** Placed on the right side of exactly one axis. Absent on older results. */
+    oneAxis?: boolean;
+  }[];
   correct: number;
   total: number;
+  /** Options with exactly one axis right. Absent on older results. */
+  oneAxis?: number;
+}
+
+/** Which axes a placement gets right: [across, up]. */
+export function axesRight(user: EvaluativeQuadrant, intended: EvaluativeQuadrant): [boolean, boolean] {
+  return [user.endsWith("right") === intended.endsWith("right"), user.startsWith("top") === intended.startsWith("top")];
 }
 
 export interface ScoringResult {
@@ -63,9 +77,16 @@ function order(entries: { id: string; value: number | null }[]): string[] {
 function scoreMatrix(ex: EvaluativeMatrixRow, placements: EvaluativeMatrixRow["placements"]): MatrixResult {
   const rows = ex.options.map((o) => {
     const user = placements[o.id] ?? null;
-    return { optionId: o.id, intended: o.intendedQuadrant, user, correct: user === o.intendedQuadrant };
+    const [x, y] = user ? axesRight(user, o.intendedQuadrant) : [false, false];
+    return { optionId: o.id, intended: o.intendedQuadrant, user, correct: x && y, oneAxis: x !== y };
   });
-  return { variant: "matrix", placements: rows, correct: rows.filter((r) => r.correct).length, total: rows.length };
+  return {
+    variant: "matrix",
+    placements: rows,
+    correct: rows.filter((r) => r.correct).length,
+    total: rows.length,
+    oneAxis: rows.filter((r) => r.oneAxis).length,
+  };
 }
 
 function weightedTotal(
@@ -162,13 +183,13 @@ export function evaluativeResultOf(ex: EvaluativeExerciseRow & { result?: Evalua
 }
 
 /**
- * Matrix has a model answer: good from 75% placed right, poor at 25% or less.
+ * Matrix has a model answer: one axis right counts half. Good from 75%, poor at 25% or less.
  * Scoring and uncertainty are judgment calls: good when the best option matches the
  * model's, otherwise ok - never poor, so they never suggest a lower level.
  */
 export function rateEvaluative(r: EvaluativeResult): ResultRating {
   if (r.variant === "matrix") {
-    const share = r.total > 0 ? r.correct / r.total : 0;
+    const share = r.total > 0 ? (r.correct + 0.5 * (r.oneAxis ?? 0)) / r.total : 0;
     if (share >= 0.75) return "good";
     return share <= 0.25 ? "poor" : "ok";
   }

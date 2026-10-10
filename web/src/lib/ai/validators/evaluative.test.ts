@@ -426,3 +426,66 @@ describe("validateEvaluativeDealbreakerSemantics", () => {
     }
   });
 });
+
+describe("answer give-aways and ties", () => {
+  it("rejects a matrix whose options sit in fewer than 3 quadrants", () => {
+    const bunched = {
+      ...validMatrix,
+      options: validMatrix.options.map((o, i) => ({ ...o, intendedQuadrant: i % 2 ? "top-right" : "bottom-left" })),
+    };
+    const parsed = parseEvaluativeExerciseJson(JSON.stringify(bunched));
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(validateEvaluativeSemantics(parsed.data).join("\n")).toMatch(/at least 3 of the 4 quadrants/);
+  });
+
+  it("rejects an option description that names its place with an axis word", () => {
+    const leaky = { ...validMatrix, options: validMatrix.options.map((o, i) => (i === 1 ? { ...o, description: "A cheap spot outside town" } : o)) };
+    const parsed = parseEvaluativeExerciseJson(JSON.stringify(leaky));
+    if (!parsed.success) throw new Error(parsed.error);
+    expect(validateEvaluativeSemantics(parsed.data).join("\n")).toMatch(/option o2: .*"cheap", an axis word/);
+  });
+
+  it("requires the real criteria in the pick list", () => {
+    const matrix = parseEvaluativeExerciseJson(JSON.stringify({ ...validMatrix, criteriaCandidates: ["Cost", "Parking", "Noise", "Commute", "Light", "Views"] }));
+    if (!matrix.success) throw new Error(matrix.error);
+    expect(validateEvaluativeSemantics(matrix.data).join("\n")).toMatch(/criteriaCandidates is missing a real label \("Talent"\)/);
+    const scoring = parseEvaluativeExerciseJson(JSON.stringify({ ...validScoring, criteriaCandidates: ["Cost", "Reliability", "Brand", "Speed", "Region", "Docs"] }));
+    if (!scoring.success) throw new Error(scoring.error);
+    expect(validateEvaluativeSemantics(scoring.data).join("\n")).toMatch(/missing a real label \("Support"\)/);
+  });
+
+  it("rejects a tie for the best option, in scores and in expected values", () => {
+    const tie = {
+      ...validScoring,
+      options: validScoring.options.map((o) => ({ ...o, suggestedScores: { c1: 4, c2: 4, c3: 4 } })),
+    };
+    const scoring = parseEvaluativeExerciseJson(JSON.stringify(tie));
+    if (!scoring.success) throw new Error(scoring.error);
+    expect(validateEvaluativeSemantics(scoring.data).join("\n")).toMatch(/v1 and v2 are too close for best/);
+
+    const evTie = {
+      ...validUncertainty,
+      options: validUncertainty.options.map((o) => ({
+        ...o,
+        outcomes: [
+          { id: "out1", label: "A", probability: 0.5, payoff: 1000, explanation: "x" },
+          { id: "out2", label: "B", probability: 0.5, payoff: 0, explanation: "x" },
+        ],
+      })),
+    };
+    const unc = parseEvaluativeExerciseJson(JSON.stringify(evTie));
+    if (!unc.success) throw new Error(unc.error);
+    expect(validateEvaluativeSemantics(unc.data).join("\n")).toMatch(/expected values: .* too close for best/);
+  });
+
+  it("rejects a dealbreaker exercise where every option fails", () => {
+    const allFail = {
+      ...validDealbreaker,
+      options: validDealbreaker.options.map((o) => ({ ...o, suggestedScores: { ...o.suggestedScores, c1: 1 } })),
+    };
+    const parsed = parseEvaluativeExerciseJson(JSON.stringify(allFail));
+    if (!parsed.success) throw new Error(parsed.error);
+    expect(validateEvaluativeDealbreakerSemantics(parsed.data).join("\n")).toMatch(/every option fails a dealbreaker/);
+  });
+});

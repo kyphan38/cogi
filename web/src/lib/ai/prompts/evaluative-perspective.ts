@@ -10,13 +10,39 @@ import {
   type ScoringResult,
   type UncertaintyResult,
 } from "@/lib/exercise/evaluative-score";
+import { EVALUATIVE_IDEA_GUIDE, EVALUATIVE_IDEA_NAMES, type EvaluativeIdea } from "@/lib/exercise/evaluative-idea-guide";
 
 function coachingContract(input: {
   title: string;
   requiredRefs: string[];
   metaNote?: string;
   verdictRules: string;
+  /** Decision ideas that get a "Take with you" card, picked in code; they replace takeaways. */
+  cards?: { ideas: EvaluativeIdea[]; domain: string };
 }): string {
+  const ideas = input.cards?.ideas ?? [];
+  const cardLines = ideas
+    .map((k) => `- ${k} (${EVALUATIVE_IDEA_NAMES[k]}): ${EVALUATIVE_IDEA_GUIDE[k].spot} How to help others: ${EVALUATIVE_IDEA_GUIDE[k].othersTip}`)
+    .join("\n");
+  const takeawaysShape = ideas.length
+    ? `"takeaways": [] (always empty: the cards below replace them)`
+    : `"takeaways": [string] (1-2 items)`;
+  const cardsShape = ideas.length
+    ? `,
+  "trapCards": [ { "trap": string (an idea id from TAKE-WITH-YOU CARDS), "othersSay": string, "youCouldSay": string, "elsewhere": { "area": string, "thought": string, "balanced": string } } ] (exactly one per idea below, same order)`
+    : "";
+  const cardsBlock = ideas.length
+    ? `
+
+TAKE-WITH-YOU CARDS (the user takes these decision ideas into real life; the app already shows how to spot each one and what to ask):
+${cardLines}`
+    : "";
+  const cardRules = ideas.length
+    ? `How to write each card (plain words, not from this scenario):
+- "othersSay": one short sentence a friend, colleague or family member might say when they decide without this idea.
+- "youCouldSay": a kind reply that asks one question to help them use it. Never lecture and never use the idea's name. At most 25 words.
+- "elsewhere": the same idea in a different area of life than "${input.cards!.domain}" (for example work, money, family, health, study). "area" is that area in 1-3 words; "thought" is a choice made without the idea; "balanced" is the same choice with it.`
+    : `"takeaways": 1-2 short lessons for the next decision. Focus on the biggest differences first. If everything matched, say what to keep doing.`;
   return `Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
 {
   "perspectiveFormat": "coaching_v3",
@@ -24,9 +50,9 @@ function coachingContract(input: {
   "items": [
     { "ref": string (a ref from CASES), "why": string, "clue": string, "nextTimeAsk": string }
   ],
-  "takeaways": [string] (1-2 items)${input.metaNote ? `,
-  "metaNote": string` : ""}
-}
+  ${takeawaysShape}${input.metaNote ? `,
+  "metaNote": string` : ""}${cardsShape}
+}${cardsBlock}
 
 Write one item for each of these refs: ${input.requiredRefs.join(", ") || "(none)"}. You may add items for other refs in CASES, but keep it short.
 
@@ -35,7 +61,7 @@ How to write each item:
 - "clue": the words in the scenario or option that point to it (quote 2-6 words).
 - "nextTimeAsk": one question to ask yourself next time, at most 15 words.
 ${input.metaNote ? `\n"metaNote": ${input.metaNote}\n` : ""}
-"takeaways": 1-2 short lessons for the next decision. Focus on the biggest differences first. If everything matched, say what to keep doing.
+${cardRules}
 
 Tone: warm and direct, like a patient coach. No numeric grade. No "stronger alternative". No academic words when a simple one works. Write option and criterion names plainly, without quotation marks.
 Refs (like issue_1, node_3, option_o1) are only for the "ref" field: in the text, always use names, never ids.`;
@@ -62,6 +88,7 @@ export function buildEvaluativeMatrixPerspectivePrompt(input: {
   requiredRefs: string[];
   confidenceBefore: number;
   userContext?: string;
+  cardIdeas?: EvaluativeIdea[];
 }): string {
   const ex = input.exercise;
   const q = (v: EvaluativeQuadrant) => quadrantName(v, ex.axisX, ex.axisY);
@@ -71,7 +98,7 @@ export function buildEvaluativeMatrixPerspectivePrompt(input: {
       const verdict = p.correct
         ? `CORRECT - placed in ${q(p.user!)}.`
         : p.user
-          ? `DIFFERENT - placed in ${q(p.user)}; the model puts it in ${q(p.intended)}.`
+          ? `${p.oneAxis ? "ONE AXIS RIGHT" : "DIFFERENT"} - placed in ${q(p.user)}; the model puts it in ${q(p.intended)}.`
           : `NOT PLACED - the model puts it in ${q(p.intended)}.`;
       return `option_${o.id} - ${o.title}: ${o.description}\n  Model's note: ${o.explanation}\n  User: ${verdict}`;
     })
@@ -82,7 +109,7 @@ export function buildEvaluativeMatrixPerspectivePrompt(input: {
 Axes: ${ex.axisX.label} (${ex.axisX.lowLabel} -> ${ex.axisX.highLabel}) and ${ex.axisY.label} (${ex.axisY.lowLabel} -> ${ex.axisY.highLabel}).
 Criteria the user proposed before seeing the axes: ${JSON.stringify(ex.userProposedCriteria ?? [])}
 
-SCORE (decided by code - final): placed ${input.result.correct} of ${input.result.total} options in the same quadrant as the model.
+SCORE (decided by code - final): placed ${input.result.correct} of ${input.result.total} options in the same quadrant as the model, and ${input.result.oneAxis ?? 0} more with one of the two axes right.
 
 CASES (each verdict is final):
 ${cases}
@@ -90,8 +117,9 @@ ${cases}
 ${coachingContract({
   title: input.title,
   requiredRefs: input.requiredRefs,
+  cards: { ideas: input.cardIdeas ?? [], domain: input.domain },
   verdictRules:
-    "CORRECT: confirm plainly, then say what puts it there. DIFFERENT: explain which axis the user misjudged and why, in simple words; the model's view is a reasoned reference, so say \"the model sees it as...\", not \"you are wrong\". NOT PLACED: explain where it belongs.",
+    "CORRECT: confirm plainly, then say what puts it there. ONE AXIS RIGHT: say which axis they read well, then the one they misjudged. DIFFERENT: explain which axis the user misjudged and why, in simple words; the model's view is a reasoned reference, so say \"the model sees it as...\", not \"you are wrong\". NOT PLACED: explain where it belongs.",
 })}`;
 }
 
@@ -103,6 +131,7 @@ export function buildEvaluativeScoringPerspectivePrompt(input: {
   requiredRefs: string[];
   confidenceBefore: number;
   userContext?: string;
+  cardIdeas?: EvaluativeIdea[];
 }): string {
   const ex = input.exercise;
   const optionTitle = (id: string) => ex.options.find((o) => o.id === id)?.title ?? id;
@@ -146,6 +175,7 @@ ${cases}
 ${coachingContract({
   title: input.title,
   requiredRefs: input.requiredRefs,
+  cards: { ideas: input.cardIdeas ?? [], domain: input.domain },
   metaNote: `2-3 short sentences comparing the criteria the user proposed with the table's criteria and the hidden ones${geo ? ", and whose interests their stakeholder mapping left out" : ""}.`,
   verdictRules:
     "SAME or SMALL gap: say briefly why that weight makes sense. BIG gap: explain what in the scenario makes this criterion matter more or less, and how it changed the ranking. For scores far from the model, name the fact about the option that the user may have missed. Never call a weight wrong - say how the model sees it differently.",
@@ -160,6 +190,7 @@ export function buildEvaluativeUncertaintyPerspectivePrompt(input: {
   requiredRefs: string[];
   confidenceBefore: number;
   userContext?: string;
+  cardIdeas?: EvaluativeIdea[];
 }): string {
   const ex = input.exercise;
   const optionTitle = (id: string) => ex.options.find((o) => o.id === id)?.title ?? id;
@@ -200,6 +231,7 @@ ${cases}
 ${coachingContract({
   title: input.title,
   requiredRefs: input.requiredRefs,
+  cards: { ideas: input.cardIdeas ?? [], domain: input.domain },
   verdictRules:
     "CLOSE: confirm and say which estimate mattered most. MORE OPTIMISTIC / MORE CAUTIOUS: name the one chance or payoff that drove the gap and what in the scenario suggests the model's number. NO EXPECTED VALUE: explain that chances for one option must add up to 100%.",
 })}`;
