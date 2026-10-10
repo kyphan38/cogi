@@ -19,6 +19,7 @@ import { scoreSystems, systemsCoachingRefs } from "@/lib/exercise/systems-score"
 import {
   evaluativeCoachingRefs,
   scoreEvaluative,
+  type EvaluativeResult,
   type MatrixResult,
   type ScoringResult,
   type UncertaintyResult,
@@ -38,6 +39,7 @@ import { pickTrapCards } from "@/lib/exercise/reframe-trap-cards";
 import { pickIssueCards } from "@/lib/exercise/analytical-issue-cards";
 import { pickLensCards } from "@/lib/exercise/judgment-lens-cards";
 import { pickSystemsCards, systemsCriticality } from "@/lib/exercise/systems-idea-cards";
+import { pickEvaluativeCards } from "@/lib/exercise/evaluative-idea-cards";
 import { sanitizeTrapCards } from "@/lib/exercise/take-with-you";
 import { REFRAME_LEVELS } from "@/lib/exercise/reframe-levels";
 import { buildReframePerspectivePrompt } from "@/lib/ai/prompts/reframe-perspective";
@@ -104,6 +106,18 @@ async function generateCoaching(
   }
   if (!parsed.success) throw new Error(parsed.error);
   return { structured: parsed.data, text: analyticalCoachingToMarkdown(parsed.data, heading) };
+}
+
+/** "Take with you" cards for an evaluative exercise: what to ask for, when to retry, and the checked result. */
+function evaluativeCards(exercise: EvaluativeExerciseRow, result: EvaluativeResult, domain: string) {
+  const ideas = pickEvaluativeCards(exercise, result);
+  const ctx = { domain, avoid: "" };
+  return {
+    ideas,
+    retryIf: (data: CoachingStructured) =>
+      sanitizeTrapCards(data.trapCards, ideas, ctx).length < ideas.length ? `trapCards: one complete card for each of ${ideas.join(", ")}` : null,
+    finish: (data: CoachingStructured): CoachingStructured => ({ ...data, takeaways: [], trapCards: sanitizeTrapCards(data.trapCards, ideas, ctx) }),
+  };
 }
 
 /** A readable heading for an evaluative coaching ref (`option_<id>` / `criterion_<id>`). */
@@ -358,7 +372,9 @@ export async function POST(req: Request) {
         : undefined;
     const result = scoreEvaluative(exercise) as MatrixResult;
     const refs = evaluativeCoachingRefs(result);
+    const cards = evaluativeCards(exercise, result, domain);
     const prompt = buildEvaluativeMatrixPerspectivePrompt({
+      cardIdeas: cards.ideas,
       title,
       domain,
       scenario: exercise.scenario,
@@ -372,10 +388,11 @@ export async function POST(req: Request) {
       const { structured, text } = await generateCoaching(
         prompt,
         languageAppendix,
-        { ...refs, requireMetaNote: false },
+        { ...refs, requireMetaNote: false, takeawaysOptional: true },
         (ref) => evaluativeRefHeading(exercise, ref),
+        cards.retryIf,
       );
-      return NextResponse.json({ ok: true, structured, text, result });
+      return NextResponse.json({ ok: true, structured: cards.finish(structured), text, result });
     } catch (e) {
       const isTimeout =
         e instanceof Error &&
@@ -419,7 +436,9 @@ export async function POST(req: Request) {
         : undefined;
     const result = scoreEvaluative(exercise) as ScoringResult;
     const refs = evaluativeCoachingRefs(result);
+    const cards = evaluativeCards(exercise, result, domain);
     const prompt = buildEvaluativeScoringPerspectivePrompt({
+      cardIdeas: cards.ideas,
       title,
       domain,
       exercise,
@@ -432,10 +451,11 @@ export async function POST(req: Request) {
       const { structured, text } = await generateCoaching(
         prompt,
         languageAppendix,
-        { ...refs, requireMetaNote: true },
+        { ...refs, requireMetaNote: true, takeawaysOptional: true },
         (ref) => evaluativeRefHeading(exercise, ref),
+        cards.retryIf,
       );
-      return NextResponse.json({ ok: true, structured, text, result });
+      return NextResponse.json({ ok: true, structured: cards.finish(structured), text, result });
     } catch (e) {
       const isTimeout =
         e instanceof Error &&
@@ -480,7 +500,9 @@ export async function POST(req: Request) {
         : undefined;
     const result = scoreEvaluative(exercise) as UncertaintyResult;
     const refs = evaluativeCoachingRefs(result);
+    const cards = evaluativeCards(exercise, result, domain);
     const prompt = buildEvaluativeUncertaintyPerspectivePrompt({
+      cardIdeas: cards.ideas,
       title,
       domain,
       exercise,
@@ -493,10 +515,11 @@ export async function POST(req: Request) {
       const { structured, text } = await generateCoaching(
         prompt,
         languageAppendix,
-        { ...refs, requireMetaNote: false },
+        { ...refs, requireMetaNote: false, takeawaysOptional: true },
         (ref) => evaluativeRefHeading(exercise, ref),
+        cards.retryIf,
       );
-      return NextResponse.json({ ok: true, structured, text, result });
+      return NextResponse.json({ ok: true, structured: cards.finish(structured), text, result });
     } catch (e) {
       const isTimeout =
         e instanceof Error &&

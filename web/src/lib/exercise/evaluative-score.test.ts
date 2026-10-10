@@ -55,9 +55,21 @@ const uncertainty: EvaluativeUncertaintyRow = {
 };
 
 describe("scoreEvaluative - matrix", () => {
+  it("gives part credit when one axis is right", () => {
+    // o4 belongs bottom-right; bottom-left gets the vertical axis right.
+    const r = scoreEvaluative({ ...matrix, placements: { ...matrix.placements, o4: "bottom-left" } });
+    expect(r).toMatchObject({ correct: 3, oneAxis: 1 });
+    if (r.variant !== "matrix") throw new Error("matrix expected");
+    expect(r.placements.find((p) => p.optionId === "o4")).toMatchObject({ correct: false, oneAxis: true });
+    // 3 right and 1 half out of 4 = 87.5%.
+    expect(rateEvaluative(r)).toBe("good");
+  });
+
   it("counts options placed in the model's quadrant", () => {
     const r = scoreEvaluative(matrix);
     expect(r).toMatchObject({ variant: "matrix", correct: 3, total: 4 });
+    // o4 is bottom-right but placed top-left: both axes wrong.
+    expect(r).toMatchObject({ oneAxis: 0 });
     expect(rateEvaluative(r)).toBe("good");
     expect(evaluativeCoachingRefs(r).required).toEqual(["option_o4"]);
   });

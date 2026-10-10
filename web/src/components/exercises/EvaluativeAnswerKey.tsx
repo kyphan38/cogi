@@ -6,6 +6,11 @@ import { Coaching, CoachingFooter, Row, Section, Stat, type Status } from "@/com
 import type { EvaluativeExerciseRow } from "@/lib/types/exercise";
 import type { AnalyticalCoachingStructured, CoachingStructured } from "@/lib/types/perspective";
 import { BIG_GAP, quadrantName, type EvaluativeResult } from "@/lib/exercise/evaluative-score";
+import { EVALUATIVE_IDEA_GUIDE, EVALUATIVE_IDEA_NAMES } from "@/lib/exercise/evaluative-idea-guide";
+import { pickEvaluativeCards } from "@/lib/exercise/evaluative-idea-cards";
+import { TakeWithYouCards } from "@/components/shared/TakeWithYouCards";
+
+const CARD_LABELS = { self: "When you decide", elsewhere: "Same idea, other place", balanced: "With the idea" };
 
 /**
  * Evaluative results after feedback. Matrix placements have a model answer; weights,
@@ -33,16 +38,22 @@ export function EvaluativeAnswerKey({
       <CardContent className="space-y-6 text-sm leading-relaxed">
         {result.variant === "matrix" && exercise.variant === "matrix" ? (
           <>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <Stat label="Same quadrant" value={`${result.correct}/${result.total}`} />
+              <Stat label="One axis right" value={result.oneAxis != null ? String(result.oneAxis) : "-"} />
               <Stat label="Your confidence" value={exercise.confidenceBefore != null ? `${exercise.confidenceBefore}%` : "-"} />
             </div>
             <Section title="Your placements" hint={`${exercise.axisX.label} across, ${exercise.axisY.label} up.`}>
               {result.placements.map((p) => {
                 const o = exercise.options.find((x) => x.id === p.optionId)!;
-                const status: Status = p.correct ? "right" : "wrong";
+                const status: Status = p.correct ? "right" : p.oneAxis ? "partly" : "wrong";
                 return (
-                  <Row key={p.optionId} status={status} heading={o.title} aside={p.correct ? "Same as the model" : undefined}>
+                  <Row
+                    key={p.optionId}
+                    status={status}
+                    heading={o.title}
+                    aside={p.correct ? "Same as the model" : p.oneAxis ? "One axis right" : undefined}
+                  >
                     {!p.correct ? (
                       <p className="text-muted-foreground">
                         You: {p.user ? quadrantName(p.user, exercise.axisX, exercise.axisY) : "not placed"}. Model:{" "}
@@ -125,6 +136,11 @@ export function EvaluativeAnswerKey({
         ) : null}
 
         <CoachingFooter coaching={coaching} metaTitle="Your criteria" />
+        <TakeWithYouCards
+          entries={pickEvaluativeCards(exercise, result).map((k) => ({ key: k, name: EVALUATIVE_IDEA_NAMES[k], guide: EVALUATIVE_IDEA_GUIDE[k] }))}
+          cards={coaching?.trapCards}
+          labels={CARD_LABELS}
+        />
       </CardContent>
     </Card>
   );

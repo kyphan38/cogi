@@ -132,7 +132,12 @@ test.describe("Evaluative exercise - 3-step practice loop", () => {
     await expect(progress.getByText("3. AI feedback")).toHaveClass(/bg-zinc-900/);
     const key = page.getByTestId("evaluative-answer-key");
     await expect(key).toBeVisible();
-    await expect(key.getByTestId("answer-key-takeaways")).toContainText("Mock evaluative takeaway");
+    // "Take with you": decision idea cards (fixed guide plus the AI's examples).
+    await expect(key.getByTestId("answer-key-takeaways")).toHaveCount(0);
+    const cards = key.getByTestId("trap-card");
+    await expect(cards.first()).toContainText("Spot it");
+    await expect(cards.first()).toContainText("When you decide");
+    await expect(cards.first()).toContainText("Mock reply: makes sense. Who depends on that team's work?");
     await expect(page.getByText(/Journal|Action bridge/)).toHaveCount(0);
 
     await page.getByLabel(/What will you take away/).fill("Check deal-breakers before weighing the rest.");

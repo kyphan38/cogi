@@ -215,11 +215,14 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     benefits: [
       "Better decisions on jobs, money and plans, with reasons you can explain.",
       "You notice criteria that people often forget.",
+      "You take decision ideas into real life: the two criteria that matter, weights, hidden criteria, dealbreakers, expected value and who else is affected.",
     ],
     howToPractice: [
       "Write or pick your own criteria before you see the app's. Then compare.",
       "Place or score each option honestly. Do not pick the winner first and fit the numbers to it.",
       "In the feedback, look at the hidden criteria and the gaps in weight.",
+      "On a 2x2 board, an option with one of the two axes right counts as half right.",
+      "At the end, \"Take with you\" has a card for 1 or 2 decision ideas, picked from what you did. Each card shows how to spot it, what to ask, how to help someone else, the same idea in another part of life, and one thing to try this week.",
     ],
     levels: {
       guided: "A 2x2 board with two criteria. Pick criteria from a list.",
