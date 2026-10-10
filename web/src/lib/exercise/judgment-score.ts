@@ -5,7 +5,7 @@ import type { ResultRating } from "@/lib/exercise/levels";
 export interface JudgmentResult {
   /** Per response: where the user and the expert put it (1 = best). */
   responses: { id: string; userRank: number; expertRank: number }[];
-  /** 0..1: 1 = same order as the expert, 0 = the reverse order. */
+  /** 0..1: the share of pairs the user put in the expert's order (1 = same order, 0 = reversed). */
   closeness: number;
   /** The user's first choice is the expert's best response. */
   topMatch: boolean;
@@ -14,9 +14,25 @@ export interface JudgmentResult {
 }
 
 /**
- * `userOrder` is the response ids, best first. Closeness is 1 minus the total rank
- * distance over the largest distance possible for that many responses.
+ * How many pairs of responses the user put in the same order as the expert. Pairs, not
+ * rank distance: with 3 responses a distance score only gives 100%, 50% or 0%, and
+ * putting the best one second could score 0%.
  */
+export function pairsLikeExpert(rows: { userRank: number; expertRank: number }[]): { agree: number; total: number } {
+  let agree = 0;
+  let total = 0;
+  for (let i = 0; i < rows.length; i++) {
+    for (let j = i + 1; j < rows.length; j++) {
+      total += 1;
+      const a = rows[i]!;
+      const b = rows[j]!;
+      if (Math.sign(a.userRank - b.userRank) === Math.sign(a.expertRank - b.expertRank)) agree += 1;
+    }
+  }
+  return { agree, total };
+}
+
+/** `userOrder` is the response ids, best first. */
 export function scoreJudgment(input: {
   responses: JudgmentResponse[];
   userOrder: string[];
@@ -29,13 +45,11 @@ export function scoreJudgment(input: {
     const at = input.userOrder.indexOf(r.id);
     return { id: r.id, userRank: at >= 0 ? at + 1 : n, expertRank: r.expertRank };
   });
-  const distance = rows.reduce((sum, r) => sum + Math.abs(r.userRank - r.expertRank), 0);
-  // Largest possible total distance: the reversed order.
-  const maxDistance = Math.floor((n * n) / 2);
+  const pairs = pairsLikeExpert(rows);
   const best = input.responses.find((r) => r.expertRank === 1)?.id;
   return {
     responses: rows,
-    closeness: maxDistance > 0 ? Math.round((1 - distance / maxDistance) * 100) / 100 : 1,
+    closeness: pairs.total > 0 ? Math.round((pairs.agree / pairs.total) * 100) / 100 : 1,
     topMatch: best != null && input.userOrder[0] === best,
     lenses: input.lensQuestions.map((q) => ({
       lens: q.lens,

@@ -36,6 +36,7 @@ import { buildCalibrationPerspectivePrompt } from "@/lib/ai/prompts/calibration-
 import { reframeCoachingRefs, scoreReframe } from "@/lib/exercise/reframe-score";
 import { pickTrapCards } from "@/lib/exercise/reframe-trap-cards";
 import { pickIssueCards } from "@/lib/exercise/analytical-issue-cards";
+import { pickLensCards } from "@/lib/exercise/judgment-lens-cards";
 import { sanitizeTrapCards } from "@/lib/exercise/take-with-you";
 import { REFRAME_LEVELS } from "@/lib/exercise/reframe-levels";
 import { buildReframePerspectivePrompt } from "@/lib/ai/prompts/reframe-perspective";
@@ -277,17 +278,20 @@ export async function POST(req: Request) {
       lensFreeText: cfg.lensMode === "free",
     });
     const refs = judgmentCoachingRefs(result, { hasOwnResponse: Boolean(exercise.ownResponse?.trim()) });
+    const cardLenses = pickLensCards(exercise.responses, result);
+    const cardCtx = { domain: exercise.domain, avoid: exercise.responses.find((r) => r.expertRank === 1)?.text ?? "" };
     const prompt = buildJudgmentPerspectivePrompt({
       exercise,
       result,
       requiredRefs: refs.required,
+      cardLenses,
       userContext: typeof b.userContext === "string" ? b.userContext : undefined,
     });
     try {
       const { structured, text } = await generateCoaching(
         prompt,
         languageAppendix,
-        { ...refs, requireMetaNote: true },
+        { ...refs, requireMetaNote: true, takeawaysOptional: true },
         (ref) => {
           if (ref === "own") return "Your own response";
           if (ref.startsWith("lens_")) {
@@ -297,8 +301,13 @@ export async function POST(req: Request) {
           const resp = exercise.responses.find((x) => `response_${x.id}` === ref);
           return resp ? `Response: ${resp.text}` : ref;
         },
+        (data) =>
+          sanitizeTrapCards(data.trapCards, cardLenses, cardCtx).length < cardLenses.length
+            ? `trapCards: one complete card for each of ${cardLenses.join(", ")}`
+            : null,
       );
-      return NextResponse.json({ ok: true, structured, text, result });
+      const checked = { ...structured, takeaways: [], trapCards: sanitizeTrapCards(structured.trapCards, cardLenses, cardCtx) };
+      return NextResponse.json({ ok: true, structured: checked, text, result });
     } catch (e) {
       const message = e instanceof Error ? e.message : "Unknown error";
       const timeout = e instanceof Error && (e.name === "AbortError" || /time(d)? ?out/i.test(e.message));

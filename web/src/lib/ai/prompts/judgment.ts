@@ -48,12 +48,13 @@ Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
   "lensQuestions": [
     { "lens": "think" | "people" | "steady", "question": string, "options": [string, string, string], "answerIndex": 0 | 1 | 2, "explanation": string }
   ] (exactly 3: one for each lens, about THIS situation; the right option is the most useful way to see it, the others are common but less useful readings),
-  "responses": [ { "id": "r1", "text": string (what you would do or say, 1-2 sentences), "expertRank": number, "why": string (1-2 sentences, through the lenses) } ] (exactly ${n}, ids r1..r${n})
+  "responses": [ { "id": "r1", "text": string (what you would do or say, 1-2 sentences), "expertRank": number, "why": string (1-2 sentences, through the lenses), "lens": "think" | "people" | "steady" (the lens that best explains why it ranks where it does) } ] (exactly ${n}, ids r1..r${n})
 }
 
 Rules:
 - expertRank: 1 = best, ${n} = worst, each used once. Shuffle so r1 is NOT always the best.
 - All responses must be things real people often do. The best one is not perfect or saintly - it is realistic. The worst is tempting (e.g. avoiding, snapping back, giving in), not absurd.
 - Vary which option index is correct across questions.
+- A lens answer is a way to SEE the situation (what the real problem is, what someone feels, what you can control), never an action to take. It must not describe or repeat any of the responses: the learner sees the lens answers before ranking the responses.
 - Plain, warm language. No therapy jargon unless it is one of the concepts.${input.adaptationAppendix ? `\n\n${input.adaptationAppendix}` : ""}`;
 }

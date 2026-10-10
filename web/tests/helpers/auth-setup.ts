@@ -363,8 +363,14 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
             perspectiveFormat: "coaching_v3",
             title: "Mock situation",
             items: [{ ref: "response_r2", why: "Mock why: a private talk saves face.", clue: "in front of everyone", nextTimeAsk: "Where should this talk happen?" }],
-            takeaways: ["Mock judgment takeaway: talk in private first."],
+            takeaways: [],
             metaNote: "Mock note on your reason.",
+            trapCards: ["think", "people", "steady"].map((trap) => ({
+              trap,
+              othersSay: `Mock card (${trap}): my brother yelled at me, so I will never call him again.`,
+              youCouldSay: "Mock reply: that hurt. What do you think was going on for him?",
+              elsewhere: { area: "Family", thought: "Mock: I argue back at once.", balanced: "Mock: I ask how they feel first." },
+            })),
           },
         }),
       });

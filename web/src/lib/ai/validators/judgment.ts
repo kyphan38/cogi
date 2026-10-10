@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { mostlyRepeats } from "@/lib/text/overlap";
 
 /** The three lenses a life situation is read through (PLAN-learning.md L1). */
 export const JUDGMENT_LENSES = ["think", "people", "steady"] as const;
@@ -27,6 +28,8 @@ const responseSchema = z.object({
   /** Expert ranking, 1 = best. */
   expertRank: z.number().int(),
   why: z.string().min(1),
+  /** The lens that best explains this response's rank. Missing on rows from before it existed. */
+  lens: z.enum(JUDGMENT_LENSES).optional(),
 });
 
 /** A generated life-situation exercise. */
@@ -108,6 +111,18 @@ export function validateJudgmentSemantics(
   const ranks = data.responses.map((r) => r.expertRank).sort((a, b) => a - b);
   if (ranks.join() !== expectedIds.map((_, i) => i + 1).join()) {
     errors.push(`expertRank values must be 1..${n}, each used once`);
+  }
+  for (const r of data.responses) {
+    if (!r.lens) errors.push(`${r.id}: lens is required (${JUDGMENT_LENSES.join(", ")})`);
+  }
+  // The guided level shows each lens answer before the ranking: it must not be a response.
+  for (const q of data.lensQuestions) {
+    const right = q.options[q.answerIndex] ?? "";
+    for (const r of data.responses) {
+      if (right && mostlyRepeats(right, r.text)) {
+        errors.push(`lensQuestions[${q.lens}]: the right reading repeats response ${r.id}; make it a way to see the situation, not an action`);
+      }
+    }
   }
   return errors;
 }
