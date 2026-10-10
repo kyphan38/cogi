@@ -79,6 +79,7 @@ import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { DomainInput } from "@/components/shared/DomainInput";
 import { TopicSuggestionPicker } from "@/components/shared/TopicSuggestionPicker";
 import { listRecentDomains, putExercise, getExercise } from "@/lib/db/exercises";
+import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
 import { isSystemsExercise } from "@/lib/types/exercise";
 import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
 
@@ -374,6 +375,7 @@ export function SystemsExerciseFlow({
         currentStep: 1,
       };
       await putExercise(row);
+      rememberExerciseInUrl(row);
       setExercise(row);
       setUserEdges([]);
       setNodeImpact(emptyImpact(ids));

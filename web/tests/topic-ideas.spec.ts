@@ -76,6 +76,58 @@ test.describe("New exercise: A topic (PLAN-topic-ideas.md T2)", () => {
   });
 });
 
+test.describe("Coming back to New exercise", () => {
+  test.beforeEach(async ({ page }) => {
+    await bypassFirebaseAuth(page);
+    await stubFirestoreReads(page);
+  });
+
+  test("Back keeps the 10 topics; a saved topic stays and opens its exercise", async ({ page }) => {
+    await gotoAuthenticated(page, "/reasoning");
+    await page.getByTestId("topic-generate").click();
+    const list = page.getByTestId("topic-list").getByTestId("topic-row");
+    await expect(list).toHaveCount(10);
+
+    await page.getByTestId("topic-list").getByTestId("topic-save").nth(1).click();
+    const saved = page.getByTestId("saved-topic-list").getByTestId("topic-row");
+    await expect(saved).toHaveCount(1);
+    await expect(saved.first()).toContainText("Mock topic 1.2");
+
+    await list.first().click();
+    await page.waitForURL(/\/exercise\/judgment\?domain=/, { timeout: 15_000 });
+    await page.goBack();
+    await expect(list).toHaveCount(10);
+    await expect(list.first()).toContainText("Mock topic 1.1");
+    await expect(saved).toHaveCount(1);
+
+    // Clearing the list keeps the saved topic; it opens like any other row.
+    await page.getByTestId("topic-clear").click();
+    await expect(list).toHaveCount(0);
+    await expect(saved).toHaveCount(1);
+    await saved.first().click();
+    await page.waitForURL(/\/exercise\/evaluative\?domain=Mock%20topic%201\.2/, { timeout: 15_000 });
+
+    // Unsaving removes it.
+    await page.goBack();
+    await page.getByTestId("saved-topic-list").getByTestId("topic-save").first().click();
+    await expect(page.getByTestId("saved-topics")).toHaveCount(0);
+  });
+
+  test("A mode: Back returns to the picked mode and its topics", async ({ page }) => {
+    await gotoAuthenticated(page, "/reasoning");
+    await page.getByRole("radio", { name: "A mode" }).click();
+    await page.getByRole("radio", { name: /Life situations/ }).click();
+    await page.getByTestId("mode-panel").getByTestId("topic-generate").click();
+    const list = page.getByTestId("mode-panel").getByTestId("topic-list").getByTestId("topic-row");
+    await expect(list).toHaveCount(10);
+    await list.first().click();
+    await page.waitForURL(/\/exercise\/judgment\?domain=/, { timeout: 15_000 });
+    await page.goBack();
+    await expect(page.getByRole("radio", { name: /Life situations/ })).toHaveAttribute("aria-checked", "true");
+    await expect(list).toHaveCount(10);
+  });
+});
+
 test.describe("Scenario hand-off into the exercise setup", () => {
   test.beforeEach(async ({ page }) => {
     await bypassFirebaseAuth(page);

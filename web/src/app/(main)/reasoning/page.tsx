@@ -4,11 +4,14 @@ import { useEffect, useRef, useState } from "react";
 
 import { PRACTICE_EXERCISE_CARDS } from "@/lib/exercise/exercise-mode-cards";
 import { TopicIdeasPanel } from "@/components/dashboard/TopicIdeasPanel";
+import { readSessionState, writeSessionState } from "@/lib/session-state";
 import { cn } from "@/lib/utils";
 import type { ThinkingType } from "@/lib/types/exercise";
 
 /** Remembers "start from a topic / a mode" on this device. */
 const START_FROM_KEY = "cogi:practice-start-from";
+/** The mode picked under "A mode", kept for this tab so Back returns to it. */
+const PICKED_MODE_KEY = "cogi:practice-picked-mode";
 
 type StartFrom = "topic" | "mode";
 
@@ -29,6 +32,8 @@ export default function ReasoningPage() {
     } catch {
       // Storage blocked: start from a topic.
     }
+    const m = readSessionState<ThinkingType>(PICKED_MODE_KEY);
+    if (m && PRACTICE_EXERCISE_CARDS.some((c) => c.type === m)) setPickedMode(m);
   }, []);
 
   const chooseStart = (next: StartFrom) => {
@@ -43,6 +48,7 @@ export default function ReasoningPage() {
   const panelRef = useRef<HTMLDivElement>(null);
   const pickMode = (m: ThinkingType) => {
     setPickedMode(m);
+    writeSessionState(PICKED_MODE_KEY, m);
     // On a phone the panel sits below all the mode cards: bring it into view.
     requestAnimationFrame(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
   };

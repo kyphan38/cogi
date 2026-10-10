@@ -88,6 +88,9 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "A long text (120 words or more) in Analytical is analysed as it is. A shorter one becomes the base of a new passage.",
       "Start from a mode: pick a mode, choose an area and domain if you like, then press Generate for 10 topics for that mode. Or choose \"Specific scenario\" to start that mode with your own text.",
       "Tap a topic to open the exercise with it filled in. You still choose your level there.",
+      "Like a topic? Tap the bookmark next to it. Saved topics show under \"Saved topics\", so you can start them later without generating again. Tap the bookmark again to remove one.",
+      "Go back from an exercise and your list of topics is still there. Press \"Clear list and filters\" to start fresh.",
+      "Left an exercise half way? Back, Forward or a reload opens it at the same step. Open the same topic again and you can choose Continue or Start over.",
       "Inside an exercise, the quick buttons (Work, Family, Negotiation...) are a shortcut for a broad area. The Practice page is for a specific topic.",
       "Calibration uses a checked question bank, so it offers its own topics (Science, History, Vietnam...) without Generate.",
       "Nothing is generated until you press Generate.",
@@ -95,6 +98,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     tips: [
       "Not sure where to start? Leave every filter on \"Any\" for a mix of topics and modes.",
       "Your choice of topic or mode is remembered on this device.",
+      "Saved topics are kept with your account, so they are on every device.",
     ],
   },
   {
