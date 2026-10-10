@@ -65,7 +65,7 @@ test.describe("Systems exercise - resilience variant flow", () => {
   }) => {
     await generateResilienceExercise(page);
     await expect(page.getByText(/single points of failure/)).toBeVisible();
-    await expect(page.getByText(/pick the 6 components or factors/)).toBeVisible();
+    await expect(page.getByTestId("decompose-hint")).toContainText("6");
   });
 
   test("criticality step renders read-only canvas and a 1-6 ranking input per node", async ({

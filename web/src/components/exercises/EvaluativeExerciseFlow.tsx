@@ -77,6 +77,7 @@ import {
 import { computeDisqualifiedOptions } from "@/lib/analytics/evaluative-dealbreaker";
 import { getLanguageLevelForRequest } from "@/lib/db/settings";
 import { putExercise, getExercise } from "@/lib/db/exercises";
+import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
 import { getUserContext } from "@/lib/db/settings";
 import { completePracticeExercise } from "@/lib/db/complete-exercise";
 import { useSaveOnLeave } from "@/lib/hooks/useSaveOnLeave";
@@ -432,6 +433,7 @@ export function EvaluativeExerciseFlow({
         currentStep: 1,
       };
       await putExercise(row);
+      rememberExerciseInUrl(row);
       setExercise(row);
       if (row.variant === "matrix") {
         setPlacements({});

@@ -131,3 +131,43 @@ test.describe("State preservation - Evaluative", () => {
   });
 });
 
+test.describe("State preservation - leaving an exercise", () => {
+  test.beforeEach(async ({ page }) => {
+    await bypassFirebaseAuth(page);
+    await stubFirestoreReads(page);
+  });
+
+  test("Back, Forward and reload return to the exercise; opening the topic again offers Continue or Start over", async ({
+    page,
+  }) => {
+    await gotoAuthenticated(page, "/reasoning");
+    await page.getByTestId("topic-generate").click();
+    const list = page.getByTestId("topic-list").getByTestId("topic-row");
+    await list.first().click();
+    await page.waitForURL(/\/exercise\/judgment\?domain=/, { timeout: 15_000 });
+    await page.getByRole("button", { name: "Generate exercise" }).click();
+    await expect(page.getByTestId("concept-list")).toBeVisible({ timeout: 15_000 });
+    await expect(page).toHaveURL(/\/exercise\/judgment\?resumeId=/);
+
+    await page.goBack();
+    await expect(list).toHaveCount(10);
+    await page.goForward();
+    await expect(page.getByTestId("concept-list")).toBeVisible({ timeout: 15_000 });
+    await page.reload();
+    await expect(page.getByTestId("concept-list")).toBeVisible({ timeout: 15_000 });
+
+    await page.goBack();
+    await expect(list).toHaveCount(10);
+    await list.first().click();
+    await expect(page.getByTestId("unfinished-topic")).toBeVisible();
+    await page.getByTestId("unfinished-continue").click();
+    await expect(page.getByTestId("concept-list")).toBeVisible({ timeout: 15_000 });
+
+    await page.goBack();
+    await expect(page.getByTestId("unfinished-topic")).toBeVisible();
+    page.once("dialog", (d) => void d.accept());
+    await page.getByTestId("unfinished-start-over").click();
+    await expect(page.getByTestId("unfinished-topic")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Generate exercise" })).toBeVisible();
+  });
+});

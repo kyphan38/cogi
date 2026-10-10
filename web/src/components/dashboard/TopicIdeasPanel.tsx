@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { Bookmark, BookmarkCheck, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
+import { getSavedTopics, setSavedTopics } from "@/lib/db/saved-topics";
+import { readSessionState, writeSessionState } from "@/lib/session-state";
 import { requestTopicIdeas } from "@/lib/topics/client";
+import { savedTopicKey, toggleSavedTopic, type SavedTopic } from "@/lib/topics/saved-topics";
 import {
   AI_TOPIC_MODES,
   calibrationIdeas,
@@ -39,6 +42,19 @@ const selectClass =
 /** Up to this many modes are suggested for a scenario. */
 const SUGGESTED_MODES = 3;
 
+/** What the panel shows, kept for this tab so going back to the page restores it. */
+interface PanelState {
+  input: "domain" | "scenario";
+  modeFilter: ModeFilter;
+  groupId: string;
+  domain: string;
+  ideas: TopicIdea[] | null;
+  scenario: string;
+  recs: Recommendation[] | null;
+}
+
+const panelStateKey = (fixedMode?: ThinkingType) => `cogi:topic-panel:${fixedMode ?? "all"}`;
+
 const topicHref = (idea: TopicIdea) => `/exercise/${idea.mode}?domain=${encodeURIComponent(idea.mode === "calibration" ? idea.domain : idea.title)}`;
 
 /**
@@ -46,6 +62,7 @@ const topicHref = (idea: TopicIdea) => `/exercise/${idea.mode}?domain=${encodeUR
  * concrete topics. A row opens the setup of its mode with the topic filled in. With
  * "Specific scenario", the learner's own text goes straight to a fitting mode.
  * `fixedMode` is set on "A mode": the mode filter is hidden and rows show no mode.
+ * Filters and the list are restored when the user comes back; topics can be saved.
  */
 export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
   const router = useRouter();
@@ -58,16 +75,62 @@ export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
   const [error, setError] = useState<string | null>(null);
   const [scenario, setScenario] = useState("");
   const [recs, setRecs] = useState<Recommendation[] | null>(null);
+  const [saved, setSaved] = useState<SavedTopic[]>([]);
+  // False until the saved state is applied, so the first render's defaults never overwrite it.
+  const [ready, setReady] = useState(false);
+
+  // Restore after mount so the server and first client render match.
+  useEffect(() => {
+    const s = readSessionState<PanelState>(panelStateKey(fixedMode));
+    if (s) {
+      if (scenarioAllowedFor(fixedMode)) setInput(s.input);
+      if (!fixedMode) setModeFilter(s.modeFilter);
+      setGroupId(s.groupId);
+      setDomain(s.domain);
+      setIdeas(s.ideas);
+      setScenario(s.scenario);
+      setRecs(s.recs);
+    }
+    setReady(true);
+    void getSavedTopics()
+      .then(setSaved)
+      .catch(() => setSaved([]));
+  }, [fixedMode]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const state: PanelState = { input, modeFilter, groupId, domain, ideas, scenario, recs };
+    writeSessionState(panelStateKey(fixedMode), state);
+  }, [ready, fixedMode, input, modeFilter, groupId, domain, ideas, scenario, recs]);
+
+  const toggleSaved = (idea: TopicIdea) => {
+    const prev = saved;
+    const next = toggleSavedTopic(prev, idea);
+    setSaved(next);
+    setSavedTopics(next).catch(() => {
+      setSaved(prev);
+      setError("Could not save the topic. Check your connection.");
+    });
+  };
+  const savedKeys = new Set(saved.map(savedTopicKey));
+  const savedHere = fixedMode ? saved.filter((t) => t.mode === fixedMode) : saved;
 
   const mode = fixedMode ? (fixedMode as ModeFilter) : modeFilter;
   const isCalibration = mode === "calibration";
   const groups = mode === "all" || isCalibration ? TOPIC_GROUPS : groupsForMode(mode as AiTopicMode);
   const group = topicGroupById(groupId);
-  const scenarioAllowed = !fixedMode || (SCENARIO_MODES as readonly string[]).includes(fixedMode);
+  const scenarioAllowed = scenarioAllowedFor(fixedMode);
 
   const resetList = () => {
     setIdeas(null);
     setError(null);
+  };
+
+  const clearAll = () => {
+    if (!fixedMode) setModeFilter("all");
+    setGroupId("");
+    setDomain("");
+    resetList();
   };
 
   const generate = async () => {
@@ -233,14 +296,24 @@ export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
           ) : loading && !ideas ? (
             <p className="text-muted-foreground text-sm">Finding 10 topics for you. This takes about 15 seconds.</p>
           ) : ideas ? (
-            <div className={cn(loading && "opacity-60")}>
-              <TopicList ideas={ideas} showMode={!fixedMode} />
+            <div className={cn("space-y-2", loading && "opacity-60")}>
+              <TopicList ideas={ideas} showMode={!fixedMode} savedKeys={savedKeys} onToggleSave={toggleSaved} />
+              <button type="button" className="text-muted-foreground text-xs underline underline-offset-4" onClick={clearAll} data-testid="topic-clear">
+                Clear list and filters
+              </button>
             </div>
           ) : (
             <p className="text-muted-foreground text-sm">
               Choose filters if you like, then press Generate. Leave them on &quot;Any&quot; for a mix.
             </p>
           )}
+
+          {!isCalibration && savedHere.length > 0 ? (
+            <div className="space-y-2" data-testid="saved-topics">
+              <p className="text-sm font-medium">Saved topics</p>
+              <TopicList ideas={savedHere} showMode={!fixedMode} savedKeys={savedKeys} onToggleSave={toggleSaved} testId="saved-topic-list" />
+            </div>
+          ) : null}
         </>
       ) : (
         <div className="space-y-3">
@@ -309,30 +382,64 @@ export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
   );
 }
 
-function TopicList({ ideas, showMode, note }: { ideas: TopicIdea[]; showMode: boolean; note?: string }) {
+function scenarioAllowedFor(fixedMode?: ThinkingType): boolean {
+  return !fixedMode || (SCENARIO_MODES as readonly string[]).includes(fixedMode);
+}
+
+function TopicList({
+  ideas,
+  showMode,
+  note,
+  savedKeys,
+  onToggleSave,
+  testId = "topic-list",
+}: {
+  ideas: TopicIdea[];
+  showMode: boolean;
+  note?: string;
+  savedKeys?: Set<string>;
+  onToggleSave?: (idea: TopicIdea) => void;
+  testId?: string;
+}) {
   return (
     <div className="space-y-2">
       {note ? <p className="text-muted-foreground text-sm">{note}</p> : null}
-      <ol className="space-y-2" data-testid="topic-list">
-        {ideas.map((idea, i) => (
-          <li key={`${idea.mode}-${idea.title}`}>
-            <Link
-              href={topicHref(idea)}
-              className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm hover:bg-zinc-50"
-              data-testid="topic-row"
-            >
-              <span className="text-muted-foreground w-5 shrink-0 text-right tabular-nums">{i + 1}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-zinc-900">{idea.title}</span>
-                <span className="text-muted-foreground block text-xs">
-                  {showMode ? `${TYPE_LABEL[idea.mode] ?? idea.mode} · ` : ""}
-                  {idea.domain}
+      <ol className="space-y-2" data-testid={testId}>
+        {ideas.map((idea, i) => {
+          const isSaved = savedKeys?.has(savedTopicKey(idea)) ?? false;
+          return (
+            <li key={`${idea.mode}-${idea.title}`} className="flex items-stretch gap-1">
+              <Link
+                href={topicHref(idea)}
+                className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm hover:bg-zinc-50"
+                data-testid="topic-row"
+              >
+                <span className="text-muted-foreground w-5 shrink-0 text-right tabular-nums">{i + 1}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-zinc-900">{idea.title}</span>
+                  <span className="text-muted-foreground block text-xs">
+                    {showMode ? `${TYPE_LABEL[idea.mode] ?? idea.mode} · ` : ""}
+                    {idea.domain}
+                  </span>
                 </span>
-              </span>
-              <ChevronRight className="size-4 shrink-0 text-zinc-400" aria-hidden />
-            </Link>
-          </li>
-        ))}
+                <ChevronRight className="size-4 shrink-0 text-zinc-400" aria-hidden />
+              </Link>
+              {onToggleSave ? (
+                <button
+                  type="button"
+                  onClick={() => onToggleSave(idea)}
+                  aria-label={isSaved ? `Remove "${idea.title}" from saved topics` : `Save "${idea.title}"`}
+                  aria-pressed={isSaved}
+                  title={isSaved ? "Saved" : "Save for later"}
+                  className="flex w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+                  data-testid="topic-save"
+                >
+                  {isSaved ? <BookmarkCheck className="size-4 text-zinc-900" aria-hidden /> : <Bookmark className="size-4" aria-hidden />}
+                </button>
+              ) : null}
+            </li>
+          );
+        })}
       </ol>
     </div>
   );

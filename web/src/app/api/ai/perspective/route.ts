@@ -34,6 +34,7 @@ import { calibrationCoachingRefs, scoreCalibration } from "@/lib/exercise/calibr
 import { CALIBRATION_LEVELS } from "@/lib/exercise/calibration-levels";
 import { buildCalibrationPerspectivePrompt } from "@/lib/ai/prompts/calibration-perspective";
 import { reframeCoachingRefs, scoreReframe } from "@/lib/exercise/reframe-score";
+import { pickTrapCards, sanitizeTrapCards } from "@/lib/exercise/reframe-trap-cards";
 import { REFRAME_LEVELS } from "@/lib/exercise/reframe-levels";
 import { buildReframePerspectivePrompt } from "@/lib/ai/prompts/reframe-perspective";
 import { scoreStrategy, strategyCoachingRefs } from "@/lib/exercise/strategy-score";
@@ -69,8 +70,10 @@ export const maxDuration = 60;
 async function generateCoaching(
   prompt: string,
   languageAppendix: string | undefined,
-  refs: { required: string[]; allowed: string[]; requireMetaNote?: boolean },
+  refs: { required: string[]; allowed: string[]; requireMetaNote?: boolean; takeawaysOptional?: boolean },
   heading: (ref: string) => string,
+  /** A reason to retry once when the reply parses but is incomplete; the second reply is kept. */
+  retryIf?: (data: CoachingStructured) => string | null,
 ): Promise<{ structured: CoachingStructured; text: string }> {
   const fullPrompt = [prompt, languageAppendix].filter(Boolean).join("\n\n");
   const parse = (raw: string) =>
@@ -78,9 +81,16 @@ async function generateCoaching(
       requiredRefs: refs.required,
       allowedRefs: refs.allowed,
       requireMetaNote: refs.requireMetaNote,
+      takeawaysOptional: refs.takeawaysOptional,
     });
   let parsed = parse(await generateAnalyticalExerciseRaw(fullPrompt, "thinking"));
-  if (!parsed.success) {
+  const incomplete = parsed.success ? retryIf?.(parsed.data) : null;
+  if (incomplete) {
+    const second = parse(
+      await generateAnalyticalExerciseRaw(`${fullPrompt}\n${COACHING_RETRY_SUFFIX}\nReason: ${incomplete}`, "thinking"),
+    );
+    if (second.success) parsed = second;
+  } else if (!parsed.success) {
     parsed = parse(
       await generateAnalyticalExerciseRaw(
         `${fullPrompt}\n${COACHING_RETRY_SUFFIX}\nReason: ${parsed.error}`,
@@ -215,19 +225,32 @@ export async function POST(req: Request) {
       rewriteWritten: cfg.rewrite !== "choose",
     });
     const refs = reframeCoachingRefs(result);
+    const cardTraps = pickTrapCards(exercise.thoughts, exercise.rewrite, result);
+    const cardCtx = { domain: exercise.domain, balanced: exercise.rewrite.options[exercise.rewrite.answerIndex] ?? "" };
     const prompt = buildReframePerspectivePrompt({
       exercise,
       result,
       requiredRefs: refs.required,
+      cardTraps,
       userContext: typeof b.userContext === "string" ? b.userContext : undefined,
     });
     try {
-      const { structured, text } = await generateCoaching(prompt, languageAppendix, refs, (ref) => {
-        if (ref === "rewrite") return "Your balanced thought";
-        const t = exercise.thoughts.find((x) => `thought_${x.id}` === ref);
-        return t ? `Thought: ${t.text}` : ref;
-      });
-      return NextResponse.json({ ok: true, structured, text, result });
+      const { structured, text } = await generateCoaching(
+        prompt,
+        languageAppendix,
+        { ...refs, takeawaysOptional: true },
+        (ref) => {
+          if (ref === "rewrite") return "Your balanced thought";
+          const t = exercise.thoughts.find((x) => `thought_${x.id}` === ref);
+          return t ? `Thought: ${t.text}` : ref;
+        },
+        (data) =>
+          sanitizeTrapCards(data.trapCards, cardTraps, cardCtx).length < cardTraps.length
+            ? `trapCards: one complete card for each of ${cardTraps.join(", ")}`
+            : null,
+      );
+      const checked = { ...structured, takeaways: [], trapCards: sanitizeTrapCards(structured.trapCards, cardTraps, cardCtx) };
+      return NextResponse.json({ ok: true, structured: checked, text, result });
     } catch (e) {
       const message = e instanceof Error ? e.message : "Unknown error";
       const timeout = e instanceof Error && (e.name === "AbortError" || /time(d)? ?out/i.test(e.message));

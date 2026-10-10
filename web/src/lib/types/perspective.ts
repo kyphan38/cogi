@@ -1,3 +1,5 @@
+import type { TrapCardAi } from "@/lib/exercise/reframe-trap-cards";
+
 export type PerspectiveKind =
   | "analytical"
   | "systems"
@@ -139,6 +141,8 @@ export interface AnalyticalCoachingStructured {
  */
 export interface CoachingStructured extends Omit<AnalyticalCoachingStructured, "perspectiveFormat"> {
   perspectiveFormat: "coaching_v3";
+  /** Reframe only: the AI's examples for each trap card, already checked in code. */
+  trapCards?: TrapCardAi[];
 }
 
 export type AIPerspectiveStructured =

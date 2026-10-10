@@ -53,6 +53,19 @@ test.describe("Reframe", () => {
     await expect(key.getByText("You picked the balanced thought")).toBeVisible();
     await expect(key.getByText("Mock why: one comment does not end a job.")).toBeVisible();
     await expect(key.getByText("Embarrassed, before → after")).toBeVisible();
+    // "You: ..." only where the pick differs from the answer.
+    await expect(key.getByText("You: All-or-nothing")).toBeVisible();
+    await expect(key.getByText("You: Mind reading")).toHaveCount(0);
+
+    // Take with you: the missed name first, then the next trap; the fixed guide plus the AI's examples.
+    const cards = key.getByTestId("trap-card");
+    await expect(cards).toHaveCount(2);
+    await expect(cards.first()).toContainText("Catastrophizing");
+    await expect(cards.first()).toContainText("What is the worst result, the best result, and the most likely one?");
+    await expect(cards.first()).toContainText("Mock: that sounds scary. What is most likely to happen?");
+    await expect(cards.first()).toContainText("Same trap, other place: Health");
+    await expect(cards.nth(1)).toContainText("Mind reading");
+    await expect(key.getByTestId("answer-key-takeaways")).toHaveCount(0);
     await page.getByRole("button", { name: "Finish" }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 15_000 });
 

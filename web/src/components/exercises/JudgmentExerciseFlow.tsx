@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import { getExercise, putExercise } from "@/lib/db/exercises";
+import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
 import { completePracticeExercise } from "@/lib/db/complete-exercise";
 import {
   dismissLevelSuggestion,
@@ -257,6 +258,7 @@ export function JudgmentExerciseFlow({
         currentStep: 1,
       };
       await putExercise(row);
+      rememberExerciseInUrl(row);
       setExercise(row);
       setLensIndex(0);
       setPerspectiveStructured(null);

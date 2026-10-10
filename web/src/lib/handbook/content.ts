@@ -88,6 +88,9 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "A long text (120 words or more) in Analytical is analysed as it is. A shorter one becomes the base of a new passage.",
       "Start from a mode: pick a mode, choose an area and domain if you like, then press Generate for 10 topics for that mode. Or choose \"Specific scenario\" to start that mode with your own text.",
       "Tap a topic to open the exercise with it filled in. You still choose your level there.",
+      "Like a topic? Tap the bookmark next to it. Saved topics show under \"Saved topics\", so you can start them later without generating again. Tap the bookmark again to remove one.",
+      "Go back from an exercise and your list of topics is still there. Press \"Clear list and filters\" to start fresh.",
+      "Left an exercise half way? Back, Forward or a reload opens it at the same step. Open the same topic again and you can choose Continue or Start over.",
       "Inside an exercise, the quick buttons (Work, Family, Negotiation...) are a shortcut for a broad area. The Practice page is for a specific topic.",
       "Calibration uses a checked question bank, so it offers its own topics (Science, History, Vietnam...) without Generate.",
       "Nothing is generated until you press Generate.",
@@ -95,6 +98,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     tips: [
       "Not sure where to start? Leave every filter on \"Any\" for a mix of topics and modes.",
       "Your choice of topic or mode is remembered on this device.",
+      "Saved topics are kept with your account, so they are on every device.",
     ],
   },
   {
@@ -287,6 +291,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "You notice when a thought is bigger or darker than the facts.",
       "You can calm a strong feeling by checking the thought behind it.",
       "You learn that balanced is not the same as positive.",
+      "You take each trap into real life: how to spot it, what to do, and what to say when a friend falls into it.",
     ],
     howToPractice: [
       "Learn first: read the traps for this exercise and answer the quick check.",
@@ -295,6 +300,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Some thoughts are fair. Mark them Realistic, even when they are unpleasant.",
       "Rewrite one thought. Keep the true bad parts; drop what the facts do not show.",
       "From Standard, use \"My situation\" to practise on something that really happened to you.",
+      "At the end, \"Take with you\" has a card for 1 or 2 traps. A trap you missed comes first. Each card shows how to spot it, what to ask yourself, what to say to someone else, the same trap in another part of life, and one thing to try this week.",
     ],
     levels: {
       guided: "An everyday situation. 4 thoughts, one at a time, with the answer shown. 4 traps to pick from. You know 3 are traps and 1 is realistic. Then choose the balanced thought from 3.",
@@ -304,6 +310,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     tips: [
       "\"Everything will be fine\" is not a reframe. It has no evidence either.",
       "Finding a trap matters more than its exact name. Traps often overlap.",
+      "When a friend falls into a trap, ask about the facts. Do not tell them the name of the trap.",
       "This is thinking practice, not therapy. If you are in crisis, talk to a person you trust or a professional.",
     ],
   },

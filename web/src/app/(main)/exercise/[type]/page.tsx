@@ -1,58 +1,18 @@
-import { AnalyticalExerciseFlow } from "@/components/exercises/AnalyticalExerciseFlow";
-import { EvaluativeExerciseFlow } from "@/components/exercises/EvaluativeExerciseFlow";
-import { SystemsExerciseFlow } from "@/components/exercises/SystemsExerciseFlow";
-import { JudgmentExerciseFlow } from "@/components/exercises/JudgmentExerciseFlow";
-import { StrategyExerciseFlow } from "@/components/exercises/StrategyExerciseFlow";
-import { ReframeExerciseFlow } from "@/components/exercises/ReframeExerciseFlow";
-import { CalibrationExerciseFlow } from "@/components/exercises/CalibrationExerciseFlow";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import { ExerciseFlowHost } from "@/components/exercises/ExerciseFlowHost";
+import { PRACTICE_EXERCISE_TYPES } from "@/lib/exercise/exercise-mode-cards";
 
-type FlowComponent = React.ComponentType<{
-  resumeId?: string;
-  initialDomain?: string;
-  initialSource?: "generated" | "real_data" | "custom_scenario";
-  autoGenerate?: boolean;
-}>;
+const TYPES = new Set<string>(PRACTICE_EXERCISE_TYPES);
 
-const FLOW_BY_TYPE: Record<string, FlowComponent> = {
-  analytical: AnalyticalExerciseFlow,
-  systems: SystemsExerciseFlow,
-  evaluative: EvaluativeExerciseFlow,
-  judgment: JudgmentExerciseFlow,
-  strategy: StrategyExerciseFlow,
-  reframe: ReframeExerciseFlow,
-  calibration: CalibrationExerciseFlow,
-};
-
-const VALID_SOURCES = new Set(["generated", "real_data", "custom_scenario"]);
-
-export default async function ExerciseTypePage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ type: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+export default async function ExerciseTypePage({ params }: { params: Promise<{ type: string }> }) {
   const { type } = await params;
-  const sp = await searchParams;
-  const resumeId = typeof sp.resumeId === "string" ? sp.resumeId : undefined;
-  const initialDomain =
-    typeof sp.domain === "string" ? decodeURIComponent(sp.domain).trim() : undefined;
-  const rawSource = typeof sp.source === "string" ? sp.source : undefined;
-  const initialSource = rawSource && VALID_SOURCES.has(rawSource)
-    ? (rawSource as "generated" | "real_data" | "custom_scenario")
-    : undefined;
-  const autoGenerate = sp.autoGenerate === "1";
-  const Flow = FLOW_BY_TYPE[type];
-  if (!Flow) notFound();
+  if (!TYPES.has(type)) notFound();
   return (
     <main>
-      <Flow
-        resumeId={resumeId}
-        initialDomain={resumeId ? undefined : initialDomain || undefined}
-        initialSource={resumeId ? undefined : initialSource}
-        autoGenerate={!resumeId && autoGenerate && !!initialDomain}
-      />
+      <Suspense>
+        <ExerciseFlowHost type={type} />
+      </Suspense>
     </main>
   );
 }

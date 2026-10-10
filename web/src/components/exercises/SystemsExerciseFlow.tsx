@@ -79,6 +79,7 @@ import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { DomainInput } from "@/components/shared/DomainInput";
 import { TopicSuggestionPicker } from "@/components/shared/TopicSuggestionPicker";
 import { listRecentDomains, putExercise, getExercise } from "@/lib/db/exercises";
+import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
 import { isSystemsExercise } from "@/lib/types/exercise";
 import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
 
@@ -374,6 +375,7 @@ export function SystemsExerciseFlow({
         currentStep: 1,
       };
       await putExercise(row);
+      rememberExerciseInUrl(row);
       setExercise(row);
       setUserEdges([]);
       setNodeImpact(emptyImpact(ids));
@@ -837,7 +839,7 @@ export function SystemsExerciseFlow({
             <p className="text-sm leading-relaxed">{exercise.scenario}</p>
             {decomposePhase === "input" ? (
               <div className="space-y-3">
-                <p className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground text-sm" data-testid="decompose-hint">
                   Pick the 6 factors that matter most.
                 </p>
                 {exLevel.componentCandidates &&
@@ -990,7 +992,7 @@ export function SystemsExerciseFlow({
               mode="connect"
               nodeImpact={nodeImpact}
             />
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground text-xs" data-testid="connect-hint">
               Drag bottom → top to link. Max {20}. Backspace deletes.
             </p>
             {userEdges.length > 0 ? (

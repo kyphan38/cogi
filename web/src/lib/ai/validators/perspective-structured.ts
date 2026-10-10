@@ -110,8 +110,10 @@ function coachingSchemaFor<F extends "analytical_v3" | "coaching_v3">(format: F)
     perspectiveFormat: z.literal(format),
     title: z.string().min(1),
     items: z.array(coachingItemSchema),
-    takeaways: z.array(z.string().min(1)).min(1).max(2),
+    takeaways: z.array(z.string().min(1)).max(2),
     metaNote: z.string().min(1).optional(),
+    /** Reframe only: examples for the trap cards; checked in code (reframe-trap-cards.ts). */
+    trapCards: z.array(z.unknown()).optional(),
   });
 }
 
@@ -127,7 +129,13 @@ export type ParseCoachingResult =
   | { success: true; data: CoachingStructured }
   | { success: false; error: string };
 
-type CoachingParseOpts = { requiredRefs: string[]; allowedRefs: string[]; requireMetaNote?: boolean };
+type CoachingParseOpts = {
+  requiredRefs: string[];
+  allowedRefs: string[];
+  requireMetaNote?: boolean;
+  /** Reframe ends with trap cards instead of takeaways. */
+  takeawaysOptional?: boolean;
+};
 
 /**
  * Parse analytical v3 feedback and check it covers every case the code asked about.
@@ -170,6 +178,9 @@ function parseCoachingWith(
   const missing = opts.requiredRefs.filter((r) => !seen.has(r));
   if (missing.length > 0) {
     return { success: false, error: `items missing for refs: ${missing.join(", ")}` };
+  }
+  if (!opts.takeawaysOptional && result.data.takeaways.length === 0) {
+    return { success: false, error: "takeaways: at least 1 is required" };
   }
   if (opts.requireMetaNote && !result.data.metaNote) {
     return { success: false, error: "metaNote is required for geopolitics passages" };
