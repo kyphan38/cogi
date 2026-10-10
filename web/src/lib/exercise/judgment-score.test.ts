@@ -32,15 +32,20 @@ describe("scoreJudgment", () => {
   it("records each response's two ranks", () => {
     const r = score(["r1", "r2", "r4", "r3"]);
     expect(r.responses.find((x) => x.id === "r1")).toEqual({ id: "r1", userRank: 1, expertRank: 2 });
-    expect(r.closeness).toBe(0.75);
+    // One swapped pair out of 6.
+    expect(r.closeness).toBe(0.83);
     expect(r.topMatch).toBe(false);
   });
 
   it("works for three responses", () => {
     const three = responses.slice(0, 2).concat({ id: "r3", text: "c", expertRank: 3, why: "w" });
-    const r = scoreJudgment({ responses: three, userOrder: ["r3", "r1", "r2"], lensQuestions, lensAnswers: {}, lensFreeText: false });
-    // Distances 2 + 1 + 1 = 4 over a maximum of 4.
-    expect(r.closeness).toBe(0);
+    const at = (userOrder: string[]) =>
+      scoreJudgment({ responses: three, userOrder, lensQuestions, lensAnswers: {}, lensFreeText: false }).closeness;
+    // Expert order is r2, r1, r3. Every step counts: 3, 2, 1 or 0 pairs of 3.
+    expect(at(["r2", "r1", "r3"])).toBe(1);
+    expect(at(["r1", "r2", "r3"])).toBe(0.67);
+    expect(at(["r3", "r2", "r1"])).toBe(0.33);
+    expect(at(["r3", "r1", "r2"])).toBe(0);
   });
 
   it("checks lens readings, or leaves them open for free text", () => {

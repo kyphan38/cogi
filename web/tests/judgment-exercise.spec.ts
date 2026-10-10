@@ -61,7 +61,13 @@ test.describe("Life situations", () => {
     await expect(key).toBeVisible({ timeout: 15_000 });
     await expect(key.getByText("Same best response")).toBeVisible();
     await expect(key.getByText("Mock why: a private talk saves face.")).toBeVisible();
-    await expect(key.getByTestId("answer-key-takeaways")).toContainText("talk in private first");
+    await expect(key.getByText("Pairs like the expert")).toBeVisible();
+    // "Take with you": lens cards with the fixed guide and the AI's examples.
+    await expect(key.getByTestId("answer-key-takeaways")).toHaveCount(0);
+    const cards = key.getByTestId("trap-card");
+    await expect(cards).toHaveCount(2);
+    await expect(cards.first()).toContainText("Spot it");
+    await expect(cards.first()).toContainText("Mock reply: that hurt. What do you think was going on for him?");
 
     await page.getByRole("button", { name: "Finish" }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 15_000 });

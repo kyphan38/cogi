@@ -237,12 +237,15 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     benefits: [
       "Calmer, wiser reactions at work, with family and with money.",
       "Practice for the IQ / EQ / AQ side of life: clear thinking, reading people, and staying steady under pressure.",
+      "You take each lens into real life: when you need it, what to do, and how to help a friend use it.",
     ],
     howToPractice: [
       "Learn first: read the three ideas and answer the quick check.",
       "Look at the situation through each lens before you decide anything.",
       "Rank the ways to respond, best first, and write one sentence on why.",
       "From Standard, use \"My situation\" to practise on something that really happened to you.",
+      "Your order is compared pair by pair: \"2/3 pairs like the expert\" means you put 2 of the 3 pairs in the same order.",
+      "At the end, \"Take with you\" has a card for 1 or 2 lenses. A lens you read differently comes first. Each card shows when you need it, what to ask, how to help someone else, the same lens in another part of life, and one thing to try this week.",
     ],
     levels: {
       guided: "A short everyday situation. One lens question at a time, with the answer shown. Rank 3 responses.",
@@ -252,6 +255,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     tips: [
       "Choose the Vietnam setting for situations that fit Vietnamese work and family life.",
       "My situation is saved with your exercises. Leave out real names.",
+      "A lens shows how to see the situation, not what to do. The choice is still yours.",
     ],
   },
   {

@@ -5,8 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Coaching, CoachingFooter, Row, Section, Stat, type Status } from "@/components/shared/AnswerKeyParts";
 import type { JudgmentExerciseRow } from "@/lib/types/exercise";
 import type { AnalyticalCoachingStructured, CoachingStructured } from "@/lib/types/perspective";
-import type { JudgmentResult } from "@/lib/exercise/judgment-score";
+import { pairsLikeExpert, type JudgmentResult } from "@/lib/exercise/judgment-score";
 import { LENS_INFO } from "@/lib/exercise/judgment-levels";
+import { JUDGMENT_LENS_GUIDE } from "@/lib/exercise/judgment-lens-guide";
+import { pickLensCards } from "@/lib/exercise/judgment-lens-cards";
+import { TakeWithYouCards } from "@/components/shared/TakeWithYouCards";
+
+const CARD_LABELS = { self: "When it's you", elsewhere: "Same lens, other place", balanced: "With the lens" };
 
 /**
  * Life-situation results: the user's order next to the expert's, each lens, and the
@@ -29,6 +34,8 @@ export function JudgmentAnswerKey({
   const byExpert = [...exercise.responses].sort((a, b) => a.expertRank - b.expertRank);
   const n = exercise.responses.length;
   const lensesChecked = result.lenses.filter((l) => l.correct !== null);
+  // From the two ranks, so rows saved with the older closeness score show the same thing.
+  const pairs = pairsLikeExpert(result.responses);
 
   return (
     <Card data-testid="judgment-answer-key">
@@ -38,7 +45,7 @@ export function JudgmentAnswerKey({
       <CardContent className="space-y-6 text-sm leading-relaxed">
         <div className="grid grid-cols-3 gap-2">
           <Stat label="Same best response" value={result.topMatch ? "Yes" : "No"} />
-          <Stat label="Order close" value={`${Math.round(result.closeness * 100)}%`} />
+          <Stat label="Pairs like the expert" value={`${pairs.agree}/${pairs.total}`} />
           <Stat
             label="Lenses matched"
             value={
@@ -56,7 +63,8 @@ export function JudgmentAnswerKey({
           {byExpert.map((resp) => {
             const row = result.responses.find((x) => x.id === resp.id)!;
             const gap = Math.abs(row.userRank - row.expertRank);
-            const status: Status = gap === 0 ? "right" : gap === 1 ? "partly" : "wrong";
+            // Never "wrong": the expert order is a reference, not the answer.
+            const status: Status = gap === 0 ? "right" : "partly";
             return (
               <Row
                 key={resp.id}
@@ -100,6 +108,11 @@ export function JudgmentAnswerKey({
         ) : null}
 
         <CoachingFooter coaching={coaching} metaTitle="Your reason" />
+        <TakeWithYouCards
+          entries={pickLensCards(exercise.responses, result).map((l) => ({ key: l, name: LENS_INFO[l].name, guide: JUDGMENT_LENS_GUIDE[l] }))}
+          cards={coaching?.trapCards}
+          labels={CARD_LABELS}
+        />
       </CardContent>
     </Card>
   );
