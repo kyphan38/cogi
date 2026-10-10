@@ -8,6 +8,7 @@ import type {
 } from "@/lib/types/exercise";
 import type { SystemsResult } from "@/lib/exercise/systems-score";
 import { CONNECTION_TYPE_INFO, IMPACT_LABELS } from "@/lib/exercise/systems-labels";
+import { SYSTEMS_IDEA_GUIDE, SYSTEMS_IDEA_NAMES, type SystemsIdea } from "@/lib/exercise/systems-idea-guide";
 
 /**
  * The cases the AI must explain, one block per ref. Verdicts come from code
@@ -35,7 +36,9 @@ export function buildSystemsCoachingCases(input: {
       : c.direction === "reversed"
         ? `FOUND BUT REVERSED - drew ${label(ic.to)} -> ${label(ic.from)} (${typeName(c.userType!)}).`
         : c.exact
-          ? "CORRECT - same direction and type."
+          ? c.userType === ic.type
+            ? "CORRECT - same direction and type."
+            : `CORRECT - drew it as "${typeName(c.userType!)}" the other way, which means the same.`
           : `FOUND, OTHER TYPE - drew it as "${typeName(c.userType!)}".`;
     blocks.push(
       [
@@ -90,8 +93,13 @@ export function buildSystemsShockPerspectivePrompt(input: {
   criticalityGroundTruth?: SystemsNodeCriticalityHint[];
   userCriticalityRanking?: Record<string, number>;
   secondShockEvent?: SystemsShockEvent;
+  /** Systems ideas that get a "Take with you" card, picked in code (pickSystemsCards). */
+  cardIdeas?: SystemsIdea[];
 }): string {
   const ctx = input.userContext?.trim() || "(none)";
+  const cardLines = (input.cardIdeas ?? [])
+    .map((k) => `- ${k} (${SYSTEMS_IDEA_NAMES[k]}): ${SYSTEMS_IDEA_GUIDE[k].spot} How to help others: ${SYSTEMS_IDEA_GUIDE[k].othersTip}`)
+    .join("\n");
   const r = input.result;
   const isGeo = Boolean(
     input.perspectiveAName && input.perspectiveBName && input.intendedConnectionsB && input.shockEventB,
@@ -145,7 +153,7 @@ Connection types (arrow A -> B): ${Object.values(CONNECTION_TYPE_INFO)
 
 SCORE (already decided by code - final, do not change or argue with it):
 - Found ${r.connectionsFound} of ${r.connectionsTotal} model connections (${r.connectionsExact} with the same direction and type); drew ${r.extraEdgeIds.length} connections the model does not have.
-- Marked ${r.impactsCorrect} of ${r.impactsTotal} nodes the same as the model under the shock.
+- Of the ${r.impactsTotal} nodes the model or the user marks as affected, ${r.impactsCorrect} are marked the same as the model.
 - Confidence before feedback: ${input.confidenceBefore}%.
 
 CASES (each verdict is final):
@@ -158,9 +166,13 @@ Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
   "items": [
     { "ref": string (a ref from CASES), "why": string, "clue": string, "nextTimeAsk": string }
   ],
-  "takeaways": [string] (1-2 items)${isGeo || isResilience ? `,
-  "metaNote": string` : ""}
+  "takeaways": [] (always empty: the cards below replace them)${isGeo || isResilience ? `,
+  "metaNote": string` : ""},
+  "trapCards": [ { "trap": string (an idea id from TAKE-WITH-YOU CARDS), "othersSay": string, "youCouldSay": string, "elsewhere": { "area": string, "thought": string, "balanced": string } } ] (exactly one per idea below, same order)
 }
+
+TAKE-WITH-YOU CARDS (the user takes these systems ideas into real life; the app already shows how to spot each one and what to ask):
+${cardLines || "(none)"}
 
 Write one item for each of these refs: ${input.requiredRefs.join(", ") || "(none)"}. You may add items for other refs in CASES, but keep it short.
 
@@ -174,7 +186,10 @@ How to write each item:
 - "clue": the words in the scenario or node descriptions that signal it (quote 2-6 words).
 - "nextTimeAsk": one question to ask yourself next time, at most 15 words.
 
-"takeaways": 1-2 short lessons for the next exercise. Focus on missed links and nodes marked differently first. If everything matched, say what to keep doing.
+How to write each card (plain words, not from this scenario):
+- "othersSay": one short sentence a colleague, friend or family member might say that misses this idea (for example a plan that ignores a ripple effect).
+- "youCouldSay": a kind reply that asks one question to help them see it. Never lecture and never use the idea's name. At most 25 words.
+- "elsewhere": the same idea in a different area of life than "${input.domain}" (for example work, family, money, health, a city, a team). "area" is that area in 1-3 words; "thought" is a plan or claim that misses the idea; "balanced" is the same plan with the idea in mind.
 
 Tone: warm and direct, like a patient coach. No numeric scores. No "stronger alternative". No academic words when a simple one works.
 Refs (like issue_1, node_3, option_o1) are only for the "ref" field: in the text, always use names, never ids.`;

@@ -314,6 +314,35 @@ function validateShockRefs(
   return errors;
 }
 
+/**
+ * The shock must be traceable: no node is both direct and indirect, and every indirect
+ * node is linked to another affected node. The user picks the node an indirect effect
+ * comes through; without such a link no answer could be right.
+ */
+export function shockPathErrors(
+  shock: { directlyAffected: string[]; indirectlyAffected: string[] },
+  connections: { from: string; to: string }[],
+  label: string,
+  /** Nodes already affected before this shock (a second, cascading shock). */
+  alsoAffected: string[] = [],
+): string[] {
+  const errors: string[] = [];
+  const direct = new Set(shock.directlyAffected);
+  for (const id of shock.indirectlyAffected) {
+    if (direct.has(id)) errors.push(`${label}: ${id} cannot be both directly and indirectly affected`);
+  }
+  const affected = new Set([...shock.directlyAffected, ...shock.indirectlyAffected, ...alsoAffected]);
+  for (const id of shock.indirectlyAffected) {
+    const linked = connections.some(
+      (c) => (c.from === id && c.to !== id && affected.has(c.to)) || (c.to === id && c.from !== id && affected.has(c.from)),
+    );
+    if (!linked) {
+      errors.push(`${label}: indirectly affected ${id} has no connection to another affected node; add the link the effect travels through`);
+    }
+  }
+  return errors;
+}
+
 /** Phase 3.4 semantic checks after Zod (ids, duplicates, min distance, shock refs). */
 export function validateSystemsExerciseSemantics(
   data: SystemsExercisePayload | GeopoliticsSystemsExercisePayload,
@@ -354,6 +383,7 @@ export function validateSystemsExerciseSemantics(
       "shockEvent",
     ),
   );
+  errors.push(...shockPathErrors(data.shockEvent, data.intendedConnections, "shockEvent"));
 
   const normalizedCandidates = data.componentCandidates.map((c) => c.trim().toLowerCase());
   if (new Set(normalizedCandidates).size !== normalizedCandidates.length) {
@@ -410,6 +440,7 @@ export function validateGeopoliticsSystemsSemantics(
         "shockEventB",
       ),
     );
+    errors.push(...shockPathErrors(data.shockEventB, data.intendedConnectionsB ?? [], "shockEventB"));
   }
 
   if (!hasDirectedCycle(data.intendedConnections)) {
@@ -457,6 +488,12 @@ export function validateResilienceSystemsSemantics(
       ids,
       "secondShockEvent",
     ),
+  );
+  errors.push(
+    ...shockPathErrors(data.secondShockEvent, data.intendedConnections, "secondShockEvent", [
+      ...data.shockEvent.directlyAffected,
+      ...data.shockEvent.indirectlyAffected,
+    ]),
   );
 
   const firstIndirect = new Set(data.shockEvent.indirectlyAffected);

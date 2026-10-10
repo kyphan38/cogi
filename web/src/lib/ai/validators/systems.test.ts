@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseSystemsExerciseJson,
   sanitizeSystemsNodesInPlace,
+  shockPathErrors,
   validateSystemsExerciseSemantics,
   validateGeopoliticsSystemsSemantics,
   validateResilienceSystemsSemantics,
@@ -196,6 +197,7 @@ describe("validateGeopoliticsSystemsSemantics", () => {
     intendedConnectionsB: [
       { from: "node_1" as const, to: "node_3" as const, type: "risks" as const, explanation: "Competition" },
       { from: "node_3" as const, to: "node_1" as const, type: "depends_on" as const, explanation: "Cycle" },
+      { from: "node_2" as const, to: "node_5" as const, type: "enables" as const, explanation: "Path" },
     ],
     shockEventB: { directlyAffected: ["node_2" as const], indirectlyAffected: ["node_5" as const], explanation: "Esc" },
   } as GeopoliticsSystemsExercisePayload;
@@ -251,6 +253,11 @@ const resiliencePayload: SystemsResilienceExercisePayload = {
   ...validPayload,
   variantKind: "resilience" as const,
   criticalityGroundTruth: makeCriticalityGroundTruth(),
+  // node_4 is reached from node_1, which the first shock already affects.
+  intendedConnections: [
+    ...validPayload.intendedConnections,
+    { from: "node_1" as const, to: "node_4" as const, type: "risks" as const, explanation: "Spillover" },
+  ],
   // shockEvent.indirectlyAffected includes node_1 (from validPayload), so the second shock must
   // touch node_1 to count as a genuine cascade.
   secondShockEvent: {
@@ -323,5 +330,27 @@ describe("validateResilienceSystemsSemantics", () => {
     };
     const errors = validateResilienceSystemsSemantics(bad);
     expect(errors.some((e) => e.includes("cascade"))).toBe(true);
+  });
+});
+
+describe("shockPathErrors", () => {
+  const links = [
+    { from: "node_1", to: "node_2" },
+    { from: "node_3", to: "node_2" },
+  ];
+
+  it("accepts an indirect node linked to an affected node, either way", () => {
+    expect(shockPathErrors({ directlyAffected: ["node_1"], indirectlyAffected: ["node_2"] }, links, "shockEvent")).toEqual([]);
+    expect(shockPathErrors({ directlyAffected: ["node_2"], indirectlyAffected: ["node_3"] }, links, "shockEvent")).toEqual([]);
+  });
+
+  it("rejects an indirect node with no path, and a node that is both", () => {
+    const errors = shockPathErrors({ directlyAffected: ["node_1"], indirectlyAffected: ["node_3", "node_1"] }, links, "shockEvent").join("\n");
+    expect(errors).toMatch(/indirectly affected node_3 has no connection to another affected node/);
+    expect(errors).toMatch(/node_1 cannot be both directly and indirectly affected/);
+  });
+
+  it("lets a second shock build on nodes the first one reached", () => {
+    expect(shockPathErrors({ directlyAffected: [], indirectlyAffected: ["node_3"] }, links, "secondShockEvent", ["node_2"])).toEqual([]);
   });
 });

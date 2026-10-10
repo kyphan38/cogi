@@ -7,6 +7,11 @@ import type { SystemsExerciseRow } from "@/lib/types/exercise";
 import type { AnalyticalCoachingStructured, CoachingStructured } from "@/lib/types/perspective";
 import type { SystemsResult } from "@/lib/exercise/systems-score";
 import { CONNECTION_TYPE_INFO, IMPACT_LABELS } from "@/lib/exercise/systems-labels";
+import { SYSTEMS_IDEA_GUIDE, SYSTEMS_IDEA_NAMES } from "@/lib/exercise/systems-idea-guide";
+import { pickSystemsCards, systemsCriticality } from "@/lib/exercise/systems-idea-cards";
+import { TakeWithYouCards } from "@/components/shared/TakeWithYouCards";
+
+const CARD_LABELS = { self: "When you plan or decide", elsewhere: "Same idea, other place", balanced: "With the idea in mind" };
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -23,7 +28,15 @@ export function SystemsAnswerKey({
 }: {
   exercise: Pick<
     SystemsExerciseRow,
-    "nodes" | "intendedConnections" | "shockEvent" | "userEdges" | "confidenceBefore" | "variantKind" | "isGeopolitics"
+    | "nodes"
+    | "intendedConnections"
+    | "shockEvent"
+    | "userEdges"
+    | "confidenceBefore"
+    | "variantKind"
+    | "isGeopolitics"
+    | "criticalityGroundTruth"
+    | "userCriticalityRanking"
   >;
   result: SystemsResult;
   coaching: AnalyticalCoachingStructured | CoachingStructured | null;
@@ -45,8 +58,8 @@ export function SystemsAnswerKey({
       <CardContent className="space-y-6 text-sm leading-relaxed">
         <div className="grid grid-cols-3 gap-2">
           <Stat label="Links found" value={`${result.connectionsFound}/${result.connectionsTotal}`} />
-          <Stat label="Same type and way" value={`${result.connectionsExact}/${result.connectionsTotal}`} />
-          <Stat label="Nodes right" value={`${result.impactsCorrect}/${result.impactsTotal}`} />
+          <Stat label="Same meaning" value={`${result.connectionsExact}/${result.connectionsTotal}`} />
+          <Stat label="Affected nodes right" value={`${result.impactsCorrect}/${result.impactsTotal}`} />
         </div>
         {exercise.confidenceBefore != null ? (
           <p className="text-muted-foreground">
@@ -135,6 +148,18 @@ export function SystemsAnswerKey({
         <CoachingFooter
           coaching={coaching}
           metaTitle={exercise.variantKind === "resilience" ? "Criticality and cascade" : "Second perspective"}
+        />
+        <TakeWithYouCards
+          entries={pickSystemsCards({
+            intendedConnections: exercise.intendedConnections,
+            result,
+            criticality:
+              exercise.variantKind === "resilience"
+                ? systemsCriticality(exercise.criticalityGroundTruth, exercise.userCriticalityRanking)
+                : null,
+          }).map((k) => ({ key: k, name: SYSTEMS_IDEA_NAMES[k], guide: SYSTEMS_IDEA_GUIDE[k] }))}
+          cards={coaching?.trapCards}
+          labels={CARD_LABELS}
         />
       </CardContent>
     </Card>

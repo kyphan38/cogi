@@ -13,11 +13,11 @@ export interface SystemsConnectionOutcome {
   index: number;
   /** The user's edge on the same pair of nodes, if any. */
   edgeId: string | null;
-  /** "same": same direction; "reversed": the user drew it the other way. */
+  /** "same": same direction (or the same meaning, see sameLink); "reversed": the user drew it the other way. */
   direction: "same" | "reversed" | null;
   userType: SystemsUserEdge["type"] | null;
   found: boolean;
-  /** Found in the same direction and with the same connection type. */
+  /** Found with the same meaning: same direction and type, or an equivalent (see sameLink). */
   exact: boolean;
 }
 
@@ -47,7 +47,9 @@ export interface SystemsResult {
   connectionsFound: number;
   connectionsExact: number;
   connectionsTotal: number;
+  /** Nodes the model or the user marks as affected, marked the same as the model. */
   impactsCorrect: number;
+  /** Nodes the model or the user marks as affected. "Not affected" on both sides is not counted. */
   impactsTotal: number;
   /** One row per indirect node the user traced; absent on older results. */
   spread?: SystemsSpreadOutcome[];
@@ -57,6 +59,23 @@ export function expectedImpact(shock: SystemsShockEvent, nodeId: string): System
   if (shock.directlyAffected.includes(nodeId as never)) return "direct";
   if (shock.indirectlyAffected.includes(nodeId as never)) return "indirect";
   return "none";
+}
+
+type LinkType = SystemsUserEdge["type"];
+
+/**
+ * One key per meaning: "A depends on B" is "B enables A", and "conflicts with" has no
+ * direction. Only "risks" keeps its arrow as drawn.
+ */
+function linkMeaning(from: string, to: string, type: LinkType): string {
+  if (type === "depends_on") return `enables:${to}>${from}`;
+  if (type === "conflicts_with") return `conflicts:${[from, to].sort().join("|")}`;
+  return `${type}:${from}>${to}`;
+}
+
+/** The user's link says the same thing as the model's, even if drawn another way. */
+export function sameLink(a: { from: string; to: string; type: LinkType }, b: { from: string; to: string; type: LinkType }): boolean {
+  return linkMeaning(a.from, a.to, a.type) === linkMeaning(b.from, b.to, b.type);
 }
 
 export function scoreSystems(input: {
@@ -70,10 +89,10 @@ export function scoreSystems(input: {
 }): SystemsResult {
   const used = new Set<string>();
   const connections = input.intendedConnections.map((c, index) => {
-    const same = input.userEdges.find((e) => !used.has(e.id) && e.source === c.from && e.target === c.to);
-    const reversed = same
-      ? undefined
-      : input.userEdges.find((e) => !used.has(e.id) && e.source === c.to && e.target === c.from);
+    const free = input.userEdges.filter((e) => !used.has(e.id));
+    const exact = free.find((e) => sameLink({ from: e.source, to: e.target, type: e.type }, c));
+    const same = exact ?? free.find((e) => e.source === c.from && e.target === c.to);
+    const reversed = same ? undefined : free.find((e) => e.source === c.to && e.target === c.from);
     const edge = same ?? reversed ?? null;
     if (edge) used.add(edge.id);
     return {
@@ -82,7 +101,7 @@ export function scoreSystems(input: {
       direction: same ? ("same" as const) : reversed ? ("reversed" as const) : null,
       userType: edge?.type ?? null,
       found: edge != null,
-      exact: same != null && same.type === c.type,
+      exact: exact != null,
     };
   });
   const impacts = input.nodes.map((n) => {
@@ -90,6 +109,8 @@ export function scoreSystems(input: {
     const user = input.nodeImpact[n.id] ?? "none";
     return { nodeId: n.id, expected, user, correct: expected === user };
   });
+  // Most nodes are untouched by a shock; counting "none = none" would score a blank map well.
+  const relevant = impacts.filter((i) => i.expected !== "none" || i.user !== "none");
   const linked = (x: string, y: string) =>
     input.intendedConnections.some((c) => (c.from === x && c.to === y) || (c.from === y && c.to === x));
   const spread = Object.entries(input.impactVia ?? {})
@@ -108,12 +129,12 @@ export function scoreSystems(input: {
     connectionsFound: connections.filter((c) => c.found).length,
     connectionsExact: connections.filter((c) => c.exact).length,
     connectionsTotal: connections.length,
-    impactsCorrect: impacts.filter((i) => i.correct).length,
-    impactsTotal: impacts.length,
+    impactsCorrect: relevant.filter((i) => i.correct).length,
+    impactsTotal: relevant.length,
   };
 }
 
-/** Good: on average at least 75% of connections found and nodes marked right. Poor: 35% or less. */
+/** Good: on average at least 75% of connections found and affected nodes marked right. Poor: 35% or less. */
 export function rateSystems(r: SystemsResult): ResultRating {
   const conn = r.connectionsTotal > 0 ? r.connectionsFound / r.connectionsTotal : 1;
   const impact = r.impactsTotal > 0 ? r.impactsCorrect / r.impactsTotal : 1;

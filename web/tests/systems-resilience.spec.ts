@@ -134,7 +134,11 @@ test.describe("Systems exercise - resilience variant flow", () => {
     const key = page.getByTestId("systems-answer-key");
     await expect(key).toBeVisible({ timeout: 15_000 });
     await expect(key.getByText("Links found")).toBeVisible();
-    await expect(key.getByTestId("answer-key-takeaways")).toContainText("Mock systems takeaway");
+    // "Take with you": systems idea cards (fixed guide plus the AI's examples).
+    await expect(key.getByTestId("answer-key-takeaways")).toHaveCount(0);
+    const cards = key.getByTestId("trap-card");
+    await expect(cards).toHaveCount(2);
+    await expect(cards.first()).toContainText("Mock reply: makes sense. Who depends on that team's work?");
     const progress = page.getByRole("navigation", { name: "Exercise progress" });
     await expect(progress.getByText("3. AI feedback")).toHaveClass(/bg-zinc-900/);
     await expect(page.getByRole("heading", { name: "Metacognition journal" })).toHaveCount(0);

@@ -161,6 +161,8 @@ function validResilienceSystemsJson() {
     ],
     intendedConnections: [
       { from: "node_1", to: "node_2", type: "depends_on", explanation: "why" },
+      // The second shock reaches node_3 through node_2.
+      { from: "node_2", to: "node_3", type: "enables", explanation: "why" },
     ],
     criticalityGroundTruth: [
       { nodeId: "node_1", criticalityRank: 1, rationale: "hub" },

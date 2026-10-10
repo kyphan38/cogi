@@ -185,11 +185,13 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     benefits: [
       "You can predict side effects of a decision before they happen.",
       "You understand chains in the economy, at work and in your own money.",
+      "You take systems ideas into real life: ripple effects, hidden dependencies, trade-offs, risks, feedback loops and single points of failure.",
     ],
     howToPractice: [
       "Name the main parts first, then draw the links between them with the right link type.",
       "When the shock comes, mark each part as not affected, directly affected or indirectly affected.",
       "For each indirect part, say which part the shock comes through. If you cannot name the path, check again.",
+      "At the end, \"Take with you\" has a card for 1 or 2 systems ideas. What you missed comes first. Each card shows how to spot it, what to ask, how to help someone else, the same idea in another part of life, and one thing to try this week.",
     ],
     levels: {
       guided: "Pick parts from a list. You see how many links to find, what each link type means, and how many parts the shock hits.",
@@ -198,7 +200,9 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     },
     tips: [
       "Direct means hit by the shock itself. Indirect means hit through another part.",
-      "An arrow A -> B with \"depends on\" means A needs B.",
+      "An arrow A -> B with \"depends on\" means A needs B. \"B enables A\" says the same thing, so it counts too.",
+      "\"Conflicts with\" has no direction: either arrow counts.",
+      "\"Affected nodes right\" only counts parts that you or the model mark as affected. Leaving everything as \"not affected\" does not score.",
     ],
   },
   {
