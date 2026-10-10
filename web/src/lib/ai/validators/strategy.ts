@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { analyzeGame } from "@/lib/exercise/game";
-import { geoGameShapeErrors, realNamesUsed } from "@/lib/exercise/geo-game-shape";
+import { classicGameShapeErrors, geoGameShapeErrors, realNamesUsed } from "@/lib/exercise/geo-game-shape";
 import type { GeoGameCase } from "@/lib/geo/game-cases";
 
 const conceptSchema = z.object({ term: z.string().min(1), plain: z.string().min(1), example: z.string().min(1) });
@@ -105,6 +105,10 @@ export function validateStrategySemantics(data: StrategyExercisePayload, opts: {
   }
   if (errors.length === 0 && analyzeGame(aIds, bIds, data.cells).nash.length === 0) {
     errors.push("the game needs at least one pure equilibrium (a cell where both are playing their best reply)");
+  }
+  // Only on a complete, tie-free table: the shape check reads every cell.
+  if (errors.length === 0) {
+    errors.push(...classicGameShapeErrors(data.gameType, aIds, bIds, data.cells));
   }
   return errors;
 }

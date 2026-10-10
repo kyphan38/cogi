@@ -1,6 +1,7 @@
 import type { StrategyExerciseRow } from "@/lib/types/exercise";
 import type { StrategyResult } from "@/lib/exercise/strategy-score";
 import { cellKey } from "@/lib/exercise/game";
+import { STRATEGY_IDEA_GUIDE, STRATEGY_IDEA_NAMES, type StrategyIdea } from "@/lib/exercise/strategy-idea-guide";
 
 /**
  * Coaching for a strategic situation. The game facts (best replies, equilibria,
@@ -11,11 +12,16 @@ export function buildStrategyPerspectivePrompt(input: {
   exercise: StrategyExerciseRow;
   result: StrategyResult;
   requiredRefs: string[];
+  /** Game theory ideas that get a "Take with you" card, picked in code (pickStrategyCards). */
+  cardIdeas?: StrategyIdea[];
   userContext?: string;
 }): string {
   const ex = input.exercise;
   const r = input.result;
   const f = r.facts;
+  const cardLines = (input.cardIdeas ?? [])
+    .map((k) => `- ${k} (${STRATEGY_IDEA_NAMES[k]}): ${STRATEGY_IDEA_GUIDE[k].spot} How to help others: ${STRATEGY_IDEA_GUIDE[k].othersTip}`)
+    .join("\n");
   const A = ex.players.find((p) => p.id === "A")!;
   const B = ex.players.find((p) => p.id === "B")!;
   const optA = (id: string) => ex.optionsA.find((o) => o.id === id)?.label ?? id;
@@ -48,7 +54,11 @@ export function buildStrategyPerspectivePrompt(input: {
   }
   cases.push(
     `prediction - where they end up: user predicted ${list(ex.answers?.prediction ?? [])}; the equilibrium is ${list(f.nash)}. ${
-      r.predictionCorrect ? "CORRECT." : "DIFFERENT."
+      r.predictionCorrect
+        ? "CORRECT."
+        : r.predictionPartial
+          ? `PARTLY RIGHT - found ${r.predictionFound} of the ${f.nash.length} equilibria and no wrong cell; say which one they missed and why it is also stable.`
+          : "DIFFERENT."
     }${r.predictionConsistent === true && !r.predictionCorrect ? " It DOES follow from the user's own ranking - their logic is right, their view of the preferences differs." : ""}${
       r.predictionConsistent === false ? ` From the user's own ranking the equilibrium would be ${list(r.impliedNash ?? [])}.` : ""
     }`,
@@ -96,9 +106,13 @@ Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
   "perspectiveFormat": "coaching_v3",
   "title": string (echo: "${ex.title.replace(/"/g, '\\"')}"),
   "items": [ { "ref": string (a ref from CASES), "why": string, "clue": string, "nextTimeAsk": string } ],
-  "takeaways": [string] (1-2 items),
-  "metaNote": string
+  "takeaways": [] (always empty: the cards below replace them),
+  "metaNote": string,
+  "trapCards": [ { "trap": string (an idea id from TAKE-WITH-YOU CARDS), "othersSay": string, "youCouldSay": string, "elsewhere": { "area": string, "thought": string, "balanced": string } } ] (exactly one per idea below, same order)
 }
+
+TAKE-WITH-YOU CARDS (the user takes these game theory ideas into real life; the app already shows how to spot each one and what to ask):
+${cardLines || "(none)"}
 
 Write one item for each of these refs: ${input.requiredRefs.join(", ") || "(none)"}.
 
@@ -107,7 +121,10 @@ How to write each item:
 - "clue": the words in the story that show it (quote 2-6 words).
 - "nextTimeAsk": one question to ask yourself in a similar situation, at most 15 words.
 "metaNote": 1-2 sentences on the user's reason: what it gets right and what it leaves out.
-"takeaways": 1-2 lessons that carry to real life (pricing, negotiation, teamwork...).
+How to write each card (plain words, not from this story):
+- "othersSay": one short sentence a colleague, friend or business owner might say that misses this idea (for example "If they cut prices, we have to cut too").
+- "youCouldSay": a kind reply that asks one question to help them see the other side's move. Never lecture and never use game theory words. At most 25 words.
+- "elsewhere": the same game in a different area of life than "${ex.domain}" (for example work, family, neighbours, a shop, a team, two countries). "area" is that area in 1-3 words; "thought" is a plan that misses the idea; "balanced" is the plan thought through with it.
 
 Tone: warm and plain. No numeric grade. No "stronger alternative". Refs (like br_A_b1, rank_A) are only for the "ref" field: in the text, use names, never ids.`;
 }

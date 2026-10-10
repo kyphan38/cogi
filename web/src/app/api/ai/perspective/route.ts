@@ -40,6 +40,7 @@ import { pickIssueCards } from "@/lib/exercise/analytical-issue-cards";
 import { pickLensCards } from "@/lib/exercise/judgment-lens-cards";
 import { pickSystemsCards, systemsCriticality } from "@/lib/exercise/systems-idea-cards";
 import { pickEvaluativeCards } from "@/lib/exercise/evaluative-idea-cards";
+import { pickStrategyCards } from "@/lib/exercise/strategy-idea-cards";
 import { sanitizeTrapCards } from "@/lib/exercise/take-with-you";
 import { REFRAME_LEVELS } from "@/lib/exercise/reframe-levels";
 import { buildReframePerspectivePrompt } from "@/lib/ai/prompts/reframe-perspective";
@@ -168,21 +169,34 @@ export async function POST(req: Request) {
       answers: exercise.answers,
     });
     const refs = strategyCoachingRefs(result);
+    const cardIdeas = pickStrategyCards(result);
+    const cardCtx = { domain: exercise.domain, avoid: "" };
     const prompt = buildStrategyPerspectivePrompt({
       exercise,
       result,
       requiredRefs: refs.required,
+      cardIdeas,
       userContext: typeof b.userContext === "string" ? b.userContext : undefined,
     });
     try {
-      const { structured, text } = await generateCoaching(prompt, languageAppendix, { ...refs, requireMetaNote: true }, (ref) => {
-        if (ref === "prediction") return "Where they end up";
-        if (ref === "better") return "Better for both";
-        if (ref.startsWith("rank_")) return `How ${exercise.players.find((p) => p.id === ref.slice(5))?.name ?? ref} ranks the outcomes`;
-        if (ref.startsWith("dominant_")) return `Dominant choice of ${exercise.players.find((p) => p.id === ref.slice(9))?.name ?? ref}`;
-        return "Best reply";
-      });
-      return NextResponse.json({ ok: true, structured, text, result });
+      const { structured, text } = await generateCoaching(
+        prompt,
+        languageAppendix,
+        { ...refs, requireMetaNote: true, takeawaysOptional: true },
+        (ref) => {
+          if (ref === "prediction") return "Where they end up";
+          if (ref === "better") return "Better for both";
+          if (ref.startsWith("rank_")) return `How ${exercise.players.find((p) => p.id === ref.slice(5))?.name ?? ref} ranks the outcomes`;
+          if (ref.startsWith("dominant_")) return `Dominant choice of ${exercise.players.find((p) => p.id === ref.slice(9))?.name ?? ref}`;
+          return "Best reply";
+        },
+        (data) =>
+          sanitizeTrapCards(data.trapCards, cardIdeas, cardCtx).length < cardIdeas.length
+            ? `trapCards: one complete card for each of ${cardIdeas.join(", ")}`
+            : null,
+      );
+      const checked = { ...structured, takeaways: [], trapCards: sanitizeTrapCards(structured.trapCards, cardIdeas, cardCtx) };
+      return NextResponse.json({ ok: true, structured: checked, text, result });
     } catch (e) {
       const message = e instanceof Error ? e.message : "Unknown error";
       const timeout = e instanceof Error && (e.name === "AbortError" || /time(d)? ?out/i.test(e.message));

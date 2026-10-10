@@ -24,6 +24,10 @@ export interface StrategyResult {
   impliedNash: string[] | null;
   /** The prediction is exactly the model's equilibria. */
   predictionCorrect: boolean;
+  /** Some of the equilibria picked and no other cell: e.g. 1 of 2. Absent on older results. */
+  predictionPartial?: boolean;
+  /** How many of the model's equilibria the prediction includes. Absent on older results. */
+  predictionFound?: number;
   /** The prediction follows from the user's own ranking, even if it differs from the model. */
   predictionConsistent: boolean | null;
   dominant: { A: boolean; B: boolean } | null;
@@ -34,15 +38,25 @@ function sameSet(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((x) => b.includes(x));
 }
 
-/** 1 = same order, 0 = reversed (the largest total rank distance). */
+/**
+ * The share of pairs of outcomes the user put in the model's order: 1 = same order,
+ * 0 = reversed. Pairs, like Life situations: a rank-distance score gives only a few
+ * steps and drops a lot for one swap at the top. Outcomes left out count as last.
+ */
 export function rankCloseness(user: string[], model: string[]): number {
-  const n = model.length;
-  const distance = model.reduce((sum, key, i) => {
-    const at = user.indexOf(key);
-    return sum + Math.abs((at < 0 ? n - 1 : at) - i);
-  }, 0);
-  const max = Math.floor((n * n) / 2);
-  return max > 0 ? Math.round((1 - distance / max) * 100) / 100 : 1;
+  const at = (key: string) => {
+    const i = user.indexOf(key);
+    return i < 0 ? user.length : i;
+  };
+  let agree = 0;
+  let total = 0;
+  for (let i = 0; i < model.length; i++) {
+    for (let j = i + 1; j < model.length; j++) {
+      total += 1;
+      if (at(model[i]!) < at(model[j]!)) agree += 1;
+    }
+  }
+  return total > 0 ? Math.round((agree / total) * 100) / 100 : 1;
 }
 
 export function scoreStrategy(input: {
@@ -72,6 +86,11 @@ export function scoreStrategy(input: {
       : null,
     impliedNash,
     predictionCorrect: sameSet(answers.prediction, facts.nash),
+    predictionFound: answers.prediction.filter((k) => facts.nash.includes(k)).length,
+    predictionPartial:
+      !sameSet(answers.prediction, facts.nash) &&
+      answers.prediction.length > 0 &&
+      answers.prediction.every((k) => facts.nash.includes(k)),
     predictionConsistent: impliedNash ? sameSet(answers.prediction, impliedNash) : null,
     dominant: answers.dominant
       ? {
@@ -83,7 +102,10 @@ export function scoreStrategy(input: {
   };
 }
 
-/** Game theory has answers: good with the right outcome and 75%+ of the steps; poor with neither. */
+/**
+ * Game theory has answers: good with the right outcome and 75%+ of the steps; poor with
+ * neither. One of two equilibria found (and nothing else) is neither good nor poor.
+ */
 export function rateStrategy(r: StrategyResult): ResultRating {
   const steps =
     r.bestReplies.length > 0
@@ -92,7 +114,7 @@ export function rateStrategy(r: StrategyResult): ResultRating {
         ? (r.rankCloseness.A + r.rankCloseness.B) / 2
         : 0;
   if (r.predictionCorrect && steps >= 0.75) return "good";
-  if (!r.predictionCorrect && steps <= 0.5) return "poor";
+  if (!r.predictionCorrect && !r.predictionPartial && steps <= 0.5) return "poor";
   return "ok";
 }
 

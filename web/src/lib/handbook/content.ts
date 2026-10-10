@@ -276,6 +276,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "You understand price wars, negotiations and teamwork problems.",
       "You can predict an outcome by asking what each side's best reply is.",
       "With real cases, you see how the same games shape crises, arms races, sanctions and alliances.",
+      "You take game ideas into real life: best replies, where things settle, dominant choices, outcomes better for both, and games that can settle two ways.",
     ],
     howToPractice: [
       "Learn first: best reply, Nash equilibrium, dominant strategy.",
@@ -283,6 +284,8 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "In the results, the underline method shows it: each side's best reply is underlined; where both are underlined is the equilibrium.",
       "Geopolitics: at setup, pick a real case (for example the Cuban Missile Crisis). You play a made-up story with the same game. At the end, \"What really happened\" shows the real case, with sources.",
       "Under the real case, open \"Use the cards\" to see the players today.",
+      "When you rank outcomes, the score counts pairs: \"5 of 6 pairs\" in the same order as the model is 83%.",
+      "At the end, \"Take with you\" has a card for 1 or 2 game ideas. What you missed comes first. Each card shows how to spot it, what to ask, how to help someone else, the same game in another part of life, and one thing to try this week.",
     ],
     levels: {
       guided: "2 players, 2 choices each, with numbers. Answer best-reply questions, then predict.",
@@ -291,7 +294,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     },
     tips: [
       "Do not pick the fairest or the best outcome for both. Pick the one where nobody wants to change alone.",
-      "Some games have two equilibria. Pick both.",
+      "Some games have two equilibria. Pick both. Finding one of the two counts as partly right.",
       "A game is a simple model of a real case. Use it to see the pressure on each side, not to explain everything.",
     ],
   },

@@ -55,6 +55,26 @@ export function geoGameShapeErrors(type: GeoGameType, aIds: string[], bIds: stri
   }
 }
 
+/**
+ * The same check for everyday games: when the generator says it wrote a classic 2x2 game,
+ * the payoffs must have that shape, or the ideas taught first and the feedback would
+ * describe another game. Other games (and 3x2 games) are not checked here.
+ */
+export function classicGameShapeErrors(gameType: string, aIds: string[], bIds: string[], cells: GameCell[]): string[] {
+  if (aIds.length !== 2 || bIds.length !== 2) return [];
+  if (gameType === "prisoners_dilemma" || gameType === "chicken" || gameType === "stag_hunt") {
+    return geoGameShapeErrors(gameType, aIds, bIds, cells);
+  }
+  if (gameType === "coordination") {
+    const f = analyzeGame(aIds, bIds, cells);
+    const apart = f.nash.length === 2 && f.nash[0]!.split("|").every((part, i) => part !== f.nash[1]!.split("|")[i]);
+    return apart && f.dominantA == null && f.dominantB == null
+      ? []
+      : ["Make it a coordination game: two equilibria where both sides pick matching choices, and no side has a dominant choice."];
+  }
+  return [];
+}
+
 /** Real names that appear in any of the texts (whole words, any case). */
 export function realNamesUsed(texts: string[], names: string[]): string[] {
   const all = texts.join("\n");
