@@ -1,6 +1,6 @@
 import type { CalibrationItem } from "@/lib/exercise/calibration-math";
 import type { ResultRating } from "@/lib/exercise/levels";
-import { BASE_RATE_TOLERANCE, BINARY_CONFIDENCE_STEPS, VERY_WIDE_RATIO } from "@/lib/exercise/calibration-levels";
+import { baseRateTolerance, BINARY_CONFIDENCE_STEPS, VERY_WIDE_RATIO } from "@/lib/exercise/calibration-levels";
 
 /** The user's answer to one item; which fields are set depends on the item kind. */
 export interface CalibrationAnswer {
@@ -28,6 +28,8 @@ export interface CalibrationItemOutcome {
   missed?: "too-low" | "too-high";
   /** Base rate: how far off, in percentage points. */
   error?: number;
+  /** Asked in an earlier exercise: left out of the History summary. Absent on older results. */
+  seenBefore?: boolean;
 }
 
 export interface CalibrationResult {
@@ -51,13 +53,14 @@ export function scoreCalibration(input: {
 }): CalibrationResult {
   const items = input.items.map((item): CalibrationItemOutcome => {
     const a = input.answers[item.id] ?? {};
+    const seen = item.kind !== "baserate" && item.seenBefore ? { seenBefore: true } : {};
     if (item.kind === "binary") {
       const answered = a.choice != null && a.confidence != null;
-      return { id: item.id, kind: item.kind, answered, correct: answered && a.choice === item.answerIndex, confidence: a.confidence };
+      return { id: item.id, kind: item.kind, answered, correct: answered && a.choice === item.answerIndex, confidence: a.confidence, ...seen };
     }
     if (item.kind === "interval") {
       const answered = a.low != null && a.high != null;
-      if (!answered) return { id: item.id, kind: item.kind, answered, correct: false };
+      if (!answered) return { id: item.id, kind: item.kind, answered, correct: false, ...seen };
       const low = Math.min(a.low!, a.high!);
       const high = Math.max(a.low!, a.high!);
       const correct = item.answer >= low && item.answer <= high;
@@ -68,11 +71,12 @@ export function scoreCalibration(input: {
         correct,
         veryWide: low <= 0 ? high > 0 : high / low > VERY_WIDE_RATIO,
         missed: correct ? undefined : high < item.answer ? "too-low" : "too-high",
+        ...seen,
       };
     }
     const answered = a.estimate != null;
     const error = answered ? Math.abs(a.estimate! - item.answer) : undefined;
-    return { id: item.id, kind: item.kind, answered, correct: error != null && error <= BASE_RATE_TOLERANCE, error };
+    return { id: item.id, kind: item.kind, answered, correct: error != null && error <= baseRateTolerance(item.answer), error };
   });
 
   const binary = items.filter((o) => o.kind === "binary");
@@ -155,7 +159,10 @@ export interface CalibrationHistory {
   baseRate: { count: number; right: number };
 }
 
-/** "How sure vs how right" across finished Calibration exercises (PLAN-psychology.md P2). */
+/**
+ * "How sure vs how right" across finished Calibration exercises (PLAN-psychology.md P2).
+ * Counted per question, leaving out repeats: a remembered answer is not a judgment.
+ */
 export function aggregateCalibration(results: CalibrationResult[]): CalibrationHistory {
   const buckets = new Map<number, { count: number; right: number }>();
   const ranges = new Map<number, { count: number; hits: number }>();
@@ -163,17 +170,20 @@ export function aggregateCalibration(results: CalibrationResult[]): CalibrationH
   let baseRight = 0;
   let answered = 0;
   for (const r of results) {
-    answered += r.items.filter((o) => o.answered).length;
-    for (const bk of r.binary.buckets) {
-      const prev = buckets.get(bk.confidence) ?? { count: 0, right: 0 };
-      buckets.set(bk.confidence, { count: prev.count + bk.count, right: prev.right + bk.right });
+    const fresh = r.items.filter((o) => !o.seenBefore);
+    answered += fresh.filter((o) => o.answered).length;
+    for (const o of fresh) {
+      if (o.kind === "binary" && o.answered && o.confidence != null) {
+        const prev = buckets.get(o.confidence) ?? { count: 0, right: 0 };
+        buckets.set(o.confidence, { count: prev.count + 1, right: prev.right + (o.correct ? 1 : 0) });
+      } else if (o.kind === "interval") {
+        const prev = ranges.get(r.interval.target) ?? { count: 0, hits: 0 };
+        ranges.set(r.interval.target, { count: prev.count + 1, hits: prev.hits + (o.correct ? 1 : 0) });
+      } else if (o.kind === "baserate") {
+        baseCount += 1;
+        if (o.correct) baseRight += 1;
+      }
     }
-    if (r.interval.count > 0) {
-      const prev = ranges.get(r.interval.target) ?? { count: 0, hits: 0 };
-      ranges.set(r.interval.target, { count: prev.count + r.interval.count, hits: prev.hits + r.interval.hits });
-    }
-    baseCount += r.baseRate.count;
-    baseRight += r.baseRate.right;
   }
   return {
     answered,

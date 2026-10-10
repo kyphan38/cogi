@@ -3,6 +3,11 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Coaching, CoachingFooter, Row, Section, Stat } from "@/components/shared/AnswerKeyParts";
+import { TakeWithYouCards } from "@/components/shared/TakeWithYouCards";
+import { CALIBRATION_IDEA_GUIDE, CALIBRATION_IDEA_NAMES } from "@/lib/exercise/calibration-idea-guide";
+import { pickCalibrationCards } from "@/lib/exercise/calibration-idea-cards";
+
+const CARD_LABELS = { self: "When it's you", elsewhere: "Same idea, other place", balanced: "Better calibrated" };
 import type { CalibrationExerciseRow } from "@/lib/types/exercise";
 import type { AnalyticalCoachingStructured, CoachingStructured } from "@/lib/types/perspective";
 import type { CalibrationResult } from "@/lib/exercise/calibration-score";
@@ -40,7 +45,7 @@ export function CalibrationAnswerKey({
           {hitRate != null ? (
             <Stat label={`Ranges that held the answer (aim: ${r.interval.target}%)`} value={`${r.interval.hits}/${r.interval.count}`} />
           ) : null}
-          <Stat label="Base rates within 5 points" value={`${r.baseRate.right}/${r.baseRate.count}`} />
+          <Stat label="Base rates close enough" value={`${r.baseRate.right}/${r.baseRate.count}`} />
         </div>
         <p className="text-muted-foreground">
           {r.binary.brier != null ? "A Brier score of 0.25 is what you get by always saying 50%. " : null}
@@ -91,7 +96,7 @@ export function CalibrationAnswerKey({
                   key={item.id}
                   marker={String(i + 1)}
                   status={o.correct ? "right" : "wrong"}
-                  heading={item.question}
+                  heading={item.seenBefore ? `${item.question} (seen before)` : item.question}
                   aside={a.choice != null ? `You: ${item.options[a.choice]} · ${a.confidence}% sure` : "Not answered"}
                 >
                   <p>
@@ -109,7 +114,7 @@ export function CalibrationAnswerKey({
                   key={item.id}
                   marker={String(i + 1)}
                   status={o.correct ? "right" : "wrong"}
-                  heading={item.question}
+                  heading={item.seenBefore ? `${item.question} (seen before)` : item.question}
                   aside={a.low != null && a.high != null ? `You: ${fmt(Math.min(a.low, a.high))} to ${fmt(Math.max(a.low, a.high))}` : "Not answered"}
                 >
                   <p>
@@ -145,6 +150,11 @@ export function CalibrationAnswerKey({
         </Section>
 
         <CoachingFooter coaching={coaching} metaTitle="One more thing" />
+        <TakeWithYouCards
+          entries={pickCalibrationCards(r).map((k) => ({ key: k, name: CALIBRATION_IDEA_NAMES[k], guide: CALIBRATION_IDEA_GUIDE[k] }))}
+          cards={coaching?.trapCards}
+          labels={CARD_LABELS}
+        />
       </CardContent>
     </Card>
   );

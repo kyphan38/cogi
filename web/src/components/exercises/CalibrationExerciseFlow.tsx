@@ -186,11 +186,15 @@ export function CalibrationExerciseFlow({
     setError(null);
     setLoading(true);
     try {
-      // Questions from earlier exercises go last, so repeats come only when the topic runs out.
-      let seen = new Set<string>();
+      // Questions from earlier exercises go last (oldest first), so repeats come only when the topic runs out.
+      const seen = new Map<string, string>();
       try {
         const done = await listCompletedExercises({ type: "calibration" });
-        seen = new Set(done.flatMap((r) => (isCalibrationExercise(r) ? r.items.map((x) => x.id) : [])));
+        for (const r of done) {
+          if (!isCalibrationExercise(r)) continue;
+          const at = r.completedAt ?? r.createdAt;
+          for (const x of r.items) if ((seen.get(x.id) ?? "") < at) seen.set(x.id, at);
+        }
       } catch {
         // No history yet (or offline): any order is fine.
       }
@@ -200,7 +204,7 @@ export function CalibrationExerciseFlow({
         type: "calibration",
         domain: topic,
         title: `How sure are you? ${topic}`,
-        items: buildCalibrationItems({ id, level, topic, seenIds: seen }),
+        items: buildCalibrationItems({ id, level, topic, seenAt: seen }),
         concepts: [...CALIBRATION_CONCEPTS],
         conceptChecks: [...CALIBRATION_CHECKS],
         level,
@@ -339,6 +343,9 @@ export function CalibrationExerciseFlow({
         <p className="text-muted-foreground text-xs">
           Question {i + 1} of {exercise!.items.length}
           {item.kind === "baserate" ? " · Base rate" : null}
+          {item.kind !== "baserate" && item.seenBefore ? (
+            <span data-testid="seen-before"> · Seen before, not counted in your History chart</span>
+          ) : null}
         </p>
         {item.kind === "baserate" ? <p className="text-sm leading-relaxed">{item.story}</p> : null}
         <p className="text-sm font-medium text-zinc-900">{item.question}</p>

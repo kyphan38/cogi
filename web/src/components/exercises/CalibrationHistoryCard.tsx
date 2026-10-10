@@ -117,7 +117,7 @@ export function CalibrationHistoryCard({ rows }: { rows: Exercise[] }) {
             />
           ))}
           {h.baseRate.count > 0 ? (
-            <Stat label="Base rates within 5 points" value={`${h.baseRate.right}/${h.baseRate.count}`} />
+            <Stat label="Base rates close enough" value={`${h.baseRate.right}/${h.baseRate.count}`} />
           ) : null}
         </div>
         {h.buckets.length > 0 ? (
