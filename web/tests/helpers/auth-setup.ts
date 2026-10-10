@@ -321,7 +321,13 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
             perspectiveFormat: "coaching_v3",
             title: "How sure are you?",
             items: [{ ref: "pattern", why: "Mock why: in this set you were a little overconfident.", clue: "90% sure", nextTimeAsk: "Would I bet on this?" }],
-            takeaways: ["Mock calibration takeaway: start ranges from a number that is surely too low."],
+            takeaways: [],
+            trapCards: ["overconfidence", "wide_ranges", "underconfidence", "base_rates", "keep_score"].map((trap) => ({
+              trap,
+              othersSay: `Mock card (${trap}): this will take two weeks, I'm certain.`,
+              youCouldSay: "Mock reply: could be. What happened the last time it took longer?",
+              elsewhere: { area: "Travel", thought: "Mock: the drive is one hour, no need to leave early.", balanced: "Mock: it is usually one hour, up to two with traffic." },
+            })),
           },
         }),
       });

@@ -41,6 +41,7 @@ import { pickLensCards } from "@/lib/exercise/judgment-lens-cards";
 import { pickSystemsCards, systemsCriticality } from "@/lib/exercise/systems-idea-cards";
 import { pickEvaluativeCards } from "@/lib/exercise/evaluative-idea-cards";
 import { pickStrategyCards } from "@/lib/exercise/strategy-idea-cards";
+import { pickCalibrationCards } from "@/lib/exercise/calibration-idea-cards";
 import { sanitizeTrapCards } from "@/lib/exercise/take-with-you";
 import { REFRAME_LEVELS } from "@/lib/exercise/reframe-levels";
 import { buildReframePerspectivePrompt } from "@/lib/ai/prompts/reframe-perspective";
@@ -219,20 +220,33 @@ export async function POST(req: Request) {
       intervalTarget: cfg.intervalTarget,
     });
     const refs = calibrationCoachingRefs(result);
+    const cardIdeas = pickCalibrationCards(result);
+    const cardCtx = { domain: exercise.domain, avoid: "" };
     const prompt = buildCalibrationPerspectivePrompt({
       exercise,
       result,
       requiredRefs: refs.required,
+      cardIdeas,
       userContext: typeof b.userContext === "string" ? b.userContext : undefined,
     });
     try {
-      const { structured, text } = await generateCoaching(prompt, languageAppendix, refs, (ref) => {
-        if (ref === "pattern") return "The overall picture";
-        const item = exercise.items.find((x) => `item_${x.id}` === ref);
-        if (!item) return ref;
-        return item.kind === "baserate" ? `Base rate: ${item.question}` : item.question;
-      });
-      return NextResponse.json({ ok: true, structured, text, result });
+      const { structured, text } = await generateCoaching(
+        prompt,
+        languageAppendix,
+        { ...refs, takeawaysOptional: true },
+        (ref) => {
+          if (ref === "pattern") return "The overall picture";
+          const item = exercise.items.find((x) => `item_${x.id}` === ref);
+          if (!item) return ref;
+          return item.kind === "baserate" ? `Base rate: ${item.question}` : item.question;
+        },
+        (data) =>
+          sanitizeTrapCards(data.trapCards, cardIdeas, cardCtx).length < cardIdeas.length
+            ? `trapCards: one complete card for each of ${cardIdeas.join(", ")}`
+            : null,
+      );
+      const checked = { ...structured, takeaways: [], trapCards: sanitizeTrapCards(structured.trapCards, cardIdeas, cardCtx) };
+      return NextResponse.json({ ok: true, structured: checked, text, result });
     } catch (e) {
       const message = e instanceof Error ? e.message : "Unknown error";
       const timeout = e instanceof Error && (e.name === "AbortError" || /time(d)? ?out/i.test(e.message));

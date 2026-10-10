@@ -351,6 +351,9 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "For ranges, give a low and a high number. Make the range wide enough that you are really 80% (or 90%) sure.",
       "For base-rate problems, think \"out of 10,000 people\": how many have it, and how many test positive by mistake?",
       "Look at History over time. One exercise has only a few questions.",
+      "A question you saw in an earlier exercise is marked \"Seen before\". It still counts in the exercise, but not in your History chart: you may remember the answer.",
+      "A base-rate answer counts as close enough within half of the true value, from 1 to 5 points. For a rare case, being 3 times too high is not close.",
+      "At the end, \"Take with you\" has a card for 1 or 2 ideas, picked from your results: overconfidence, wide enough ranges, underconfidence, base rates, or keeping score.",
     ],
     levels: {
       guided: "8 questions with two answers, plus 1 base-rate problem with an \"out of 10,000\" table.",

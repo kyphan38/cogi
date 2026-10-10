@@ -19,6 +19,8 @@ export interface BinaryBankItem {
   /** One or two sentences with the facts behind the answer. */
   explanation: string;
   source: string;
+  /** Set on an exercise item asked in an earlier exercise: the answer may be remembered. */
+  seenBefore?: boolean;
 }
 
 /** Give a low and a high number you are 80% (or 90%) sure the answer is between. */
@@ -32,6 +34,8 @@ export interface IntervalBankItem {
   unit: string;
   explanation: string;
   source: string;
+  /** Set on an exercise item asked in an earlier exercise: the answer may be remembered. */
+  seenBefore?: boolean;
 }
 
 export type CalibrationBankItem = BinaryBankItem | IntervalBankItem;

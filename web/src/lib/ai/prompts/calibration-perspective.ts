@@ -1,5 +1,10 @@
 import type { CalibrationExerciseRow } from "@/lib/types/exercise";
 import type { CalibrationResult } from "@/lib/exercise/calibration-score";
+import { baseRateTolerance } from "@/lib/exercise/calibration-levels";
+import { CALIBRATION_IDEA_GUIDE, CALIBRATION_IDEA_NAMES, type CalibrationIdea } from "@/lib/exercise/calibration-idea-guide";
+
+/** A repeat from an earlier exercise: the answer may be memory, not judgment. */
+const seenNote = (seen?: boolean) => (seen ? " (ASKED BEFORE in an earlier exercise: the user may remember the answer)" : "");
 
 const fmt = (x: number) => x.toLocaleString("en-US", { maximumFractionDigits: 2 });
 
@@ -12,11 +17,16 @@ export function buildCalibrationPerspectivePrompt(input: {
   exercise: CalibrationExerciseRow;
   result: CalibrationResult;
   requiredRefs: string[];
+  /** Calibration ideas that get a "Take with you" card, picked in code (pickCalibrationCards). */
+  cardIdeas?: CalibrationIdea[];
   userContext?: string;
 }): string {
   const ex = input.exercise;
   const r = input.result;
   const answers = ex.answers ?? {};
+  const cardLines = (input.cardIdeas ?? [])
+    .map((k) => `- ${k} (${CALIBRATION_IDEA_NAMES[k]}): ${CALIBRATION_IDEA_GUIDE[k].spot} How to help others: ${CALIBRATION_IDEA_GUIDE[k].othersTip}`)
+    .join("\n");
   const cases = ex.items
     .map((item) => {
       const o = r.items.find((x) => x.id === item.id)!;
@@ -24,19 +34,19 @@ export function buildCalibrationPerspectivePrompt(input: {
       if (item.kind === "binary") {
         const user =
           a.choice == null ? "(no answer)" : `picked "${item.options[a.choice]}" at ${a.confidence ?? "?"}% sure - ${o.correct ? "RIGHT" : "WRONG"}`;
-        return `item_${item.id} - ${item.question}\n  Answer: ${item.options[item.answerIndex]}. ${item.explanation}\n  User: ${user}`;
+        return `item_${item.id} - ${item.question}${seenNote(item.seenBefore)}\n  Answer: ${item.options[item.answerIndex]}. ${item.explanation}\n  User: ${user}`;
       }
       if (item.kind === "interval") {
         const user =
           a.low == null || a.high == null
             ? "(no answer)"
             : `range ${fmt(a.low)} to ${fmt(a.high)} - ${o.correct ? "HIT" : o.missed === "too-low" ? "MISSED: the whole range was too low" : "MISSED: the whole range was too high"}${o.veryWide ? " (very wide: high end over 10 times the low end)" : ""}`;
-        return `item_${item.id} - ${item.question}\n  Answer: ${item.unit === "$" ? `$${fmt(item.answer)}` : `${fmt(item.answer)} ${item.unit}`}. ${item.explanation}\n  User: ${user}`;
+        return `item_${item.id} - ${item.question}${seenNote(item.seenBefore)}\n  Answer: ${item.unit === "$" ? `$${fmt(item.answer)}` : `${fmt(item.answer)} ${item.unit}`}. ${item.explanation}\n  User: ${user}`;
       }
       const user =
         a.estimate == null
           ? "(no answer)"
-          : `said ${fmt(a.estimate)}% - ${o.correct ? "RIGHT (within 5 points)" : `off by ${fmt(o.error ?? 0)} points`}`;
+          : `said ${fmt(a.estimate)}% - ${o.correct ? `RIGHT (within ${fmt(baseRateTolerance(item.answer))} points)` : `off by ${fmt(o.error ?? 0)} points`}`;
       return `item_${item.id} - BASE RATE: ${item.story} ${item.question}\n  Answer: about ${item.answer}%. ${item.explanation}\n  User: ${user}`;
     })
     .join("\n\n");
@@ -49,7 +59,7 @@ export function buildCalibrationPerspectivePrompt(input: {
     hitRate != null
       ? `Ranges: ${r.interval.hits}/${r.interval.count} held the answer (${hitRate}%), target ${r.interval.target}%. Very wide ranges: ${r.interval.veryWide}.`
       : "",
-    `Base rates: ${r.baseRate.right}/${r.baseRate.count} within 5 points.`,
+    `Base rates: ${r.baseRate.right}/${r.baseRate.count} close enough (within half the true value, 1 to 5 points).`,
     `Before the feedback, the user said they were ${ex.confidenceBefore ?? "?"}% sure overall.`,
   ]
     .filter(Boolean)
@@ -69,9 +79,13 @@ Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
   "perspectiveFormat": "coaching_v3",
   "title": string (echo: "${ex.title.replace(/"/g, '\\"')}"),
   "items": [ { "ref": string (a ref from CASES, or "pattern"), "why": string, "clue": string, "nextTimeAsk": string } ],
-  "takeaways": [string] (1-2 items),
-  "metaNote": string (optional)
+  "takeaways": [] (always empty: the cards below replace them),
+  "metaNote": string (optional),
+  "trapCards": [ { "trap": string (an idea id from TAKE-WITH-YOU CARDS), "othersSay": string, "youCouldSay": string, "elsewhere": { "area": string, "thought": string, "balanced": string } } ] (exactly one per idea below, same order)
 }
+
+TAKE-WITH-YOU CARDS (the user takes these ideas into real life; the app already shows how to spot each one and what to ask):
+${cardLines || "(none)"}
 
 Write one item for each of these refs: ${input.requiredRefs.join(", ") || "(none)"}.
 
@@ -82,7 +96,10 @@ How to write each item:
 - A base-rate problem: walk through the "out of 10,000" counts in one or two sentences. Say plainly when the user ignored how rare the condition is.
 - "clue": the words or number in the question that matter most (quote 2-6 words).
 - "nextTimeAsk": one question to ask yourself next time, at most 15 words.
-"takeaways": 1-2 short habits the user can use this week (for example, a decision journal with a "how sure" number).
+How to write each card (plain words, everyday life, not the quiz questions):
+- "othersSay": one short sentence a friend or colleague might say that shows the problem (for example "This project will take two weeks, I'm sure").
+- "youCouldSay": a kind reply that asks one question about how sure they should be. Never lecture. At most 25 words.
+- "elsewhere": the same idea in a part of life such as work, money, health, travel or news. "area" is that area in 1-3 words; "thought" is a judgment that misses the idea; "balanced" is the same judgment made with it.
 
 Tone: warm and direct. No grade beyond the numbers above. Refs (like item_sci-b1) are only for the "ref" field: in the text, never write ids.`;
 }

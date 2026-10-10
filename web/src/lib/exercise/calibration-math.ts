@@ -183,18 +183,21 @@ export function makeBaseRateItem(id: string, template: BaseRateTemplate, rand: (
   };
 }
 
-/** Bank items for a category ("Mixed" = all), unseen ones first, in a seeded order. */
+/**
+ * Bank items for a category ("Mixed" = all): unseen ones first in a seeded order, then,
+ * when the topic runs out, the ones seen longest ago. Repeats are marked `seenBefore`.
+ */
 function choose<T extends BinaryBankItem | IntervalBankItem>(
   pool: T[],
   count: number,
   seed: string,
-  seen: ReadonlySet<string>,
+  seenAt: ReadonlyMap<string, string>,
 ): T[] {
-  return [...pool]
-    .map((item) => ({ item, key: (seen.has(item.id) ? 2 ** 32 : 0) + seededHash(seed + item.id) }))
-    .sort((a, b) => a.key - b.key)
-    .slice(0, count)
-    .map((x) => x.item);
+  const fresh = pool.filter((x) => !seenAt.has(x.id)).sort((a, b) => seededHash(seed + a.id) - seededHash(seed + b.id));
+  const old = pool
+    .filter((x) => seenAt.has(x.id))
+    .sort((a, b) => seenAt.get(a.id)!.localeCompare(seenAt.get(b.id)!) || seededHash(seed + a.id) - seededHash(seed + b.id));
+  return [...fresh, ...old.map((x) => ({ ...x, seenBefore: true }))].slice(0, count);
 }
 
 export type CalibrationTopic = CalibrationCategory | "Mixed";
@@ -205,9 +208,12 @@ export function buildCalibrationItems(input: {
   level: PracticeLevel;
   topic: CalibrationTopic;
   seenIds?: ReadonlySet<string>;
+  /** Bank id -> when it was last asked (ISO time). Repeats come oldest first. */
+  seenAt?: ReadonlyMap<string, string>;
 }): CalibrationItem[] {
   const cfg = CALIBRATION_LEVELS[input.level];
-  const seen = input.seenIds ?? new Set<string>();
+  const seen = new Map<string, string>([...(input.seenIds ?? [])].map((id) => [id, ""]));
+  for (const [id, at] of input.seenAt ?? []) seen.set(id, at);
   const inTopic = CALIBRATION_BANK.filter((x) => input.topic === "Mixed" || x.category === input.topic);
   const binary = choose(inTopic.filter((x): x is BinaryBankItem => x.kind === "binary"), cfg.binaryCount, input.id, seen);
   const interval = choose(

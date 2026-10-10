@@ -113,3 +113,38 @@ describe("aggregateCalibration", () => {
     expect(h.baseRate).toEqual({ count: 2, right: 1 });
   });
 });
+
+describe("base-rate tolerance and repeats", () => {
+  it("scales the base-rate tolerance with how rare it is", () => {
+    const at = (estimate: number, answer: number) =>
+      scoreCalibration({
+        items: [{ ...(items[4] as Extract<CalibrationItem, { kind: "baserate" }>), answer }],
+        answers: { "br-1": { estimate } },
+        intervalTarget: 80,
+      }).baseRate.right;
+    // 1.9%: within 1 point only (half of 1.9 is under 1).
+    expect(at(2.8, 1.9)).toBe(1);
+    expect(at(6, 1.9)).toBe(0);
+    // 8.3%: within 4.15 points.
+    expect(at(12, 8.3)).toBe(1);
+    expect(at(13, 8.3)).toBe(0);
+    // 50%: within 5 points, as before.
+    expect(at(55, 50)).toBe(1);
+  });
+
+  it("leaves questions seen before out of the History summary, but scores them in the exercise", () => {
+    const seen = items.map((x) => (x.id === "b1" || x.id === "n1" ? { ...x, seenBefore: true } : x)) as CalibrationItem[];
+    const r = scoreCalibration({
+      items: seen,
+      answers: { b1: { choice: 0, confidence: 90 }, b2: { choice: 1, confidence: 70 }, n1: { low: 100, high: 300 }, n2: { low: 1, high: 2 } },
+      intervalTarget: 80,
+    });
+    expect(r.binary.right).toBe(2);
+    expect(r.items.find((o) => o.id === "b1")?.seenBefore).toBe(true);
+    const h = aggregateCalibration([r]);
+    expect(h.buckets).toEqual([{ confidence: 70, count: 1, right: 1 }]);
+    expect(h.ranges).toEqual([{ target: 80, count: 1, hits: 0 }]);
+    // b2 and n2; the base-rate item was not answered.
+    expect(h.answered).toBe(2);
+  });
+});

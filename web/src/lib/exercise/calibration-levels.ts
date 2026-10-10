@@ -59,8 +59,16 @@ export const CALIBRATION_LEVELS: Record<PracticeLevel, CalibrationLevelConfig> =
 /** How sure you can say you are about a two-answer question. 50% = a pure guess. */
 export const BINARY_CONFIDENCE_STEPS = [50, 60, 70, 80, 90, 100] as const;
 
-/** A base-rate answer counts as right within this many percentage points. */
+/** A base-rate answer counts as right within this many percentage points, at most. */
 export const BASE_RATE_TOLERANCE = 5;
+
+/**
+ * How far off a base-rate answer may be: half the true value, between 1 and 5 points.
+ * A flat 5 points let "6%" pass for 1.9%, and seeing how rare it is is the lesson.
+ */
+export function baseRateTolerance(answer: number): number {
+  return Math.min(BASE_RATE_TOLERANCE, Math.max(1, answer / 2));
+}
 
 /** A range is "very wide" when its high end is more than this many times its low end. */
 export const VERY_WIDE_RATIO = 10;

@@ -49,6 +49,10 @@ test.describe("Calibration", () => {
 
     const key = page.getByTestId("calibration-answer-key");
     await expect(key).toBeVisible({ timeout: 15_000 });
+    // "Take with you": calibration idea cards (fixed guide plus the AI's examples).
+    await expect(key.getByTestId("answer-key-takeaways")).toHaveCount(0);
+    await expect(key.getByTestId("trap-card").first()).toContainText("Spot it");
+    await expect(key.getByTestId("trap-card").first()).toContainText("Mock reply: could be. What happened the last time it took longer?");
     await expect(key.getByText("Two-answer questions right")).toBeVisible();
     await expect(key.getByTestId("confidence-table")).toContainText("80%");
     await expect(key.getByText("Mock why: in this set you were a little overconfident.")).toBeVisible();
