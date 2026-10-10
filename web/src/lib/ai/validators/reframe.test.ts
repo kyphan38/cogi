@@ -60,6 +60,12 @@ describe("validateReframeSemantics", () => {
     expect(errors).toMatch(/rewrite.thoughtId must be a distorted thought/);
   });
 
+  it("rejects a realistic thought that already says the balanced rewrite", () => {
+    const p = payload();
+    p.thoughts[3]!.text = "One late reply does not end our friendship, and I can ask how she is doing.";
+    expect(validateReframeSemantics(p, opts()).join("\n")).toMatch(/t4: this realistic thought repeats the balanced rewrite/);
+  });
+
   it("checks ids, alsoAccepted and the rewrite options", () => {
     const p = payload();
     p.thoughts[0]!.id = "x";

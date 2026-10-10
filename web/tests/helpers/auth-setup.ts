@@ -325,7 +325,21 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
             perspectiveFormat: "coaching_v3",
             title: "A comment in the meeting",
             items: [{ ref: "thought_t2", why: "Mock why: one comment does not end a job.", clue: "I will lose my job", nextTimeAsk: "What is the most likely result?" }],
-            takeaways: ["Mock reframe takeaway: check the facts before the feeling."],
+            takeaways: [],
+            trapCards: [
+              {
+                trap: "catastrophizing",
+                othersSay: "Mock: if I fail this test, my whole future is gone.",
+                youCouldSay: "Mock: that sounds scary. What is most likely to happen?",
+                elsewhere: { area: "Health", thought: "Mock: this headache must be something terrible.", balanced: "Mock: most headaches pass; I can see a doctor if it stays." },
+              },
+              {
+                trap: "mind_reading",
+                othersSay: "Mock: my sister is quiet, she must be angry with me.",
+                youCouldSay: "Mock: that is hard. What did she actually say?",
+                elsewhere: { area: "Friends", thought: "Mock: they did not invite me, they don't like me.", balanced: "Mock: I was not invited this time; I can ask why." },
+              },
+            ],
           },
         }),
       });

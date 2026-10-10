@@ -5,6 +5,7 @@ import {
   conceptSchema,
   stripJsonFences,
 } from "@/lib/ai/validators/judgment";
+import { mostlyRepeats } from "@/lib/exercise/reframe-trap-cards";
 
 /** Thinking traps (CBT cognitive distortions) used in Reframe (PLAN-psychology.md P1). */
 export const REFRAME_TAGS = [
@@ -130,6 +131,13 @@ export function validateReframeSemantics(
 
   const target = data.thoughts.find((t) => t.id === data.rewrite.thoughtId);
   if (!target || target.trap === "realistic") errors.push("rewrite.thoughtId must be a distorted thought");
+  // A fair thought that already says the balanced rewrite gives the answer away.
+  const balanced = data.rewrite.options[data.rewrite.answerIndex] ?? "";
+  for (const t of data.thoughts) {
+    if (t.trap === "realistic" && balanced && mostlyRepeats(balanced, t.text)) {
+      errors.push(`${t.id}: this realistic thought repeats the balanced rewrite; make it about another part of the situation`);
+    }
+  }
   if (!data.rewrite.balancedExample.trim()) errors.push("rewrite.balancedExample must not be empty");
   errors.push(...choiceErrors(data.rewrite, "rewrite"));
   return errors;

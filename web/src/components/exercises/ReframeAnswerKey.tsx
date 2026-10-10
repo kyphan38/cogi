@@ -7,6 +7,8 @@ import type { ReframeExerciseRow } from "@/lib/types/exercise";
 import type { AnalyticalCoachingStructured, CoachingStructured } from "@/lib/types/perspective";
 import type { ReframeResult, ReframeThoughtOutcome } from "@/lib/exercise/reframe-score";
 import { answerName } from "@/lib/exercise/reframe-levels";
+import { pickTrapCards } from "@/lib/exercise/reframe-trap-cards";
+import { ReframeTrapCards } from "@/components/exercises/ReframeTrapCards";
 
 function thoughtStatus(o: ReframeThoughtOutcome): Status {
   if (o.trap === "realistic") return o.trapped ? "wrong" : "right";
@@ -73,7 +75,8 @@ export function ReframeAnswerKey({
                 marker={String(i + 1)}
                 status={thoughtStatus(o)}
                 heading={answerName(t.trap)}
-                aside={o.userAnswer ? `You: ${answerName(o.userAnswer)}` : "Not marked"}
+                // The heading already names the answer; say what the user picked only when it differs.
+                aside={!o.userAnswer ? "Not marked" : o.userAnswer === t.trap ? undefined : `You: ${answerName(o.userAnswer)}`}
                 quote={t.text}
               >
                 <Coaching item={items.get(`thought_${t.id}`)} fallback={t.why} />
@@ -115,6 +118,10 @@ export function ReframeAnswerKey({
         </Section>
 
         <CoachingFooter coaching={coaching} metaTitle="One more thing" />
+        <ReframeTrapCards
+          traps={pickTrapCards(exercise.thoughts, exercise.rewrite, result)}
+          cards={coaching && "trapCards" in coaching ? coaching.trapCards : undefined}
+        />
       </CardContent>
     </Card>
   );

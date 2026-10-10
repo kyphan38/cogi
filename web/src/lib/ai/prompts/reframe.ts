@@ -70,6 +70,7 @@ Rules:
 - ${thoughtForm}
 - Thoughts must sound like real automatic thoughts, not textbook examples. Each distorted thought shows one main trap clearly.
 - A realistic thought is fair and based on facts, but it may still be unpleasant ("I made a mistake in the numbers, and I need to fix it today."). It must not be a happy or positive thought: the learner must learn that "realistic" is not "positive".
+- A realistic thought must be about a different part of the situation than the thought in "rewrite". It must not already be a balanced version of that thought: the learner should find the balanced thought, not copy it from the list.
 - Do not use the trap's name inside a thought.
 - Rewrite options: exactly one balanced thought (fair to the facts, including the bad ones, and useful); one "positive thinking" option with no evidence ("Everything will be fine, it does not matter."); one that falls into another trap. Vary which index is right.
 - Plain, warm language. No therapy jargon beyond the trap names.${input.adaptationAppendix ? `\n\n${input.adaptationAppendix}` : ""}`;
