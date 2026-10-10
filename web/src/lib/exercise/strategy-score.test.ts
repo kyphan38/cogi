@@ -44,7 +44,8 @@ describe("scoreStrategy - ranks", () => {
         betterForBoth: ["a1|b1"],
       },
     });
-    expect(r.rankCloseness).toEqual({ A: 0.75, B: 0.75 });
+    // One swapped pair of 6 for each player.
+    expect(r.rankCloseness).toEqual({ A: 0.83, B: 0.83 });
     expect(r.impliedNash).toEqual(["a1|b1", "a2|b2"]);
     expect(r.predictionCorrect).toBe(false);
     expect(r.predictionConsistent).toBe(true);
@@ -58,5 +59,25 @@ describe("rankCloseness", () => {
   it("is 1 for the same order and 0 for the reverse", () => {
     expect(rankCloseness(["x", "y", "z", "w"], ["x", "y", "z", "w"])).toBe(1);
     expect(rankCloseness(["w", "z", "y", "x"], ["x", "y", "z", "w"])).toBe(0);
+    // Swapping the top two costs one pair of six, not a quarter of the score.
+    expect(rankCloseness(["y", "x", "z", "w"], ["x", "y", "z", "w"])).toBe(0.83);
+  });
+});
+
+describe("scoreStrategy - two equilibria", () => {
+  // Stag hunt: a1|b1 and a2|b2 are both equilibria.
+  const stag: GameCell[] = [
+    { a: "a1", b: "b1", payoffA: 9, payoffB: 9 },
+    { a: "a1", b: "b2", payoffA: 1, payoffB: 6 },
+    { a: "a2", b: "b1", payoffA: 6, payoffB: 1 },
+    { a: "a2", b: "b2", payoffA: 3, payoffB: 3 },
+  ];
+  const score = (prediction: string[]) =>
+    scoreStrategy({ aOptions: A, bOptions: B, cells: stag, answers: { bestReplies: {}, prediction } });
+
+  it("counts one of two equilibria as partly right, but not with a wrong cell", () => {
+    expect(score(["a1|b1"])).toMatchObject({ predictionCorrect: false, predictionPartial: true, predictionFound: 1 });
+    expect(score(["a1|b1", "a1|b2"])).toMatchObject({ predictionPartial: false, predictionFound: 1 });
+    expect(score(["a1|b1", "a2|b2"])).toMatchObject({ predictionCorrect: true, predictionPartial: false, predictionFound: 2 });
   });
 });

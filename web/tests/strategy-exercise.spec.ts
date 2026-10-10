@@ -38,6 +38,11 @@ test.describe("Strategic situations", () => {
     await expect(key.getByText("Best replies right")).toBeVisible();
     await expect(key.getByTestId("answer-matrix")).toContainText("Equilibrium");
     await expect(key.getByText("Mock why: cutting is each side's best reply.")).toBeVisible();
+    // "Take with you": game theory idea cards (fixed guide plus the AI's examples).
+    await expect(key.getByTestId("answer-key-takeaways")).toHaveCount(0);
+    const cards = key.getByTestId("trap-card");
+    await expect(cards.first()).toContainText("Spot it");
+    await expect(cards.first()).toContainText("Mock reply: maybe. What would they do if we kept our price?");
     await page.getByRole("button", { name: "Finish" }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 15_000 });
   });
@@ -71,6 +76,6 @@ test.describe("Strategic situations", () => {
     await page.getByRole("button", { name: "Get AI feedback" }).click();
     const key = page.getByTestId("strategy-answer-key");
     await expect(key.getByText("Dominant choices")).toBeVisible({ timeout: 15_000 });
-    await expect(key.getByText("Better for both")).toBeVisible();
+    await expect(key.getByRole("heading", { name: "Better for both" })).toBeVisible();
   });
 });

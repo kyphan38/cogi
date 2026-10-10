@@ -34,6 +34,7 @@ Rules:
 - Payoffs are how good the outcome is for that player (10 = best). They must match the story: someone reading only the cell stories should be able to tell what each player prefers.
 - No ties: for each choice of B, A's payoffs must all differ; for each choice of A, B's payoffs must differ.
 - There must be at least one cell where both players are making their best reply.
+- If gameType is a classic (prisoners_dilemma, coordination, chicken, stag_hunt), the payoffs must really have that shape: a prisoner's dilemma has a dominant choice for each side and an outcome better for both; chicken, stag hunt and coordination have two equilibria and no dominant choice. Otherwise use "other".
 - Keep it concrete and plain. Do not name the game type in the scenario.${input.adaptationAppendix ? `\n\n${input.adaptationAppendix}` : ""}`;
 }
 

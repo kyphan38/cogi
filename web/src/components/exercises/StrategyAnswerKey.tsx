@@ -3,6 +3,11 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Coaching, CoachingFooter, Row, Section, Stat, type Status } from "@/components/shared/AnswerKeyParts";
+import { TakeWithYouCards } from "@/components/shared/TakeWithYouCards";
+import { STRATEGY_IDEA_GUIDE, STRATEGY_IDEA_NAMES } from "@/lib/exercise/strategy-idea-guide";
+import { pickStrategyCards } from "@/lib/exercise/strategy-idea-cards";
+
+const CARD_LABELS = { self: "When you decide", elsewhere: "Same game, other place", balanced: "Thought through" };
 import { OutcomeStories, PayoffMatrix, outcomeNumbers } from "@/components/exercises/PayoffMatrix";
 import type { StrategyExerciseRow } from "@/lib/types/exercise";
 import type { AnalyticalCoachingStructured, CoachingStructured } from "@/lib/types/perspective";
@@ -98,10 +103,15 @@ export function StrategyAnswerKey({
 
         <Section title="Where they end up">
           <Row
-            status={result.predictionCorrect ? "right" : result.predictionConsistent ? "partly" : "wrong"}
+            status={result.predictionCorrect ? "right" : result.predictionConsistent || result.predictionPartial ? "partly" : "wrong"}
             heading={`You: ${outcomes(exercise.answers?.prediction ?? [])}`}
             aside={`Equilibrium: ${outcomes(f.nash)}`}
           >
+            {result.predictionPartial ? (
+              <p className="text-muted-foreground">
+                Found {result.predictionFound} of {f.nash.length}. This game can settle in more than one place.
+              </p>
+            ) : null}
             {!result.predictionCorrect && result.predictionConsistent ? (
               <p className="text-muted-foreground">
                 Your prediction follows from your own ranking - the logic is right; the preferences differ.
@@ -142,6 +152,11 @@ export function StrategyAnswerKey({
         ) : null}
 
         <CoachingFooter coaching={coaching} metaTitle="Your reason" />
+        <TakeWithYouCards
+          entries={pickStrategyCards(result).map((k) => ({ key: k, name: STRATEGY_IDEA_NAMES[k], guide: STRATEGY_IDEA_GUIDE[k] }))}
+          cards={coaching?.trapCards}
+          labels={CARD_LABELS}
+        />
 
         {gameCase ? <GeoCasePanel gameCase={gameCase} /> : null}
       </CardContent>
