@@ -144,6 +144,24 @@ describe("picking quiz places", () => {
     expect(again.map((p) => p.id)).not.toContain("tokyo");
   });
 
+  it("asks at most 3 due reviews, so at least 2 places are new", () => {
+    const missed = ["tokyo", "hanoi", "seoul", "beijing", "manila"].filter((id) => placeById(id));
+    expect(missed.length).toBeGreaterThanOrEqual(4);
+    const attempts: QuizAttempt[] = missed.map((placeId) => ({ placeId, correct: false, day: "2026-10-03" }));
+    const picked = pickQuizPlaces({ attempts, today: "2026-10-04" }).map((p) => p.id);
+    expect(picked).toHaveLength(5);
+    expect(picked.filter((id) => missed.includes(id))).toHaveLength(3);
+  });
+
+  it("fills with waiting reviews when nothing is new", () => {
+    const places = ["tokyo", "hanoi", "seoul"].map((id) => placeById(id)!).filter(Boolean) as Place[];
+    const attempts: QuizAttempt[] = places.map((p) => ({ placeId: p.id, correct: false, day: "2026-10-03" }));
+    expect(pickQuizPlaces({ attempts, today: "2026-10-04", places, count: 3 })).toHaveLength(3);
+    const four = [...places, placeById("manila") ?? placeById("beijing")!].filter(Boolean) as Place[];
+    const missedFour: QuizAttempt[] = four.map((p) => ({ placeId: p.id, correct: false, day: "2026-10-03" }));
+    expect(pickQuizPlaces({ attempts: missedFour, today: "2026-10-04", places: four, count: 4 })).toHaveLength(4);
+  });
+
   it("falls back to places seen longest ago when nothing is new", () => {
     const places = [placeById("hanoi")!, placeById("tokyo")!] as Place[];
     const attempts: QuizAttempt[] = [

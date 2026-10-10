@@ -431,6 +431,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Your tap puts a mark on the map. Tap again to move it. Press \"Check\" when you are sure.",
       "Not sure? Press \"I don't know\" to see the answer. That is fine.",
       "Places you miss come back after 1 day, then after 3 days and 7 days.",
+      "A quiz asks at most 3 of these again. The rest wait for the next quiz, so you always get at least 2 new places.",
       "Close the strait: pick a chokepoint and imagine it is closed. Guess which countries are hit hardest and how ships get around it. Then see the answer on the map.",
       "Every answer links to its source. The AI adds a short coach's note, using only those facts.",
       "Country cards: open a card to see what a country or group says it wants, its red lines, strengths, weak spots and groups.",

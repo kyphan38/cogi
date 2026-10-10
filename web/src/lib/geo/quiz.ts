@@ -89,9 +89,16 @@ function hash(s: string): number {
 }
 
 /**
- * The places for a quiz on `today`: reviews that are due first (oldest first), then
- * places never asked (easy levels first, mixed kinds), then the places seen longest
- * ago. `exclude` skips places already asked today.
+ * At most this many due reviews in one quiz, so new places still come in (2 of 5).
+ * The other due reviews wait for the next quiz; their order stays oldest first.
+ */
+export const MAX_REVIEWS_PER_QUIZ = 3;
+
+/**
+ * The places for a quiz on `today`: up to MAX_REVIEWS_PER_QUIZ due reviews (oldest
+ * first), then places never asked (easy levels first, mixed kinds), then more due
+ * reviews if there is still room, then the places seen longest ago. `exclude` skips
+ * places already asked today.
  */
 export function pickQuizPlaces(input: {
   attempts: QuizAttempt[];
@@ -112,13 +119,13 @@ export function pickQuizPlaces(input: {
     if (picked.length < count && !picked.includes(p)) picked.push(p);
   };
 
-  places
+  const due = places
     .filter((p) => {
       const s = schedule.get(p.id);
       return s != null && s.due <= today;
     })
-    .sort((a, b) => schedule.get(a.id)!.due.localeCompare(schedule.get(b.id)!.due) || a.id.localeCompare(b.id))
-    .forEach(take);
+    .sort((a, b) => schedule.get(a.id)!.due.localeCompare(schedule.get(b.id)!.due) || a.id.localeCompare(b.id));
+  due.slice(0, Math.min(MAX_REVIEWS_PER_QUIZ, count)).forEach(take);
 
   const fresh = places
     .filter((p) => !lastSeen.has(p.id))
@@ -129,6 +136,9 @@ export function pickQuizPlaces(input: {
     const easiest = left.filter((p) => p.level === left[0]!.level);
     take(easiest.find((p) => !kinds.has(p.kind)) ?? easiest[0]!);
   }
+
+  // Nothing new left: fill with the reviews that waited.
+  due.forEach(take);
 
   places
     .filter((p) => lastSeen.has(p.id) && !schedule.has(p.id))
