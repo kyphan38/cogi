@@ -34,7 +34,9 @@ import { calibrationCoachingRefs, scoreCalibration } from "@/lib/exercise/calibr
 import { CALIBRATION_LEVELS } from "@/lib/exercise/calibration-levels";
 import { buildCalibrationPerspectivePrompt } from "@/lib/ai/prompts/calibration-perspective";
 import { reframeCoachingRefs, scoreReframe } from "@/lib/exercise/reframe-score";
-import { pickTrapCards, sanitizeTrapCards } from "@/lib/exercise/reframe-trap-cards";
+import { pickTrapCards } from "@/lib/exercise/reframe-trap-cards";
+import { pickIssueCards } from "@/lib/exercise/analytical-issue-cards";
+import { sanitizeTrapCards } from "@/lib/exercise/take-with-you";
 import { REFRAME_LEVELS } from "@/lib/exercise/reframe-levels";
 import { buildReframePerspectivePrompt } from "@/lib/ai/prompts/reframe-perspective";
 import { scoreStrategy, strategyCoachingRefs } from "@/lib/exercise/strategy-score";
@@ -226,7 +228,7 @@ export async function POST(req: Request) {
     });
     const refs = reframeCoachingRefs(result);
     const cardTraps = pickTrapCards(exercise.thoughts, exercise.rewrite, result);
-    const cardCtx = { domain: exercise.domain, balanced: exercise.rewrite.options[exercise.rewrite.answerIndex] ?? "" };
+    const cardCtx = { domain: exercise.domain, avoid: exercise.rewrite.options[exercise.rewrite.answerIndex] ?? "" };
     const prompt = buildReframePerspectivePrompt({
       exercise,
       result,
@@ -690,6 +692,8 @@ export async function POST(req: Request) {
   const result = scoreAnalytical({ passage, embeddedIssues, validPoints, highlights: userHighlights });
   const refs = analyticalCoachingRefs(result, userHighlights);
   const isGeo = Boolean(hiddenPerspective?.trim());
+  const cardKeys = pickIssueCards(embeddedIssues, result);
+  const cardCtx = { domain, avoid: "" };
   const prompt = buildAnalyticalPerspectivePrompt({
     title,
     passage,
@@ -709,6 +713,7 @@ export async function POST(req: Request) {
     metaGuessScore,
     geoGuess,
     lensLines,
+    cardKeys,
   });
   const fullPrompt = [prompt, languageAppendix].filter(Boolean).join("\n\n");
   const parse = (raw: string) =>
@@ -716,11 +721,21 @@ export async function POST(req: Request) {
       requiredRefs: refs.required,
       allowedRefs: refs.allowed,
       requireMetaNote: isGeo,
+      takeawaysOptional: true,
     });
 
   try {
     let parsed = parse(await generateAnalyticalExerciseRaw(fullPrompt, "thinking"));
-    if (!parsed.success) {
+    // One retry when the cards are incomplete; the second reply is kept either way.
+    if (parsed.success && sanitizeTrapCards(parsed.data.trapCards, cardKeys, cardCtx).length < cardKeys.length) {
+      const second = parse(
+        await generateAnalyticalExerciseRaw(
+          `${fullPrompt}\n${ANALYTICAL_COACHING_RETRY_SUFFIX}\nReason: trapCards: one complete card for each of ${cardKeys.join(", ")}`,
+          "thinking",
+        ),
+      );
+      if (second.success) parsed = second;
+    } else if (!parsed.success) {
       parsed = parse(
         await generateAnalyticalExerciseRaw(
           `${fullPrompt}\n${ANALYTICAL_COACHING_RETRY_SUFFIX}\nReason: ${parsed.error}`,
@@ -738,7 +753,8 @@ export async function POST(req: Request) {
       const h = byId.get(result.extraHighlightIds[i] ?? "");
       return `Your highlight: "${h?.text ?? ref}"`;
     });
-    return NextResponse.json({ ok: true, structured: parsed.data, text, result });
+    const structured = { ...parsed.data, takeaways: [], trapCards: sanitizeTrapCards(parsed.data.trapCards, cardKeys, cardCtx) };
+    return NextResponse.json({ ok: true, structured, text, result });
   } catch (e) {
     const isTimeout =
       e instanceof Error &&

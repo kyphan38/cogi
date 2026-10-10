@@ -526,8 +526,8 @@ export async function POST(req: Request) {
         parse: (raw) => parseAndRepairAnalytical(raw, sanitized),
         validate: (data) =>
           isGeoReal
-            ? validateGeopoliticsAnalyticalSemantics(data)
-            : validateAnalyticalSemantics(data, { expectMainClaimQuiz: analyticalLevel.walkthrough }),
+            ? validateGeopoliticsAnalyticalSemantics(data, { userText: true })
+            : validateAnalyticalSemantics(data, { expectMainClaimQuiz: analyticalLevel.walkthrough, userText: true }),
         retrySuffix: isGeoReal ? GEOPOLITICS_ANALYTICAL_RETRY_SUFFIX : ANALYTICAL_RETRY_SUFFIX,
         responseJsonSchema: analyticalResponseSchema(isGeoReal, {
           withMainClaimQuiz: !isGeoReal && analyticalLevel.walkthrough,

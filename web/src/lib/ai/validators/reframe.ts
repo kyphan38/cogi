@@ -5,7 +5,7 @@ import {
   conceptSchema,
   stripJsonFences,
 } from "@/lib/ai/validators/judgment";
-import { mostlyRepeats } from "@/lib/exercise/reframe-trap-cards";
+import { mostlyRepeats } from "@/lib/text/overlap";
 
 /** Thinking traps (CBT cognitive distortions) used in Reframe (PLAN-psychology.md P1). */
 export const REFRAME_TAGS = [

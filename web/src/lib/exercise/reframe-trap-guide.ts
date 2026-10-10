@@ -1,27 +1,13 @@
 import type { ReframeTag } from "@/lib/ai/validators/reframe";
+import type { TakeWithYouGuide } from "@/lib/exercise/take-with-you";
 
 /**
  * How to use each thinking trap in real life, after the exercise: spot it, handle it in
  * yourself, respond when someone else says it, and a small practice. Written once and
  * checked by hand (CBT basics), so it is the same in every exercise; the AI only adds
- * examples for the exercise at hand (see reframe-trap-cards.ts).
+ * examples for the exercise at hand (see take-with-you.ts).
  */
-export interface TrapGuide {
-  /** What the trap does, in one or two plain sentences. */
-  spot: string;
-  /** Words or moments that often signal it. */
-  signals: readonly string[];
-  /** The question to ask yourself when you catch it. */
-  ask: string;
-  /** One concrete step to take next. */
-  fix: string;
-  /** How to respond when someone else thinks this way. */
-  othersTip: string;
-  /** A small practice for this week. */
-  practice: string;
-}
-
-export const REFRAME_TRAP_GUIDE: Record<ReframeTag, TrapGuide> = {
+export const REFRAME_TRAP_GUIDE: Record<ReframeTag, TakeWithYouGuide> = {
   all_or_nothing: {
     spot: "The thought sees only two boxes: perfect or useless, success or failure. One flaw puts everything in the bad box.",
     signals: ["completely", "totally ruined", "useless", "if it's not perfect..."],

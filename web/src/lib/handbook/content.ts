@@ -154,12 +154,15 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "You can read news, ads and plans without being fooled by a confident claim.",
       "You learn to say clearly why an argument is weak.",
       "\"Go deeper\" on any issue or trap: the core problem, more real-life cases, and a fairer way to say it.",
+      "You take each issue into real life: how to spot it in what you read, and how to question it politely when someone argues that way.",
     ],
     howToPractice: [
       "Read the whole passage once before you tag anything.",
       "For each sentence, ask the four check questions. A \"yes\" tells you the tag.",
       "Weak Evidence: is there real evidence, or only a claim? Hidden Assumption: does it quietly assume something? Logical Fallacy: does the logic jump? Bias: does the writer see only one side?",
       "Some sentences are traps: they look suspicious but are fine. Mark them Valid Point.",
+      "Each sentence holds at most one issue or trap, so one tag per sentence is enough.",
+      "At the end, \"Take with you\" has a card for 1 or 2 issue types. An issue you missed comes first. Each card shows how to spot it, what to ask, what to say to someone else, the same issue in another part of life, and one thing to try this week. A passage with no issues gets a \"Sound reasoning\" card.",
     ],
     levels: {
       guided: "A short passage. First pick the main claim, then check suggested sentences one by one. You know there are 4 issues and 2 traps.",
@@ -169,6 +172,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     tips: [
       "Words like never, always, only and proves are often warning signs.",
       "Finding the problem matters more than the exact tag name.",
+      "When someone argues this way, ask about the facts. Do not call it a fallacy.",
     ],
   },
   {
@@ -427,6 +431,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Your tap puts a mark on the map. Tap again to move it. Press \"Check\" when you are sure.",
       "Not sure? Press \"I don't know\" to see the answer. That is fine.",
       "Places you miss come back after 1 day, then after 3 days and 7 days.",
+      "A quiz asks at most 3 of these again. The rest wait for the next quiz, so you always get at least 2 new places.",
       "Close the strait: pick a chokepoint and imagine it is closed. Guess which countries are hit hardest and how ships get around it. Then see the answer on the map.",
       "Every answer links to its source. The AI adds a short coach's note, using only those facts.",
       "Country cards: open a card to see what a country or group says it wants, its red lines, strengths, weak spots and groups.",
