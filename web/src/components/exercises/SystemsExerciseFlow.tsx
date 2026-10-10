@@ -839,7 +839,7 @@ export function SystemsExerciseFlow({
             <p className="text-sm leading-relaxed">{exercise.scenario}</p>
             {decomposePhase === "input" ? (
               <div className="space-y-3">
-                <p className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground text-sm" data-testid="decompose-hint">
                   Pick the 6 factors that matter most.
                 </p>
                 {exLevel.componentCandidates &&
@@ -992,7 +992,7 @@ export function SystemsExerciseFlow({
               mode="connect"
               nodeImpact={nodeImpact}
             />
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground text-xs" data-testid="connect-hint">
               Drag bottom → top to link. Max {20}. Backspace deletes.
             </p>
             {userEdges.length > 0 ? (

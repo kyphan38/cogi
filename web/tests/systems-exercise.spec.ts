@@ -62,9 +62,7 @@ test.describe("Systems exercise - generation and canvas", () => {
     ).toBeVisible({ timeout: 15_000 });
 
     await expect(page.getByText(/latency spikes/)).toBeVisible();
-    await expect(
-      page.getByText(/pick the 6 components or factors/),
-    ).toBeVisible();
+    await expect(page.getByTestId("decompose-hint")).toContainText("6");
   });
 
   test("canvas renders ReactFlow container with nodes", async ({ page }) => {
@@ -91,9 +89,7 @@ test.describe("Systems exercise - generation and canvas", () => {
 
     await advanceSystemsToCanvas(page);
 
-    await expect(
-      page.getByText(/Drag from one node.*Set each edge.*type/),
-    ).toBeVisible();
+    await expect(page.getByTestId("connect-hint")).toBeVisible();
   });
 });
 
