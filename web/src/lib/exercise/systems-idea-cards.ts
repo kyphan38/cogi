@@ -23,6 +23,8 @@ function inLoop(c: Link, all: Link[]): boolean {
 }
 
 const IDEA_OF_TYPE: Record<SystemsIntendedConnection["type"], SystemsIdea> = {
+  increases: "ripple_effects",
+  decreases: "trade_offs",
   depends_on: "hidden_dependencies",
   enables: "hidden_dependencies",
   conflicts_with: "trade_offs",

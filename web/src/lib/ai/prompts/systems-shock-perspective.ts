@@ -7,7 +7,7 @@ import type {
   SystemsUserEdge,
 } from "@/lib/types/exercise";
 import type { SystemsResult } from "@/lib/exercise/systems-score";
-import { CONNECTION_TYPE_INFO, IMPACT_LABELS } from "@/lib/exercise/systems-labels";
+import { CONNECTION_TYPE_INFO, IMPACT_LABELS, linkTypesFor } from "@/lib/exercise/systems-labels";
 import { SYSTEMS_IDEA_GUIDE, SYSTEMS_IDEA_NAMES, type SystemsIdea } from "@/lib/exercise/systems-idea-guide";
 
 /**
@@ -147,8 +147,8 @@ The user's own 6 components before seeing the nodes: ${JSON.stringify(input.user
 The shock: ${input.shockEvent.description}
 Why the model marks nodes this way: ${input.shockEvent.explanation}
 
-Connection types (arrow A -> B): ${Object.values(CONNECTION_TYPE_INFO)
-    .map((t) => `"${t.label}" = ${t.meaning}`)
+Connection types (arrow A -> B): ${linkTypesFor(input.intendedConnections)
+    .map((k) => `"${CONNECTION_TYPE_INFO[k].label}" = ${CONNECTION_TYPE_INFO[k].meaning}`)
     .join(" ")}
 
 SCORE (already decided by code - final, do not change or argue with it):

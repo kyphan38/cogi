@@ -1,6 +1,10 @@
 import { z } from "zod";
 
+/** "increases" / "decreases" (when A goes up, B goes up / down) for new exercises; the
+ * other four only appear in exercises saved before signed links. */
 const connectionTypeSchema = z.enum([
+  "increases",
+  "decreases",
   "depends_on",
   "conflicts_with",
   "enables",
@@ -343,6 +347,14 @@ export function shockPathErrors(
   return errors;
 }
 
+export const SIGNED_LINK_TYPES = ["increases", "decreases"] as const;
+
+/** New exercises use signed links only; the legacy types stay valid for saved rows. */
+export function signedTypeErrors(connections: { type: string }[], label: string): string[] {
+  const bad = connections.filter((c) => !(SIGNED_LINK_TYPES as readonly string[]).includes(c.type));
+  return bad.length ? [`${label}: every type must be "increases" or "decreases"`] : [];
+}
+
 /** Phase 3.4 semantic checks after Zod (ids, duplicates, min distance, shock refs). */
 export function validateSystemsExerciseSemantics(
   data: SystemsExercisePayload | GeopoliticsSystemsExercisePayload,
@@ -374,6 +386,7 @@ export function validateSystemsExerciseSemantics(
 
   errors.push(
     ...validateConnectionSet(data.intendedConnections, ids, "intendedConnections"),
+    ...signedTypeErrors(data.intendedConnections, "intendedConnections"),
   );
   errors.push(
     ...validateShockRefs(
@@ -430,6 +443,7 @@ export function validateGeopoliticsSystemsSemantics(
       ids,
       "intendedConnectionsB",
     ),
+    ...signedTypeErrors(data.intendedConnectionsB ?? [], "intendedConnectionsB"),
   );
   if (data.shockEventB) {
     errors.push(

@@ -138,24 +138,13 @@ export async function selectSystemsTaskType(
   await page.getByRole("option", { name }).click();
 }
 
-/** Drag from one node's bottom (source) handle to another's top (target) handle on a
- * SystemsFlowCanvas in "connect" mode, creating a single edge. */
+/** Tap one node, then another, then pick "goes up": creates a single "increases" edge on a
+ * SystemsFlowCanvas in "connect" mode. */
 export async function addSystemsConnection(page: Page): Promise<void> {
-  const sourceHandles = page.locator(".react-flow__handle-bottom");
-  const targetHandles = page.locator(".react-flow__handle-top");
-  const sourceBox = await sourceHandles.first().boundingBox();
-  const targetBox = await targetHandles.nth(1).boundingBox();
-  if (!sourceBox || !targetBox) {
-    throw new Error("addSystemsConnection: react-flow handles not found");
-  }
-  await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(
-    targetBox.x + targetBox.width / 2,
-    targetBox.y + targetBox.height / 2,
-    { steps: 10 },
-  );
-  await page.mouse.up();
+  const nodes = page.locator(".react-flow__node");
+  await nodes.nth(0).click();
+  await nodes.nth(1).click();
+  await page.getByTestId("link-chooser").getByRole("button", { name: "goes up" }).click();
 }
 
 export async function advanceSystemsToCanvas(page: Page): Promise<void> {

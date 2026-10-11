@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -10,19 +10,18 @@ import {
   Handle,
   MarkerType,
   Position,
-  applyEdgeChanges,
   getBezierPath,
   useNodesState,
-  type Connection,
   type Edge,
-  type EdgeChange,
   type EdgeProps,
   type Node,
   type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import type { SystemsConnectionType } from "@/lib/ai/validators/systems";
+import { CONNECTION_TYPE_INFO } from "@/lib/exercise/systems-labels";
 import type {
   SystemsIntendedConnection,
   SystemsNodeSpec,
@@ -40,6 +39,7 @@ function SystemFlowNode({ data }: NodeProps) {
     label: string;
     description: string;
     impact: SystemsNodeImpact;
+    picked?: boolean;
   };
   // Gray only (DESIGN.md): the impact is said by a word on the node, and
   // the border just backs it up (solid = direct, dashed = indirect).
@@ -51,9 +51,9 @@ function SystemFlowNode({ data }: NodeProps) {
         : "border-border bg-card";
   return (
     <>
-      {/* One handle per side; each is connectable as both the start and the
-          end of a drag (regardless of its declared `type`) so users can draw
-          a connection from or to any side of any node, not just top/bottom. */}
+      {/* One hidden handle per side so an edge can leave or enter from the side
+          that faces the other node. Links are made by tapping nodes, not by
+          dragging from handles (too small to hit on a phone). */}
       {(
         [
           ["top", Position.Top],
@@ -67,14 +67,15 @@ function SystemFlowNode({ data }: NodeProps) {
           id={pos}
           type="source"
           position={position}
-          isConnectableStart
-          isConnectableEnd
+          isConnectable={false}
+          className="!pointer-events-none !opacity-0"
         />
       ))}
       <div
         className={cn(
           "min-w-[96px] max-w-[132px] rounded-md border px-2 py-1.5 text-left text-xs shadow-sm",
           border,
+          d.picked && "ring-2 ring-zinc-900 ring-offset-2",
         )}
       >
         {d.impact !== "none" ? (
@@ -90,7 +91,6 @@ function SystemFlowNode({ data }: NodeProps) {
 }
 
 function SystemFlowEdge({
-  id,
   sourceX,
   sourceY,
   targetX,
@@ -110,8 +110,6 @@ function SystemFlowEdge({
     targetPosition,
   });
 
-  const onDelete = (data as { onDelete?: (id: string) => void } | undefined)
-    ?.onDelete;
   const isReference = Boolean(
     (data as { isReference?: boolean } | undefined)?.isReference,
   );
@@ -128,33 +126,21 @@ function SystemFlowEdge({
           isReference
             ? {
                 strokeDasharray: "6 4",
-                stroke: "hsl(var(--muted-foreground))",
+                stroke: "var(--muted-foreground)",
               }
-            : { stroke: "hsl(var(--foreground))" }
+            : { stroke: "var(--foreground)" }
         }
       />
       <EdgeLabelRenderer>
         <div
-          className="nodrag nopan flex items-center gap-1 rounded border bg-background px-1.5 py-0.5 text-[10px] shadow-sm"
+          className="nodrag nopan flex items-center gap-1 rounded border bg-background px-1.5 py-0.5 text-[10px] font-medium shadow-sm"
           style={{
             position: "absolute",
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-            pointerEvents: "all",
+            pointerEvents: "none",
           }}
         >
           {label ? <span>{label}</span> : null}
-          {onDelete ? (
-            <button
-              className="text-muted-foreground hover:text-destructive leading-none"
-              title="Delete connection"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(id);
-              }}
-            >
-              ×
-            </button>
-          ) : null}
         </div>
       </EdgeLabelRenderer>
     </>
@@ -190,10 +176,12 @@ function toRfNodes(
 function pickHandles(
   a: { x: number; y: number },
   b: { x: number; y: number },
+  /** Use the other axis, so a two-way pair draws two separate curves. */
+  otherAxis = false,
 ): { sourceHandle: string; targetHandle: string } {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
-  if (Math.abs(dx) >= Math.abs(dy)) {
+  if (Math.abs(dx) >= Math.abs(dy) !== otherAxis) {
     return dx >= 0
       ? { sourceHandle: "right", targetHandle: "left" }
       : { sourceHandle: "left", targetHandle: "right" };
@@ -206,13 +194,14 @@ function pickHandles(
 function toRfEdges(
   edges: SystemsUserEdge[],
   nodesById: Map<string, { x: number; y: number }>,
-  onDelete: ((id: string) => void) | undefined,
   isReference = false,
 ): Edge[] {
+  const pairs = new Set(edges.map((e) => `${e.source}>${e.target}`));
   return edges.map((e) => {
     const a = nodesById.get(e.source);
     const b = nodesById.get(e.target);
-    const handles = a && b ? pickHandles(a, b) : undefined;
+    const twoWay = pairs.has(`${e.target}>${e.source}`) && e.source > e.target;
+    const handles = a && b ? pickHandles(a, b, twoWay) : undefined;
     return {
       id: e.id,
       type: "systemEdge",
@@ -220,15 +209,15 @@ function toRfEdges(
       target: e.target,
       sourceHandle: handles?.sourceHandle,
       targetHandle: handles?.targetHandle,
-      label: e.type.replace(/_/g, " "),
-      data: { type: e.type, onDelete, isReference },
+      label: CONNECTION_TYPE_INFO[e.type]?.short ?? e.type,
+      data: { type: e.type, isReference },
       markerEnd: {
         type: MarkerType.ArrowClosed,
         width: 16,
         height: 16,
         color: isReference
-          ? "hsl(var(--muted-foreground))"
-          : "hsl(var(--foreground))",
+          ? "var(--muted-foreground)"
+          : "var(--foreground)",
       },
     };
   });
@@ -253,6 +242,8 @@ export interface SystemsFlowCanvasProps {
   nodeImpact: Record<string, SystemsNodeImpact>;
   onToggleNodeImpact?: (nodeId: string) => void;
   maxEdges?: number;
+  /** Choices offered after tapping two nodes in "connect" mode. */
+  linkTypes?: SystemsConnectionType[];
   /** When set with showReferenceOnly, renders these instead of userEdges. */
   referenceEdges?: SystemsIntendedConnection[];
   showReferenceOnly?: boolean;
@@ -267,6 +258,7 @@ export function SystemsFlowCanvas({
   nodeImpact,
   onToggleNodeImpact,
   maxEdges = 20,
+  linkTypes = ["increases", "decreases"],
   referenceEdges,
   showReferenceOnly = false,
   className,
@@ -278,12 +270,10 @@ export function SystemsFlowCanvas({
     return userEdges;
   }, [showReferenceOnly, referenceEdges, userEdges]);
 
-  const handleDeleteEdge = useCallback(
-    (edgeId: string) => {
-      onUserEdgesChange(userEdges.filter((e) => e.id !== edgeId));
-    },
-    [userEdges, onUserEdgesChange],
-  );
+  // Tap-to-link: the first tap picks the start node, the second the end node, then the
+  // user chooses the link type.
+  const [pickedId, setPickedId] = useState<string | null>(null);
+  const [pair, setPair] = useState<{ source: string; target: string } | null>(null);
 
   const nodesById = useMemo(
     () => new Map(nodeSpecs.map((n) => [n.id, { x: n.x, y: n.y }])),
@@ -292,13 +282,8 @@ export function SystemsFlowCanvas({
 
   const rfEdges = useMemo(
     () =>
-      toRfEdges(
-        displayEdges,
-        nodesById,
-        mode === "connect" && !showReferenceOnly ? handleDeleteEdge : undefined,
-        showReferenceOnly,
-      ),
-    [displayEdges, nodesById, mode, showReferenceOnly, handleDeleteEdge],
+      toRfEdges(displayEdges, nodesById, showReferenceOnly),
+    [displayEdges, nodesById, showReferenceOnly],
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
@@ -316,79 +301,51 @@ export function SystemsFlowCanvas({
           data: {
             ...(n.data as Record<string, unknown>),
             impact: nodeImpact[n.id] ?? "none",
+            picked: n.id === pickedId || n.id === pair?.source,
           },
         })),
       );
     }
-  }, [nodeSpecs, nodeImpact, setNodes]);
+  }, [nodeSpecs, nodeImpact, pickedId, pair, setNodes]);
 
-  const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => {
-      if (mode !== "connect") return;
-      const next = applyEdgeChanges(changes, rfEdges);
-      const mapped: SystemsUserEdge[] = next.map((e) => ({
-        id: e.id,
-        source: e.source,
-        target: e.target,
-        type:
-          ((e.data as { type?: SystemsConnectionType } | undefined)?.type as
-            | SystemsConnectionType
-            | undefined) ?? "depends_on",
-      }));
-      onUserEdgesChange(mapped);
-    },
-    [mode, rfEdges, onUserEdgesChange],
-  );
+  const labelOf = (id: string) => nodeSpecs.find((n) => n.id === id)?.label ?? id;
 
-  const onConnect = useCallback(
-    (params: Connection) => {
-      if (mode !== "connect") return;
-      if (userEdges.length >= maxEdges) return;
-      if (!params.source || !params.target) return;
-      const dup = userEdges.some(
-        (e) => e.source === params.source && e.target === params.target,
-      );
-      if (dup) return;
-      const id = crypto.randomUUID();
-      onUserEdgesChange([
-        ...userEdges,
-        {
-          id,
-          source: params.source,
-          target: params.target,
-          type: "depends_on",
-        },
-      ]);
-    },
-    [mode, userEdges, onUserEdgesChange, maxEdges],
-  );
+  const onTapNode = (id: string) => {
+    if (pair) return;
+    if (!pickedId) return setPickedId(id);
+    if (pickedId === id) return setPickedId(null);
+    setPair({ source: pickedId, target: id });
+    setPickedId(null);
+  };
+
+  const addLink = (type: SystemsConnectionType) => {
+    if (!pair) return;
+    const existing = userEdges.find((e) => e.source === pair.source && e.target === pair.target);
+    if (existing) {
+      onUserEdgesChange(userEdges.map((e) => (e.id === existing.id ? { ...e, type } : e)));
+    } else if (userEdges.length < maxEdges) {
+      onUserEdgesChange([...userEdges, { id: crypto.randomUUID(), ...pair, type }]);
+    }
+    setPair(null);
+  };
+
+  const signed = linkTypes.every((t) => t === "increases" || t === "decreases");
 
   return (
-    <div
-      className={cn(
-        "h-[min(380px,60svh)] w-full rounded-md border bg-muted/20",
-        className,
-      )}
-    >
+    <div className={cn("space-y-2", className)}>
+    <div className="h-[min(380px,60svh)] w-full rounded-md border bg-muted/20">
       <ReactFlow
         className="h-full w-full"
         nodes={nodes}
         edges={rfEdges}
         onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        nodesDraggable={mode === "connect"}
-        nodesConnectable={mode === "connect"}
+        nodesDraggable={false}
+        nodesConnectable={false}
         edgesReconnectable={false}
-        // All 4 handles per node are declared type="source" so any side can
-        // both start and receive a drag (see SystemFlowNode). ReactFlow's
-        // default "strict" connectionMode only allows source->target handle
-        // pairs, which silently rejects most same-type combinations here -
-        // that's what caused connections to intermittently fail (e.g. "top
-        // to top") and made it look like only ~2 connections per node were
-        // possible. "loose" allows any handle to connect to any other.
+        elementsSelectable={false}
+        // Every handle is type="source"; "loose" lets an edge join any two of them.
         connectionMode={ConnectionMode.Loose}
         zoomOnScroll={false}
         panOnDrag={false}
@@ -400,13 +357,48 @@ export function SystemsFlowCanvas({
         onNodeClick={
           mode === "shock" && onToggleNodeImpact
             ? (_, n) => onToggleNodeImpact(n.id)
-            : undefined
+            : mode === "connect" && !showReferenceOnly
+              ? (_, n) => onTapNode(n.id)
+              : undefined
         }
-        deleteKeyCode={mode === "connect" ? ["Backspace", "Delete"] : null}
+        deleteKeyCode={null}
         proOptions={{ hideAttribution: true }}
       >
         <Background gap={16} size={1} />
       </ReactFlow>
+    </div>
+      {mode === "connect" && pickedId ? (
+        <p className="text-sm text-zinc-900" data-testid="link-picked">
+          From <span className="font-medium">{labelOf(pickedId)}</span>: now tap the part it affects.
+        </p>
+      ) : null}
+      {mode === "connect" && pair ? (
+        <div className="space-y-2 rounded-md border p-3" data-testid="link-chooser">
+          <p className="text-sm">
+            {signed ? (
+              <>
+                When <span className="font-medium">{labelOf(pair.source)}</span> goes up,{" "}
+                <span className="font-medium">{labelOf(pair.target)}</span>...
+              </>
+            ) : (
+              <>
+                <span className="font-medium">{labelOf(pair.source)}</span> -&gt;{" "}
+                <span className="font-medium">{labelOf(pair.target)}</span>
+              </>
+            )}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {linkTypes.map((t) => (
+              <Button key={t} type="button" size="sm" onClick={() => addLink(t)}>
+                {t === "increases" ? "goes up" : t === "decreases" ? "goes down" : CONNECTION_TYPE_INFO[t].label}
+              </Button>
+            ))}
+            <Button type="button" size="sm" variant="secondary" onClick={() => setPair(null)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

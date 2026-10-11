@@ -19,12 +19,11 @@ describe("buildSystemsGenerationPrompt", () => {
     expect(result).toContain("node_6");
   });
 
-  it("includes connection type enum", () => {
+  it("asks for signed links only", () => {
     const result = buildSystemsGenerationPrompt({ domain: "tech" });
-    expect(result).toContain("depends_on");
-    expect(result).toContain("conflicts_with");
-    expect(result).toContain("enables");
-    expect(result).toContain("risks");
+    expect(result).toContain('"increases"');
+    expect(result).toContain('"decreases"');
+    expect(result).not.toContain("depends_on");
   });
 
   it("requires feedback loop", () => {

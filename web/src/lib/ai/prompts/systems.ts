@@ -25,8 +25,8 @@ Requirements:
 - Exactly **6 nodes** (not more). Node IDs MUST be exactly: "node_1", "node_2", "node_3", "node_4", "node_5", "node_6"
 - Each node: label max 20 characters, description max 50 characters
 - x and y are **percentage positions** from 10 to 90 (avoid edges). Nodes must be spread so every pair is at least **15 units** apart in (x,y) Euclidean distance on the percentage plane (prevents overlap).
-- intendedConnections: clear dependency-style relationships; include at least **one circular dependency or feedback loop** among these 6 nodes
-- Each connection: type is one of "depends_on", "conflicts_with", "enables", "risks", plus explanation string
+- intendedConnections: clear cause-and-effect links; include at least **one feedback loop** (a chain of links that comes back to its start) among these 6 nodes
+- Each connection: type is "increases" (when "from" goes up, "to" goes up) or "decreases" (when "from" goes up, "to" goes down), plus explanation string. Name nodes as things that can go up or down (an amount, a level, a speed), not as actions.
 - shockEvent: a plausible "what-if" ripple scenario with directlyAffected and indirectlyAffected node id arrays (subset of the 6 ids), plus explanation of the chain. Every indirectlyAffected node must have a connection (either direction) to a directly or indirectly affected node: that link is the path the effect travels. No node may be in both lists.
 - componentCandidates: 9-14 short labels (each ≤20 chars, matching the node label style) the user will pick their "before I see the AI's answer" guesses from. MUST include the exact 6 node labels used above (verbatim strings, not ids) plus 3-8 plausible-but-wrong distractor labels for the same scenario/domain (same tone and length, no giveaway markers like asterisks). Shuffle the order so the correct 6 are NOT grouped together or in the same order as the nodes array. No duplicates.
 
@@ -39,7 +39,7 @@ Return a single JSON object with this exact shape:
   ],
   "componentCandidates": [string, string, string, string, string, string, string, string, string],
   "intendedConnections": [
-    { "from": "node_1", "to": "node_2", "type": "depends_on", "explanation": string }
+    { "from": "node_1", "to": "node_2", "type": "increases", "explanation": string }
   ],
   "shockEvent": {
     "description": string,
@@ -79,8 +79,8 @@ Requirements:
 - Each node: label max 20 characters, description max 50 characters
 - x and y are **percentage positions** from 10 to 90 (avoid edges). Nodes must be spread so every pair is at least **15 units** apart in (x,y) Euclidean distance on the percentage plane (prevents overlap).
 - Design the connection graph so criticality is genuinely uneven: at least one node should be a structural single point of failure (high in-degree/out-degree, a hub other nodes depend on), and at least one node should be a true leaf with minimal impact if removed. Do NOT reveal this ranking anywhere in labels, descriptions, or scenario text - it must only be discoverable by reasoning about the graph.
-- intendedConnections: clear dependency-style relationships; include at least **one circular dependency or feedback loop** among these 6 nodes
-- Each connection: type is one of "depends_on", "conflicts_with", "enables", "risks", plus explanation string
+- intendedConnections: clear cause-and-effect links; include at least **one feedback loop** (a chain of links that comes back to its start) among these 6 nodes
+- Each connection: type is "increases" (when "from" goes up, "to" goes up) or "decreases" (when "from" goes up, "to" goes down), plus explanation string. Name nodes as things that can go up or down (an amount, a level, a speed), not as actions.
 - criticalityGroundTruth: exactly 6 entries (one per node), each with a criticalityRank from 1 (most critical / most damaging if it fails) to 6 (least critical), all ranks unique, plus a short internal-only explanation (never shown verbatim to the user as a "ranking")
 - shockEvent: a plausible first "what-if" ripple scenario with directlyAffected and indirectlyAffected node id arrays (subset of the 6 ids), plus explanation of the chain. Every indirectlyAffected node must have a connection (either direction) to a directly or indirectly affected node: that link is the path the effect travels. No node may be in both lists.
 - secondShockEvent: a SECOND, later shock that genuinely cascades FROM the consequences of the first shock - its directlyAffected or indirectlyAffected nodes MUST overlap with the first shock's indirectlyAffected nodes (proving it's a downstream second-order effect, not an unrelated event). Include description, directlyAffected, indirectlyAffected, and explanation.
@@ -96,7 +96,7 @@ Return a single JSON object with this exact shape:
   ],
   "componentCandidates": [string, string, string, string, string, string, string, string, string],
   "intendedConnections": [
-    { "from": "node_1", "to": "node_2", "type": "depends_on", "explanation": string }
+    { "from": "node_1", "to": "node_2", "type": "increases", "explanation": string }
   ],
   "criticalityGroundTruth": [
     { "nodeId": "node_1", "criticalityRank": 1, "rationale": string }
@@ -147,7 +147,7 @@ Requirements:
 - perspectiveAName and perspectiveBName: explicit state or major non-state actors (must differ)
 - intendedConnections: how Actor A (perspectiveAName) sees relationships - include at least one feedback loop
 - intendedConnectionsB: how Actor B (perspectiveBName) sees the SAME nodes differently - include at least one feedback loop
-- Each connection: type is "depends_on" | "conflicts_with" | "enables" | "risks", plus explanation
+- Each connection: type is "increases" | "decreases" (when "from" goes up, "to" goes up / down), plus explanation
 - shockEvent: shared what-if description plus directlyAffected, indirectlyAffected, explanation from Actor A's view. Every indirectlyAffected node must have a connection (either direction) to a directly or indirectly affected node: that link is the path the effect travels. No node may be in both lists.
 - shockEventB: same shock (do NOT repeat description) - only directlyAffected, indirectlyAffected, explanation from Actor B's view (the same path rule applies, using intendedConnectionsB)
 - componentCandidates: 9-14 short labels (each ≤20 chars, matching the node label style) the user will pick their "before I see the AI's answer" guesses from. MUST include the exact 6 node labels used above (verbatim strings, not ids) plus 3-8 plausible-but-wrong distractor labels for the same scenario (same tone and length, no giveaway markers). Shuffle the order so the correct 6 are NOT grouped together or in the same order as the nodes array. No duplicates.
@@ -160,8 +160,8 @@ Return a single JSON object with this exact shape:
   "componentCandidates": [string, string, string, string, string, string, string, string, string],
   "perspectiveAName": string,
   "perspectiveBName": string,
-  "intendedConnections": [ { "from": "node_1", "to": "node_2", "type": "depends_on", "explanation": string } ],
-  "intendedConnectionsB": [ { "from": "node_1", "to": "node_2", "type": "depends_on", "explanation": string } ],
+  "intendedConnections": [ { "from": "node_1", "to": "node_2", "type": "increases", "explanation": string } ],
+  "intendedConnectionsB": [ { "from": "node_1", "to": "node_2", "type": "increases", "explanation": string } ],
   "shockEvent": {
     "description": string,
     "directlyAffected": ["node_3"],

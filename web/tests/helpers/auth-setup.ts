@@ -619,10 +619,10 @@ function makeMockStandaloneSystemsPayload() {
       { id: "node_6", label: "CDN", description: "Edge content delivery", x: 50, y: 85 },
     ],
     intendedConnections: [
-      { from: "node_1", to: "node_2", type: "depends_on", explanation: "Auth required for API calls." },
-      { from: "node_1", to: "node_3", type: "depends_on", explanation: "Reads from primary store." },
-      { from: "node_4", to: "node_3", type: "enables", explanation: "Cache reduces DB load." },
-      { from: "node_5", to: "node_3", type: "depends_on", explanation: "Jobs write to DB." },
+      { from: "node_1", to: "node_2", type: "increases", explanation: "Auth required for API calls." },
+      { from: "node_1", to: "node_3", type: "increases", explanation: "Reads from primary store." },
+      { from: "node_4", to: "node_3", type: "increases", explanation: "Cache reduces DB load." },
+      { from: "node_5", to: "node_3", type: "increases", explanation: "Jobs write to DB." },
     ],
     shockEvent: {
       description: "The primary database cluster experiences a cascading failover during peak traffic",
@@ -650,12 +650,12 @@ function makeMockSystemsResiliencePayload() {
       { id: "node_6", label: "Load Balancer", description: "Shifts demand across feeders", x: 50, y: 85 },
     ],
     intendedConnections: [
-      { from: "node_1", to: "node_3", type: "enables", explanation: "Substation feeds the transformer bank." },
-      { from: "node_2", to: "node_1", type: "depends_on", explanation: "Control room commands the substation." },
-      { from: "node_5", to: "node_2", type: "enables", explanation: "Sensors inform control room decisions." },
-      { from: "node_2", to: "node_5", type: "depends_on", explanation: "Control room relies on sensor feeds." },
-      { from: "node_4", to: "node_3", type: "risks", explanation: "Generator strain can overload the bank." },
-      { from: "node_6", to: "node_3", type: "depends_on", explanation: "Load balancing needs the transformer bank." },
+      { from: "node_1", to: "node_3", type: "increases", explanation: "Substation feeds the transformer bank." },
+      { from: "node_2", to: "node_1", type: "increases", explanation: "Control room commands the substation." },
+      { from: "node_5", to: "node_2", type: "increases", explanation: "Sensors inform control room decisions." },
+      { from: "node_2", to: "node_5", type: "increases", explanation: "Control room relies on sensor feeds." },
+      { from: "node_4", to: "node_3", type: "decreases", explanation: "Generator strain can overload the bank." },
+      { from: "node_6", to: "node_3", type: "increases", explanation: "Load balancing needs the transformer bank." },
     ],
     criticalityGroundTruth: [
       { nodeId: "node_1", criticalityRank: 1, rationale: "Every downstream node depends on this substation." },

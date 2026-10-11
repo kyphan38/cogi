@@ -17,6 +17,8 @@ import { AIPerspective } from "@/components/shared/AIPerspective";
 import { SystemsAnswerKey } from "@/components/exercises/SystemsAnswerKey";
 import { LevelPicker } from "@/components/exercises/LevelPicker";
 import { LinkTypeGuide } from "@/components/exercises/LinkTypeGuide";
+import { SystemsLoopList } from "@/components/exercises/SystemsLoopList";
+import { CONNECTION_TYPE_INFO, linkTypesFor } from "@/lib/exercise/systems-labels";
 import { LevelSuggestionCard } from "@/components/shared/LevelSuggestionCard";
 import { useToast } from "@/components/ui/toast";
 import { SYSTEMS_LEVELS } from "@/lib/exercise/systems-levels";
@@ -82,13 +84,6 @@ import { listRecentDomains, putExercise, getExercise } from "@/lib/db/exercises"
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
 import { isSystemsExercise } from "@/lib/types/exercise";
 import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
-
-const EDGE_TYPES: SystemsConnectionType[] = [
-  "depends_on",
-  "conflicts_with",
-  "enables",
-  "risks",
-];
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
@@ -431,6 +426,9 @@ export function SystemsExerciseFlow({
     setError(null);
     void startGenerate();
   };
+
+  const linkTypes = linkTypesFor(exercise?.intendedConnections ?? []);
+  const nodeLabel = (id: string) => exercise?.nodes.find((n) => n.id === id)?.label ?? id;
 
   const setEdgeType = (edgeId: string, type: SystemsConnectionType) => {
     setUserEdges((prev) =>
@@ -984,46 +982,52 @@ export function SystemsExerciseFlow({
                 between these nodes. Try to find them.
               </p>
             ) : null}
-            {exLevel.linkTypeGuide !== "hidden" ? <LinkTypeGuide mode={exLevel.linkTypeGuide} /> : null}
+            {exLevel.linkTypeGuide !== "hidden" ? (
+              <LinkTypeGuide mode={exLevel.linkTypeGuide} types={linkTypes} />
+            ) : null}
+            <p className="text-muted-foreground text-xs" data-testid="connect-hint">
+              Tap a part, then tap the part it affects.
+            </p>
             <SystemsFlowCanvas
               nodes={exercise.nodes}
               userEdges={userEdges}
               onUserEdgesChange={setUserEdges}
               mode="connect"
               nodeImpact={nodeImpact}
+              linkTypes={linkTypes}
             />
-            <p className="text-muted-foreground text-xs" data-testid="connect-hint">
-              Drag bottom → top to link. Max {20}. Backspace deletes.
-            </p>
             {userEdges.length > 0 ? (
-              <ul className="space-y-2 rounded-md border p-2 text-sm">
+              <ul className="space-y-2 rounded-md border p-2 text-sm" data-testid="link-list">
                 {userEdges.map((e) => (
                   <li key={e.id} className="flex flex-wrap items-center gap-2">
-                    <span className="text-muted-foreground font-mono text-xs">
-                      {e.source} → {e.target}
+                    <span className="min-w-0 flex-1">
+                      <span className="font-medium">{nodeLabel(e.source)}</span>
+                      {` ${CONNECTION_TYPE_INFO[e.type].label} `}
+                      <span className="font-medium">{nodeLabel(e.target)}</span>
                     </span>
-                    <Select
-                      value={e.type}
-                      onValueChange={(v) => {
-                        const t = v as SystemsConnectionType;
-                        setEdgeType(e.id, t);
-                      }}
+                    {linkTypes.length === 2 ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => setEdgeType(e.id, linkTypes.find((t) => t !== e.type) ?? e.type)}
+                      >
+                        Flip sign
+                      </Button>
+                    ) : null}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setUserEdges((prev) => prev.filter((x) => x.id !== e.id))}
                     >
-                      <SelectTrigger className="h-8 w-[160px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EDGE_TYPES.map((t) => (
-                          <SelectItem key={t} value={t}>
-                            {t.replace(/_/g, " ")}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      Remove
+                    </Button>
                   </li>
                 ))}
               </ul>
             ) : null}
+            <SystemsLoopList links={userEdges.map((e) => ({ from: e.source, to: e.target, type: e.type }))} label={nodeLabel} />
             <div className="flex gap-2">
               <Button type="button" variant="secondary" onClick={() => {
                 void putExercise({ ...exercise, userEdges, nodeImpact, currentStep: 1 });

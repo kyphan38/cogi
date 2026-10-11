@@ -10,6 +10,7 @@ import { CONNECTION_TYPE_INFO, IMPACT_LABELS } from "@/lib/exercise/systems-labe
 import { SYSTEMS_IDEA_GUIDE, SYSTEMS_IDEA_NAMES } from "@/lib/exercise/systems-idea-guide";
 import { pickSystemsCards, systemsCriticality } from "@/lib/exercise/systems-idea-cards";
 import { TakeWithYouCards } from "@/components/shared/TakeWithYouCards";
+import { SystemsLoopList } from "@/components/exercises/SystemsLoopList";
 
 const CARD_LABELS = { self: "When you plan or decide", elsewhere: "Same idea, other place", balanced: "With the idea in mind" };
 
@@ -126,6 +127,8 @@ export function SystemsAnswerKey({
             );
           })}
         </Section>
+
+        <SystemsLoopList links={exercise.intendedConnections} label={label} title="Loops in the model's map" />
 
         {result.extraEdgeIds.length > 0 ? (
           <Section title="Your other links" hint="Not in the model. Some may still be fair.">

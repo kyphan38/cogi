@@ -91,7 +91,7 @@ function validSystemsJson() {
       "Distractor A", "Distractor B", "Distractor C",
     ],
     intendedConnections: [
-      { from: "node_1", to: "node_2", type: "depends_on", explanation: "why" },
+      { from: "node_1", to: "node_2", type: "increases", explanation: "why" },
     ],
     shockEvent: {
       description: "A shock event",
@@ -119,8 +119,8 @@ function validGeopoliticsSystemsJson() {
       "Distractor A", "Distractor B", "Distractor C",
     ],
     intendedConnections: [
-      { from: "node_1", to: "node_2", type: "depends_on", explanation: "why" },
-      { from: "node_2", to: "node_1", type: "enables", explanation: "cycle" },
+      { from: "node_1", to: "node_2", type: "increases", explanation: "why" },
+      { from: "node_2", to: "node_1", type: "increases", explanation: "cycle" },
     ],
     shockEvent: {
       description: "A shock event",
@@ -131,8 +131,8 @@ function validGeopoliticsSystemsJson() {
     perspectiveAName: "United States",
     perspectiveBName: "China",
     intendedConnectionsB: [
-      { from: "node_3", to: "node_4", type: "risks", explanation: "why B" },
-      { from: "node_4", to: "node_3", type: "depends_on", explanation: "cycle B" },
+      { from: "node_3", to: "node_4", type: "decreases", explanation: "why B" },
+      { from: "node_4", to: "node_3", type: "increases", explanation: "cycle B" },
     ],
     shockEventB: {
       directlyAffected: ["node_3"],
@@ -160,9 +160,9 @@ function validResilienceSystemsJson() {
       "Distractor A", "Distractor B", "Distractor C",
     ],
     intendedConnections: [
-      { from: "node_1", to: "node_2", type: "depends_on", explanation: "why" },
+      { from: "node_1", to: "node_2", type: "increases", explanation: "why" },
       // The second shock reaches node_3 through node_2.
-      { from: "node_2", to: "node_3", type: "enables", explanation: "why" },
+      { from: "node_2", to: "node_3", type: "increases", explanation: "why" },
     ],
     criticalityGroundTruth: [
       { nodeId: "node_1", criticalityRank: 1, rationale: "hub" },

@@ -40,8 +40,8 @@ const validPayload = {
     "Infrastructure",
   ],
   intendedConnections: [
-    { from: "node_1" as const, to: "node_2" as const, type: "depends_on" as const, explanation: "Funding" },
-    { from: "node_3" as const, to: "node_1" as const, type: "enables" as const, explanation: "Revenue" },
+    { from: "node_1" as const, to: "node_2" as const, type: "increases" as const, explanation: "Funding" },
+    { from: "node_3" as const, to: "node_1" as const, type: "increases" as const, explanation: "Revenue" },
   ],
   shockEvent: {
     description: "Trade embargo",
@@ -123,7 +123,7 @@ describe("parseSystemsExerciseJson", () => {
       ...validPayload,
       perspectiveAName: "US",
       perspectiveBName: "China",
-      intendedConnectionsB: [{ from: "node_1", to: "node_3", type: "risks", explanation: "Competition" }],
+      intendedConnectionsB: [{ from: "node_1", to: "node_3", type: "decreases", explanation: "Competition" }],
       shockEventB: { directlyAffected: ["node_2"], indirectlyAffected: ["node_5"], explanation: "Escalation" },
     };
     const result = parseSystemsExerciseJson(JSON.stringify(geo));
@@ -137,6 +137,14 @@ describe("validateSystemsExerciseSemantics", () => {
     expect(validateSystemsExerciseSemantics(validPayload as SystemsExercisePayload)).toEqual([]);
   });
 
+  it("rejects the old link types in a new exercise", () => {
+    const old = {
+      ...validPayload,
+      intendedConnections: validPayload.intendedConnections.map((c) => ({ ...c, type: "depends_on" })),
+    };
+    expect(validateSystemsExerciseSemantics(old as SystemsExercisePayload).join(" ")).toContain('"increases" or "decreases"');
+  });
+
   it("catches nodes too close together", () => {
     const close = { ...validPayload, nodes: makeNodes().map((n) => ({ ...n, x: 50, y: 50 })) };
     const errors = validateSystemsExerciseSemantics(close as SystemsExercisePayload);
@@ -147,8 +155,8 @@ describe("validateSystemsExerciseSemantics", () => {
     const dup = {
       ...validPayload,
       intendedConnections: [
-        { from: "node_1" as const, to: "node_2" as const, type: "depends_on" as const, explanation: "A" },
-        { from: "node_1" as const, to: "node_2" as const, type: "enables" as const, explanation: "B" },
+        { from: "node_1" as const, to: "node_2" as const, type: "increases" as const, explanation: "A" },
+        { from: "node_1" as const, to: "node_2" as const, type: "increases" as const, explanation: "B" },
       ],
     };
     const errors = validateSystemsExerciseSemantics(dup as SystemsExercisePayload);
@@ -195,9 +203,9 @@ describe("validateGeopoliticsSystemsSemantics", () => {
     perspectiveAName: "United States",
     perspectiveBName: "China",
     intendedConnectionsB: [
-      { from: "node_1" as const, to: "node_3" as const, type: "risks" as const, explanation: "Competition" },
-      { from: "node_3" as const, to: "node_1" as const, type: "depends_on" as const, explanation: "Cycle" },
-      { from: "node_2" as const, to: "node_5" as const, type: "enables" as const, explanation: "Path" },
+      { from: "node_1" as const, to: "node_3" as const, type: "decreases" as const, explanation: "Competition" },
+      { from: "node_3" as const, to: "node_1" as const, type: "increases" as const, explanation: "Cycle" },
+      { from: "node_2" as const, to: "node_5" as const, type: "increases" as const, explanation: "Path" },
     ],
     shockEventB: { directlyAffected: ["node_2" as const], indirectlyAffected: ["node_5" as const], explanation: "Esc" },
   } as GeopoliticsSystemsExercisePayload;
@@ -218,7 +226,7 @@ describe("validateGeopoliticsSystemsSemantics", () => {
     const noLoop = {
       ...geoPayload,
       intendedConnections: [
-        { from: "node_1" as const, to: "node_2" as const, type: "depends_on" as const, explanation: "Linear" },
+        { from: "node_1" as const, to: "node_2" as const, type: "increases" as const, explanation: "Linear" },
       ],
     };
     const errors = validateGeopoliticsSystemsSemantics(noLoop as GeopoliticsSystemsExercisePayload);
@@ -229,8 +237,8 @@ describe("validateGeopoliticsSystemsSemantics", () => {
     const withLoops = {
       ...geoPayload,
       intendedConnections: [
-        { from: "node_1" as const, to: "node_2" as const, type: "depends_on" as const, explanation: "A" },
-        { from: "node_2" as const, to: "node_1" as const, type: "enables" as const, explanation: "B" },
+        { from: "node_1" as const, to: "node_2" as const, type: "increases" as const, explanation: "A" },
+        { from: "node_2" as const, to: "node_1" as const, type: "increases" as const, explanation: "B" },
       ],
     };
     const errors = validateGeopoliticsSystemsSemantics(withLoops as GeopoliticsSystemsExercisePayload);
@@ -256,7 +264,7 @@ const resiliencePayload: SystemsResilienceExercisePayload = {
   // node_4 is reached from node_1, which the first shock already affects.
   intendedConnections: [
     ...validPayload.intendedConnections,
-    { from: "node_1" as const, to: "node_4" as const, type: "risks" as const, explanation: "Spillover" },
+    { from: "node_1" as const, to: "node_4" as const, type: "decreases" as const, explanation: "Spillover" },
   ],
   // shockEvent.indirectlyAffected includes node_1 (from validPayload), so the second shock must
   // touch node_1 to count as a genuine cascade.

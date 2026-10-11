@@ -106,7 +106,7 @@ test.describe("Systems exercise - levels", () => {
     await generateExercise(page, "Cloud Architecture", { level: "Guided" });
     await advanceSystemsToCanvas(page);
     await expect(page.getByTestId("link-count-hint")).toContainText("The model draws");
-    await expect(page.getByTestId("link-type-guide")).toContainText("A depends on B");
+    await expect(page.getByTestId("link-type-guide")).toContainText("A increases B");
     await addSystemsConnection(page);
     await page.getByRole("button", { name: "Done connecting" }).click();
     await expect(page.getByTestId("impact-count-hint")).toContainText("directly and");
