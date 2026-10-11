@@ -44,8 +44,9 @@ export async function generateTopicIdeas(request: TopicIdeaRequest, languageAppe
   };
   let ideas: TopicIdea[] = keepValidIdeas(await ask([], ASK), request);
   if (ideas.length < TOPIC_IDEA_COUNT || (request.mode === "all" && modeCount(ideas) < minModes(request))) {
-    // One top-up call, avoiding what we already have.
-    ideas = [...ideas, ...keepValidIdeas(await ask(ideas.map((i) => i.title), ASK), request, ideas)];
+    // One top-up call, avoiding what we already have. If it fails, keep what we have.
+    const more = await ask(ideas.map((i) => i.title), ASK).catch(() => []);
+    ideas = [...ideas, ...keepValidIdeas(more, request, ideas)];
   }
   return ideas.length < 5 ? null : withCalibrationSlot(ideas, request);
 }
