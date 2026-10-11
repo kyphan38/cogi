@@ -43,6 +43,7 @@ const validPayload = {
     { from: "node_1" as const, to: "node_2" as const, type: "increases" as const, explanation: "Funding" },
     { from: "node_3" as const, to: "node_1" as const, type: "increases" as const, explanation: "Revenue" },
   ],
+  archetype: { id: "fixes_that_fail", howItShows: "A quick fix brings the problem back." },
   shockEvent: {
     description: "Trade embargo",
     directlyAffected: ["node_3" as const],
@@ -137,6 +138,12 @@ describe("validateSystemsExerciseSemantics", () => {
     expect(validateSystemsExerciseSemantics(validPayload as SystemsExercisePayload)).toEqual([]);
   });
 
+  it("asks for the archetype in a new exercise", () => {
+    const { archetype: _drop, ...rest } = validPayload as SystemsExercisePayload;
+    void _drop;
+    expect(validateSystemsExerciseSemantics(rest as SystemsExercisePayload).join(" ")).toContain("archetype is required");
+  });
+
   it("rejects the old link types in a new exercise", () => {
     const old = {
       ...validPayload,
@@ -166,6 +173,7 @@ describe("validateSystemsExerciseSemantics", () => {
   it("catches invalid shock node references", () => {
     const bad = {
       ...validPayload,
+      archetype: { id: "fixes_that_fail", howItShows: "A quick fix brings the problem back." },
       shockEvent: { ...validPayload.shockEvent, directlyAffected: ["node_99" as never] },
     };
     const errors = validateSystemsExerciseSemantics(bad as SystemsExercisePayload);

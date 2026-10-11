@@ -164,3 +164,9 @@ export async function advanceSystemsToCanvas(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Continue to connect" }).click();
   await expect(page.locator(".react-flow")).toBeVisible({ timeout: 10_000 });
 }
+
+/** Fill the Systems "Look ahead" answers the shock step asks for before it continues. */
+export async function fillSystemsLookAhead(page: Page): Promise<void> {
+  await page.getByLabel("If nothing changes, what happens in 5 years?").fill("The jams come back as more people drive.");
+  await page.getByLabel("What is a better fix?").fill("Add bus lanes so fewer people need a car.");
+}

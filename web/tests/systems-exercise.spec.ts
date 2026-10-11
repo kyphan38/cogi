@@ -6,6 +6,7 @@ import {
   choosePracticeLevel,
   exerciseSourceCombobox,
   generateExercise,
+  fillSystemsLookAhead,
 } from "./helpers/exercise-flow";
 
 test.describe("Systems exercise - setup phase", () => {
@@ -146,6 +147,8 @@ test.describe("Systems exercise - how the shock spreads", () => {
     const choice = q.getByRole("button").first();
     await choice.click();
     await expect(choice).toHaveAttribute("aria-pressed", "true");
+
+    await fillSystemsLookAhead(page);
 
     await page.getByRole("button", { name: "Submit impact and get AI reflection" }).click();
     const key = page.getByTestId("systems-answer-key");

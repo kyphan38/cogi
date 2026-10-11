@@ -6,6 +6,7 @@ import {
   choosePracticeLevel,
   generateExercise,
   selectSystemsTaskType,
+  fillSystemsLookAhead,
 } from "./helpers/exercise-flow";
 
 async function generateResilienceExercise(page: Page): Promise<void> {
@@ -110,6 +111,7 @@ test.describe("Systems exercise - resilience variant flow", () => {
     await expect(
       page.getByText("A lightning strike takes the substation offline during peak demand"),
     ).toBeVisible();
+    await fillSystemsLookAhead(page);
     await page.getByRole("button", { name: "Continue to cascade" }).click();
 
     // Cascade step: second shock event + criticality comparison list.
@@ -133,7 +135,9 @@ test.describe("Systems exercise - resilience variant flow", () => {
     // AI reflection (perspective) step.
     const key = page.getByTestId("systems-answer-key");
     await expect(key).toBeVisible({ timeout: 15_000 });
-    await expect(key.getByText("Links found")).toBeVisible();
+    await expect(key.getByText("Sound links", { exact: true })).toBeVisible();
+    await expect(key.getByText("Looking ahead")).toBeVisible();
+    await expect(page.getByTestId("pattern-card")).toContainText("Fixes that fail");
     // "Take with you": systems idea cards (fixed guide plus the AI's examples).
     await expect(key.getByTestId("answer-key-takeaways")).toHaveCount(0);
     const cards = key.getByTestId("trap-card");

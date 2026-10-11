@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SystemsIntendedConnection, SystemsNodeSpec, SystemsUserEdge } from "@/lib/types/exercise";
-import { rateSystems, sameLink, scoreSystems, systemsCoachingRefs } from "./systems-score";
+import { rateSystems, sameLink, scoreSystems, soundLinks, systemsCoachingRefs, withFairExtras } from "./systems-score";
 
 const nodes = (["node_1", "node_2", "node_3", "node_4", "node_5", "node_6"] as const).map(
   (id) => ({ id, label: id, description: "d", x: 50, y: 50 }),
@@ -104,5 +104,38 @@ describe("scoreSystems - how the shock spreads", () => {
       nodeImpact: { node_2: "direct" }, impactVia: { node_2: "node_1" },
     });
     expect(r.spread).toEqual([]);
+  });
+});
+
+describe("fair extra links", () => {
+  const base = {
+    connections: [],
+    extraEdgeIds: ["e1", "e2"],
+    impacts: [],
+    connectionsFound: 1,
+    connectionsExact: 1,
+    connectionsTotal: 4,
+    impactsCorrect: 2,
+    impactsTotal: 2,
+  };
+
+  it("keeps only extra refs judged fair, mapped to edge ids", () => {
+    const r = withFairExtras(base, [
+      { ref: "extra_1", fair: true },
+      { ref: "extra_2", fair: false },
+      { ref: "conn_1", fair: true },
+    ]);
+    expect(r.extraFairIds).toEqual(["e1"]);
+    expect(soundLinks(r)).toEqual({ sound: 2, total: 5 });
+  });
+
+  it("a fair extra link raises the rating", () => {
+    const fair = withFairExtras(base, [
+      { ref: "extra_1", fair: true },
+      { ref: "extra_2", fair: true },
+    ]);
+    // Without: (1/4 + 1) / 2 = 0.625 (ok). With 2 fair: (3/6 + 1) / 2 = 0.75 (good).
+    expect(rateSystems(base)).toBe("ok");
+    expect(rateSystems(fair)).toBe("good");
   });
 });

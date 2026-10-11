@@ -251,6 +251,19 @@ export interface SystemsExerciseRow {
   currentStep?: number;
   /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
+  /** The loop pattern behind the scenario. Older rows lack it. */
+  archetype?: SystemsExercisePayload["archetype"];
+  /** The user's look ahead, written with the shock: key loop, 5-year forecast, better fix. */
+  lookAhead?: SystemsLookAhead | null;
+  /** Where the user meets the same pattern in their own life. */
+  lifeExample?: string | null;
+}
+
+export interface SystemsLookAhead {
+  /** Node ids of the loop the user picked from their map, or null for none. */
+  loop: string[] | null;
+  forecast: string;
+  fix: string;
 }
 
 export interface EvaluativeAxisSpec {

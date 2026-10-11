@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SYSTEMS_ARCHETYPES } from "@/lib/exercise/systems-archetypes";
 
 /** "increases" / "decreases" (when A goes up, B goes up / down) for new exercises; the
  * other four only appear in exercises saved before signed links. */
@@ -48,6 +49,13 @@ const shockEventBSchema = z.object({
   explanation: z.string(),
 });
 
+/** The loop pattern behind the scenario. Optional so rows saved before it still parse;
+ * the semantic check asks for it in new exercises. */
+const archetypeSchema = z.object({
+  id: z.enum(SYSTEMS_ARCHETYPES),
+  howItShows: z.string().min(1),
+});
+
 export const systemsExerciseSchema = z.object({
   title: z.string(),
   scenario: z.string(),
@@ -57,6 +65,7 @@ export const systemsExerciseSchema = z.object({
   componentCandidates: z.array(z.string().min(1).max(20)).min(9).max(14),
   intendedConnections: z.array(intendedConnectionSchema).min(1),
   shockEvent: shockEventSchema,
+  archetype: archetypeSchema.optional(),
 });
 
 export const systemsGeopoliticsExerciseSchema = systemsExerciseSchema.extend({
@@ -388,6 +397,7 @@ export function validateSystemsExerciseSemantics(
     ...validateConnectionSet(data.intendedConnections, ids, "intendedConnections"),
     ...signedTypeErrors(data.intendedConnections, "intendedConnections"),
   );
+  if (!data.archetype) errors.push("archetype is required: { id, howItShows }");
   errors.push(
     ...validateShockRefs(
       data.shockEvent.directlyAffected,

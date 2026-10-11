@@ -18,6 +18,8 @@ import { SystemsAnswerKey } from "@/components/exercises/SystemsAnswerKey";
 import { LevelPicker } from "@/components/exercises/LevelPicker";
 import { LinkTypeGuide } from "@/components/exercises/LinkTypeGuide";
 import { SystemsLoopList } from "@/components/exercises/SystemsLoopList";
+import { SystemsLookAheadForm } from "@/components/exercises/SystemsLookAheadForm";
+import { SystemsPatternCard } from "@/components/exercises/SystemsPatternCard";
 import { CONNECTION_TYPE_INFO, linkTypesFor } from "@/lib/exercise/systems-labels";
 import { LevelSuggestionCard } from "@/components/shared/LevelSuggestionCard";
 import { useToast } from "@/components/ui/toast";
@@ -30,7 +32,7 @@ import {
 } from "@/lib/exercise/levels";
 import { levelSuggestionFor } from "@/lib/exercise/level-suggestion";
 import { dismissLevelSuggestion, getPracticeLevel, setPracticeLevel } from "@/lib/db/settings";
-import { scoreSystems, systemsResultOf } from "@/lib/exercise/systems-score";
+import { scoreSystems, systemsResultOf, withFairExtras } from "@/lib/exercise/systems-score";
 import { isCoachingStructured } from "@/lib/types/perspective";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
 import { PracticeFinishCard } from "@/components/shared/PracticeFinishCard";
@@ -57,6 +59,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type {
   SystemsExerciseRow,
+  SystemsLookAhead,
   SystemsNodeImpact,
   SystemsTaskType,
   SystemsUserEdge,
@@ -84,6 +87,8 @@ import { listRecentDomains, putExercise, getExercise } from "@/lib/db/exercises"
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
 import { isSystemsExercise } from "@/lib/types/exercise";
 import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
+
+const EMPTY_LOOK_AHEAD: SystemsLookAhead = { loop: null, forecast: "", fix: "" };
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
@@ -200,6 +205,8 @@ export function SystemsExerciseFlow({
     useState<AIPerspectiveStructured | null>(null);
 
   const [takeaway, setTakeaway] = useState("");
+  const [lookAhead, setLookAhead] = useState<SystemsLookAhead>(EMPTY_LOOK_AHEAD);
+  const [lifeExample, setLifeExample] = useState("");
   const [finishing, setFinishing] = useState(false);
   const pendingSave = useSaveOnLeave();
   const [userPerspectiveBNotes, setUserPerspectiveBNotes] = useState("");
@@ -245,6 +252,8 @@ export function SystemsExerciseFlow({
       if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
       setUserPerspectiveBNotes(row.userPerspectiveBNotes ?? "");
       setTakeaway(row.takeaway ?? "");
+      setLookAhead(row.lookAhead ?? EMPTY_LOOK_AHEAD);
+      setLifeExample(row.lifeExample ?? "");
       setStep(systemsResumeStep(row));
     })();
   }, [resumeId]);
@@ -347,6 +356,7 @@ export function SystemsExerciseFlow({
         nodes: data.nodes,
         intendedConnections: data.intendedConnections,
         shockEvent: data.shockEvent,
+        archetype: data.archetype,
         componentCandidates: data.componentCandidates,
         isGeopolitics: isGeo,
         perspectiveAName: geoData?.perspectiveAName,
@@ -382,6 +392,8 @@ export function SystemsExerciseFlow({
       setPerspectiveText(null);
       setPerspectiveStructured(null);
       setTakeaway("");
+      setLookAhead(EMPTY_LOOK_AHEAD);
+      setLifeExample("");
       setUserPerspectiveBNotes("");
       setStep(1);
     } catch (e) {
@@ -468,6 +480,8 @@ export function SystemsExerciseFlow({
         criticalityGroundTruth: isResilience ? exercise.criticalityGroundTruth : undefined,
         userCriticalityRanking: isResilience ? userCriticalityRanking : undefined,
         secondShockEvent: isResilience ? exercise.secondShockEvent : undefined,
+        lookAhead,
+        archetype: exercise.archetype,
       }),
     });
     const json = await safeAiJson<unknown>(res);
@@ -485,14 +499,18 @@ export function SystemsExerciseFlow({
       impactVia,
       confidenceBefore: confidence,
       userPerspectiveBNotes: notes ?? exercise.userPerspectiveBNotes,
-      result: scoreSystems({
-        nodes: exercise.nodes,
-        intendedConnections: exercise.intendedConnections,
-        shockEvent: exercise.shockEvent,
-        userEdges,
-        nodeImpact,
-        impactVia,
-      }),
+      lookAhead,
+      result: withFairExtras(
+        scoreSystems({
+          nodes: exercise.nodes,
+          intendedConnections: exercise.intendedConnections,
+          shockEvent: exercise.shockEvent,
+          userEdges,
+          nodeImpact,
+          impactVia,
+        }),
+        isCoachingStructured(parsed.structured) ? parsed.structured.items : [],
+      ),
       aiPerspective: parsed.text,
       aiPerspectiveStructured: parsed.structured,
       currentStep: perspectiveStep,
@@ -507,11 +525,16 @@ export function SystemsExerciseFlow({
   const finishShockStep = async () => {
     if (!exercise) return;
     setError(null);
+    if (!lookAhead.forecast.trim() || !lookAhead.fix.trim()) {
+      setError("Look ahead: write what happens in 5 years and a better fix.");
+      return;
+    }
     const partial: SystemsExerciseRow = {
       ...exercise,
       userEdges,
       nodeImpact,
       impactVia,
+      lookAhead,
       confidenceBefore: confidence,
     };
     if (isResilienceSystemsExercise(exercise)) {
@@ -610,6 +633,8 @@ export function SystemsExerciseFlow({
       impactVia,
       userProposedComponents: exercise.userProposedComponents ?? null,
       confidenceBefore: confidence,
+      lookAhead,
+      lifeExample: lifeExample.trim() || null,
       aiPerspective: perspectiveText,
       aiPerspectiveStructured: perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null,
       ...(isResilience ? { secondNodeImpact, userCriticalityRanking } : {}),
@@ -1229,6 +1254,7 @@ export function SystemsExerciseFlow({
                 </div>
               );
             })()}
+            <SystemsLookAheadForm userEdges={userEdges} label={nodeLabel} value={lookAhead} onChange={setLookAhead} />
             <ConfidenceSlider
               value={confidence}
               onChange={setConfidence}
@@ -1468,7 +1494,7 @@ export function SystemsExerciseFlow({
       {(step === perspectiveStep || step === doneStep) && exercise && perspectiveText ? (
         <div className="space-y-4">
           <SystemsAnswerKey
-            exercise={{ ...exercise, userEdges, confidenceBefore: confidence, userCriticalityRanking }}
+            exercise={{ ...exercise, userEdges, confidenceBefore: confidence, userCriticalityRanking, lookAhead }}
             result={systemsResultOf({ ...exercise, userEdges, nodeImpact })}
             coaching={isCoachingStructured(systemsFeedback) ? systemsFeedback : null}
           />
@@ -1488,6 +1514,14 @@ export function SystemsExerciseFlow({
                 void dismissLevelSuggestion("systems");
                 setLevelSuggestion(null);
               }}
+            />
+          ) : null}
+          {exercise.archetype ? (
+            <SystemsPatternCard
+              archetype={exercise.archetype}
+              lifeExample={lifeExample}
+              onLifeExampleChange={setLifeExample}
+              finished={step === doneStep}
             />
           ) : null}
           <PracticeFinishCard

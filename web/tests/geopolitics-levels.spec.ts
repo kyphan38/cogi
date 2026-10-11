@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { bypassFirebaseAuth, gotoAuthenticated, stubFirestoreReads } from "./helpers/auth-setup";
-import { addPassageHighlight, addSystemsConnection, advanceSystemsToCanvas, generateExercise } from "./helpers/exercise-flow";
+import { addPassageHighlight, addSystemsConnection, advanceSystemsToCanvas, generateExercise, fillSystemsLookAhead } from "./helpers/exercise-flow";
 
 const GEO = "US-China strategic competition";
 
@@ -90,6 +90,7 @@ test.describe("Geopolitics levels (PLAN-geopolitics.md G1)", () => {
     await addSystemsConnection(page);
     await page.getByRole("button", { name: "Done connecting" }).click();
     await page.locator(".react-flow__node").nth(0).click();
+    await fillSystemsLookAhead(page);
     await page.getByRole("button", { name: "Continue to perspective comparison" }).click();
 
     const predict = page.getByTestId("predict-b");
@@ -115,6 +116,7 @@ test.describe("Geopolitics levels (PLAN-geopolitics.md G1)", () => {
     await addSystemsConnection(page);
     await page.getByRole("button", { name: "Done connecting" }).click();
     await page.locator(".react-flow__node").nth(0).click();
+    await fillSystemsLookAhead(page);
     await page.getByRole("button", { name: "Submit impact and get AI reflection" }).click();
     await expect(page.getByTestId("systems-answer-key")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("predict-b")).toHaveCount(0);

@@ -43,6 +43,8 @@ export interface SystemsResult {
   connections: SystemsConnectionOutcome[];
   /** User edges between nodes the model does not connect. */
   extraEdgeIds: string[];
+  /** Extra edges the AI judged reasonable: they count like found links. Absent on older results. */
+  extraFairIds?: string[];
   impacts: SystemsImpactOutcome[];
   connectionsFound: number;
   connectionsExact: number;
@@ -134,9 +136,26 @@ export function scoreSystems(input: {
   };
 }
 
-/** Good: on average at least 75% of connections found and affected nodes marked right. Poor: 35% or less. */
+/** Links that hold up: the model's links the user found plus their extra links judged fair. */
+export function soundLinks(r: SystemsResult): { sound: number; total: number } {
+  const fair = r.extraFairIds?.length ?? 0;
+  return { sound: r.connectionsFound + fair, total: r.connectionsTotal + fair };
+}
+
+/** Add the AI's verdicts on extra links (`extra_<n>` coaching items with `fair: true`). */
+export function withFairExtras(r: SystemsResult, items: { ref: string; fair?: boolean }[]): SystemsResult {
+  const extraFairIds = items
+    .filter((it) => it.fair === true && it.ref.startsWith("extra_"))
+    .map((it) => r.extraEdgeIds[Number(it.ref.slice("extra_".length)) - 1])
+    .filter((id): id is string => Boolean(id));
+  return { ...r, extraFairIds };
+}
+
+/** Good: on average at least 75% of links sound and affected nodes marked right. Poor: 35% or less.
+ * A fair link the model left out counts like a found one, so a different but valid map is not punished. */
 export function rateSystems(r: SystemsResult): ResultRating {
-  const conn = r.connectionsTotal > 0 ? r.connectionsFound / r.connectionsTotal : 1;
+  const { sound, total } = soundLinks(r);
+  const conn = total > 0 ? sound / total : 1;
   const impact = r.impactsTotal > 0 ? r.impactsCorrect / r.impactsTotal : 1;
   const share = (conn + impact) / 2;
   if (share >= 0.75) return "good";

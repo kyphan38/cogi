@@ -93,6 +93,7 @@ function validSystemsJson() {
     intendedConnections: [
       { from: "node_1", to: "node_2", type: "increases", explanation: "why" },
     ],
+    archetype: { id: "fixes_that_fail", howItShows: "A quick fix brings the problem back." },
     shockEvent: {
       description: "A shock event",
       directlyAffected: ["node_1"],
@@ -122,6 +123,7 @@ function validGeopoliticsSystemsJson() {
       { from: "node_1", to: "node_2", type: "increases", explanation: "why" },
       { from: "node_2", to: "node_1", type: "increases", explanation: "cycle" },
     ],
+    archetype: { id: "fixes_that_fail", howItShows: "A quick fix brings the problem back." },
     shockEvent: {
       description: "A shock event",
       directlyAffected: ["node_1"],
@@ -172,6 +174,7 @@ function validResilienceSystemsJson() {
       { nodeId: "node_5", criticalityRank: 5, rationale: "r5" },
       { nodeId: "node_6", criticalityRank: 6, rationale: "r6" },
     ],
+    archetype: { id: "fixes_that_fail", howItShows: "A quick fix brings the problem back." },
     shockEvent: {
       description: "A shock event",
       directlyAffected: ["node_1"],

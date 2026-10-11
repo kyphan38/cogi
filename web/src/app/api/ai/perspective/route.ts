@@ -15,7 +15,8 @@ import {
 } from "@/lib/ai/validators/perspective-structured";
 import { analyticalCoachingToMarkdown } from "@/lib/perspective/format-structured";
 import { analyticalCoachingRefs, scoreAnalytical } from "@/lib/exercise/analytical-score";
-import { scoreSystems, systemsCoachingRefs } from "@/lib/exercise/systems-score";
+import { scoreSystems, systemsCoachingRefs, withFairExtras } from "@/lib/exercise/systems-score";
+import { SYSTEMS_ARCHETYPES, type SystemsArchetypeId } from "@/lib/exercise/systems-archetypes";
 import {
   evaluativeCoachingRefs,
   scoreEvaluative,
@@ -58,6 +59,7 @@ import type {
   EvaluativeScoringRow,
   EvaluativeUncertaintyRow,
   SystemsIntendedConnection,
+  SystemsLookAhead,
   SystemsNodeCriticalityHint,
   SystemsNodeSpec,
   SystemsShockEvent,
@@ -108,6 +110,24 @@ async function generateCoaching(
   }
   if (!parsed.success) throw new Error(parsed.error);
   return { structured: parsed.data, text: analyticalCoachingToMarkdown(parsed.data, heading) };
+}
+
+/** The Systems look ahead from the request body, or undefined when it has no forecast. */
+function parseLookAhead(raw: unknown): SystemsLookAhead | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const o = raw as Record<string, unknown>;
+  const forecast = typeof o.forecast === "string" ? o.forecast.trim() : "";
+  const fix = typeof o.fix === "string" ? o.fix.trim() : "";
+  if (!forecast && !fix) return undefined;
+  const loop = Array.isArray(o.loop) && o.loop.every((x) => typeof x === "string") ? (o.loop as string[]) : null;
+  return { loop, forecast, fix };
+}
+
+function parseArchetype(raw: unknown): { id: SystemsArchetypeId; howItShows: string } | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const o = raw as Record<string, unknown>;
+  if (!(SYSTEMS_ARCHETYPES as readonly unknown[]).includes(o.id) || typeof o.howItShows !== "string") return undefined;
+  return { id: o.id as SystemsArchetypeId, howItShows: o.howItShows };
 }
 
 /** "Take with you" cards for an evaluative exercise: what to ask for, when to retry, and the checked result. */
@@ -644,7 +664,12 @@ export async function POST(req: Request) {
     const impactVia =
       b.impactVia && typeof b.impactVia === "object" ? (b.impactVia as Record<string, string>) : undefined;
     const result = scoreSystems({ nodes, intendedConnections, shockEvent, userEdges, nodeImpact, impactVia });
-    const refs = systemsCoachingRefs(result);
+    const lookAhead = parseLookAhead(b.lookAhead);
+    const archetype = parseArchetype(b.archetype);
+    const baseRefs = systemsCoachingRefs(result);
+    const refs = lookAhead
+      ? { required: [...baseRefs.required, "look_ahead"], allowed: [...baseRefs.allowed, "look_ahead"] }
+      : baseRefs;
     const cardIdeas = pickSystemsCards({
       intendedConnections,
       result,
@@ -675,6 +700,8 @@ export async function POST(req: Request) {
       userCriticalityRanking,
       secondShockEvent,
       cardIdeas,
+      lookAhead,
+      archetype,
     });
     const needsMeta =
       Boolean(perspectiveAName && perspectiveBName && intendedConnectionsB && shockEventB) ||
@@ -688,6 +715,7 @@ export async function POST(req: Request) {
         (ref) => {
           if (ref.startsWith("node_")) return `Node: ${nodeLabel(ref.slice(5))}`;
           if (ref.startsWith("via_")) return `How the shock reaches ${nodeLabel(ref.slice(4))}`;
+          if (ref === "look_ahead") return "Looking ahead";
           const [kind, n] = ref.split("_");
           const i = Number(n) - 1;
           if (kind === "conn") {
@@ -703,7 +731,7 @@ export async function POST(req: Request) {
             : null,
       );
       const checked = { ...structured, takeaways: [], trapCards: sanitizeTrapCards(structured.trapCards, cardIdeas, cardCtx) };
-      return NextResponse.json({ ok: true, structured: checked, text, result });
+      return NextResponse.json({ ok: true, structured: checked, text, result: withFairExtras(result, checked.items) });
     } catch (e) {
       const isTimeout =
         e instanceof Error &&

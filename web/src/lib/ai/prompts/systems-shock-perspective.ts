@@ -1,5 +1,6 @@
 import type {
   SystemsIntendedConnection,
+  SystemsLookAhead,
   SystemsNodeCriticalityHint,
   SystemsNodeImpact,
   SystemsNodeSpec,
@@ -9,6 +10,38 @@ import type {
 import type { SystemsResult } from "@/lib/exercise/systems-score";
 import { CONNECTION_TYPE_INFO, IMPACT_LABELS, linkTypesFor } from "@/lib/exercise/systems-labels";
 import { SYSTEMS_IDEA_GUIDE, SYSTEMS_IDEA_NAMES, type SystemsIdea } from "@/lib/exercise/systems-idea-guide";
+import { findLoops } from "@/lib/exercise/systems-loops";
+import { SYSTEMS_ARCHETYPE_INFO, type SystemsArchetypeId } from "@/lib/exercise/systems-archetypes";
+
+/** The look-ahead case: the user's key loop, 5-year forecast and better fix vs the model's loops. */
+export function buildLookAheadCase(input: {
+  nodes: SystemsNodeSpec[];
+  intendedConnections: SystemsIntendedConnection[];
+  userEdges: SystemsUserEdge[];
+  lookAhead: SystemsLookAhead;
+  archetype?: { id: SystemsArchetypeId; howItShows: string };
+}): string {
+  const label = (id: string) => input.nodes.find((n) => n.id === id)?.label ?? id;
+  const loopText = (l: { nodes: string[]; kind: string | null }) =>
+    `${[...l.nodes, l.nodes[0]!].map(label).join(" -> ")}${l.kind ? ` (${l.kind})` : ""}`;
+  const picked = input.lookAhead.loop
+    ? findLoops(input.userEdges.map((e) => ({ from: e.source, to: e.target, type: e.type }))).find(
+        (l) => l.nodes.join(">") === input.lookAhead.loop!.join(">"),
+      )
+    : undefined;
+  const modelLoops = findLoops(input.intendedConnections).map(loopText).join("; ") || "(none)";
+  const pattern = input.archetype
+    ? `\n  Pattern behind the scenario: ${SYSTEMS_ARCHETYPE_INFO[input.archetype.id].name} - ${input.archetype.howItShows}`
+    : "";
+  return [
+    `look_ahead - where this system goes, and how to change it`,
+    `  Key loop the user picked: ${picked ? loopText(picked) : "(none picked)"}`,
+    `  Model's loops: ${modelLoops}${pattern}`,
+    `  User's forecast for 5 years if nothing changes: "${input.lookAhead.forecast.trim().slice(0, 1500)}"`,
+    `  User's better fix: "${input.lookAhead.fix.trim().slice(0, 1500)}"`,
+    `  Judge: does the forecast follow from the loop? Does the fix break or weaken the loop, or only ease the symptom for a while?`,
+  ].join("\n");
+}
 
 /**
  * The cases the AI must explain, one block per ref. Verdicts come from code
@@ -95,7 +128,12 @@ export function buildSystemsShockPerspectivePrompt(input: {
   secondShockEvent?: SystemsShockEvent;
   /** Systems ideas that get a "Take with you" card, picked in code (pickSystemsCards). */
   cardIdeas?: SystemsIdea[];
+  lookAhead?: SystemsLookAhead;
+  archetype?: { id: SystemsArchetypeId; howItShows: string };
 }): string {
+  const lookAheadBlock = input.lookAhead
+    ? `\n\n${buildLookAheadCase({ ...input, lookAhead: input.lookAhead })}`
+    : "";
   const ctx = input.userContext?.trim() || "(none)";
   const cardLines = (input.cardIdeas ?? [])
     .map((k) => `- ${k} (${SYSTEMS_IDEA_NAMES[k]}): ${SYSTEMS_IDEA_GUIDE[k].spot} How to help others: ${SYSTEMS_IDEA_GUIDE[k].othersTip}`)
@@ -157,14 +195,14 @@ SCORE (already decided by code - final, do not change or argue with it):
 - Confidence before feedback: ${input.confidenceBefore}%.
 
 CASES (each verdict is final):
-${buildSystemsCoachingCases(input)}${geoBlock}${resilienceBlock}
+${buildSystemsCoachingCases(input)}${lookAheadBlock}${geoBlock}${resilienceBlock}
 
 Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
 {
   "perspectiveFormat": "coaching_v3",
   "title": string (echo the exercise title),
   "items": [
-    { "ref": string (a ref from CASES), "why": string, "clue": string, "nextTimeAsk": string }
+    { "ref": string (a ref from CASES), "why": string, "clue": string, "nextTimeAsk": string, "fair": boolean (only on extra_ items) }
   ],
   "takeaways": [] (always empty: the cards below replace them)${isGeo || isResilience ? `,
   "metaNote": string` : ""},
@@ -182,7 +220,8 @@ How to write each item:
   - DIFFERENT (node): explain how the shock does or does not reach this node, step by step through the connections.
   - MISSED: explain the link between the two nodes in simple words.
   - FOUND BUT REVERSED or OTHER TYPE: say which way or which type fits, and why. Be kind - they saw the link.
-  - extra: judge fairly whether the link is reasonable even though the model left it out.
+  - extra: judge fairly whether the link is reasonable even though the model left it out, with the sign the user chose. Set "fair": true when a careful person could defend it from the scenario, false when it is wrong or the sign is wrong. Many maps are valid: do not mark it false only because the model left it out.
+  - look_ahead: say if the forecast follows the loop, then if the fix breaks the loop or only eases the symptom. Name the pattern behind the scenario in plain words.
 - "clue": the words in the scenario or node descriptions that signal it (quote 2-6 words).
 - "nextTimeAsk": one question to ask yourself next time, at most 15 words.
 

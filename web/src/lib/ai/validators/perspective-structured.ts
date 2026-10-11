@@ -103,6 +103,8 @@ const coachingItemSchema = z.object({
   clue: z.string().min(1),
   nextTimeAsk: z.string().min(1),
   subtypeName: z.string().min(1).optional(),
+  /** Systems extra links: the AI's verdict on whether the link is reasonable. */
+  fair: z.boolean().optional(),
 });
 
 function coachingSchemaFor<F extends "analytical_v3" | "coaching_v3">(format: F) {

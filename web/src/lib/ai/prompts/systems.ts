@@ -1,4 +1,10 @@
 import { GEO_FACT_RULE } from "@/lib/ai/prompts/geo-rules";
+import { SYSTEMS_ARCHETYPE_INFO } from "@/lib/exercise/systems-archetypes";
+
+/** Every scenario is built on one archetype, so the user learns a pattern they can reuse. */
+const ARCHETYPE_RULE = `- archetype: the loop pattern behind this scenario. "id" is one of: ${Object.entries(SYSTEMS_ARCHETYPE_INFO)
+  .map(([id, a]) => `"${id}" (${a.meaning})`)
+  .join("; ")}. Build the main feedback loop so it shows this pattern. "howItShows" is one plain sentence on how the pattern shows in this scenario, using node names.`;
 import { buildDomainHint, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
 
 export function buildSystemsGenerationPrompt(input: {
@@ -27,6 +33,7 @@ Requirements:
 - x and y are **percentage positions** from 10 to 90 (avoid edges). Nodes must be spread so every pair is at least **15 units** apart in (x,y) Euclidean distance on the percentage plane (prevents overlap).
 - intendedConnections: clear cause-and-effect links; include at least **one feedback loop** (a chain of links that comes back to its start) among these 6 nodes
 - Each connection: type is "increases" (when "from" goes up, "to" goes up) or "decreases" (when "from" goes up, "to" goes down), plus explanation string. Name nodes as things that can go up or down (an amount, a level, a speed), not as actions.
+${ARCHETYPE_RULE}
 - shockEvent: a plausible "what-if" ripple scenario with directlyAffected and indirectlyAffected node id arrays (subset of the 6 ids), plus explanation of the chain. Every indirectlyAffected node must have a connection (either direction) to a directly or indirectly affected node: that link is the path the effect travels. No node may be in both lists.
 - componentCandidates: 9-14 short labels (each ≤20 chars, matching the node label style) the user will pick their "before I see the AI's answer" guesses from. MUST include the exact 6 node labels used above (verbatim strings, not ids) plus 3-8 plausible-but-wrong distractor labels for the same scenario/domain (same tone and length, no giveaway markers like asterisks). Shuffle the order so the correct 6 are NOT grouped together or in the same order as the nodes array. No duplicates.
 
@@ -41,6 +48,7 @@ Return a single JSON object with this exact shape:
   "intendedConnections": [
     { "from": "node_1", "to": "node_2", "type": "increases", "explanation": string }
   ],
+  "archetype": { "id": string, "howItShows": string },
   "shockEvent": {
     "description": string,
     "directlyAffected": ["node_3"],
@@ -81,6 +89,7 @@ Requirements:
 - Design the connection graph so criticality is genuinely uneven: at least one node should be a structural single point of failure (high in-degree/out-degree, a hub other nodes depend on), and at least one node should be a true leaf with minimal impact if removed. Do NOT reveal this ranking anywhere in labels, descriptions, or scenario text - it must only be discoverable by reasoning about the graph.
 - intendedConnections: clear cause-and-effect links; include at least **one feedback loop** (a chain of links that comes back to its start) among these 6 nodes
 - Each connection: type is "increases" (when "from" goes up, "to" goes up) or "decreases" (when "from" goes up, "to" goes down), plus explanation string. Name nodes as things that can go up or down (an amount, a level, a speed), not as actions.
+${ARCHETYPE_RULE}
 - criticalityGroundTruth: exactly 6 entries (one per node), each with a criticalityRank from 1 (most critical / most damaging if it fails) to 6 (least critical), all ranks unique, plus a short internal-only explanation (never shown verbatim to the user as a "ranking")
 - shockEvent: a plausible first "what-if" ripple scenario with directlyAffected and indirectlyAffected node id arrays (subset of the 6 ids), plus explanation of the chain. Every indirectlyAffected node must have a connection (either direction) to a directly or indirectly affected node: that link is the path the effect travels. No node may be in both lists.
 - secondShockEvent: a SECOND, later shock that genuinely cascades FROM the consequences of the first shock - its directlyAffected or indirectlyAffected nodes MUST overlap with the first shock's indirectlyAffected nodes (proving it's a downstream second-order effect, not an unrelated event). Include description, directlyAffected, indirectlyAffected, and explanation.
@@ -101,6 +110,7 @@ Return a single JSON object with this exact shape:
   "criticalityGroundTruth": [
     { "nodeId": "node_1", "criticalityRank": 1, "rationale": string }
   ],
+  "archetype": { "id": string, "howItShows": string },
   "shockEvent": {
     "description": string,
     "directlyAffected": ["node_3"],
@@ -148,6 +158,7 @@ Requirements:
 - intendedConnections: how Actor A (perspectiveAName) sees relationships - include at least one feedback loop
 - intendedConnectionsB: how Actor B (perspectiveBName) sees the SAME nodes differently - include at least one feedback loop
 - Each connection: type is "increases" | "decreases" (when "from" goes up, "to" goes up / down), plus explanation
+${ARCHETYPE_RULE}
 - shockEvent: shared what-if description plus directlyAffected, indirectlyAffected, explanation from Actor A's view. Every indirectlyAffected node must have a connection (either direction) to a directly or indirectly affected node: that link is the path the effect travels. No node may be in both lists.
 - shockEventB: same shock (do NOT repeat description) - only directlyAffected, indirectlyAffected, explanation from Actor B's view (the same path rule applies, using intendedConnectionsB)
 - componentCandidates: 9-14 short labels (each ≤20 chars, matching the node label style) the user will pick their "before I see the AI's answer" guesses from. MUST include the exact 6 node labels used above (verbatim strings, not ids) plus 3-8 plausible-but-wrong distractor labels for the same scenario (same tone and length, no giveaway markers). Shuffle the order so the correct 6 are NOT grouped together or in the same order as the nodes array. No duplicates.
@@ -162,6 +173,7 @@ Return a single JSON object with this exact shape:
   "perspectiveBName": string,
   "intendedConnections": [ { "from": "node_1", "to": "node_2", "type": "increases", "explanation": string } ],
   "intendedConnectionsB": [ { "from": "node_1", "to": "node_2", "type": "increases", "explanation": string } ],
+  "archetype": { "id": string, "howItShows": string },
   "shockEvent": {
     "description": string,
     "directlyAffected": ["node_3"],

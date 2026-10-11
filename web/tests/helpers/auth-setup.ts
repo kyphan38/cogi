@@ -624,6 +624,7 @@ function makeMockStandaloneSystemsPayload() {
       { from: "node_4", to: "node_3", type: "increases", explanation: "Cache reduces DB load." },
       { from: "node_5", to: "node_3", type: "increases", explanation: "Jobs write to DB." },
     ],
+    archetype: { id: "fixes_that_fail", howItShows: "A quick fix brings the problem back." },
     shockEvent: {
       description: "The primary database cluster experiences a cascading failover during peak traffic",
       directlyAffected: ["node_3", "node_5"],
@@ -665,6 +666,7 @@ function makeMockSystemsResiliencePayload() {
       { nodeId: "node_5", criticalityRank: 4, rationale: "Important feedback loop, but not structural." },
       { nodeId: "node_6", criticalityRank: 6, rationale: "Leaf node with the least downstream impact." },
     ],
+    archetype: { id: "fixes_that_fail", howItShows: "A quick fix brings the problem back." },
     shockEvent: {
       description: "A lightning strike takes the substation offline during peak demand",
       directlyAffected: ["node_1"],

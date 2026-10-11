@@ -111,6 +111,8 @@ export interface AnalyticalCoachingItem {
   nextTimeAsk: string;
   /** A more specific common name (e.g. "False dilemma"), shown as a type of the tag. */
   subtypeName?: string;
+  /** Systems extra links: the AI's verdict on whether the link is reasonable. */
+  fair?: boolean;
 }
 
 /**

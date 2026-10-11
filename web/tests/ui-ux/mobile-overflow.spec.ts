@@ -12,6 +12,7 @@ import {
   advanceSystemsToCanvas,
   generateExercise,
   selectEvaluativeTaskType,
+  fillSystemsLookAhead,
 } from "../helpers/exercise-flow";
 
 const LONG_TITLE = "A Daily Routine Plan for Financial and Career Success in a Very Competitive Market";
@@ -181,6 +182,7 @@ for (const width of [360, 390]) {
       expect(await layoutProblems(page)).toEqual([]);
       await addSystemsConnection(page);
       await page.getByRole("button", { name: "Done connecting" }).click();
+      await fillSystemsLookAhead(page);
       await page.getByRole("button", { name: "Submit impact and get AI reflection" }).click();
       await expect(page.getByTestId("systems-answer-key")).toBeVisible({ timeout: 15_000 });
       expect(await layoutProblems(page)).toEqual([]);
