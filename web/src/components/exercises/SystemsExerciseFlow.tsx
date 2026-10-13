@@ -37,6 +37,8 @@ import { isCoachingStructured } from "@/lib/types/perspective";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
 import { PracticeFinishCard } from "@/components/shared/PracticeFinishCard";
 import { Button } from "@/components/ui/button";
+import { ENTRY_MODE_OPTIONS } from "@/components/shared/entry-mode";
+import { WordChoice } from "@/components/shared/WordChoice";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { cn } from "@/lib/utils";
 import {
@@ -720,24 +722,12 @@ export function SystemsExerciseFlow({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="flex gap-1.5">
-              <Button
-                type="button"
-                size="sm"
-                variant={entryMode === "suggested" ? "default" : "outline"}
-                onClick={() => setEntryMode("suggested")}
-              >
-                Suggested topics
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={entryMode === "manual" ? "default" : "outline"}
-                onClick={() => setEntryMode("manual")}
-              >
-                Type your own
-              </Button>
-            </div>
+            <WordChoice
+              label="Topic"
+              value={entryMode}
+              onChange={setEntryMode}
+              options={ENTRY_MODE_OPTIONS}
+            />
 
             <LevelPicker
               value={level}

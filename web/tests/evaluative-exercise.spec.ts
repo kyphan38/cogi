@@ -129,7 +129,7 @@ test.describe("Evaluative exercise - 3-step practice loop", () => {
 
     await page.getByRole("button", { name: "Get AI feedback" }).click();
     await expect(page.getByLabel(/What will you take away/)).toBeVisible({ timeout: 15_000 });
-    await expect(progress.getByText("3. AI feedback")).toHaveClass(/bg-zinc-900/);
+    await expect(progress.getByText("3. AI feedback")).toHaveAttribute("aria-current", "step");
     const key = page.getByTestId("evaluative-answer-key");
     await expect(key).toBeVisible();
     // "Take with you": decision idea cards (fixed guide plus the AI's examples).

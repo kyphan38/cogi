@@ -74,7 +74,7 @@ export function MinimalContainerFooter({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 border-t border-zinc-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-end md:px-8",
+        "flex flex-col gap-3 border-t border-zinc-200 pt-4 sm:flex-row sm:items-center sm:justify-end",
         className,
       )}
     >
@@ -98,16 +98,14 @@ export function MinimalContainer({
   return (
     <div
       data-testid={dataTestId}
-      className={cn(
-        "overflow-hidden rounded-2xl border border-zinc-200 bg-white",
-        className,
-      )}
+      // A step is a section held by space, not a frame (DESIGN.md "Layout").
+      className={cn("flex flex-col gap-6", className)}
     >
       {hasHeader ? (
-        <header className="flex flex-col gap-3 border-b border-zinc-200 px-6 py-4 sm:flex-row sm:items-start sm:justify-between md:px-8">
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 flex-1 space-y-1">
             {title != null ? (
-              <h2 className="text-base font-semibold text-zinc-900">{title}</h2>
+              <h2 className="text-lg font-semibold text-zinc-900">{title}</h2>
             ) : null}
             {description != null ? (
               <p className="text-sm text-zinc-500">{description}</p>
@@ -120,13 +118,13 @@ export function MinimalContainer({
       ) : null}
       <div
         data-testid={dataTestId ? `${dataTestId}-body` : undefined}
-        className={cn("p-6 md:p-8", bodyClassName)}
+        className={bodyClassName}
       >
         {children}
       </div>
       {footer ? (
         typeof footer === "string" ? (
-          <footer className="border-t border-zinc-200 px-6 py-4 md:px-8">
+          <footer className="border-t border-zinc-200 pt-4">
             {footer}
           </footer>
         ) : (

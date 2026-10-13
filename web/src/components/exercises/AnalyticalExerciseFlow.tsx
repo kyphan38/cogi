@@ -7,6 +7,8 @@ import { HighlightTag } from "@/components/exercises/HighlightTag";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
 import { Button } from "@/components/ui/button";
+import { ENTRY_MODE_OPTIONS } from "@/components/shared/entry-mode";
+import { WordChoice } from "@/components/shared/WordChoice";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -656,24 +658,12 @@ export function AnalyticalExerciseFlow({
                   : undefined
               }
             />
-            <div className="flex gap-1.5">
-              <Button
-                type="button"
-                size="sm"
-                variant={entryMode === "suggested" ? "default" : "outline"}
-                onClick={() => setEntryMode("suggested")}
-              >
-                Suggested topics
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={entryMode === "manual" ? "default" : "outline"}
-                onClick={() => setEntryMode("manual")}
-              >
-                Type your own
-              </Button>
-            </div>
+            <WordChoice
+              label="Topic"
+              value={entryMode}
+              onChange={setEntryMode}
+              options={ENTRY_MODE_OPTIONS}
+            />
 
             <div className={cn(entryMode !== "suggested" && "hidden")}>
               <TopicSuggestionPicker

@@ -88,7 +88,7 @@ export function TopicSuggestionPicker({ area, kind, seedSuggestions, onPick }: T
               onClick={() => void handlePick({ title: s.title, scenarioId: s.scenarioId })}
               className="text-left disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Card className={cn("h-full gap-2 transition-colors hover:border-zinc-300", pickingTitle === s.title && "border-zinc-400")}>
+              <Card variant="boxed" className={cn("h-full gap-2 transition-colors hover:border-zinc-300", pickingTitle === s.title && "border-zinc-400")}>
                 <CardContent className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <Badge variant="positive">{s.badge ?? "Verified scenario"}</Badge>
@@ -109,7 +109,7 @@ export function TopicSuggestionPicker({ area, kind, seedSuggestions, onPick }: T
               onClick={() => void handlePick({ title: s.title })}
               className="text-left disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Card className={cn("h-full gap-2 transition-colors hover:border-zinc-300", pickingTitle === s.title && "border-zinc-400")}>
+              <Card variant="boxed" className={cn("h-full gap-2 transition-colors hover:border-zinc-300", pickingTitle === s.title && "border-zinc-400")}>
                 <CardContent className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <Badge variant="secondary">AI suggested</Badge>

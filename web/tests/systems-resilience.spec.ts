@@ -144,7 +144,7 @@ test.describe("Systems exercise - resilience variant flow", () => {
     await expect(cards).toHaveCount(2);
     await expect(cards.first()).toContainText("Mock reply: makes sense. Who depends on that team's work?");
     const progress = page.getByRole("navigation", { name: "Exercise progress" });
-    await expect(progress.getByText("3. AI feedback")).toHaveClass(/bg-zinc-900/);
+    await expect(progress.getByText("3. AI feedback")).toHaveAttribute("aria-current", "step");
     await expect(page.getByRole("heading", { name: "Metacognition journal" })).toHaveCount(0);
 
     await page.getByLabel(/What will you take away/).fill("The substation is the single point of failure.");

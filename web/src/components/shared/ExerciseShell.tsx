@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -110,25 +110,36 @@ export function ExerciseShell({
   partLabel,
 }: ExerciseShellProps) {
   return (
-    <div className="mx-auto flex min-h-full max-w-3xl flex-col gap-8 px-4 py-6 sm:px-6">
-      <nav aria-label="Exercise progress" className="flex flex-wrap gap-2 text-xs">
+    <div className="mx-auto flex min-h-full w-full min-w-0 max-w-3xl flex-col gap-8 px-4 pt-8 pb-24 sm:px-6">
+      {/* Steps as words (DESIGN.md "Words as navigation"): done steps muted,
+          the current one ink, later ones faint. */}
+      <nav
+        aria-label="Exercise progress"
+        className="flex flex-wrap items-baseline font-mono text-[11px] tracking-[0.04em]"
+      >
         {stepLabels.map((label, i) => (
-          <span
-            key={`${i}-${label}`}
-            className={cn(
-              "rounded-md border px-3 py-1 font-medium",
-              i === stepIndex
-                ? "border-zinc-900 bg-zinc-900 text-white"
-                : i < stepIndex
-                  ? "border-zinc-200 bg-zinc-50 text-zinc-600"
-                  : "border-dashed border-zinc-200 text-zinc-500",
-            )}
-          >
-            {i + 1}. {label}
-          </span>
+          <Fragment key={`${i}-${label}`}>
+            {i > 0 ? (
+              <span className="px-1.5 text-zinc-400" aria-hidden>
+                ·
+              </span>
+            ) : null}
+            <span
+              aria-current={i === stepIndex ? "step" : undefined}
+              className={cn(
+                i === stepIndex
+                  ? "font-medium text-zinc-900"
+                  : i < stepIndex
+                    ? "text-zinc-600"
+                    : "text-zinc-400",
+              )}
+            >
+              {i + 1}. {label}
+            </span>
+          </Fragment>
         ))}
       </nav>
-      {partLabel ? <p className="-mt-5 text-xs text-muted-foreground">{partLabel}</p> : null}
+      {partLabel ? <p className="-mt-6 text-xs text-muted-foreground">{partLabel}</p> : null}
       <div className="flex-1">{children}</div>
     </div>
   );

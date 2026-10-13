@@ -31,4 +31,4 @@ export function ExerciseStepCard({
 
 /** Nordic meta badge for exercise step headers (e.g. sound-reasoning passages). */
 export const EXERCISE_STEP_META_BADGE =
-  "ml-2 rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-normal uppercase tracking-wide text-zinc-600";
+  "ml-2 text-[10px] font-normal uppercase tracking-wide text-muted-foreground";
