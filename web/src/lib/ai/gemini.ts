@@ -13,8 +13,8 @@ import { ApiError, GoogleGenAI, ThinkingLevel } from "@google/genai";
 export type GeminiModel = "fast" | "thinking";
 
 const MODEL_IDS: Record<GeminiModel, string> = {
-  fast: process.env.GEMINI_MODEL_FAST ?? process.env.GEMINI_MODEL ?? "gemini-3.8-flash",
-  thinking: process.env.GEMINI_MODEL_THINKING ?? "gemini-3.8-flash",
+  fast: process.env.GEMINI_MODEL_FAST ?? process.env.GEMINI_MODEL ?? "gemini-4-argon",
+  thinking: process.env.GEMINI_MODEL_THINKING ?? "gemini-4-argon",
 };
 
 /** "fast" tasks are short lists and labels: low thinking cuts latency from ~10s to ~4s. */
