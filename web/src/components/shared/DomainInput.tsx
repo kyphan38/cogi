@@ -317,7 +317,7 @@ export function DomainInput({
         ref={listRef}
         data-testid="domain-suggestions-list"
         role="tree"
-        className="fixed z-[200] overflow-y-auto overscroll-contain rounded-lg bg-popover py-1 text-popover-foreground shadow-lg ring-1 ring-foreground/10"
+        className="fixed z-[200] overflow-y-auto overscroll-contain rounded-lg bg-popover py-1 text-popover-foreground ring-1 ring-foreground/10"
         style={{
           top: dropdownStyle.top,
           left: dropdownStyle.left,

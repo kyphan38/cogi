@@ -73,7 +73,7 @@ function SystemFlowNode({ data }: NodeProps) {
       ))}
       <div
         className={cn(
-          "min-w-[96px] max-w-[132px] rounded-md border px-2 py-1.5 text-left text-xs shadow-sm",
+          "min-w-[96px] max-w-[132px] rounded-md border px-2 py-1.5 text-left text-xs",
           border,
           d.picked && "ring-2 ring-zinc-900 ring-offset-2",
         )}
@@ -133,7 +133,7 @@ function SystemFlowEdge({
       />
       <EdgeLabelRenderer>
         <div
-          className="nodrag nopan flex items-center gap-1 rounded border bg-background px-1.5 py-0.5 text-[10px] font-medium shadow-sm"
+          className="nodrag nopan flex items-center gap-1 rounded border bg-background px-1.5 py-0.5 text-[10px] font-medium"
           style={{
             position: "absolute",
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,

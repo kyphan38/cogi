@@ -453,7 +453,7 @@ export function HighlightTag({
       data-testid="tag-picker-region"
       role="dialog"
       aria-label={editing ? "Change the tag" : "Pick a tag for selection"}
-      className="fixed z-[200] flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-lg"
+      className="fixed z-[200] flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white"
       style={popoverStyle}
       onMouseDown={(e) => e.preventDefault()}
     >
@@ -504,7 +504,7 @@ export function HighlightTag({
     staged && !pending && hintStyle ? (
       <div
         data-testid="tag-selection-hint"
-        className="pointer-events-none fixed z-[199] rounded-full border border-zinc-200 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white shadow-md"
+        className="pointer-events-none fixed z-[199] rounded-full border border-zinc-200 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white"
         style={hintStyle}
       >
         Tap selection to tag

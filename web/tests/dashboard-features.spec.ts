@@ -116,7 +116,7 @@ test.describe("AppTopNav navigation", () => {
   test("nav bar renders all primary links", async ({ page }) => {
     await gotoAuthenticated(page, "/");
     const nav = page.getByRole("navigation", { name: "Main" });
-    await expect(nav.getByRole("link")).toHaveText(["Practice", "History", "Settings", "Handbook"]);
+    await expect(nav.getByRole("link")).toHaveText(["cogi", "practice", "history", "handbook", "settings"]);
   });
 
   test("the Handbook tab opens the handbook, active in the nav", async ({ page }) => {
@@ -164,8 +164,8 @@ test.describe("AppTopNav navigation", () => {
     await expect(nav).toBeVisible();
   });
 
-  test("sign out button is present in the nav", async ({ page }) => {
-    await gotoAuthenticated(page, "/");
+  test("sign out button is in Settings", async ({ page }) => {
+    await gotoAuthenticated(page, "/settings");
     await expect(
       page.getByRole("button", { name: "Sign out" }),
     ).toBeVisible();

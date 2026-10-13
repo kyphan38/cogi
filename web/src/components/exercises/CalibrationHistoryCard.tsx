@@ -74,7 +74,7 @@ function CalibrationCurve({ h }: { h: CalibrationHistory }) {
       </svg>
       {active ? (
         <div
-          className="bg-popover text-popover-foreground pointer-events-none absolute rounded-md border px-2 py-1 text-xs shadow-sm"
+          className="bg-popover text-popover-foreground pointer-events-none absolute rounded-md border px-2 py-1 text-xs"
           style={{
             left: `${(x(active.confidence) / W) * 100}%`,
             top: `${(y(active.pct) / H) * 100}%`,

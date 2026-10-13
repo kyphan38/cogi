@@ -408,7 +408,7 @@ export function JudgmentExerciseFlow({
                   aria-pressed={area === a}
                   onClick={() => setArea(a)}
                   className={cn(
-                    "rounded-full border px-3 py-1.5 text-sm",
+                    "rounded-md border px-3 py-1.5 text-sm",
                     area === a ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
                   )}
                 >

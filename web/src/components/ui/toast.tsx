@@ -41,7 +41,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {toast ? (
         <div
           className={cn(
-            "toast-cogi pointer-events-auto flex max-w-[min(360px,calc(100vw-2rem))] items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white shadow-lg",
+            "toast-cogi pointer-events-auto flex max-w-[min(360px,calc(100vw-2rem))] items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white",
             toast.type === "success" && "toast-cogi-success",
             toast.type === "error" && "toast-cogi-error",
             toast.type === "info" && "toast-cogi-info",

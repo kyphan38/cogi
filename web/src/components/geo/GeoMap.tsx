@@ -415,7 +415,7 @@ export function GeoMap({
         {tip ? (
           <div
             role="status"
-            className="pointer-events-none absolute z-10 max-w-[14rem] -translate-x-1/2 -translate-y-[calc(100%+12px)] rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs shadow-sm"
+            className="pointer-events-none absolute z-10 max-w-[14rem] -translate-x-1/2 -translate-y-[calc(100%+12px)] rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs"
             style={{ left: tipLeft, top: tipTop }}
             data-testid="map-tooltip"
           >
@@ -452,7 +452,7 @@ function ZoomButton({
       onClick={onClick}
       disabled={disabled}
       data-testid={testId}
-      className="flex size-9 items-center justify-center rounded-md border border-zinc-200 bg-white/90 text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:opacity-40"
+      className="flex size-9 items-center justify-center rounded-md border border-zinc-200 bg-white/90 text-zinc-800 hover:bg-zinc-50 disabled:opacity-40"
     >
       {children}
     </button>

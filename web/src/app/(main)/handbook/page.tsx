@@ -71,7 +71,7 @@ export default function HandbookPage() {
 
       <nav aria-label="Handbook contents" className="flex flex-wrap gap-2" data-testid="handbook-contents">
         {HANDBOOK_ENTRIES.map((e) => (
-          <a key={e.id} href={`#${e.id}`} className="rounded-full border px-3 py-1 text-xs hover:bg-muted/40">
+          <a key={e.id} href={`#${e.id}`} className="rounded-md border px-3 py-1 text-xs hover:bg-muted/40">
             {e.title}
           </a>
         ))}

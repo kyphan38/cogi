@@ -110,7 +110,7 @@ export function GeoGuessStep({
                   onChange({ actorChoices: on ? chosenActors.filter((x) => x !== a) : [...chosenActors, a] })
                 }
                 className={cn(
-                  "rounded-full border px-3 py-1.5 text-sm",
+                  "rounded-md border px-3 py-1.5 text-sm",
                   on ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
                 )}
               >

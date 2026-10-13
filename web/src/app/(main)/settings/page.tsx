@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore, type ChangeEvent } from "react";
-import Link from "next/link";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type ChangeEvent,
+  type ReactNode,
+} from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
@@ -26,6 +28,8 @@ import {
 } from "@/lib/adaptive/language-level";
 import { exportAllJsonString, importBackupJson } from "@/lib/db/backup";
 import { themeStore, type Theme } from "@/lib/theme";
+import { getFirebaseAuth } from "@/lib/auth/firebase-client";
+import { awaitRouterReplace } from "@/lib/nav/await-router-replace";
 
 const THEMES: readonly Theme[] = ["system", "light", "dark"];
 
@@ -37,14 +41,35 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [backupMsg, setBackupMsg] = useState<string | null>(null);
   const [backupErr, setBackupErr] = useState<string | null>(null);
-  const theme = useSyncExternalStore(themeStore.subscribe, themeStore.get, themeStore.getServer);
+  const theme = useSyncExternalStore(
+    themeStore.subscribe,
+    themeStore.get,
+    themeStore.getServer,
+  );
+  const router = useRouter();
+
+  const signOutAndLeave = async () => {
+    try {
+      await fetch("/api/auth/session", { method: "DELETE" });
+    } catch {
+      // Session cookie cleanup is best-effort.
+    }
+    await signOut(getFirebaseAuth());
+    await awaitRouterReplace(router, "/login");
+  };
 
   useEffect(() => {
     void (async () => {
       const [text, s] = await Promise.all([getUserContext(), getAppSettings()]);
       setCtx(text);
-      const levelIdx = LANGUAGE_LEVELS.indexOf(s.languageLevel ?? DEFAULT_LANGUAGE_LEVEL);
-      setLanguageLevelIndex(levelIdx >= 0 ? levelIdx : LANGUAGE_LEVELS.indexOf(DEFAULT_LANGUAGE_LEVEL));
+      const levelIdx = LANGUAGE_LEVELS.indexOf(
+        s.languageLevel ?? DEFAULT_LANGUAGE_LEVEL,
+      );
+      setLanguageLevelIndex(
+        levelIdx >= 0
+          ? levelIdx
+          : LANGUAGE_LEVELS.indexOf(DEFAULT_LANGUAGE_LEVEL),
+      );
     })();
   }, []);
 
@@ -116,78 +141,68 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="mx-auto w-full min-w-0 max-w-lg px-4 py-8 sm:p-8">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle>Settings</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid max-w-md gap-3">
-            <Label htmlFor="language-level">
-              Language level: {LANGUAGE_LEVELS[languageLevelIndex]} (
-              {LANGUAGE_LEVEL_DESCRIPTIONS[LANGUAGE_LEVELS[languageLevelIndex]]})
-            </Label>
-            <Slider
-              id="language-level"
-              min={0}
-              max={LANGUAGE_LEVELS.length - 1}
-              step={1}
-              value={[languageLevelIndex]}
-              onValueChange={(v) => {
-                const n = Array.isArray(v) ? v[0] : v;
-                onLanguageLevelChange(typeof n === "number" ? n : 0);
-              }}
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              {LANGUAGE_LEVELS.map((l) => (
-                <span key={l}>{l}</span>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Controls sentence complexity and vocabulary in generated exercises, independent of
-              difficulty. Your current real-world level is roughly IELTS 6.0-6.5, so
-              &quot;Intermediate&quot; is the default. Raise this over time as your English
-              improves.
-            </p>
-          </div>
+    <main className="mx-auto w-full min-w-0 max-w-3xl px-4 pt-8 pb-24 sm:px-6">
+      <div className="max-w-xl">
+        <h1 className="text-lg font-semibold">Settings</h1>
 
-          <div className="grid gap-2">
-            <Label htmlFor="ctx">Personal context</Label>
-            <Textarea
-              id="ctx"
-              rows={8}
-              value={ctx}
-              onChange={(e) => setCtx(e.target.value)}
-              placeholder="Context..."
-            />
+        <section className="mt-8 grid gap-3">
+          <Label htmlFor="language-level">
+            Language level: {LANGUAGE_LEVELS[languageLevelIndex]} (
+            {LANGUAGE_LEVEL_DESCRIPTIONS[LANGUAGE_LEVELS[languageLevelIndex]]})
+          </Label>
+          <Slider
+            id="language-level"
+            min={0}
+            max={LANGUAGE_LEVELS.length - 1}
+            step={1}
+            value={[languageLevelIndex]}
+            onValueChange={(v) => {
+              const n = Array.isArray(v) ? v[0] : v;
+              onLanguageLevelChange(typeof n === "number" ? n : 0);
+            }}
+          />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            {LANGUAGE_LEVELS.map((l) => (
+              <span key={l}>{l}</span>
+            ))}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <p className="text-xs text-muted-foreground">
+            Controls sentence complexity and vocabulary in generated exercises,
+            independent of difficulty. Your current real-world level is roughly
+            IELTS 6.0-6.5, so &quot;Intermediate&quot; is the default. Raise
+            this over time as your English improves.
+          </p>
+        </section>
+
+        <section className="mt-10 grid gap-2">
+          <Label htmlFor="ctx">Personal context</Label>
+          <Textarea
+            id="ctx"
+            rows={8}
+            value={ctx}
+            onChange={(e) => setCtx(e.target.value)}
+            placeholder="Context..."
+          />
+          <div className="mt-2 flex items-baseline gap-5">
             <Button type="button" onClick={() => void save()}>
               Save
             </Button>
-            <Link
-              href="/"
-              className={cn(
-                buttonVariants({ variant: "secondary" }),
-                "inline-flex items-center justify-center",
-              )}
-            >
+            <Link href="/" className={WORD}>
               Home
             </Link>
+            {saved ? (
+              <span className="text-sm text-muted-foreground">Saved.</span>
+            ) : null}
           </div>
-          {saved ? (
-            <p className="text-muted-foreground text-sm">Saved.</p>
-          ) : null}
-        </CardContent>
-      </Card>
+        </section>
 
-      <Card className="mt-6">
-        <CardHeader className="pb-2">
-          <CardTitle>Theme</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <Section title="Theme">
           {/* The current choice is ink and medium; the others are faint and tappable. */}
-          <div className="flex gap-4 text-sm" role="radiogroup" aria-label="Theme">
+          <div
+            className="flex gap-4 text-sm"
+            role="radiogroup"
+            aria-label="Theme"
+          >
             {THEMES.map((t) => (
               <button
                 key={t}
@@ -195,54 +210,87 @@ export default function SettingsPage() {
                 role="radio"
                 aria-checked={theme === t}
                 onClick={() => themeStore.set(t)}
-                className={theme === t ? "text-foreground font-medium" : "text-zinc-500"}
+                className={
+                  theme === t
+                    ? "font-medium text-foreground"
+                    : "text-zinc-500 hover:text-foreground"
+                }
               >
                 {t}
               </button>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </Section>
 
-      <Card className="mt-6">
-        <CardHeader className="pb-2">
-          <CardTitle>Keyboard</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm text-muted-foreground">
-          <p>
-            <span className="font-medium text-foreground">Delete dialog:</span> press{" "}
+        <Section title="Keyboard">
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Delete dialog:</span>{" "}
+            press{" "}
             <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
               Escape
             </kbd>{" "}
-            to close. Type <span className="font-mono font-semibold text-foreground">Delete</span>.
+            to close. Type{" "}
+            <span className="font-mono font-semibold text-foreground">
+              Delete
+            </span>
+            .
           </p>
-        </CardContent>
-      </Card>
+        </Section>
 
-      <Card className="mt-6">
-        <CardHeader className="pb-2">
-          <CardTitle>Data backup</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="secondary" onClick={() => void exportJson()}>
+        <Section title="Data backup">
+          <div className="grid gap-3 text-sm">
+            <button
+              type="button"
+              onClick={() => void exportJson()}
+              className={cn(WORD, "w-fit")}
+            >
               Download JSON backup
-            </Button>
+            </button>
+            <div className="grid gap-2">
+              <Label htmlFor="import-json">Import JSON backup</Label>
+              <input
+                id="import-json"
+                type="file"
+                accept="application/json,.json"
+                className="text-muted-foreground text-sm"
+                onChange={onImportFile}
+              />
+            </div>
+            {backupMsg ? (
+              <p className="text-muted-foreground">{backupMsg}</p>
+            ) : null}
+            {backupErr ? (
+              <p className="font-medium text-destructive">{backupErr}</p>
+            ) : null}
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="import-json">Import JSON backup</Label>
-            <input
-              id="import-json"
-              type="file"
-              accept="application/json,.json"
-              className="text-muted-foreground text-sm"
-              onChange={onImportFile}
-            />
-          </div>
-          {backupMsg ? <p className="text-muted-foreground text-sm">{backupMsg}</p> : null}
-          {backupErr ? <p className="text-destructive text-sm">{backupErr}</p> : null}
-        </CardContent>
-      </Card>
+        </Section>
+
+        <Section title="Account">
+          <button
+            type="button"
+            onClick={() => void signOutAndLeave()}
+            className={WORD}
+          >
+            Sign out
+          </button>
+        </Section>
+      </div>
     </main>
+  );
+}
+
+/** A secondary action as a plain word (DESIGN.md "Words as buttons"). */
+const WORD =
+  "text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline";
+
+/** One settings group: a small heading and space, no card. */
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="mt-12">
+      <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
+        {title}
+      </h2>
+      {children}
+    </section>
   );
 }

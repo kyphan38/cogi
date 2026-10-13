@@ -116,7 +116,7 @@ export function ExerciseShell({
           <span
             key={`${i}-${label}`}
             className={cn(
-              "rounded-full border px-3 py-1 font-medium",
+              "rounded-md border px-3 py-1 font-medium",
               i === stepIndex
                 ? "border-zinc-900 bg-zinc-900 text-white"
                 : i < stepIndex

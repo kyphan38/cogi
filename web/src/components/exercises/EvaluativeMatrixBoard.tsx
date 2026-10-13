@@ -50,7 +50,7 @@ function OptionCard({ option }: { option: EvaluativeMatrixOption }) {
       {...listeners}
       {...attributes}
       className={cn(
-        "w-full rounded-md border bg-card p-2 text-left text-xs shadow-sm",
+        "w-full rounded-md border bg-card p-2 text-left text-xs",
         isDragging && "opacity-80 ring-2 ring-primary",
       )}
     >

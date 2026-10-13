@@ -380,7 +380,7 @@ export function CalibrationExerciseFlow({
                     aria-checked={a?.confidence === c}
                     onClick={() => setAnswer(item.id, { confidence: c })}
                     className={cn(
-                      "rounded-full border px-3 py-1 text-sm tabular-nums",
+                      "rounded-md border px-3 py-1 text-sm tabular-nums",
                       a?.confidence === c ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
                     )}
                   >
@@ -460,7 +460,7 @@ export function CalibrationExerciseFlow({
                   aria-pressed={topic === t}
                   onClick={() => setTopic(t)}
                   className={cn(
-                    "rounded-full border px-3 py-1.5 text-sm",
+                    "rounded-md border px-3 py-1.5 text-sm",
                     topic === t ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
                   )}
                 >

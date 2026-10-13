@@ -56,7 +56,7 @@ export function TimelineAxis({ events, shown, currentId }: { events: TimelineEve
       {tip ? (
         <div
           role="status"
-          className="pointer-events-none absolute top-0 z-10 max-w-[16rem] -translate-x-1/2 -translate-y-full rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs shadow-sm"
+          className="pointer-events-none absolute top-0 z-10 max-w-[16rem] -translate-x-1/2 -translate-y-full rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs"
           style={{ left: `${(x(tip) / W) * 100}%` }}
           data-testid="timeline-tooltip"
         >

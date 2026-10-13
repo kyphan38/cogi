@@ -574,7 +574,7 @@ function HistoryPageInner() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="bg-card/90 text-muted-foreground absolute top-2 right-2 z-10 size-8 rounded-md opacity-40 shadow-sm ring-1 ring-border/50 backdrop-blur-sm transition-[opacity,color,background-color] duration-150 hover:bg-destructive/10 hover:text-destructive hover:opacity-100 md:pointer-events-none md:opacity-0 md:hover:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:focus-visible:pointer-events-auto md:focus-visible:opacity-100"
+                    className="bg-card/90 text-muted-foreground absolute top-2 right-2 z-10 size-8 rounded-md opacity-40 ring-1 ring-border/50 backdrop-blur-sm transition-[opacity,color,background-color] duration-150 hover:bg-destructive/10 hover:text-destructive hover:opacity-100 md:pointer-events-none md:opacity-0 md:hover:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:focus-visible:pointer-events-auto md:focus-visible:opacity-100"
                     aria-label={`Delete exercise: ${ex.title}`}
                     title="Remove from history"
                     onClick={(e) => {
@@ -796,7 +796,7 @@ function HistoryPageInner() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-ex-title"
-            className="cogi-modal-panel w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-lg"
+            className="cogi-modal-panel w-full max-w-md rounded-2xl border border-border bg-card p-5"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <h2 id="delete-ex-title" className="font-heading text-lg font-medium">

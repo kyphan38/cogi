@@ -885,7 +885,7 @@ export function SystemsExerciseFlow({
                               })
                             }
                             className={cn(
-                              "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                              "rounded-md border px-3 py-1.5 text-sm transition-colors",
                               selected
                                 ? "border-primary bg-primary text-primary-foreground"
                                 : "hover:bg-accent",
@@ -1402,7 +1402,7 @@ export function SystemsExerciseFlow({
                           void putExercise(next);
                         }}
                         className={cn(
-                          "rounded-full border px-3 py-1.5 text-sm",
+                          "rounded-md border px-3 py-1.5 text-sm",
                           on ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
                         )}
                       >

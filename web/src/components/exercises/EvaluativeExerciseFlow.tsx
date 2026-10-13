@@ -1145,7 +1145,7 @@ export function EvaluativeExerciseFlow({
                               })
                             }
                             className={cn(
-                              "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                              "rounded-md border px-3 py-1.5 text-sm transition-colors",
                               selected
                                 ? "border-primary bg-primary text-primary-foreground"
                                 : "hover:bg-accent",
