@@ -108,7 +108,7 @@ export function AnalyticalAnswerKey({
           </p>
           <div
             data-testid="answer-key-passage"
-            className="border-muted whitespace-pre-wrap rounded-2xl border p-4 text-base leading-relaxed"
+            className="border-muted whitespace-pre-wrap border-l-2 pl-4 text-base leading-[1.75]"
           >
             {pieces.map((p, i) => (
               <span key={i}>

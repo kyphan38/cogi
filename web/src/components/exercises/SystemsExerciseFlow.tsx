@@ -937,7 +937,7 @@ export function SystemsExerciseFlow({
             ) : (
               <div className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-md border p-3">
+                  <div className="border-t pt-3">
                     <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">
                       Your components
                     </p>
@@ -947,7 +947,7 @@ export function SystemsExerciseFlow({
                       ))}
                     </ul>
                   </div>
-                  <div className="rounded-md border p-3">
+                  <div className="border-t pt-3">
                     <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">AI nodes</p>
                     <ul className="list-inside list-disc space-y-1 text-sm">
                       {exercise.nodes.map((n) => (
@@ -1012,7 +1012,7 @@ export function SystemsExerciseFlow({
               linkTypes={linkTypes}
             />
             {userEdges.length > 0 ? (
-              <ul className="space-y-2 rounded-md border p-2 text-sm" data-testid="link-list">
+              <ul className="space-y-2 border-t pt-2 text-sm" data-testid="link-list">
                 {userEdges.map((e) => (
                   <li key={e.id} className="flex flex-wrap items-center gap-2">
                     <span className="min-w-0 flex-1">
@@ -1096,7 +1096,7 @@ export function SystemsExerciseFlow({
               {exercise.nodes.map((n) => (
                 <div
                   key={n.id}
-                  className="flex items-center justify-between gap-3 rounded-md border p-2"
+                  className="flex items-center justify-between gap-3 border-t pt-2"
                 >
                   <div>
                     <p className="text-sm font-medium">{n.label}</p>
@@ -1204,7 +1204,7 @@ export function SystemsExerciseFlow({
               const indirect = exercise.nodes.filter((n) => nodeImpact[n.id] === "indirect");
               if (indirect.length === 0) return null;
               return (
-                <div className="space-y-3 rounded-2xl border border-zinc-200 p-4" data-testid="spread-questions">
+                <div className="space-y-3 border-t border-zinc-200 pt-4" data-testid="spread-questions">
                   <div>
                     <p className="text-sm font-medium text-zinc-900">How does the shock reach each indirect node?</p>
                     <p className="text-muted-foreground text-xs">
@@ -1315,7 +1315,7 @@ export function SystemsExerciseFlow({
                       <li
                         key={hint.nodeId}
                         className={cn(
-                          "rounded-md border p-2 text-sm",
+                          "border-l-2 pl-3 text-sm",
                           match ? "border-zinc-900" : "border-zinc-300",
                         )}
                       >
@@ -1372,7 +1372,7 @@ export function SystemsExerciseFlow({
           </CardHeader>
           <CardContent className="space-y-4">
             {exercise.intendedConnectionsB && exercise.shockEventB && !exercise.revealedB ? (
-              <div className="space-y-3 rounded-2xl border border-zinc-200 p-4" data-testid="predict-b">
+              <div className="space-y-3 border-t border-zinc-200 pt-4" data-testid="predict-b">
                 <p className="text-sm font-medium">
                   Predict first: from {exercise.perspectiveBName ?? "Actor B"}&apos;s view, which parts does the shock hit
                   directly?

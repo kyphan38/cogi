@@ -35,7 +35,7 @@ function PerspectivePoint({ children }: { children: ReactNode }) {
 
 function CriterionBreakdownTable({ breakdown }: { breakdown: EvaluativeScoringCriterionBreakdown }) {
   return (
-    <div className="bg-muted/40 border-muted rounded-md border px-3 py-2 text-xs">
+    <div className="border-muted border-l-2 pl-3 text-xs">
       <p className="text-foreground mb-1 font-medium">
         Your weight: {breakdown.userWeight}/5
         {breakdown.aiSuggestedWeight != null ? (
@@ -118,7 +118,7 @@ export function AIPerspective({
                       {breakdown ? (
                         <CriterionBreakdownTable breakdown={breakdown} />
                       ) : b.userSnippet ? (
-                        <div className="bg-muted/40 border-muted rounded-md border px-3 py-2 text-xs">
+                        <div className="border-muted border-l-2 pl-3 text-xs">
                           <span className="text-foreground font-medium">You wrote / selected: </span>
                           <span className="whitespace-pre-wrap">{b.userSnippet}</span>
                         </div>

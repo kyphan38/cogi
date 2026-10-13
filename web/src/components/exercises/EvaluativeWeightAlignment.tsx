@@ -10,7 +10,7 @@ export function EvaluativeWeightAlignment({
   userWeights: Record<string, number>;
 }) {
   return (
-    <div className="space-y-2 rounded-md border bg-muted/10 p-3">
+    <div className="space-y-2 border-t pt-3">
       <p className="text-sm font-medium">Strategic alignment - your weights vs the advising actor</p>
       <p className="text-muted-foreground text-xs">
         Compare how you prioritized stakeholder interests with the model the scenario was built from.

@@ -85,7 +85,7 @@ export function TakeWithYouCards({
     <section className="space-y-2" data-testid="take-with-you-cards">
       <h3 className="text-foreground font-semibold">Take with you</h3>
       {entries.map((e, i) => (
-        <details key={e.key} open={i === 0} className="border-muted rounded-xl border px-3 py-2" data-testid="trap-card">
+        <details key={e.key} open={i === 0} className="border-muted border-t pt-2" data-testid="trap-card">
           <summary className="text-foreground cursor-pointer font-medium">{e.name}</summary>
           <CardBody g={e.guide} ai={cards?.find((c) => c.trap === e.key)} labels={{ ...labels, ...e.labels }} />
         </details>

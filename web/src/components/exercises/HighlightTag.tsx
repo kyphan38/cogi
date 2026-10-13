@@ -529,7 +529,7 @@ export function HighlightTag({
         ref={ref}
         data-testid="text-passage"
         className={cn(
-          "touch-manipulation whitespace-pre-wrap rounded-2xl border border-zinc-200 bg-white p-4 text-base leading-relaxed text-zinc-900",
+          "touch-manipulation whitespace-pre-wrap border-l-2 border-zinc-200 pl-4 text-base leading-[1.75] text-zinc-900",
           sentenceMode ? "select-none" : "select-text cursor-text [-webkit-user-select:text]",
         )}
         onPointerUp={onPointerUp}
@@ -596,7 +596,7 @@ export function HighlightTag({
             <li
               key={h.id}
               data-testid="highlight-chip"
-              className="flex flex-wrap items-start justify-between gap-2 rounded-2xl border border-zinc-200 p-3"
+              className="flex flex-wrap items-start justify-between gap-2 border-t border-zinc-200 pt-3"
             >
               <div>
                 <HighlightTagBadge tag={h.tag} geoContext={tagOptions.some(isGeopoliticsSemanticTag)} />

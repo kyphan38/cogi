@@ -130,7 +130,7 @@ function TrapPicker({
 
 function TrapGuide({ options }: { options: ReframeAnswer[] }) {
   return (
-    <details className="rounded-xl border border-zinc-200 px-3 py-2 text-sm" data-testid="trap-guide">
+    <details className="border-t border-zinc-200 pt-2 text-sm" data-testid="trap-guide">
       <summary className="cursor-pointer font-medium">Trap guide: the question behind each name</summary>
       <ul className="mt-2 space-y-1">
         {options.map((a) => {
@@ -438,7 +438,7 @@ export function ReframeExerciseFlow({
 
   const scenarioBlock = exercise ? (
     <div className="space-y-2">
-      <div className="whitespace-pre-wrap rounded-2xl border border-zinc-200 bg-white p-4 text-base leading-relaxed text-zinc-900">
+      <div className="whitespace-pre-wrap border-l-2 border-zinc-200 pl-4 text-base leading-[1.75] text-zinc-900">
         {exercise.scenario}
       </div>
       <button
@@ -552,7 +552,7 @@ export function ReframeExerciseFlow({
       <div className="space-y-4">
         <TrapGuide options={options} />
         <p className="text-muted-foreground text-xs">Tap a thought to mark it. Leave fair thoughts as they are.</p>
-        <p className="rounded-2xl border border-zinc-200 bg-white p-4 text-base leading-relaxed text-zinc-900" data-testid="monologue">
+        <p className="border-l-2 border-zinc-200 pl-4 text-base leading-[1.75] text-zinc-900" data-testid="monologue">
           {ex.thoughts.map((t) => {
             const a = answers[t.id];
             const marked = a != null && a !== "realistic";

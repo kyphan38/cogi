@@ -16,7 +16,7 @@ export function SystemsLoopList({
   const loops = findLoops(links).slice(0, 3);
   if (loops.length === 0) return null;
   return (
-    <div className="space-y-2 rounded-md border p-3 text-sm" data-testid="loop-list">
+    <div className="space-y-2 border-t pt-3 text-sm" data-testid="loop-list">
       <p className="font-medium text-zinc-900">{title}</p>
       <ul className="space-y-2">
         {loops.map((l) => (

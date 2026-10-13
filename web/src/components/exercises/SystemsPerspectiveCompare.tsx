@@ -84,7 +84,7 @@ export function SystemsPerspectiveCompare({
         </div>
       </div>
 
-      <div className="rounded-md border p-3 text-sm">
+      <div className="border-t pt-3 text-sm">
         <p className="mb-2 font-medium">{shockEvent.description}</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>

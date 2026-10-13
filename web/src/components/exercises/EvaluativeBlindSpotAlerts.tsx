@@ -13,7 +13,7 @@ export function EvaluativeBlindSpotAlerts({
     <div className="space-y-2">
       <p className="text-sm font-medium">Blind spots to reconsider</p>
       {hiddenCriteria.map((h, i) => (
-        <Alert key={`${h.label}-${i}`} variant="default" className="border-zinc-300 bg-zinc-50">
+        <Alert key={`${h.label}-${i}`} variant="default">
           <AlertTitle className="text-sm">{h.label}</AlertTitle>
           <AlertDescription className="text-sm">{h.description}</AlertDescription>
         </Alert>

@@ -19,7 +19,7 @@ Nguồn luật: `../DESIGN.md`, phần "Layout: calm and text-first" và "Show o
 | C1 | Nav bằng chữ (`practice · history · handbook · settings`), Sign out vào Settings; `--radius` nhỏ lại; bỏ `shadow-*`; chip `rounded-full` thành `rounded-md`; route fade nhẹ hơn | xong 2026-10-13 |
 | C2 | Home, History, Settings (Settings đã làm cùng C1): bỏ card bọc ngoài, dùng tiêu đề nhỏ + khoảng trắng + hàng có đường kẻ mảnh | xong 2026-10-13 |
 | C3 | Khung bài tập (`ExerciseShell`, `ExerciseStepCard`): bước 1-2-3 thành chữ, bỏ card trong card. Thêm: `Card` mặc định `plain` (không khung, `variant="boxed"` cho ô chọn chủ đề); nút `secondary` thành chữ; chọn "Suggested topics / Type your own" bằng chữ (`WordChoice`) | xong 2026-10-13 |
-| C4 | Answer key, AI feedback, Deep dive, Finish card: khung ngoài đã mất nhờ `Card plain`; còn hộp lồng bên trong (`Stat`, blind spot, trap card, danh sách Options) | |
+| C4 | Answer key, AI feedback, Deep dive, Finish card: khung ngoài đã mất nhờ `Card plain`; đoạn văn để đọc có vạch trái mảnh; hộp thông tin (`Stat`, trap card, Options, check questions...) chỉ còn đường kẻ trên; `Alert` thành vạch trái; giữ hộp cho ô bấm chọn | xong 2026-10-13 |
 | C5 | Geo Lab, Tracks, Simulators, Terms, Handbook, trang New exercise (`/reasoning`): đã hết khung nhờ `Card plain`; còn khoảng cách giữa các phần, nút tô nền ở Geo thành chữ, nút chọn kiểu "segmented" | |
 | C6 | "Show on hover" cho thao tác ít dùng (ví dụ xoá ở History) + cách dùng trên điện thoại; kiểm tra cuối, e2e | |
 

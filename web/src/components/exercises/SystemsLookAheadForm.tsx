@@ -21,7 +21,7 @@ export function SystemsLookAheadForm({
   const loops = findLoops(userEdges.map((e) => ({ from: e.source, to: e.target, type: e.type }))).slice(0, 4);
   const pickedKey = value.loop?.join(">") ?? null;
   return (
-    <div className="space-y-4 rounded-md border p-3" data-testid="look-ahead">
+    <div className="space-y-4 border-t pt-3" data-testid="look-ahead">
       <p className="text-sm font-medium text-zinc-900">Look ahead</p>
       <div className="space-y-2">
         <p className="text-sm">Which loop drives this situation?</p>

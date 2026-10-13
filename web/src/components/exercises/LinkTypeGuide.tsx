@@ -23,14 +23,14 @@ function GuideList({ types }: { types: SystemsConnectionType[] }) {
 export function LinkTypeGuide({ mode, types }: { mode: "shown" | "toggle"; types: SystemsConnectionType[] }) {
   if (mode === "shown") {
     return (
-      <div className="rounded-2xl border border-zinc-200 p-4" data-testid="link-type-guide">
+      <div className="border-t border-zinc-200 pt-4" data-testid="link-type-guide">
         <p className="mb-2 text-sm font-medium text-zinc-900">Link types (arrow A -&gt; B):</p>
         <GuideList types={types} />
       </div>
     );
   }
   return (
-    <details className="rounded-2xl border border-zinc-200 p-4" data-testid="link-type-guide">
+    <details className="border-t border-zinc-200 pt-4" data-testid="link-type-guide">
       <summary className="cursor-pointer text-sm font-medium text-zinc-900">What each link type means</summary>
       <div className="mt-2">
         <GuideList types={types} />

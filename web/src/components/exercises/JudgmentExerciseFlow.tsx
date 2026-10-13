@@ -359,7 +359,7 @@ export function JudgmentExerciseFlow({
 
   const scenarioBlock = exercise ? (
     <div className="space-y-2">
-      <div className="whitespace-pre-wrap rounded-2xl border border-zinc-200 bg-white p-4 text-base leading-relaxed text-zinc-900">
+      <div className="whitespace-pre-wrap border-l-2 border-zinc-200 pl-4 text-base leading-[1.75] text-zinc-900">
         {exercise.scenario}
       </div>
       <button

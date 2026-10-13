@@ -24,7 +24,7 @@ export function ConceptList({ concepts }: { concepts: LearnConcept[] }) {
   return (
     <ul className="space-y-3" data-testid="concept-list">
       {concepts.map((c) => (
-        <li key={c.term} className="rounded-xl border border-zinc-200 p-3">
+        <li key={c.term} className="border-t border-zinc-200 pt-3">
           <p className="font-medium text-zinc-900">{c.term}</p>
           <p className="text-sm text-zinc-700">{c.plain}</p>
           <p className="text-sm text-zinc-500">Example: {c.example}</p>

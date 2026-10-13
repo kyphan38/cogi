@@ -322,7 +322,7 @@ export function StrategyExerciseFlow({
           Scenario: a made-up story shaped like a real case. The real case comes at the end.
         </p>
       ) : null}
-      <div className="whitespace-pre-wrap rounded-2xl border border-zinc-200 bg-white p-4 text-base leading-relaxed text-zinc-900">
+      <div className="whitespace-pre-wrap border-l-2 border-zinc-200 pl-4 text-base leading-[1.75] text-zinc-900">
         {exercise.scenario}
       </div>
       <p className="text-sm text-zinc-700">
@@ -420,7 +420,7 @@ export function StrategyExerciseFlow({
               ))}
             </div>
             {pickedCase ? (
-              <div className="space-y-1 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm" data-testid="geo-case-summary">
+              <div className="space-y-1 border-l-2 border-zinc-200 pl-4 text-sm" data-testid="geo-case-summary">
                 <p className="leading-relaxed">{pickedCase.summary}</p>
                 <p className="text-muted-foreground text-xs">Real cases use 2 choices for each side at every level.</p>
               </div>

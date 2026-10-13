@@ -89,7 +89,7 @@ export function Section({ title, hint, children }: { title: string; hint?: strin
 
 export function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-muted rounded-xl border px-3 py-2">
+    <div className="border-muted border-t pt-2">
       <p className="text-foreground text-lg font-semibold tabular-nums">{value}</p>
       <p className="text-muted-foreground text-xs">{label}</p>
     </div>

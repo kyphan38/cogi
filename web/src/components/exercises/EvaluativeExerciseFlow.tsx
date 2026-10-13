@@ -1014,7 +1014,7 @@ export function EvaluativeExerciseFlow({
               <h3 className="text-sm font-medium">Options</h3>
               <ul className="space-y-2 text-sm">
                 {exercise.options.map((o) => (
-                  <li key={o.id} className="rounded-md border bg-muted/10 p-2">
+                  <li key={o.id} className="border-t pt-2">
                     <p className="font-medium">{o.title}</p>
                     <p className="text-muted-foreground text-xs">{o.description}</p>
                   </li>
@@ -1068,7 +1068,7 @@ export function EvaluativeExerciseFlow({
               <h3 className="text-sm font-medium">Options</h3>
               <ul className="space-y-2 text-sm">
                 {exercise.options.map((o) => (
-                  <li key={o.id} className="rounded-md border bg-muted/10 p-2">
+                  <li key={o.id} className="border-t pt-2">
                     <p className="font-medium">{o.title}</p>
                     <p className="text-muted-foreground text-xs">{o.description}</p>
                   </li>
@@ -1239,7 +1239,7 @@ export function EvaluativeExerciseFlow({
             ) : (
               <div className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-md border p-3">
+                  <div className="border-t pt-3">
                     <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">
                       Your criteria
                     </p>
@@ -1255,7 +1255,7 @@ export function EvaluativeExerciseFlow({
                         ))}
                     </ul>
                   </div>
-                  <div className="rounded-md border p-3">
+                  <div className="border-t pt-3">
                     <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">
                       AI framework
                     </p>
@@ -1291,7 +1291,7 @@ export function EvaluativeExerciseFlow({
                     <InlineSpinner /> Getting AI feedback on your criteria…
                   </div>
                 ) : criteriaFeedback ? (
-                  <div className="rounded-md border p-3">
+                  <div className="border-t pt-3">
                     <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">
                       AI feedback on your criteria
                     </p>
@@ -1358,7 +1358,7 @@ export function EvaluativeExerciseFlow({
                     })),
                   );
                   return (
-                    <div key={o.id} className="space-y-3 rounded-md border p-3">
+                    <div key={o.id} className="space-y-3 border-t pt-3">
                       <div>
                         <p className="font-medium">{o.title}</p>
                         <p className="text-muted-foreground text-xs">{o.description}</p>

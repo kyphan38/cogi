@@ -160,7 +160,7 @@ export function EvaluativeStakeholderMappingCard({
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-md border p-3">
+        <div className="border-t pt-3">
           <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">
             Your stakeholders
           </p>
@@ -173,7 +173,7 @@ export function EvaluativeStakeholderMappingCard({
             ))}
           </ul>
         </div>
-        <div className="rounded-md border p-3">
+        <div className="border-t pt-3">
           <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">AI reference</p>
           <p className="text-sm leading-relaxed whitespace-pre-wrap">{exercise.stakeholderNote}</p>
         </div>

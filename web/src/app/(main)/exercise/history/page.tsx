@@ -95,7 +95,7 @@ function HistoryPerspectiveBody({
               <li key={b.id} className="space-y-2">
                 {b.title ? <p className="text-foreground font-medium">{b.title}</p> : null}
                 {b.userSnippet ? (
-                  <p className="bg-muted/40 rounded-md border px-2 py-1 text-xs">
+                  <p className="border-l-2 pl-3 text-xs">
                     <span className="font-medium">You wrote / selected: </span>
                     {b.userSnippet}
                   </p>

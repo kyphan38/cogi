@@ -24,7 +24,7 @@ export function PredictQuestion({
 }) {
   const [picked, setPicked] = useState<number | null>(null);
   return (
-    <div className="space-y-2 rounded-xl border border-zinc-200 p-3" data-testid="predict-question">
+    <div className="space-y-2 border-t border-zinc-200 pt-3" data-testid="predict-question">
       <p className="text-sm font-medium text-zinc-900">Guess first: {question}</p>
       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={question}>
         {options.map((o, i) => {

@@ -90,7 +90,7 @@ export function FrequencyTable({ item }: { item: BaseRateItem }) {
   const c = item.counts;
   const l = item.labels;
   return (
-    <div className="rounded-xl border border-zinc-200 p-3 text-sm" data-testid="frequency-table">
+    <div className="border-t border-zinc-200 pt-3 text-sm" data-testid="frequency-table">
       <p className="font-medium">
         Out of {fmt(BASE_RATE_POPULATION)} {l.unit}:
       </p>
@@ -339,7 +339,7 @@ export function CalibrationExerciseFlow({
   const itemCard = (item: CalibrationItem, i: number) => {
     const a = answers[item.id];
     return (
-      <div key={item.id} className="space-y-3 rounded-2xl border border-zinc-200 p-4" data-testid="calibration-item">
+      <div key={item.id} className="space-y-3 border-t border-zinc-200 pt-4" data-testid="calibration-item">
         <p className="text-muted-foreground text-xs">
           Question {i + 1} of {exercise!.items.length}
           {item.kind === "baserate" ? " · Base rate" : null}

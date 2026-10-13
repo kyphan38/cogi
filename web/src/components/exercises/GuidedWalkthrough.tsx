@@ -67,7 +67,7 @@ function MainClaimStep({
           Knowing what the writer wants you to believe makes the weak spots easier to see.
         </p>
       </div>
-      <div className="whitespace-pre-wrap rounded-2xl border border-zinc-200 bg-white p-4 text-base leading-relaxed text-zinc-900">
+      <div className="whitespace-pre-wrap border-l-2 border-zinc-200 pl-4 text-base leading-[1.75] text-zinc-900">
         {ex.passage}
       </div>
       <div className="grid gap-2" role="radiogroup" aria-label="Main claim">
@@ -189,7 +189,7 @@ export function GuidedWalkthrough({
       <CheckQuestions mode="shown" />
       <div
         data-testid="text-passage"
-        className="whitespace-pre-wrap rounded-2xl border border-zinc-200 bg-white p-4 text-base leading-relaxed text-zinc-900"
+        className="whitespace-pre-wrap border-l-2 border-zinc-200 pl-4 text-base leading-[1.75] text-zinc-900"
       >
         {pieces.map((p, i) => {
           if (p.candidate == null) return <span key={i} className="text-zinc-500">{p.text}</span>;
@@ -223,7 +223,7 @@ export function GuidedWalkthrough({
       </div>
 
       {current ? (
-        <div className="space-y-3 rounded-2xl border border-zinc-200 p-4" data-testid="guided-current">
+        <div className="space-y-3 border-t border-zinc-200 pt-4" data-testid="guided-current">
           <p className="text-muted-foreground text-xs">
             Sentence {index + 1} of {candidates.length}
             {currentAnswer ? ` · your answer: ${choiceLabel(currentAnswer.tag)}` : ""}
@@ -269,7 +269,7 @@ export function GuidedWalkthrough({
           )}
         </div>
       ) : (
-        <div className="space-y-2 rounded-2xl border border-zinc-200 p-4" data-testid="guided-done">
+        <div className="space-y-2 border-t border-zinc-200 pt-4" data-testid="guided-done">
           <p className="text-sm">
             All {candidates.length} sentences checked. You marked {flagged} as having a problem.
           </p>

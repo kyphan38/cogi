@@ -54,7 +54,7 @@ function SourceLinks({ sources }: { sources: GeoSource[] }) {
 /** A big number with a small label (no tabular figures at this size). */
 function StatTile({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-xl border border-zinc-200 px-3 py-2">
+    <div className="border-t border-zinc-200 pt-2">
       <p className="text-lg font-semibold text-zinc-900">{value}</p>
       <p className="text-muted-foreground text-xs">{label}</p>
     </div>
@@ -223,7 +223,7 @@ export function CloseTheStrait({
             ))}
           </div>
           {cp ? (
-            <div className="space-y-2 rounded-xl border border-zinc-200 p-3 text-sm" data-testid="strait-intro">
+            <div className="space-y-2 border-t border-zinc-200 pt-3 text-sm" data-testid="strait-intro">
               <p className="font-medium text-zinc-900">{cp.name}</p>
               <p>Connects {cp.connects}.</p>
               <p>{cp.why}</p>
@@ -321,7 +321,7 @@ export function CloseTheStrait({
             <SourceLinks sources={[game.detour.source]} />
           </div>
 
-          <div className="space-y-2 rounded-xl border border-zinc-200 p-3 text-sm" data-testid="strait-note">
+          <div className="space-y-2 border-t border-zinc-200 pt-3 text-sm" data-testid="strait-note">
             <p className="font-medium text-zinc-900">Coach&apos;s note</p>
             {note.state === "loading" ? (
               <p className="text-muted-foreground inline-flex items-center gap-2">

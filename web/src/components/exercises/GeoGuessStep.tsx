@@ -206,17 +206,17 @@ export function GeoReveal({ ex, guess }: { ex: AnalyticalExerciseRow; guess: Geo
   return (
     <div className="space-y-4 text-sm" data-testid="geo-reveal">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <div className="rounded-xl border border-zinc-200 px-3 py-2">
+        <div className="border-t border-zinc-200 pt-2">
           <p className="text-lg font-semibold">{guess.perspectiveCorrect ? "Yes" : "No"}</p>
           <p className="text-muted-foreground text-xs">Right viewpoint</p>
         </div>
-        <div className="rounded-xl border border-zinc-200 px-3 py-2">
+        <div className="border-t border-zinc-200 pt-2">
           <p className="text-lg font-semibold tabular-nums">
             {guess.actorsFound}/{guess.actorsTotal}
           </p>
           <p className="text-muted-foreground text-xs">Missing actors found</p>
         </div>
-        <div className="rounded-xl border border-zinc-200 px-3 py-2">
+        <div className="border-t border-zinc-200 pt-2">
           <p className="text-lg font-semibold tabular-nums">{guess.score}</p>
           <p className="text-muted-foreground text-xs">Perspective score (of 100)</p>
         </div>
