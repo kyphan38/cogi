@@ -79,7 +79,7 @@ test.describe("History page - layout and structure", () => {
 
   test("heatmap legend shows the three exercise types", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/history");
-    const heatmapCard = page.locator('[data-slot="card"]').filter({
+    const heatmapCard = page.locator("section").filter({
       has: page.getByRole("heading", { name: "Activity" }),
     });
     await expect(heatmapCard.getByText("Analytical", { exact: true })).toBeVisible();

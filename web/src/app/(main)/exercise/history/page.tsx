@@ -7,13 +7,7 @@ import { startTransition, Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { HomeSection, WORD_LINK } from "@/components/dashboard/HomeSection";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -191,7 +185,7 @@ function typeSwatchClass(t: Exercise["type"]): string {
 }
 
 const EXERCISE_META_BADGE =
-  "ml-2 rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-normal uppercase tracking-wide text-zinc-600";
+  "ml-2 text-[10px] font-normal uppercase tracking-wide text-muted-foreground";
 
 function HistoryActivityHeatmap({ rows }: { rows: Exercise[] }) {
   const today = new Date();
@@ -444,10 +438,10 @@ function HistoryPageInner() {
   };
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+    <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Exercise history</h1>
-        <Link href="/terms" className="text-sm underline underline-offset-4" data-testid="my-terms-link">
+        <Link href="/terms" className={WORD_LINK} data-testid="my-terms-link">
           My terms
         </Link>
       </div>
@@ -473,26 +467,22 @@ function HistoryPageInner() {
         </Alert>
       ) : null}
 
-      <Card>
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-2">
-          <CardTitle className="text-base">Activity</CardTitle>
+      <HomeSection
+        title="Activity"
+        action={
           <p className="text-muted-foreground text-xs tabular-nums">
             Streak: <span className="font-medium text-foreground">{streakDays}</span> day
             {streakDays === 1 ? "" : "s"}
           </p>
-        </CardHeader>
-        <CardContent>
-          <HistoryActivityHeatmap rows={rows} />
-        </CardContent>
-      </Card>
+        }
+      >
+        <HistoryActivityHeatmap rows={rows} />
+      </HomeSection>
 
       <CalibrationHistoryCard rows={rows} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Filters</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+      <HomeSection title="Filters">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
             <Label>Type</Label>
             <Select value={typeFilter} onValueChange={(v) => setTypeFilter((v as ThinkingTypeFilter) ?? "all")}>
@@ -524,31 +514,29 @@ function HistoryPageInner() {
             <Label>Completed on or before</Label>
             <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </HomeSection>
 
-      <div className="space-y-2">
-        <h2 className="text-sm font-medium">Completed exercises</h2>
+      <HomeSection title="Completed exercises">
         {!filteredListReady ? (
           <HistoryExerciseListSkeleton />
         ) : rows.length === 0 ? (
           <p className="text-muted-foreground text-sm italic">No exercises match these filters.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="divide-y border-y">
             {rows.map((ex) => (
               <li key={ex.id}>
                 <div
                   className={cn(
-                    "group relative overflow-hidden rounded-lg border text-sm transition-colors",
-                    selectedId === ex.id
-                      ? "border-primary/50 bg-accent/30"
-                      : "border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/20",
+                    "group relative text-sm transition-colors",
+                    selectedId === ex.id ? "bg-muted/60" : "hover:bg-muted/30",
                   )}
                 >
                   <button
                     type="button"
                     onClick={() => setSelectedId(ex.id)}
-                    className="w-full p-3 pr-11 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
+                    aria-current={selectedId === ex.id ? "true" : undefined}
+                    className="w-full py-3 pr-11 pl-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
                   >
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
                       <span className="font-medium">
@@ -561,20 +549,16 @@ function HistoryPageInner() {
                       </span>
                       <span className="text-muted-foreground text-xs">{formatDate(ex.completedAt!)}</span>
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      <span className="font-tracker rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
-                        {ex.type}
-                      </span>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                        {ex.domain}
-                      </span>
-                    </div>
+                    <p className="mt-1 flex min-w-0 items-baseline gap-2 text-xs text-muted-foreground">
+                      <span className="font-tracker shrink-0 text-[11px]">{ex.type}</span>
+                      <span className="min-w-0 truncate">{ex.domain}</span>
+                    </p>
                   </button>
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="bg-card/90 text-muted-foreground absolute top-2 right-2 z-10 size-8 rounded-md opacity-40 ring-1 ring-border/50 backdrop-blur-sm transition-[opacity,color,background-color] duration-150 hover:bg-destructive/10 hover:text-destructive hover:opacity-100 md:pointer-events-none md:opacity-0 md:hover:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:focus-visible:pointer-events-auto md:focus-visible:opacity-100"
+                    className="text-muted-foreground absolute top-2 right-1 z-10 size-8 rounded-md opacity-40 transition-[opacity,color] duration-150 hover:text-foreground hover:opacity-100 md:pointer-events-none md:opacity-0 md:hover:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:focus-visible:pointer-events-auto md:focus-visible:opacity-100"
                     aria-label={`Delete exercise: ${ex.title}`}
                     title="Remove from history"
                     onClick={(e) => {
@@ -589,28 +573,28 @@ function HistoryPageInner() {
             ))}
           </ul>
         )}
-      </div>
+      </HomeSection>
 
       {selected && detailEx ? (
-        <Card className="group/review relative">
-          <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 space-y-0 pb-2">
+        <section className="group/review relative">
+          <div className="flex flex-row flex-wrap items-start justify-between gap-2 pb-4">
             <div className="min-w-0 flex-1">
-              <CardTitle className="text-base">Review</CardTitle>
-              <CardDescription>{detailEx.type}</CardDescription>
+              <h2 className="text-lg font-semibold">Review</h2>
+              <p className="font-tracker text-[11px]">{detailEx.type}</p>
             </div>
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="text-muted-foreground -mt-0.5 -mr-1 shrink-0 opacity-40 transition-[opacity,color] duration-150 hover:bg-destructive/10 hover:text-destructive hover:opacity-100 md:opacity-0 md:group-hover/review:opacity-100 md:focus-visible:opacity-100"
+              className="text-muted-foreground -mt-0.5 -mr-1 shrink-0 opacity-40 transition-[opacity,color] duration-150 hover:text-foreground hover:opacity-100 md:opacity-0 md:group-hover/review:opacity-100 md:focus-visible:opacity-100"
               aria-label={`Delete exercise: ${detailEx.title}`}
               title="Remove from history"
               onClick={() => openDeleteDialog(detailEx)}
             >
               <Trash2 className="size-4" aria-hidden />
             </Button>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm">
+          </div>
+          <div className="space-y-6 text-sm">
             {isAnalyticalExercise(detailEx) ? (
               <>
               {detailEx.level ? (
@@ -780,8 +764,8 @@ function HistoryPageInner() {
                 <p className="whitespace-pre-wrap leading-relaxed">{detailEx.takeaway}</p>
               </div>
             ) : null}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       ) : null}
 
       {pendingDelete ? (

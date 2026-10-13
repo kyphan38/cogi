@@ -2,9 +2,7 @@
 
 import Link from "next/link";
 import { ChevronRight, Trash2 } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { GO_LINK, HomeSection, WORD_LINK } from "@/components/dashboard/HomeSection";
 import type { Exercise } from "@/lib/types/exercise";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
 import { currentTrack, trackProgress, trackStepHref } from "@/lib/exercise/tracks";
@@ -23,14 +21,16 @@ export function TrackCard({
 }) {
   const track = currentTrack(completed);
   return (
-    <Card data-testid="track-card">
-      <CardHeader className="flex flex-row flex-wrap items-baseline justify-between gap-2 pb-3">
-        <CardTitle className="text-base">Learning track</CardTitle>
-        <Link href="/tracks" className="text-muted-foreground text-xs underline underline-offset-4">
+    <HomeSection
+      data-testid="track-card"
+      title="Learning track"
+      action={
+        <Link href="/tracks" className={WORD_LINK}>
           All tracks
         </Link>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
+      }
+    >
+      <div className="space-y-3 text-sm">
         {track ? (
           (() => {
             const { doneIds, next } = trackProgress(track, completed);
@@ -47,7 +47,7 @@ export function TrackCard({
                   </p>
                 </div>
                 {next ? (
-                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/20 px-3 py-2">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-muted-foreground text-xs">
                         Step {i + 1} · {TYPE_LABEL[next.type]}
@@ -57,7 +57,7 @@ export function TrackCard({
                     <div className="group/item flex shrink-0 items-center gap-1">
                       <Link
                         href={inProgress ? `/exercise/${inProgress.type}?resumeId=${inProgress.id}` : trackStepHref(next)}
-                        className={cn(buttonVariants({ size: "sm" }), "inline-flex shrink-0 items-center gap-1")}
+                        className={GO_LINK}
                         data-testid="track-next-step"
                       >
                         {inProgress ? "Continue" : "Start"} <ChevronRight className="size-4" aria-hidden />
@@ -82,7 +82,7 @@ export function TrackCard({
         ) : (
           <p className="text-muted-foreground">You finished every track. New ones will come.</p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </HomeSection>
   );
 }

@@ -143,7 +143,7 @@ export default function SettingsPage() {
   return (
     <main className="mx-auto w-full min-w-0 max-w-3xl px-4 pt-8 pb-24 sm:px-6">
       <div className="max-w-xl">
-        <h1 className="text-lg font-semibold">Settings</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
 
         <section className="mt-8 grid gap-3">
           <Label htmlFor="language-level">

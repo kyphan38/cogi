@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronRight, Plus, Trash2 } from "lucide-react";
 import {
   deleteExercise,
@@ -15,6 +14,7 @@ import { logFirestoreQueryError } from "@/lib/db/firestore";
 import type { Exercise } from "@/lib/types/exercise";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
 import { computeStreak } from "@/lib/exercise/streak";
+import { HomeSection } from "@/components/dashboard/HomeSection";
 import { TrackCard } from "@/components/dashboard/TrackCard";
 import { GeoLabCard } from "@/components/dashboard/GeoLabCard";
 import { DISCARD_BUTTON_CLASS } from "@/components/dashboard/discard-button";
@@ -46,8 +46,9 @@ function ExerciseRowLabel({ ex }: { ex: Exercise }) {
   );
 }
 
+/** A plain row: hairline between rows, the title darkens on hover. */
 const rowLinkClass =
-  "flex min-w-0 flex-1 items-center justify-between rounded-md border bg-muted/20 px-3 py-2 text-sm hover:bg-muted/40 transition-colors";
+  "group/row flex min-w-0 flex-1 items-center justify-between py-2.5 text-sm transition-colors";
 
 /** Start page: one way to begin, then pick up unfinished work or look back at recent ones. */
 export function HomeContent() {
@@ -98,7 +99,7 @@ export function HomeContent() {
   };
 
   return (
-    <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
+    <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Practice</h1>
@@ -121,16 +122,13 @@ export function HomeContent() {
       <GeoLabCard completed={allCompleted} />
 
       {incompleteExercises.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Continue</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <HomeSection title="Continue">
+          <div className="divide-y border-y">
             {incompleteExercises.map((ex) => (
               <div key={ex.id} className="group/item flex items-center gap-1">
                 <Link href={resumeHref(ex)} className={rowLinkClass}>
                   <ExerciseRowLabel ex={ex} />
-                  <ChevronRight className="ml-3 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <ChevronRight className="ml-3 size-4 shrink-0 text-muted-foreground opacity-40 group-hover/row:opacity-100" aria-hidden />
                 </Link>
                 <button
                   type="button"
@@ -142,16 +140,13 @@ export function HomeContent() {
                 </button>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </HomeSection>
       )}
 
       {completedExercises.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Recently completed</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <HomeSection title="Recently completed">
+          <div className="divide-y border-y">
             {completedExercises.map((ex) => (
               <Link
                 key={ex.id}
@@ -159,11 +154,11 @@ export function HomeContent() {
                 className={rowLinkClass}
               >
                 <ExerciseRowLabel ex={ex} />
-                <ChevronRight className="ml-3 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <ChevronRight className="ml-3 size-4 shrink-0 text-muted-foreground opacity-40 group-hover/row:opacity-100" aria-hidden />
               </Link>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </HomeSection>
       )}
 
       {incompleteExercises.length === 0 && completedExercises.length === 0 && (

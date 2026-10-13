@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HomeSection } from "@/components/dashboard/HomeSection";
 import { Stat } from "@/components/shared/AnswerKeyParts";
 import { isCalibrationExercise, type Exercise } from "@/lib/types/exercise";
 import { aggregateCalibration, CALIBRATION_HISTORY_MIN, type CalibrationHistory } from "@/lib/exercise/calibration-score";
@@ -98,15 +98,12 @@ export function CalibrationHistoryCard({ rows }: { rows: Exercise[] }) {
   );
   if (h.answered < CALIBRATION_HISTORY_MIN) return null;
   return (
-    <Card data-testid="calibration-history">
-      <CardHeader>
-        <CardTitle className="text-base">How sure vs how right</CardTitle>
+    <HomeSection data-testid="calibration-history" title="How sure vs how right">
+      <div className="space-y-4 text-sm">
         <p className="text-muted-foreground text-xs">
           From {h.answered} answers in {h.exercises} Calibration exercises. Dots below the dashed line mean you were more
           sure than right.
         </p>
-      </CardHeader>
-      <CardContent className="space-y-4 text-sm">
         {h.buckets.length > 0 ? <CalibrationCurve h={h} /> : null}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {h.ranges.map((rg) => (
@@ -143,7 +140,7 @@ export function CalibrationHistoryCard({ rows }: { rows: Exercise[] }) {
             </table>
           </details>
         ) : null}
-      </CardContent>
-    </Card>
+      </div>
+    </HomeSection>
   );
 }

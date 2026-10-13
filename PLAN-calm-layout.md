@@ -17,7 +17,7 @@ Nguồn luật: `../DESIGN.md`, phần "Layout: calm and text-first" và "Show o
 | Phase | Nội dung | Trạng thái |
 |---|---|---|
 | C1 | Nav bằng chữ (`practice · history · handbook · settings`), Sign out vào Settings; `--radius` nhỏ lại; bỏ `shadow-*`; chip `rounded-full` thành `rounded-md`; route fade nhẹ hơn | xong 2026-10-13 |
-| C2 | Home, History, Settings (Settings đã làm cùng C1): bỏ card bọc ngoài, dùng tiêu đề nhỏ + khoảng trắng + hàng có đường kẻ mảnh | |
+| C2 | Home, History, Settings (Settings đã làm cùng C1): bỏ card bọc ngoài, dùng tiêu đề nhỏ + khoảng trắng + hàng có đường kẻ mảnh | xong 2026-10-13 |
 | C3 | Khung bài tập (`ExerciseShell`, `ExerciseStepCard`): bước 1-2-3 thành chữ, bỏ card trong card | |
 | C4 | Answer key, AI feedback, Deep dive, Finish card: thành đoạn chữ, không hộp | |
 | C5 | Geo Lab, Tracks, Simulators, Terms, Handbook | |
