@@ -35,18 +35,17 @@ test.describe("Nordic Mono layout architecture", () => {
       await gotoLayoutFixtures(page);
     });
 
-    test("reference minimal container has 16px radius and 1px border", async ({
-      page,
-    }) => {
+    // Calm layout (DESIGN.md "Layout"): a step is held by space, not a frame.
+    test("reference minimal container has no frame", async ({ page }) => {
       const panel = page.getByTestId("layout-fixture-container");
-      await assertBorderRadiusPx(panel, 16);
-      await assertBorderWidthPx(panel, 1);
+      await assertBorderRadiusPx(panel, 0);
+      await assertBorderWidthPx(panel, 0);
     });
 
-    test("text passage panel has 16px radius and 1px border", async ({ page }) => {
+    test("text passage sits on the page with a thin left rule", async ({ page }) => {
       const passage = page.getByTestId("text-passage");
-      await assertBorderRadiusPx(passage, 16);
-      await assertBorderWidthPx(passage, 1);
+      await assertBorderWidthPx(passage, 0);
+      expect(parseFloat(await getComputed(passage, "borderLeftWidth"))).toBe(2);
     });
   });
 
@@ -61,14 +60,14 @@ test.describe("Nordic Mono layout architecture", () => {
     }) => {
       const passage = page.getByTestId("text-passage");
       await assertMinLineHeightPx(passage, 20);
-      await assertMinPaddingPx(passage, 16);
+      expect(parseFloat(await getComputed(passage, "paddingLeft"))).toBeGreaterThanOrEqual(16);
     });
 
-    test("minimal container body meets 24px padding on desktop", async ({
+    test("minimal container body lines up with the page (no inner padding)", async ({
       page,
     }) => {
       const body = page.getByTestId("layout-fixture-container-body");
-      await assertMinPaddingPx(body, 24);
+      expect(parseFloat(await getComputed(body, "paddingLeft"))).toBe(0);
     });
 
     test("container title uses semibold structural weight", async ({ page }) => {
