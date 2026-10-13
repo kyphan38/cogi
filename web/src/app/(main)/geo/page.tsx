@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
+import { GO_LINK } from "@/components/dashboard/HomeSection";
 import { ActorCards } from "@/components/geo/ActorCards";
 import { CloseTheStrait } from "@/components/geo/CloseTheStrait";
 import { TimelineGame } from "@/components/geo/TimelineGame";
@@ -114,7 +116,7 @@ export default function GeoLabPage() {
   );
 
   return (
-    <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
+    <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-10 px-4 pt-8 pb-24 sm:px-6">
       <div className="space-y-1">
         <h1 className="text-2xl tracking-tight">Geo Lab</h1>
         <p className="text-muted-foreground text-sm">
@@ -174,13 +176,14 @@ export default function GeoLabPage() {
               </p>
             </CardHeader>
             <CardContent>
-              <Button
+              <button
                 type="button"
+                className={GO_LINK}
                 onClick={() => setView({ kind: "strait", startedAt: new Date().toISOString() })}
                 data-testid="geo-strait-start"
               >
-                Play
-              </Button>
+                Play <ChevronRight className="size-4" aria-hidden />
+              </button>
             </CardContent>
           </Card>
 
@@ -192,9 +195,9 @@ export default function GeoLabPage() {
               </p>
             </CardHeader>
             <CardContent>
-              <Button type="button" variant="outline" onClick={() => setView({ kind: "timelines" })} data-testid="geo-timelines-open">
-                Choose a timeline
-              </Button>
+              <button type="button" className={GO_LINK} onClick={() => setView({ kind: "timelines" })} data-testid="geo-timelines-open">
+                Choose a timeline <ChevronRight className="size-4" aria-hidden />
+              </button>
             </CardContent>
           </Card>
 
@@ -206,9 +209,9 @@ export default function GeoLabPage() {
               </p>
             </CardHeader>
             <CardContent>
-              <Button type="button" variant="outline" onClick={() => setView({ kind: "cards" })} data-testid="geo-cards-open">
-                Open the cards
-              </Button>
+              <button type="button" className={GO_LINK} onClick={() => setView({ kind: "cards" })} data-testid="geo-cards-open">
+                Open the cards <ChevronRight className="size-4" aria-hidden />
+              </button>
             </CardContent>
           </Card>
 

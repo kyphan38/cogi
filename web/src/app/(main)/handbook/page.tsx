@@ -61,7 +61,7 @@ function EntryCard({ entry }: { entry: HandbookEntry }) {
 /** Handbook: what each feature trains, what you get, and how to practise. */
 export default function HandbookPage() {
   return (
-    <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
+    <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
       <div className="space-y-1">
         <h1 className="text-2xl tracking-tight">Handbook</h1>
         <p className="text-muted-foreground text-sm">
@@ -69,9 +69,9 @@ export default function HandbookPage() {
         </p>
       </div>
 
-      <nav aria-label="Handbook contents" className="flex flex-wrap gap-2" data-testid="handbook-contents">
+      <nav aria-label="Handbook contents" className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm" data-testid="handbook-contents">
         {HANDBOOK_ENTRIES.map((e) => (
-          <a key={e.id} href={`#${e.id}`} className="rounded-md border px-3 py-1 text-xs hover:bg-muted/40">
+          <a key={e.id} href={`#${e.id}`} className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
             {e.title}
           </a>
         ))}

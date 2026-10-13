@@ -56,7 +56,10 @@ import { GeoLabHistoryCard } from "@/components/geo/GeoLabHistoryCard";
 import { evaluativeResultOf } from "@/lib/exercise/evaluative-score";
 import { systemsResultOf } from "@/lib/exercise/systems-score";
 import { AnalyticalAnswerKey } from "@/components/exercises/AnalyticalAnswerKey";
-import { requestAnalyticalDeepDive, withDeepDive } from "@/lib/exercise/deep-dive";
+import {
+  requestAnalyticalDeepDive,
+  withDeepDive,
+} from "@/lib/exercise/deep-dive";
 import { analyticalResultOf } from "@/lib/exercise/analytical-score";
 import { LEVEL_LABELS } from "@/lib/exercise/levels";
 import type { ClarityPerspectiveKind } from "@/lib/types/perspective";
@@ -68,7 +71,9 @@ import { computeStreak } from "@/lib/exercise/streak";
 
 type ThinkingTypeFilter = "all" | ThinkingType | "geo";
 
-function perspectiveKindForExercise(ex: Exercise): ClarityPerspectiveKind | null {
+function perspectiveKindForExercise(
+  ex: Exercise,
+): ClarityPerspectiveKind | null {
   if (isAnalyticalExercise(ex)) return "analytical";
   if (isSystemsExercise(ex)) return "systems";
   if (isEvaluativeExercise(ex)) {
@@ -89,11 +94,15 @@ function HistoryPerspectiveBody({
     if (vm.format === "clarity_v2") {
       return (
         <div className="text-muted-foreground space-y-4 text-sm leading-relaxed">
-          <p className="text-foreground text-sm font-medium">{vm.suitableFor}</p>
+          <p className="text-foreground text-sm font-medium">
+            {vm.suitableFor}
+          </p>
           <ul className="list-none space-y-4 pl-0">
             {vm.blocks.map((b) => (
               <li key={b.id} className="space-y-2">
-                {b.title ? <p className="text-foreground font-medium">{b.title}</p> : null}
+                {b.title ? (
+                  <p className="text-foreground font-medium">{b.title}</p>
+                ) : null}
                 {b.userSnippet ? (
                   <p className="border-l-2 pl-3 text-xs">
                     <span className="font-medium">You wrote / selected: </span>
@@ -112,7 +121,9 @@ function HistoryPerspectiveBody({
           </ul>
           {vm.openQuestions.length > 0 ? (
             <div>
-              <h4 className="text-foreground mb-2 font-medium">Open questions</h4>
+              <h4 className="text-foreground mb-2 font-medium">
+                Open questions
+              </h4>
               <ul className="list-disc space-y-1 pl-5">
                 {vm.openQuestions.map((q, i) => (
                   <li key={i} className="whitespace-pre-wrap">
@@ -137,7 +148,9 @@ function HistoryPerspectiveBody({
                 <li key={p.id} className="whitespace-pre-wrap">
                   {p.title ? (
                     <>
-                      <span className="text-foreground font-medium">{p.title}</span>
+                      <span className="text-foreground font-medium">
+                        {p.title}
+                      </span>
                       {" - "}
                     </>
                   ) : null}
@@ -258,13 +271,22 @@ function HistoryActivityHeatmap({ rows }: { rows: Exercise[] }) {
         </div>
       </div>
       <p className="text-muted-foreground text-xs leading-relaxed">
-        Each square is one day (Mon–Sun top to bottom; columns are weeks). If you finish more than
-        one exercise on a day, the color follows the latest completion that day.
+        Each square is one day (Mon–Sun top to bottom; columns are weeks). If
+        you finish more than one exercise on a day, the color follows the latest
+        completion that day.
       </p>
       <div className="flex flex-wrap gap-x-3 gap-y-1.5">
         {legend.map(({ type, label }) => (
-          <div key={type} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <span className={cn("size-2.5 shrink-0 rounded-sm", typeSwatchClass(type))} />
+          <div
+            key={type}
+            className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+          >
+            <span
+              className={cn(
+                "size-2.5 shrink-0 rounded-sm",
+                typeSwatchClass(type),
+              )}
+            />
             <span>{label}</span>
           </div>
         ))}
@@ -284,11 +306,19 @@ function HistoryPageInner() {
   const [domainQ, setDomainQ] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  // Filters are rarely used: closed behind a word, open while any is set.
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const filtersActive =
+    typeFilter !== "all" || domainQ !== "" || fromDate !== "" || toDate !== "";
+  const showFilters = filtersOpen || filtersActive;
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailEx, setDetailEx] = useState<Exercise | null>(null);
 
-  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
   const [deletePhrase, setDeletePhrase] = useState("");
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteErr, setDeleteErr] = useState<string | null>(null);
@@ -346,7 +376,11 @@ function HistoryPageInner() {
         });
       },
       (error) => {
-        logFirestoreQueryError("HistoryPage", "subscribeCompletedExercises(filtered)", error);
+        logFirestoreQueryError(
+          "HistoryPage",
+          "subscribeCompletedExercises(filtered)",
+          error,
+        );
       },
     );
     return () => unsubscribe();
@@ -362,7 +396,11 @@ function HistoryPageInner() {
         });
       },
       (error) => {
-        logFirestoreQueryError("HistoryPage", "subscribeCompletedExercises(all)", error);
+        logFirestoreQueryError(
+          "HistoryPage",
+          "subscribeCompletedExercises(all)",
+          error,
+        );
       },
     );
     return () => unsubscribe();
@@ -440,7 +478,9 @@ function HistoryPageInner() {
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Exercise history</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Exercise history
+        </h1>
         <Link href="/terms" className={WORD_LINK} data-testid="my-terms-link">
           My terms
         </Link>
@@ -448,10 +488,17 @@ function HistoryPageInner() {
 
       {openExerciseHiddenByFilters ? (
         <Alert>
-          <AlertTitle className="text-sm">Linked exercise is hidden by filters</AlertTitle>
+          <AlertTitle className="text-sm">
+            Linked exercise is hidden by filters
+          </AlertTitle>
           <AlertDescription className="flex flex-col gap-2 text-xs sm:flex-row sm:items-center sm:justify-between">
             <span>Clear filters to show it in the list below.</span>
-            <Button type="button" size="sm" variant="secondary" onClick={clearHistoryFilters}>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={clearHistoryFilters}
+            >
               Clear filters
             </Button>
           </AlertDescription>
@@ -462,7 +509,8 @@ function HistoryPageInner() {
         <Alert variant="destructive">
           <AlertTitle className="text-sm">Exercise not found</AlertTitle>
           <AlertDescription className="text-xs">
-            No completed exercise with this id is in your history. It may have been removed.
+            No completed exercise with this id is in your history. It may have
+            been removed.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -471,7 +519,9 @@ function HistoryPageInner() {
         title="Activity"
         action={
           <p className="text-muted-foreground text-xs tabular-nums">
-            Streak: <span className="font-medium text-foreground">{streakDays}</span> day
+            Streak:{" "}
+            <span className="font-medium text-foreground">{streakDays}</span>{" "}
+            day
             {streakDays === 1 ? "" : "s"}
           </p>
         }
@@ -481,47 +531,82 @@ function HistoryPageInner() {
 
       <CalibrationHistoryCard rows={rows} />
 
-      <HomeSection title="Filters">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="grid gap-2">
-            <Label>Type</Label>
-            <Select value={typeFilter} onValueChange={(v) => setTypeFilter((v as ThinkingTypeFilter) ?? "all")}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="analytical">Analytical</SelectItem>
-                <SelectItem value="systems">Systems</SelectItem>
-                <SelectItem value="evaluative">Evaluative</SelectItem>
-                <SelectItem value="judgment">Life situations</SelectItem>
-                <SelectItem value="strategy">Strategic situations</SelectItem>
-                <SelectItem value="reframe">Reframe</SelectItem>
-                <SelectItem value="calibration">Calibration</SelectItem>
-                <SelectItem value="geo">Geo Lab</SelectItem>
-              </SelectContent>
-            </Select>
+      {showFilters ? (
+        <HomeSection title="Filters" data-testid="history-filters">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label>Type</Label>
+              <Select
+                value={typeFilter}
+                onValueChange={(v) =>
+                  setTypeFilter((v as ThinkingTypeFilter) ?? "all")
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="analytical">Analytical</SelectItem>
+                  <SelectItem value="systems">Systems</SelectItem>
+                  <SelectItem value="evaluative">Evaluative</SelectItem>
+                  <SelectItem value="judgment">Life situations</SelectItem>
+                  <SelectItem value="strategy">Strategic situations</SelectItem>
+                  <SelectItem value="reframe">Reframe</SelectItem>
+                  <SelectItem value="calibration">Calibration</SelectItem>
+                  <SelectItem value="geo">Geo Lab</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Domain contains</Label>
+              <Input
+                placeholder="e.g. DevOps"
+                value={domainQ}
+                onChange={(e) => setDomainQ(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Completed on or after</Label>
+              <Input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Completed on or before</Label>
+              <Input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+              />
+            </div>
           </div>
-          <div className="grid gap-2">
-            <Label>Domain contains</Label>
-            <Input placeholder="e.g. DevOps" value={domainQ} onChange={(e) => setDomainQ(e.target.value)} />
-          </div>
-          <div className="grid gap-2">
-            <Label>Completed on or after</Label>
-            <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-          </div>
-          <div className="grid gap-2">
-            <Label>Completed on or before</Label>
-            <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-          </div>
-        </div>
-      </HomeSection>
+        </HomeSection>
+      ) : null}
 
-      <HomeSection title="Completed exercises">
+      <HomeSection
+        title="Completed exercises"
+        action={
+          filtersActive ? null : (
+            <button
+              type="button"
+              className={WORD_LINK}
+              aria-expanded={showFilters}
+              onClick={() => setFiltersOpen((o) => !o)}
+            >
+              {showFilters ? "hide filters" : "filters"}
+            </button>
+          )
+        }
+      >
         {!filteredListReady ? (
           <HistoryExerciseListSkeleton />
         ) : rows.length === 0 ? (
-          <p className="text-muted-foreground text-sm italic">No exercises match these filters.</p>
+          <p className="text-muted-foreground text-sm italic">
+            No exercises match these filters.
+          </p>
         ) : (
           <ul className="divide-y border-y">
             {rows.map((ex) => (
@@ -541,16 +626,24 @@ function HistoryPageInner() {
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
                       <span className="font-medium">
                         {ex.title}
-                        {isAnalyticalExercise(ex) && ex.source === "real_data" ? (
+                        {isAnalyticalExercise(ex) &&
+                        ex.source === "real_data" ? (
                           <span className={EXERCISE_META_BADGE}>Real data</span>
-                        ) : isAnalyticalExercise(ex) && ex.isSoundReasoning === true ? (
-                          <span className={EXERCISE_META_BADGE}>Sound reasoning</span>
+                        ) : isAnalyticalExercise(ex) &&
+                          ex.isSoundReasoning === true ? (
+                          <span className={EXERCISE_META_BADGE}>
+                            Sound reasoning
+                          </span>
                         ) : null}
                       </span>
-                      <span className="text-muted-foreground text-xs">{formatDate(ex.completedAt!)}</span>
+                      <span className="text-muted-foreground text-xs">
+                        {formatDate(ex.completedAt!)}
+                      </span>
                     </div>
                     <p className="mt-1 flex min-w-0 items-baseline gap-2 text-xs text-muted-foreground">
-                      <span className="font-tracker shrink-0 text-[11px]">{ex.type}</span>
+                      <span className="font-tracker shrink-0 text-[11px]">
+                        {ex.type}
+                      </span>
                       <span className="min-w-0 truncate">{ex.domain}</span>
                     </p>
                   </button>
@@ -597,27 +690,36 @@ function HistoryPageInner() {
           <div className="space-y-6 text-sm">
             {isAnalyticalExercise(detailEx) ? (
               <>
-              {detailEx.level ? (
-                <p className="text-muted-foreground" data-testid="history-level">
-                  Level: {LEVEL_LABELS[detailEx.level]}
-                </p>
-              ) : null}
-              <AnalyticalAnswerKey
-                exercise={detailEx}
-                result={analyticalResultOf(detailEx)}
-                coaching={
-                  isAnalyticalCoachingStructured(detailEx.aiPerspectiveStructured)
-                    ? detailEx.aiPerspectiveStructured
-                    : null
-                }
-                deepDives={detailEx.deepDives}
-                onRequestDeepDive={async (ref) => {
-                  const d = await requestAnalyticalDeepDive(detailEx, ref);
-                  setDetailEx((prev) =>
-                    prev && prev.id === detailEx.id && isAnalyticalExercise(prev) ? withDeepDive(prev, ref, d) : prev,
-                  );
-                }}
-              />
+                {detailEx.level ? (
+                  <p
+                    className="text-muted-foreground"
+                    data-testid="history-level"
+                  >
+                    Level: {LEVEL_LABELS[detailEx.level]}
+                  </p>
+                ) : null}
+                <AnalyticalAnswerKey
+                  exercise={detailEx}
+                  result={analyticalResultOf(detailEx)}
+                  coaching={
+                    isAnalyticalCoachingStructured(
+                      detailEx.aiPerspectiveStructured,
+                    )
+                      ? detailEx.aiPerspectiveStructured
+                      : null
+                  }
+                  deepDives={detailEx.deepDives}
+                  onRequestDeepDive={async (ref) => {
+                    const d = await requestAnalyticalDeepDive(detailEx, ref);
+                    setDetailEx((prev) =>
+                      prev &&
+                      prev.id === detailEx.id &&
+                      isAnalyticalExercise(prev)
+                        ? withDeepDive(prev, ref, d)
+                        : prev,
+                    );
+                  }}
+                />
               </>
             ) : isSystemsExercise(detailEx) ? (
               <>
@@ -626,7 +728,9 @@ function HistoryPageInner() {
                   <p className="leading-relaxed">{detailEx.scenario}</p>
                 </div>
                 {detailEx.level ? (
-                  <p className="text-muted-foreground">Level: {LEVEL_LABELS[detailEx.level]}</p>
+                  <p className="text-muted-foreground">
+                    Level: {LEVEL_LABELS[detailEx.level]}
+                  </p>
                 ) : null}
                 <SystemsAnswerKey
                   exercise={detailEx}
@@ -645,7 +749,9 @@ function HistoryPageInner() {
                   <p className="leading-relaxed">{detailEx.scenario}</p>
                 </div>
                 {detailEx.level ? (
-                  <p className="text-muted-foreground">Level: {LEVEL_LABELS[detailEx.level]}</p>
+                  <p className="text-muted-foreground">
+                    Level: {LEVEL_LABELS[detailEx.level]}
+                  </p>
                 ) : null}
                 <EvaluativeAnswerKey
                   exercise={detailEx}
@@ -661,10 +767,13 @@ function HistoryPageInner() {
               <>
                 <div>
                   <h3 className="mb-1 font-medium">Situation</h3>
-                  <p className="whitespace-pre-wrap leading-relaxed">{detailEx.scenario}</p>
+                  <p className="whitespace-pre-wrap leading-relaxed">
+                    {detailEx.scenario}
+                  </p>
                 </div>
                 <p className="text-muted-foreground">
-                  Level: {LEVEL_LABELS[detailEx.level]} · {detailEx.context === "vietnam" ? "Vietnam" : "General"}
+                  Level: {LEVEL_LABELS[detailEx.level]} ·{" "}
+                  {detailEx.context === "vietnam" ? "Vietnam" : "General"}
                 </p>
                 {detailEx.result ? (
                   <JudgmentAnswerKey
@@ -699,10 +808,13 @@ function HistoryPageInner() {
               <>
                 <div>
                   <h3 className="mb-1 font-medium">Situation</h3>
-                  <p className="whitespace-pre-wrap leading-relaxed">{detailEx.scenario}</p>
+                  <p className="whitespace-pre-wrap leading-relaxed">
+                    {detailEx.scenario}
+                  </p>
                 </div>
                 <p className="text-muted-foreground">
-                  Level: {LEVEL_LABELS[detailEx.level]} · {detailEx.context === "vietnam" ? "Vietnam" : "General"}
+                  Level: {LEVEL_LABELS[detailEx.level]} ·{" "}
+                  {detailEx.context === "vietnam" ? "Vietnam" : "General"}
                 </p>
                 {detailEx.result ? (
                   <ReframeAnswerKey
@@ -722,9 +834,13 @@ function HistoryPageInner() {
               <>
                 <div>
                   <h3 className="mb-1 font-medium">Story</h3>
-                  <p className="whitespace-pre-wrap leading-relaxed">{detailEx.scenario}</p>
+                  <p className="whitespace-pre-wrap leading-relaxed">
+                    {detailEx.scenario}
+                  </p>
                 </div>
-                <p className="text-muted-foreground">Level: {LEVEL_LABELS[detailEx.level]}</p>
+                <p className="text-muted-foreground">
+                  Level: {LEVEL_LABELS[detailEx.level]}
+                </p>
                 {detailEx.result ? (
                   <StrategyAnswerKey
                     exercise={detailEx}
@@ -761,7 +877,9 @@ function HistoryPageInner() {
             {"takeaway" in detailEx && detailEx.takeaway ? (
               <div>
                 <h3 className="mb-1 font-medium">Takeaway</h3>
-                <p className="whitespace-pre-wrap leading-relaxed">{detailEx.takeaway}</p>
+                <p className="whitespace-pre-wrap leading-relaxed">
+                  {detailEx.takeaway}
+                </p>
               </div>
             ) : null}
           </div>
@@ -783,17 +901,26 @@ function HistoryPageInner() {
             className="cogi-modal-panel w-full max-w-md rounded-2xl border border-border bg-card p-5"
             onMouseDown={(e) => e.stopPropagation()}
           >
-            <h2 id="delete-ex-title" className="font-heading text-lg font-medium">
+            <h2
+              id="delete-ex-title"
+              className="font-heading text-lg font-medium"
+            >
               Delete exercise?
             </h2>
             <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
               Deletes{" "}
-              <span className="font-medium text-foreground">&quot;{pendingDelete.title}&quot;</span>{" "}
+              <span className="font-medium text-foreground">
+                &quot;{pendingDelete.title}&quot;
+              </span>{" "}
               and all its data. Can&apos;t be undone.
             </p>
             <div className="mt-4 grid gap-2">
               <Label htmlFor="delete-ex-confirm">
-                Type <span className="font-mono font-semibold text-foreground">Delete</span> to confirm
+                Type{" "}
+                <span className="font-mono font-semibold text-foreground">
+                  Delete
+                </span>{" "}
+                to confirm
               </Label>
               <Input
                 id="delete-ex-confirm"
@@ -802,7 +929,9 @@ function HistoryPageInner() {
                 value={deletePhrase}
                 onChange={(e) => setDeletePhrase(e.target.value)}
                 placeholder="Delete"
-                aria-invalid={deletePhrase.length > 0 && deletePhrase !== "Delete"}
+                aria-invalid={
+                  deletePhrase.length > 0 && deletePhrase !== "Delete"
+                }
               />
             </div>
             {deleteErr ? (
@@ -811,7 +940,11 @@ function HistoryPageInner() {
               </p>
             ) : null}
             <div className="mt-5 flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="secondary" onClick={() => closeDeleteDialog()}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => closeDeleteDialog()}
+              >
                 Cancel
               </Button>
               <Button
@@ -844,4 +977,3 @@ export default function HistoryPage() {
     </Suspense>
   );
 }
-

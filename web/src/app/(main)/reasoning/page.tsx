@@ -61,7 +61,7 @@ export default function ReasoningPage() {
 
       <div className="space-y-2">
         <p className="text-sm font-medium">Start from</p>
-        <div className="inline-flex rounded-xl border border-zinc-200 p-1" role="radiogroup" aria-label="Start from">
+        <div className="flex flex-wrap gap-x-4" role="radiogroup" aria-label="Start from">
           {(
             [
               ["topic", "A topic"],
@@ -75,8 +75,8 @@ export default function ReasoningPage() {
               aria-checked={startFrom === value}
               onClick={() => chooseStart(value)}
               className={cn(
-                "rounded-lg px-3 py-1.5 text-sm",
-                startFrom === value ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-50",
+                "py-1 text-sm",
+                startFrom === value ? "font-medium text-zinc-900" : "text-zinc-500 hover:text-zinc-900",
               )}
             >
               {label}

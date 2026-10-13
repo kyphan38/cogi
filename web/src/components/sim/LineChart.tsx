@@ -122,7 +122,7 @@ export function LineChart({
           ) : null}
         </svg>
         {shownX != null ? (
-          <div className="pointer-events-none mt-1 rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-700" data-testid="chart-readout">
+          <div className="pointer-events-none mt-1 text-xs text-zinc-700" data-testid="chart-readout">
             {formatX(shownX)}:{" "}
             {series
               .map((s) => {

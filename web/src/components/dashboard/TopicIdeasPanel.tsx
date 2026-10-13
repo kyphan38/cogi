@@ -179,7 +179,7 @@ export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
   return (
     <div className="space-y-4" data-testid="topic-ideas">
       {scenarioAllowed ? (
-        <div className="inline-flex rounded-xl border border-zinc-200 p-1" role="radiogroup" aria-label="Start with">
+        <div className="flex flex-wrap gap-x-4" role="radiogroup" aria-label="Start with">
           {(
             [
               ["domain", "Domain"],
@@ -195,7 +195,7 @@ export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
                 setInput(value);
                 setError(null);
               }}
-              className={cn("rounded-lg px-3 py-1.5 text-sm", input === value ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-50")}
+              className={cn("py-1 text-sm", input === value ? "font-medium text-zinc-900" : "text-zinc-500 hover:text-zinc-900")}
             >
               {label}
             </button>

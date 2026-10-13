@@ -32,6 +32,7 @@ test.describe("History page - layout and structure", () => {
 
   test("renders filters card with type, domain, and date inputs", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/history");
+    await page.getByRole("button", { name: "filters", exact: true }).click();
     await expect(
       page.getByRole("heading", { name: "Filters" }),
     ).toBeVisible();
@@ -49,6 +50,7 @@ test.describe("History page - layout and structure", () => {
 
   test("type filter offers the three exercise types", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/history");
+    await page.getByRole("button", { name: "filters", exact: true }).click();
     await page.getByText("Type", { exact: true }).locator("..").getByRole("combobox").click();
     await expect(page.getByRole("option", { name: "All" })).toBeVisible();
     await expect(page.getByRole("option", { name: "Analytical" })).toBeVisible();
@@ -58,6 +60,7 @@ test.describe("History page - layout and structure", () => {
 
   test("can type in domain filter", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/history");
+    await page.getByRole("button", { name: "filters", exact: true }).click();
     const domainInput = page.getByPlaceholder("e.g. DevOps");
     await domainInput.fill("DevOps");
     await expect(domainInput).toHaveValue("DevOps");
