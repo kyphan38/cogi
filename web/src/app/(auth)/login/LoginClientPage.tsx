@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { LoginView } from "@/components/auth/LoginView";
@@ -21,18 +21,25 @@ export function LoginClientPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const authListenerEpoch = useRef(0);
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
+  /** Returns true when the server cookie is in place (always true for sign-out). */
   const syncServerSession = useCallback(async (idToken: string | null) => {
     const method = idToken ? "POST" : "DELETE";
     try {
-      await fetch("/api/auth/session", {
+      const res = await fetch("/api/auth/session", {
         method,
         headers: idToken ? { "Content-Type": "application/json" } : undefined,
         body: idToken ? JSON.stringify({ idToken }) : undefined,
       });
+      if (!res.ok && idToken) {
+        console.error("[LoginClientPage] session sync failed", res.status);
+        return false;
+      }
+      return true;
     } catch (e) {
-      if (isAbortError(e)) return;
-      // best-effort cookie sync
+      if (isAbortError(e)) return true;
+      return !idToken;
     }
   }, []);
 
@@ -49,15 +56,23 @@ export function LoginClientPage() {
 
           if (!hasAllowlistConfig()) {
             const idToken = await user.getIdToken();
-            await syncServerSession(idToken);
+            const ok = await syncServerSession(idToken);
             if (epoch !== authListenerEpoch.current) return;
+            if (!ok) {
+              setSessionError("Signed in, but the server could not start your session. Please try again.");
+              return;
+            }
             await awaitRouterReplace(router, searchParams.get("next") || "/");
             return;
           }
           if (!isAllowedUser(user)) return;
           const idToken = await user.getIdToken();
-          await syncServerSession(idToken);
+          const ok = await syncServerSession(idToken);
           if (epoch !== authListenerEpoch.current) return;
+          if (!ok) {
+            setSessionError("Signed in, but the server could not start your session. Please try again.");
+            return;
+          }
           const next = searchParams.get("next");
           const destination =
             next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
@@ -77,5 +92,5 @@ export function LoginClientPage() {
     };
   }, [router, searchParams, syncServerSession]);
 
-  return <LoginView appName="cogi" subtitle="Short daily thinking practice." />;
+  return <LoginView appName="cogi" subtitle="Short daily thinking practice." externalError={sessionError} />;
 }

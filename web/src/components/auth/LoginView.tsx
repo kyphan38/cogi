@@ -43,9 +43,11 @@ type LoginViewProps = {
   appName: string;
   subtitle?: string;
   className?: string;
+  /** Error from the caller, e.g. the server session could not start. */
+  externalError?: string | null;
 };
 
-export function LoginView({ appName, subtitle, className }: LoginViewProps) {
+export function LoginView({ appName, subtitle, className, externalError }: LoginViewProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -116,9 +118,9 @@ export function LoginView({ appName, subtitle, className }: LoginViewProps) {
         {loading ? "Signing in…" : "Continue with Google"}
       </button>
 
-      {error ? (
+      {error || externalError ? (
         <p role="alert" className="max-w-xs text-sm text-muted-foreground">
-          {error}
+          {error ?? externalError}
         </p>
       ) : null}
     </main>
