@@ -105,7 +105,7 @@ export type SystemsConnectionType = z.infer<typeof connectionTypeSchema>;
 const SYSTEMS_NODE_LABEL_MAX = 20;
 const SYSTEMS_NODE_DESCRIPTION_MAX = 50;
 
-/** Clamp oversized model strings so Zod matches ai-plan node limits (labels ≤20, descriptions ≤50). */
+/** Clamp oversized model strings so Zod matches ai_plan node limits (labels ≤20, descriptions ≤50). */
 export function sanitizeSystemsNodesInPlace(parsed: unknown): void {
   if (
     !parsed ||

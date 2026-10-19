@@ -8,9 +8,9 @@
 > - ✅ Phase 1 - Analytical
 > - ✅ Phase 2 - Generative
 > - ✅ Phase 3 - Evaluative
-> - ⬜/🚧 Phase 4 - Systems (`docs/variants-phase4-systems.md`)
+> - ⬜/🚧 Phase 4 - Systems (`docs/VARIANTS_PHASE4_SYSTEMS.md`)
 > - 🚧 **Phase 5 - Sequential (this doc)**
-> - ⬜ Phase 6 - Combo (`docs/variants-phase6-combo.md`)
+> - ⬜ Phase 6 - Combo (`docs/VARIANTS_PHASE6_COMBO.md`)
 
 ## 1. Current state audit (grounded in code)
 

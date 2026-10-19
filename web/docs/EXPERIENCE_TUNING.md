@@ -2,7 +2,7 @@
 
 Tài liệu này mô tả **cần gạt nào thay đổi cảm giác và hành vi app** - hướng tới người chỉnh sản phẩm / nội dung, không phải checklist cấu hình kỹ thuật thuần túy. Phần cuối có **phụ lục** trỏ nhanh tới file trong repo nếu bạn cần sửa tay.
 
-**Người dùng cuối (không chỉnh code):** xem [user-guide.md](./user-guide.md) - hướng dẫn từng màn hình và từng loại bài.
+**Người dùng cuối (không chỉnh code):** xem [USER_GUIDE.md](./USER_GUIDE.md) - hướng dẫn từng màn hình và từng loại bài.
 
 ---
 
@@ -91,7 +91,7 @@ Tài liệu này mô tả **cần gạt nào thay đổi cảm giác và hành v
 |------------|---------|
 | **Tokens** | `src/app/globals.css` - `:root` Nordic, `--radius-2xl`, semantic accent CSS vars, `.font-tracker` |
 | **Shell** | `MinimalContainer`, `ExerciseStepCard` (bước Analytical setup/highlight), `GeopoliticsProgressionCard` |
-| **Layout E2E** | `npm run test:layout` - xem `docs/layout-e2e.md` (không assert màu) |
+| **Layout E2E** | `npm run test:layout` - xem `docs/LAYOUT_E2E.md` (không assert màu) |
 
 **Tinh chỉnh:** đổi hierarchy bằng copy và border zinc; tránh thêm palette mới cho metric cards trừ khi có lý do sản phẩm rõ.
 
@@ -148,7 +148,7 @@ Export JSON là **cam kết sở hữu dữ liệu**. Khi thêm bảng Dexie m�
 | Adaptive / tier / weakness | `src/lib/adaptive/`, `src/lib/db/weaknesses.ts` |
 | Theme & typography (Nordic) | `src/app/globals.css`, `MinimalContainer.tsx`, `ExerciseStepCard.tsx`, `AppTopNav.tsx` |
 | Geopolitics domains / progression | `geopolitics-domains.ts`, `geopolitics-progression.ts`, `GeopoliticsProgressionCard.tsx` |
-| Layout E2E | `docs/layout-e2e.md`, `tests/ui-ux/layout-architecture.spec.ts` |
+| Layout E2E | `docs/LAYOUT_E2E.md`, `tests/ui-ux/layout-architecture.spec.ts` |
 | History / heatmap / copy | `src/app/exercise/history/page.tsx` |
 | Home layout & copy | `src/components/dashboard/HomeContent.tsx` |
 | Dashboard metric copy | `src/components/dashboard/DashboardContent.tsx` |

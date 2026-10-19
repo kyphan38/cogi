@@ -10,8 +10,8 @@
 > - ✅ Phase 2 - Generative (`argue_debate` + `reframing` + `inversion` variants, geopolitics domain support)
 > - ✅ Phase 3 - Evaluative (`matrix` + `scoring`/`dealbreaker` + `uncertainty` variants, geopolitics domain support)
 > - 🚧 **Phase 4 - Systems (this doc)**
-> - ⬜ Phase 5 - Sequential (`docs/variants-phase5-sequential.md`)
-> - ⬜ Phase 6 - Combo (`docs/variants-phase6-combo.md`)
+> - ⬜ Phase 5 - Sequential (`docs/VARIANTS_PHASE5_SEQUENTIAL.md`)
+> - ⬜ Phase 6 - Combo (`docs/VARIANTS_PHASE6_COMBO.md`)
 
 ## 1. Current state audit (grounded in code, read before starting)
 

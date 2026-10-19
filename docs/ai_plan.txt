@@ -107,7 +107,7 @@ What it trains: Producing original arguments, reframing problems, finding altern
 
 ### IMP-01 - Scaffold Next.js
 
-* [x] Trong thư mục repo (trống hoặc chỉ có `ai-plan.txt` - di chuyển plan ra ngoài tạm thời nếu CNA từ chối folder không trống). **Đã scaffold vào `web/`** (giữ `ai-plan.txt` ở root):
+* [x] Trong thư mục repo (trống hoặc chỉ có `ai_plan.txt` - di chuyển plan ra ngoài tạm thời nếu CNA từ chối folder không trống). **Đã scaffold vào `web/`** (giữ `ai_plan.txt` ở root):
 
 ```bash
 npx create-next-app@latest web --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --use-npm --no-turbopack

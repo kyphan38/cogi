@@ -1,5 +1,5 @@
 /**
- * Evaluative calibration per ai-plan.txt §1.3b (~309):
+ * Evaluative calibration per ai_plan.txt §1.3b (~309):
  * - Matrix: binary match per option vs intendedQuadrant; accuracy = mean * 100.
  * - Scoring: mean absolute error vs AI suggestedScores per (option × criterion) cell;
  *   map to 0–100 via MAE on 0–4 scale: accuracy = round(clamp(0, 100, 100 * (1 - meanAbsError / 4))).
