@@ -60,7 +60,7 @@ Sau khi chuyển, cập nhật mọi chỗ báo lỗi `"Server is missing GEMINI
 
 ### 4.1 Systems: nhãn 20 ký tự, mô tả node 50 ký tự (**không** phải giới hạn của Gemini)
 
-Đây là **giới hạn schema** để graph/UI và validator khớp `ai_plan`:
+Đây là **giới hạn schema** để graph/UI và validator khớp `ai-plan`:
 
 - Zod: `src/lib/ai/validators/systems.ts` - `label: z.string().max(20)`, `description: z.string().max(50)`.
 - Cùng file: hằng `SYSTEMS_NODE_LABEL_MAX = 20`, `SYSTEMS_NODE_DESCRIPTION_MAX = 50` trong `sanitizeSystemsNodesInPlace` (cắt bớt trước khi validate).
@@ -115,5 +115,5 @@ Cùng route: `snippets.slice(0, 3)`. Đổi số `3` nếu muốn nhiều ngữ 
 
 ## 6. Tài liệu liên quan
 
-- [EXPERIENCE_TUNING.md](./EXPERIENCE_TUNING.md) - tinh chỉnh trải nghiệm / model từ góc sản phẩm.
+- [experience-tuning.md](./experience-tuning.md) - tinh chỉnh trải nghiệm / model từ góc sản phẩm.
 - `web/README.md` - Phase 0 gate và lệnh dev.

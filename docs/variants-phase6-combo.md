@@ -11,8 +11,8 @@
 > - ✅ Phase 1 - Analytical
 > - ✅ Phase 2 - Generative
 > - ✅ Phase 3 - Evaluative
-> - ⬜/🚧 Phase 4 - Systems (`docs/VARIANTS_PHASE4_SYSTEMS.md`)
-> - ⬜/🚧 Phase 5 - Sequential (`docs/VARIANTS_PHASE5_SEQUENTIAL.md`)
+> - ⬜/🚧 Phase 4 - Systems (`docs/variants-phase4-systems.md`)
+> - ⬜/🚧 Phase 5 - Sequential (`docs/variants-phase5-sequential.md`)
 > - 🚧 **Phase 6 - Combo (this doc, depends on Phase 4 & 5 landing first)**
 
 **Dependency note:** this phase's highest-value deliverable (§2b, the new `crisis_response` preset)
@@ -156,5 +156,5 @@ is discoverable via its own entry point in the exercise picker already (confirm 
 - [ ] `npx vitest run`, full `npx playwright test`, `tsc --noEmit` all pass.
 - [ ] This phase, combined with Phase 4 and Phase 5, closes out the full 6-phase "round out each
       thinking mode with its own exercise variants" roadmap - after this lands, re-run the audit
-      queries from all three `VARIANTS_PHASE*.md` docs' "Current state audit" tables to confirm every
+      queries from all three `variants-phase*.md` docs' "Current state audit" tables to confirm every
       row now shows full parity across modes.

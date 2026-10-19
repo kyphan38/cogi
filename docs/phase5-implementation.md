@@ -1,12 +1,12 @@
 # Phase 5 - Implementation plan (Analytics Dashboard + Weekly Insights + Delayed Recall)
 
-**Status:** Core Phase 5 implemented in `web/` (Dexie v2, dashboard metrics, weekly review API + UI, delayed recall queue + sidebar card, settings toggle). Track tweaks **here** only; do not use [`../ai_plan.txt`](../ai_plan.txt) as a live status board.
+**Status:** Core Phase 5 implemented in `web/` (Dexie v2, dashboard metrics, weekly review API + UI, delayed recall queue + sidebar card, settings toggle). Track tweaks **here** only; do not use [`../ai-plan.txt`](../ai-plan.txt) as a live status board.
 
-**Spec reference only:** [../ai_plan.txt](../ai_plan.txt) **Phase 5** (~841–917): **5.1** dashboard metrics, **5.2** weekly AI review (7 completed exercises trigger, token budget, inputs), **5.3** delayed recall sidebar widget + acceptance (~908–917).
+**Spec reference only:** [../ai-plan.txt](../ai-plan.txt) **Phase 5** (~841–917): **5.1** dashboard metrics, **5.2** weekly AI review (7 completed exercises trigger, token budget, inputs), **5.3** delayed recall sidebar widget + acceptance (~908–917).
 
 **Prereqs:** Phases 1–4 complete; [`Exercise`](src/lib/types/exercise.ts) union covers all thinking types; [`completeExerciseFlow`](src/lib/db/complete-exercise.ts) persists exercise + journal + confidence + action; existing tables: [`schema.ts`](src/lib/db/schema.ts) `exercises`, `journalEntries`, `confidenceRecords`, `actions`, `decisions`, `settings`.
 
-**AI model note:** ai_plan references **Claude Sonnet 4** for weekly review (~864). Repo uses **Gemini** ([`gemini.ts`](src/lib/ai/gemini.ts)) - Phase 5 ships on Gemini unless Anthropic is added later; document token limits against **Gemini** context instead of Sonnet pricing.
+**AI model note:** ai-plan references **Claude Sonnet 4** for weekly review (~864). Repo uses **Gemini** ([`gemini.ts`](src/lib/ai/gemini.ts)) - Phase 5 ships on Gemini unless Anthropic is added later; document token limits against **Gemini** context instead of Sonnet pricing.
 
 ---
 

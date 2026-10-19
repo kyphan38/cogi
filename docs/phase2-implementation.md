@@ -1,10 +1,10 @@
 # Phase 2 - Implementation plan (Sequential + History)
 
-**Status:** Core Phase 2 implemented in `web/` (sequential flow, APIs, history, calibration UI). Track checklist **here** only; do not use [`../ai_plan.txt`](../ai_plan.txt) as a live status board.
+**Status:** Core Phase 2 implemented in `web/` (sequential flow, APIs, history, calibration UI). Track checklist **here** only; do not use [`../ai-plan.txt`](../ai-plan.txt) as a live status board.
 
-**Spec reference only:** [../ai_plan.txt](../ai_plan.txt) sections **2.1–2.5** and **Phase 2 Acceptance Criteria** (Sequential drag-and-drop, perspective, prompt JSON, history, calibration aggregates).
+**Spec reference only:** [../ai-plan.txt](../ai-plan.txt) sections **2.1–2.5** and **Phase 2 Acceptance Criteria** (Sequential drag-and-drop, perspective, prompt JSON, history, calibration aggregates).
 
-**Prereqs:** Phase 1 complete ([`PHASE1_IMPLEMENTATION.md`](PHASE1_IMPLEMENTATION.md)); `web/` builds; IndexedDB **version 1** schema unchanged (union `Exercise` is backward-compatible with existing analytical rows).
+**Prereqs:** Phase 1 complete ([`phase1-implementation.md`](phase1-implementation.md)); `web/` builds; IndexedDB **version 1** schema unchanged (union `Exercise` is backward-compatible with existing analytical rows).
 
 **Stack additions:** `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` (install when starting **P2-MECHANIC**).
 
@@ -121,7 +121,7 @@ flowchart TB
 
 ## P2-QA - Acceptance vs spec
 
-Checklist (track **here**, not `ai_plan.txt`):
+Checklist (track **here**, not `ai-plan.txt`):
 
 - [x] Sequential: generate → order (DnD) → confidence → perspective → journal (2/3 prompts) → action → persist.
 - [x] `actualAccuracy` for sequential matches **1.3b** sequential row; stored on `ConfidenceRecord`.

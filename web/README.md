@@ -1,13 +1,13 @@
 # cogi app (Phase 0)
 
-Next.js app lives in `web/` (repo root keeps `ai_plan.txt`).
+Next.js app lives in `web/` (repo root keeps `ai-plan.txt`).
 
 ## Docs (trong `web/docs/`)
 
-- **[USER_GUIDE.md](docs/USER_GUIDE.md)** - hướng dẫn dùng app chi tiết cho người mới (từng bài tập, tương tác, Dashboard, History, Settings).
-- **[EXPERIENCE_TUNING.md](docs/EXPERIENCE_TUNING.md)** - góc nhìn sản phẩm khi muốn tinh chỉnh trải nghiệm / AI sau này.
-- **[MIGRATE_GEMINI_TO_CLAUDE.md](docs/MIGRATE_GEMINI_TO_CLAUDE.md)** - hướng dẫn chuyển provider AI sang Claude và chỗ chỉnh giới hạn độ dài.
-- **[FIRESTORE_READINESS.md](docs/FIRESTORE_READINESS.md)** - inventory query/index, rules checklist, và runbook xử lý lỗi thiếu index.
+- **[user-guide.md](docs/user-guide.md)** - hướng dẫn dùng app chi tiết cho người mới (từng bài tập, tương tác, Dashboard, History, Settings).
+- **[experience-tuning.md](docs/experience-tuning.md)** - góc nhìn sản phẩm khi muốn tinh chỉnh trải nghiệm / AI sau này.
+- **[migrate-gemini-to-claude.md](docs/migrate-gemini-to-claude.md)** - hướng dẫn chuyển provider AI sang Claude và chỗ chỉnh giới hạn độ dài.
+- **[firestore-readiness.md](docs/firestore-readiness.md)** - inventory query/index, rules checklist, và runbook xử lý lỗi thiếu index.
 
 ## Commands
 
@@ -77,4 +77,4 @@ firebase deploy --only firestore
 Use plain `--only firestore`, not `--only firestore:rules` (firebase-tools #10447
 can silently skip the rules deploy).
 
-If you see `failed-precondition` with index hint URL in browser console, follow the troubleshooting flow in `docs/FIRESTORE_READINESS.md`.
+If you see `failed-precondition` with index hint URL in browser console, follow the troubleshooting flow in `docs/firestore-readiness.md`.

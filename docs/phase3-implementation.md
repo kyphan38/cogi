@@ -1,10 +1,10 @@
 # Phase 3 - Implementation plan (Systems / Node–Connection)
 
-**Status:** Core Phase 3 implemented in `web/` (React Flow canvas, shock phase, validation + retry, calibration, history). Track checklist **here** only; do not use [`../ai_plan.txt`](../ai_plan.txt) as a live status board.
+**Status:** Core Phase 3 implemented in `web/` (React Flow canvas, shock phase, validation + retry, calibration, history). Track checklist **here** only; do not use [`../ai-plan.txt`](../ai-plan.txt) as a live status board.
 
-**Spec reference only:** [../ai_plan.txt](../ai_plan.txt) sections **3.1–3.4** + **Acceptance Criteria** (~547–669) and **1.3b** Systems calibration row (~308).
+**Spec reference only:** [../ai-plan.txt](../ai-plan.txt) sections **3.1–3.4** + **Acceptance Criteria** (~547–669) and **1.3b** Systems calibration row (~308).
 
-**Prereqs:** Phase 1–2 complete ([`PHASE1_IMPLEMENTATION.md`](PHASE1_IMPLEMENTATION.md), [`PHASE2_IMPLEMENTATION.md`](PHASE2_IMPLEMENTATION.md)); union `Exercise` pattern established.
+**Prereqs:** Phase 1–2 complete ([`phase1-implementation.md`](phase1-implementation.md), [`phase2-implementation.md`](phase2-implementation.md)); union `Exercise` pattern established.
 
 **Stack additions:** `@xyflow/react` + default stylesheet import on the client canvas.
 

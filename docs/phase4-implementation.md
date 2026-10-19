@@ -1,12 +1,12 @@
 # Phase 4 - Implementation plan (Evaluative + Generative)
 
-**Status:** Core Phase 4 implemented in `web/` (evaluative matrix/scoring, generative scaffold + debate + rubric, APIs, calibration, history). Track checklist **here** only; do not use [`../ai_plan.txt`](../ai_plan.txt) as a live status board.
+**Status:** Core Phase 4 implemented in `web/` (evaluative matrix/scoring, generative scaffold + debate + rubric, APIs, calibration, history). Track checklist **here** only; do not use [`../ai-plan.txt`](../ai-plan.txt) as a live status board.
 
-**Spec reference only:** [../ai_plan.txt](../ai_plan.txt) **Phase 4** (~671–839), **Acceptance Criteria** (~831–839), **1.3b** Evaluative / Generative rows (~309–310).
+**Spec reference only:** [../ai-plan.txt](../ai-plan.txt) **Phase 4** (~671–839), **Acceptance Criteria** (~831–839), **1.3b** Evaluative / Generative rows (~309–310).
 
-**Prereqs:** Phases 1–3 ([`PHASE1_IMPLEMENTATION.md`](PHASE1_IMPLEMENTATION.md) … [`PHASE3_IMPLEMENTATION.md`](PHASE3_IMPLEMENTATION.md)); union `Exercise`; `completeExerciseFlow`.
+**Prereqs:** Phases 1–3 ([`phase1-implementation.md`](phase1-implementation.md) … [`phase3-implementation.md`](phase3-implementation.md)); union `Exercise`; `completeExerciseFlow`.
 
-**Stack:** `@dnd-kit/core` (already in `package.json`) for matrix drag; Gemini for generate / perspective / debate / rubric (ai_plan mentions Sonnet for some flows - we use Gemini; documented here).
+**Stack:** `@dnd-kit/core` (already in `package.json`) for matrix drag; Gemini for generate / perspective / debate / rubric (ai-plan mentions Sonnet for some flows - we use Gemini; documented here).
 
 **Scaffold tracking (4.3):** `generativeStage` for a new exercise is derived from **count of completed** `type === "generative"` rows in IndexedDB (`listCompletedExercises({ type: "generative" })`), not a separate counter (avoids drift).
 

@@ -1,8 +1,8 @@
 # Phase 1 - Implementation plan (Analytical MVP)
 
-**Status:** Core MVP implemented in `web/` (exercise flow, Dexie, APIs, home/settings/decisions). Use this file for future tweaks; do not use `ai_plan.txt` as a live checklist.
+**Status:** Core MVP implemented in `web/` (exercise flow, Dexie, APIs, home/settings/decisions). Use this file for future tweaks; do not use `ai-plan.txt` as a live checklist.
 
-**Spec reference only:** [../ai_plan.txt](../ai_plan.txt) sections **1.1–1.9** and **Phase 1 Acceptance Criteria** (do not use `ai_plan.txt` as a status checklist).
+**Spec reference only:** [../ai-plan.txt](../ai-plan.txt) sections **1.1–1.9** and **Phase 1 Acceptance Criteria** (do not use `ai-plan.txt` as a status checklist).
 
 **Prereqs:** Phase 0 complete (`web/` builds; `POST /api/ai` + Zod stable; optional `npm run gate:phase0` with dev server).
 
@@ -35,7 +35,7 @@ flowchart TB
 
 ## P1-DB - Dexie schema and tables
 
-**Goal:** Persist exercises, journal entries, confidence records, action bridge, decision log per [ai_plan.txt](../ai_plan.txt) interfaces **1.8** (Exercise, UserHighlight, EmbeddedIssue shape from API, JournalEntry with `promptIds`, `aiReferenceLine`, `responses`, ActionBridge, RealDecisionLogEntry, ConfidenceRecord).
+**Goal:** Persist exercises, journal entries, confidence records, action bridge, decision log per [ai-plan.txt](../ai-plan.txt) interfaces **1.8** (Exercise, UserHighlight, EmbeddedIssue shape from API, JournalEntry with `promptIds`, `aiReferenceLine`, `responses`, ActionBridge, RealDecisionLogEntry, ConfidenceRecord).
 
 **Tasks:**
 
@@ -172,7 +172,7 @@ flowchart TB
 
 ## P1-QA - Acceptance vs spec
 
-Checklist (track **here** or in PR description, not in `ai_plan.txt`):
+Checklist (track **here** or in PR description, not in `ai-plan.txt`):
 
 - [x] Generate → highlight/tag → confidence → submit → perspective → journal (2/3 prompts) → action → persist.
 - [x] `actualAccuracy` + `ConfidenceRecord` on completion.
