@@ -281,7 +281,7 @@ export default function SettingsPage() {
 
 /** A secondary action as a plain word (DESIGN.md "Words as buttons"). */
 const WORD =
-  "text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline";
+  "text-sm text-muted-foreground hover:text-foreground active:text-foreground";
 
 /** One settings group: a small heading and space, no card. */
 function Section({ title, children }: { title: string; children: ReactNode }) {

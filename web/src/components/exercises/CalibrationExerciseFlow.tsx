@@ -329,7 +329,7 @@ export function CalibrationExerciseFlow({
     ) : (
       <button
         type="button"
-        className="text-muted-foreground text-xs underline underline-offset-4"
+        className="text-muted-foreground text-xs hover:text-foreground active:text-foreground"
         onClick={() => setOpenTips((t) => ({ ...t, [key]: true }))}
       >
         {label}

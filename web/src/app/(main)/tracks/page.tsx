@@ -40,13 +40,13 @@ export default function TracksPage() {
         <div className="flex flex-col gap-1">
           <Link
             href="/simulators"
-            className="text-sm underline underline-offset-4"
+            className="text-sm after:ml-1 after:content-['›']"
           >
             Simulators: play with loans, savings and import prices
           </Link>
           <Link
             href="/geo"
-            className="text-sm underline underline-offset-4"
+            className="text-sm after:ml-1 after:content-['›']"
             data-testid="tracks-geo-lab-link"
           >
             Geo Lab: maps, sea routes and a daily map quiz
@@ -68,7 +68,7 @@ export default function TracksPage() {
               {track.area === "geopolitics" ? (
                 <Link
                   href="/geo"
-                  className="text-xs underline underline-offset-4"
+                  className="text-xs after:ml-1 after:content-['›']"
                   data-testid="track-geo-lab-link"
                 >
                   See it on the map in the Geo Lab
@@ -77,7 +77,7 @@ export default function TracksPage() {
               {track.simulator ? (
                 <Link
                   href={`/simulators#${track.simulator}`}
-                  className="text-xs underline underline-offset-4"
+                  className="text-xs after:ml-1 after:content-['›']"
                   data-testid="track-simulator-link"
                 >
                   Try the simulator for this track
@@ -123,7 +123,7 @@ export default function TracksPage() {
                       <Link
                         href={trackStepHref(step)}
                         className={cn(
-                          "shrink-0 text-xs underline underline-offset-4",
+                          "shrink-0 text-xs after:ml-1 after:content-['›']",
                           !isNext &&
                             "opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-60",
                         )}

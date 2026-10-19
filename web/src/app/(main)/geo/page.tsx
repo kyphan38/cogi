@@ -125,7 +125,7 @@ export default function GeoLabPage() {
         {view.kind !== "home" ? (
           <button
             type="button"
-            className="text-sm underline underline-offset-4"
+            className="text-sm text-muted-foreground hover:text-foreground active:text-foreground"
             onClick={() => setView({ kind: "home" })}
             data-testid="geo-back"
           >
@@ -228,7 +228,7 @@ export default function GeoLabPage() {
                   <li key={c.id}>
                     <Link
                       href={`/exercise/strategy?domain=${c.id}`}
-                      className="underline underline-offset-4"
+                      className="font-medium"
                       data-testid={`geo-game-link-${c.id}`}
                     >
                       {c.title}

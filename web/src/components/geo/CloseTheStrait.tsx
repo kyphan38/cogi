@@ -42,7 +42,7 @@ function SourceLinks({ sources }: { sources: GeoSource[] }) {
       {unique.map((s, i) => (
         <span key={s.url}>
           {i > 0 ? "; " : null}
-          <a href={s.url} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+          <a href={s.url} target="_blank" rel="noreferrer" className="font-medium text-foreground">
             {s.label}
           </a>
         </span>
@@ -361,7 +361,7 @@ export function CloseTheStrait({
                     <td className="py-1 pr-2 font-medium">{f.label}</td>
                     <td className="py-1 pr-2">{f.value}</td>
                     <td className="py-1">
-                      <a href={f.source.url} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+                      <a href={f.source.url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground active:text-foreground">
                         Source
                       </a>
                     </td>

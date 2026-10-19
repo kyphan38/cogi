@@ -11,7 +11,7 @@ function Sources({ sources }: { sources: GeoSource[] }) {
       {sources.map((s, i) => (
         <span key={s.url}>
           {i > 0 ? "; " : null}
-          <a href={s.url} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+          <a href={s.url} target="_blank" rel="noreferrer" className="font-medium text-foreground">
             {s.label}
           </a>
         </span>
@@ -58,7 +58,7 @@ export function GeoCasePanel({ gameCase }: { gameCase: GeoGameCase }) {
         {gameCase.modelNote ? (
           <p className="text-muted-foreground leading-relaxed">
             {gameCase.modelNote.text}{" "}
-            <a href={gameCase.modelNote.source.url} target="_blank" rel="noreferrer" className="text-xs underline underline-offset-2">
+            <a href={gameCase.modelNote.source.url} target="_blank" rel="noreferrer" className="text-xs font-medium text-foreground">
               Source
             </a>
           </p>

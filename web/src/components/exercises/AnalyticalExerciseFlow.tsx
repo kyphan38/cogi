@@ -827,7 +827,7 @@ export function AnalyticalExerciseFlow({
             ) : null}
             <p className="text-muted-foreground text-xs">
               Personal context for AI is read from{" "}
-              <Link href="/settings" className="underline">
+              <Link href="/settings" className="font-medium text-foreground">
                 Settings
               </Link>
               .

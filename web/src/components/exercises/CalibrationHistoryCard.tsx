@@ -119,7 +119,7 @@ export function CalibrationHistoryCard({ rows }: { rows: Exercise[] }) {
         </div>
         {h.buckets.length > 0 ? (
           <details className="text-sm">
-            <summary className="cursor-pointer underline underline-offset-4">Show the numbers</summary>
+            <summary className="cursor-pointer">Show the numbers</summary>
             <table className="mt-2 w-full max-w-sm text-left tabular-nums">
               <thead className="text-muted-foreground text-xs">
                 <tr>

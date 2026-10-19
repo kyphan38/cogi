@@ -298,7 +298,7 @@ export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
           ) : ideas ? (
             <div className={cn("space-y-2", loading && "opacity-60")}>
               <TopicList ideas={ideas} showMode={!fixedMode} savedKeys={savedKeys} onToggleSave={toggleSaved} />
-              <button type="button" className="text-muted-foreground text-xs underline underline-offset-4" onClick={clearAll} data-testid="topic-clear">
+              <button type="button" className="text-muted-foreground text-xs hover:text-foreground active:text-foreground" onClick={clearAll} data-testid="topic-clear">
                 Clear list and filters
               </button>
             </div>
@@ -373,7 +373,7 @@ export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
       {error ? (
         <p className="text-sm font-medium text-zinc-900" role="alert" data-testid="topic-error">
           {error}{" "}
-          <button type="button" className="underline" onClick={() => void (input === "domain" ? generate() : suggestModes())}>
+          <button type="button" className="font-semibold" onClick={() => void (input === "domain" ? generate() : suggestModes())}>
             Try again
           </button>
         </p>

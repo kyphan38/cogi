@@ -61,7 +61,7 @@ export default function TermsPage() {
                     {t.seenIn.slice(0, 3).map((s, i) => (
                       <span key={s.id}>
                         {i > 0 ? ", " : ""}
-                        <Link className="underline underline-offset-2" href={`/exercise/history?openExercise=${encodeURIComponent(s.id)}`}>
+                        <Link className="font-medium text-foreground" href={`/exercise/history?openExercise=${encodeURIComponent(s.id)}`}>
                           {s.title}
                         </Link>
                       </span>

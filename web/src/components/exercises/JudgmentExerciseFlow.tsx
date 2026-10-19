@@ -364,7 +364,7 @@ export function JudgmentExerciseFlow({
       </div>
       <button
         type="button"
-        className="text-muted-foreground text-xs underline underline-offset-4"
+        className="text-muted-foreground text-xs hover:text-foreground active:text-foreground"
         onClick={() => setShowTerms((v) => !v)}
       >
         {showTerms ? "Hide the ideas" : "Show the ideas from Learn first"}

@@ -25,7 +25,7 @@ function scrambled<T>(items: T[]): T[] {
 
 function SourceLink({ url, label }: { url: string; label: string }) {
   return (
-    <a href={url} target="_blank" rel="noreferrer" title={label} aria-label={`Source: ${label}`} className="text-muted-foreground text-xs underline underline-offset-2">
+    <a href={url} target="_blank" rel="noreferrer" title={label} aria-label={`Source: ${label}`} className="text-muted-foreground text-xs hover:text-foreground active:text-foreground">
       Source
     </a>
   );

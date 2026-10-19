@@ -21,7 +21,7 @@ function EntryCard({ entry }: { entry: HandbookEntry }) {
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <CardTitle className="text-base">{entry.title}</CardTitle>
-          <Link href={entry.href} className="text-xs underline underline-offset-4">
+          <Link href={entry.href} className="text-xs after:ml-1 after:content-['›']">
             Open
           </Link>
         </div>
@@ -71,7 +71,7 @@ export default function HandbookPage() {
 
       <nav aria-label="Handbook contents" className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm" data-testid="handbook-contents">
         {HANDBOOK_ENTRIES.map((e) => (
-          <a key={e.id} href={`#${e.id}`} className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+          <a key={e.id} href={`#${e.id}`} className="text-muted-foreground hover:text-foreground active:text-foreground">
             {e.title}
           </a>
         ))}

@@ -21,7 +21,7 @@ function Line({ line }: { line: CardLine }) {
         rel="noreferrer"
         title={line.source.label}
         aria-label={`Source: ${line.source.label}`}
-        className="text-muted-foreground text-xs underline underline-offset-2"
+        className="text-muted-foreground text-xs hover:text-foreground active:text-foreground"
       >
         Source
       </a>

@@ -29,8 +29,8 @@ export function HomeSection({
 
 /** A secondary action as a plain word. */
 export const WORD_LINK =
-  "text-muted-foreground text-xs underline-offset-4 hover:text-foreground hover:underline";
+  "text-muted-foreground text-xs hover:text-foreground active:text-foreground";
 
 /** A forward action inside a group ("Start", "Open"): ink word with a chevron. */
 export const GO_LINK =
-  "inline-flex shrink-0 items-center gap-0.5 text-sm font-medium text-foreground underline-offset-4 hover:underline";
+  "inline-flex shrink-0 items-center gap-0.5 text-sm font-medium text-foreground";
