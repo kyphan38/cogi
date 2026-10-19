@@ -287,7 +287,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     howToPractice: [
       "Learn first: best reply, Nash equilibrium, dominant strategy.",
       "For each choice of the other side, find the best reply. Then look for the outcome where nobody wants to change.",
-      "In the results, the underline method shows it: each side's best reply is underlined; where both are underlined is the equilibrium.",
+      "In the results, each side's best reply is in bold; where both are bold is the equilibrium.",
       "Geopolitics: at setup, pick a real case (for example the Cuban Missile Crisis). You play a made-up story with the same game. At the end, \"What really happened\" shows the real case, with sources.",
       "Under the real case, open \"Use the cards\" to see the players today.",
       "When you rank outcomes, the score counts pairs: \"5 of 6 pairs\" in the same order as the model is 83%.",

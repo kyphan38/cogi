@@ -115,8 +115,8 @@ export function AnalyticalAnswerKey({
                 <span
                   className={cn(
                     p.user && "bg-foreground/10 rounded-sm",
-                    p.issue && "decoration-foreground underline decoration-2 underline-offset-4",
-                    !p.issue && p.decoy && "decoration-muted-foreground underline decoration-dashed underline-offset-4",
+                    p.issue && "font-semibold",
+                    !p.issue && p.decoy && "italic",
                   )}
                 >
                   {p.text}

@@ -14,8 +14,8 @@ export function outcomeNumbers(game: Game): Map<string, number> {
 
 /**
  * The payoff matrix: A's choices are rows, B's choices are columns. It can show the
- * numbers, let the user pick cells, and (with `facts`) show the textbook underline
- * method: each player's best reply is underlined, and a cell with both underlined is
+ * numbers, let the user pick cells, and (with `facts`) show each
+ * player's best reply in bold, and a cell with both in bold is
  * an equilibrium.
  */
 export function PayoffMatrix({
@@ -70,9 +70,9 @@ export function PayoffMatrix({
                     <span className="text-muted-foreground text-[11px]">Outcome {numbers.get(key)}</span>
                     {showPayoffs ? (
                       <span className="tabular-nums">
-                        <span className={cn(bestForA && "font-semibold underline decoration-2 underline-offset-2")}>{cell.payoffA}</span>
+                        <span className={cn(bestForA && "font-bold")}>{cell.payoffA}</span>
                         <span className="text-muted-foreground">, </span>
-                        <span className={cn(bestForB && "font-semibold underline decoration-2 underline-offset-2")}>{cell.payoffB}</span>
+                        <span className={cn(bestForB && "font-bold")}>{cell.payoffB}</span>
                       </span>
                     ) : null}
                     {isNash ? <span className="text-[11px] font-medium">Equilibrium</span> : null}

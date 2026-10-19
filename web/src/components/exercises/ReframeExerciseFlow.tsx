@@ -563,8 +563,8 @@ export function ReframeExerciseFlow({
                   aria-pressed={selectedThought === t.id}
                   onClick={() => setSelectedThought(t.id)}
                   className={cn(
-                    "rounded px-0.5 text-left underline decoration-dotted underline-offset-4",
-                    selectedThought === t.id ? "bg-zinc-200" : marked ? "bg-zinc-100 decoration-solid" : "hover:bg-zinc-50",
+                    "rounded px-0.5 text-left",
+                    selectedThought === t.id ? "bg-zinc-200" : marked ? "bg-zinc-100" : "bg-foreground/5 hover:bg-foreground/10",
                   )}
                 >
                   {t.text}

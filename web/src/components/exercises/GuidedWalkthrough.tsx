@@ -169,7 +169,7 @@ export function GuidedWalkthrough({
     return a != null && a.tag !== "valid_point" && a.tag !== "unclear";
   }).length;
 
-  // Passage with the suggested sentences underlined and the current one shaded.
+  // Passage with the suggested sentences lightly shaded and the current one darker.
   const pieces: { text: string; candidate: number | null }[] = [];
   let at = 0;
   candidates.forEach((c, i) => {
@@ -184,7 +184,7 @@ export function GuidedWalkthrough({
       <p className="text-sm text-zinc-900">
         This passage has <span className="font-medium">{ex.embeddedIssues.length} issues</span> and{" "}
         <span className="font-medium">{ex.validPoints.length} traps</span> (sound statements that only
-        look suspicious). Check the {candidates.length} underlined sentences one by one.
+        look suspicious). Check the {candidates.length} shaded sentences one by one.
       </p>
       <CheckQuestions mode="shown" />
       <div
@@ -211,9 +211,9 @@ export function GuidedWalkthrough({
                 }
               }}
               className={cn(
-                "cursor-pointer rounded-sm underline decoration-dotted decoration-zinc-400 underline-offset-4 focus-visible:outline-2 focus-visible:outline-zinc-900",
-                p.candidate === index && "bg-zinc-900/10 decoration-zinc-900 decoration-solid",
-                a && p.candidate !== index && "decoration-zinc-900 decoration-solid",
+                "cursor-pointer rounded-sm bg-foreground/5 focus-visible:outline-2 focus-visible:outline-zinc-900",
+                p.candidate === index && "bg-foreground/15",
+                a && p.candidate !== index && "bg-foreground/10",
               )}
             >
               {p.text}

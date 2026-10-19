@@ -19,7 +19,7 @@ test.describe("Strategic situations", () => {
     await stubFirestoreReads(page);
   });
 
-  test("guided: four best replies with numbers, then predict and see the underline method", async ({ page }) => {
+  test("guided: four best replies with numbers, then predict and see best replies in bold", async ({ page }) => {
     await start(page, "Guided");
     await expect(page.getByTestId("payoff-matrix")).toContainText("10");
     for (let i = 0; i < 4; i++) {

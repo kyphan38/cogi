@@ -556,7 +556,7 @@ export function HighlightTag({
                 className={cn(
                   "cursor-pointer rounded-sm transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900",
                   p.highlight
-                    ? "bg-zinc-900/10 underline decoration-zinc-900 decoration-2 underline-offset-4"
+                    ? "bg-zinc-900/10"
                     : "hover:bg-zinc-900/5",
                   open && "bg-zinc-900/15",
                 )}
@@ -572,7 +572,7 @@ export function HighlightTag({
               <mark
                 key={p.start}
                 data-highlight-id={p.highlight.id}
-                className="cursor-pointer rounded-sm bg-zinc-900/10 text-inherit underline decoration-zinc-900 decoration-2 underline-offset-4"
+                className="cursor-pointer rounded-sm bg-zinc-900/10 text-inherit"
               >
                 {text}
               </mark>

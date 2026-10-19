@@ -16,7 +16,7 @@ import { GeoCasePanel } from "@/components/geo/GeoCasePanel";
 import { geoGameCaseById } from "@/lib/geo/game-cases";
 
 /**
- * Strategic-situation results: the full matrix with the underline method, then each
+ * Strategic-situation results: the full matrix with best replies in bold, then each
  * step the user took (best replies or rankings, the prediction, the extra questions)
  * with the AI's coaching. The game facts come from code.
  */
@@ -61,7 +61,7 @@ export function StrategyAnswerKey({
         <div className="space-y-2">
           <PayoffMatrix game={exercise} showPayoffs facts={f} testId="answer-matrix" />
           <p className="text-muted-foreground text-xs">
-            Underlined = best reply. Both underlined = equilibrium.
+            Bold = best reply. Both bold = equilibrium.
           </p>
           <OutcomeStories game={exercise} />
         </div>
