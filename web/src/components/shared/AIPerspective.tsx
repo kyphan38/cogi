@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
+import { useFreshFeedback } from "@/components/shared/ExerciseShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import type {
   AIPerspectiveStructured,
   EvaluativeScoringCriterionBreakdown,
@@ -84,6 +86,8 @@ export function AIPerspective({
   }, [evaluativeScoringBreakdown]);
 
   const clarityKind: ClarityPerspectiveKind = perspectiveKind;
+  // Feedback that just arrived rises in point by point (see `.rise-list`).
+  const list = cn("list-none space-y-0 pl-0", useFreshFeedback() && "rise-list");
 
   const viewModel =
     structured && clarityKind ? getPerspectiveViewModel(structured, clarityKind) : null;
@@ -108,7 +112,7 @@ export function AIPerspective({
       <CardContent className="max-h-[min(70vh,720px)] overflow-y-auto pr-1">
         {viewModel?.format === "clarity_v2" ? (
           <div className="text-muted-foreground space-y-6 text-sm leading-relaxed">
-            <ul className="list-none space-y-0 pl-0">
+            <ul className={list}>
               {viewModel.blocks.map((b) => {
                 const breakdown = breakdownById.get(b.id);
                 return (
@@ -138,7 +142,7 @@ export function AIPerspective({
             {viewModel.openQuestions.length > 0 ? (
               <div>
                 <h3 className="text-foreground mb-3 font-semibold">Open questions</h3>
-                <ul className="list-none space-y-0 pl-0">
+                <ul className={list}>
                   {viewModel.openQuestions.map((q, i) => {
                     return (
                       <PerspectivePoint key={`open_${i + 1}`}>
@@ -155,7 +159,7 @@ export function AIPerspective({
             {legacySections.map((sec) => (
               <div key={sec.key}>
                 <h3 className="text-foreground mb-3 font-semibold">{sec.title}</h3>
-                <ul className="list-none space-y-0 pl-0">
+                <ul className={list}>
                   {sec.points.map((p) => (
                     <PerspectivePoint key={p.id}>
                       <div className="whitespace-pre-wrap">

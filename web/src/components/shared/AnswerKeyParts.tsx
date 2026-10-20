@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Check, Minus, X } from "lucide-react";
+import { useFreshFeedback } from "@/components/shared/ExerciseShell";
 import { cn } from "@/lib/utils";
 import type { AnalyticalCoachingItem, AnalyticalCoachingStructured, CoachingStructured } from "@/lib/types/perspective";
 
@@ -76,13 +77,15 @@ export function Row({
 }
 
 export function Section({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+  // Feedback that just arrived rises in row by row (see `.rise-list`).
+  const fresh = useFreshFeedback();
   return (
     <section className="space-y-3">
       <div>
         <h3 className="text-foreground font-semibold">{title}</h3>
         {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
       </div>
-      <ul className="list-none pl-0">{children}</ul>
+      <ul className={cn("list-none pl-0", fresh && "rise-list")}>{children}</ul>
     </section>
   );
 }
@@ -104,17 +107,20 @@ export function CoachingFooter({
   coaching: AnalyticalCoachingStructured | CoachingStructured | null;
   metaTitle?: string;
 }) {
+  const fresh = useFreshFeedback();
   if (!coaching) return null;
+  // After the rows: a short delay so the footer arrives last.
+  const late = fresh ? "fade-in [animation-delay:240ms]" : undefined;
   return (
     <>
       {coaching.metaNote ? (
-        <section className="space-y-1">
+        <section className={cn("space-y-1", late)}>
           <h3 className="text-foreground font-semibold">{metaTitle}</h3>
           <p>{coaching.metaNote}</p>
         </section>
       ) : null}
       {coaching.takeaways.length > 0 ? (
-        <section className="space-y-2" data-testid="answer-key-takeaways">
+        <section className={cn("space-y-2", late)} data-testid="answer-key-takeaways">
           <h3 className="text-foreground font-semibold">Take with you</h3>
           <ul className="list-disc space-y-1 pl-5">
             {coaching.takeaways.map((t, i) => (

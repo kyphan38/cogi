@@ -97,4 +97,16 @@ under `prefers-reduced-motion`.
   plays the exit first, buttons inside close at once.
 - Try the app without Google sign-in: the Playwright helper
   `bypassFirebaseAuth` in `tests/helpers/auth-setup.ts`.
+- Practice flow: `ExerciseShell` fades its content in over 240ms when the step
+  moves by exactly one (setup, work, feedback), using `el.animate` on the
+  element already there: a new `key` would rebuild the flow and lose typing.
+  A jump (a saved exercise opening on its step) and the first render show at
+  once. The step words change color over 150ms.
+- AI feedback that just arrived rises in row by row (`.rise-list`, 40ms apart,
+  from the sixth row on one delay); the note and takeaways fade in last.
+  `ExerciseShell` tells `Section` (answer keys) and `AIPerspective` through
+  `useFreshFeedback()`: true only when the feedback step was reached from the
+  step before it. Feedback opened from History or a saved exercise is still.
+- "Go deeper": one arrow that turns (not two icons), the body rises in, and
+  `Thinking...` breathes.
 

@@ -1,4 +1,15 @@
-import { Fragment, type ReactNode } from "react";
+"use client";
+
+import {
+  createContext,
+  Fragment,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { reducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 /**
@@ -103,12 +114,53 @@ export interface ExerciseShellProps {
   partLabel?: string;
 }
 
+/**
+ * True when the AI feedback phase was just reached by finishing the work, in this
+ * visit. Answer keys read it to rise in part by part. A saved exercise that opens
+ * on its feedback is not fresh: it shows at once.
+ */
+const FreshFeedbackContext = createContext(false);
+
+export function useFreshFeedback(): boolean {
+  return useContext(FreshFeedbackContext);
+}
+
 export function ExerciseShell({
   stepIndex,
   children,
   stepLabels,
   partLabel,
 }: ExerciseShellProps) {
+  const body = useRef<HTMLDivElement>(null);
+  const lastStep = useRef(stepIndex);
+
+  // One step forward or back fades the content in. A jump (a saved exercise
+  // opening on its step) and the first render show at once. It animates the
+  // element that is already there: a new `key` would rebuild the whole flow and
+  // lose what was typed.
+  useEffect(() => {
+    const moved = Math.abs(stepIndex - lastStep.current) === 1;
+    lastStep.current = stepIndex;
+    const el = body.current;
+    if (!moved || !el || reducedMotion() || typeof el.animate !== "function") return;
+    el.animate(
+      [
+        { opacity: 0, transform: "translateY(6px)" },
+        { opacity: 1, transform: "none" },
+      ],
+      { duration: 240, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+    );
+  }, [stepIndex]);
+
+  // Fresh feedback: the last step, reached from the one before it. Derived during
+  // render, so the first feedback render already knows.
+  const [prevStep, setPrevStep] = useState(stepIndex);
+  const [fresh, setFresh] = useState(false);
+  if (stepIndex !== prevStep) {
+    setPrevStep(stepIndex);
+    setFresh(stepIndex === stepLabels.length - 1 && prevStep === stepIndex - 1);
+  }
+
   return (
     <div className="mx-auto flex min-h-full w-full min-w-0 max-w-3xl flex-col gap-8 px-4 pt-8 pb-24 sm:px-6">
       {/* Steps as words (DESIGN.md "Words as navigation"): done steps muted,
@@ -127,6 +179,7 @@ export function ExerciseShell({
             <span
               aria-current={i === stepIndex ? "step" : undefined}
               className={cn(
+                "transition-colors duration-150",
                 i === stepIndex
                   ? "font-medium text-zinc-900"
                   : i < stepIndex
@@ -140,7 +193,11 @@ export function ExerciseShell({
         ))}
       </nav>
       {partLabel ? <p className="-mt-6 text-xs text-muted-foreground">{partLabel}</p> : null}
-      <div className="flex-1">{children}</div>
+      <FreshFeedbackContext.Provider value={fresh}>
+        <div ref={body} className="flex-1">
+          {children}
+        </div>
+      </FreshFeedbackContext.Provider>
     </div>
   );
 }

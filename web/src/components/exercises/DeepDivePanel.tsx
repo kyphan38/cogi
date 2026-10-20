@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { AnalyticalDeepDive } from "@/lib/types/perspective";
 import { stripVietnameseGlosses as clean } from "@/lib/ai/validators/deep-dive";
+import { cn } from "@/lib/utils";
 
 const LABELS = {
   issue: {
@@ -57,7 +58,6 @@ export function DeepDivePanel({
   };
 
   const labels = LABELS[kind];
-  const Icon = open ? ChevronUp : ChevronDown;
 
   return (
     <div className="space-y-2" data-testid="deep-dive">
@@ -65,13 +65,20 @@ export function DeepDivePanel({
         type="button"
         variant="ghost"
         size="sm"
-        className="text-muted-foreground -ml-2.5"
+        className={cn("text-muted-foreground -ml-2.5", loading && "breathe")}
         aria-expanded={open}
         disabled={loading}
         onClick={() => void toggle()}
       >
         {loading ? "Thinking..." : open ? "Hide" : "Go deeper"}
-        {loading ? null : <Icon aria-hidden data-icon="inline-end" />}
+        {loading ? null : (
+          // One arrow that turns, instead of swapping two icons.
+          <ChevronDown
+            aria-hidden
+            data-icon="inline-end"
+            className={cn("transition-transform duration-200", open && "rotate-180")}
+          />
+        )}
       </Button>
       {error ? (
         <p className="text-destructive text-xs" role="alert">
@@ -79,7 +86,7 @@ export function DeepDivePanel({
         </p>
       ) : null}
       {open && deepDive ? (
-        <div className="border-muted space-y-3 border-l-2 pl-3" data-testid="deep-dive-body">
+        <div className="border-muted rise space-y-3 border-l-2 pl-3" data-testid="deep-dive-body">
           <div className="space-y-1">
             <p className="text-foreground font-medium">{labels.core}</p>
             <p>{clean(deepDive.core)}</p>
