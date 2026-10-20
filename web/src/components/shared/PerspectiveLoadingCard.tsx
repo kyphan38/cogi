@@ -8,11 +8,11 @@ export function PerspectiveLoadingCard() {
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          <div className="h-4 w-[92%] animate-pulse rounded bg-muted" />
-          <div className="h-4 w-[86%] animate-pulse rounded bg-muted" />
-          <div className="h-4 w-[90%] animate-pulse rounded bg-muted" />
-          <div className="h-4 w-[80%] animate-pulse rounded bg-muted" />
-          <div className="h-4 w-[88%] animate-pulse rounded bg-muted" />
+          <div className="h-4 w-[92%] breathe rounded bg-muted" />
+          <div className="h-4 w-[86%] breathe rounded bg-muted" />
+          <div className="h-4 w-[90%] breathe rounded bg-muted" />
+          <div className="h-4 w-[80%] breathe rounded bg-muted" />
+          <div className="h-4 w-[88%] breathe rounded bg-muted" />
         </div>
       </CardContent>
     </Card>

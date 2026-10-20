@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { ModalShell } from "@/components/ui/modal-shell";
 import { useToast } from "@/components/ui/toast";
 import { HistoryExerciseListSkeleton } from "@/components/ui/history-exercise-list-skeleton";
 import {
@@ -887,77 +888,63 @@ function HistoryPageInner() {
       ) : null}
 
       {pendingDelete ? (
-        <div
-          className="cogi-modal-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
-          role="presentation"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) closeDeleteDialog();
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-ex-title"
-            className="cogi-modal-panel w-full max-w-md rounded-2xl border border-border bg-card p-5"
-            onMouseDown={(e) => e.stopPropagation()}
+        <ModalShell onClose={closeDeleteDialog} labelledBy="delete-ex-title">
+          <h2
+            id="delete-ex-title"
+            className="font-heading text-lg font-medium"
           >
-            <h2
-              id="delete-ex-title"
-              className="font-heading text-lg font-medium"
-            >
-              Delete exercise?
-            </h2>
-            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-              Deletes{" "}
-              <span className="font-medium text-foreground">
-                &quot;{pendingDelete.title}&quot;
+            Delete exercise?
+          </h2>
+          <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+            Deletes{" "}
+            <span className="font-medium text-foreground">
+              &quot;{pendingDelete.title}&quot;
+            </span>{" "}
+            and all its data. Can&apos;t be undone.
+          </p>
+          <div className="mt-4 grid gap-2">
+            <Label htmlFor="delete-ex-confirm">
+              Type{" "}
+              <span className="font-mono font-semibold text-foreground">
+                Delete
               </span>{" "}
-              and all its data. Can&apos;t be undone.
-            </p>
-            <div className="mt-4 grid gap-2">
-              <Label htmlFor="delete-ex-confirm">
-                Type{" "}
-                <span className="font-mono font-semibold text-foreground">
-                  Delete
-                </span>{" "}
-                to confirm
-              </Label>
-              <Input
-                id="delete-ex-confirm"
-                autoComplete="off"
-                autoFocus
-                value={deletePhrase}
-                onChange={(e) => setDeletePhrase(e.target.value)}
-                placeholder="Delete"
-                aria-invalid={
-                  deletePhrase.length > 0 && deletePhrase !== "Delete"
-                }
-              />
-            </div>
-            {deleteErr ? (
-              <p className="text-destructive mt-2 text-sm" role="alert">
-                {deleteErr}
-              </p>
-            ) : null}
-            <div className="mt-5 flex flex-wrap justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => closeDeleteDialog()}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={deletePhrase !== "Delete" || deleteSubmitting}
-                onClick={() => void confirmDeleteExercise()}
-              >
-                {deleteSubmitting ? "Deleting…" : "Delete permanently"}
-              </Button>
-            </div>
+              to confirm
+            </Label>
+            <Input
+              id="delete-ex-confirm"
+              autoComplete="off"
+              autoFocus
+              value={deletePhrase}
+              onChange={(e) => setDeletePhrase(e.target.value)}
+              placeholder="Delete"
+              aria-invalid={
+                deletePhrase.length > 0 && deletePhrase !== "Delete"
+              }
+            />
           </div>
-        </div>
+          {deleteErr ? (
+            <p className="text-destructive mt-2 text-sm" role="alert">
+              {deleteErr}
+            </p>
+          ) : null}
+          <div className="mt-5 flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => closeDeleteDialog()}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deletePhrase !== "Delete" || deleteSubmitting}
+              onClick={() => void confirmDeleteExercise()}
+            >
+              {deleteSubmitting ? "Deleting…" : "Delete permanently"}
+            </Button>
+          </div>
+        </ModalShell>
       ) : null}
     </div>
   );

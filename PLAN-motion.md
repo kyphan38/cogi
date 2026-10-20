@@ -511,3 +511,4 @@ cùng đổi màu mượt khi sang trang khác.
 ## Tiến độ
 
 (AI làm ghi một dòng mỗi phase: ngày, commit, ghi chú.)
+- P1 (2026-10-21): Motion CSS block + `--ease-soft`, one global reduced-motion block (replaced three small ones), shorter toast/modal/route durations, `src/lib/motion.ts` + test, `usePresence`, `InlineSpinner` as a breathing dot (about 15 callers unchanged), skeletons `breathe`, toast exit (`id` per toast so each one plays its entry), `ModalShell` for the History delete dialog (now also closes on Esc). Playwright baseline before: 203/203 (11.2 min); checked with a throwaway spec using `bypassFirebaseAuth` (spinner is a `breathe` dot with no svg; toast shows, is replaced, leaves with pointer-events none, then goes; modal leaves via backdrop and Esc after 200ms, inner button and reduced motion close at once). Playwright after: 203/203 (11.1 min), same count as before.

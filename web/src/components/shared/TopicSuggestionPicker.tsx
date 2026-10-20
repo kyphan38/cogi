@@ -75,7 +75,7 @@ export function TopicSuggestionPicker({ area, kind, seedSuggestions, onPick }: T
       {loadingInitial ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {Array.from({ length: 5 }, (_, i) => (
-            <div key={i} className="h-24 animate-pulse rounded-2xl border border-border bg-card" />
+            <div key={i} className="h-24 breathe rounded-2xl border border-border bg-card" />
           ))}
         </div>
       ) : (

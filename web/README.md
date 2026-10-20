@@ -78,3 +78,23 @@ Use plain `--only firestore`, not `--only firestore:rules` (firebase-tools #1044
 can silently skip the rules deploy).
 
 If you see `failed-precondition` with index hint URL in browser console, follow the troubleshooting flow in `docs/FIRESTORE_READINESS.md`.
+
+## Motion
+
+Short, opacity/transform only, following `ws/app/DESIGN.md` "Motion". Plan:
+`../PLAN-motion.md`. Classes live in the Motion block at the end of
+`src/app/globals.css` (`fade-in`, `fade-out`, `rise`, `pop`, `breathe`, plus
+the older `toast-cogi-*`, `cogi-modal-*` and `cogi-main-route-enter`, now on
+`--ease-soft`). The last block there turns every animation and transition off
+under `prefers-reduced-motion`.
+
+- `src/lib/motion.ts` (`reducedMotion`, `leavingItems`) is covered by vitest;
+  `src/lib/hooks/usePresence.ts` keeps something mounted while it leaves.
+- Waiting: `InlineSpinner` is a small dot that slowly fades in and out (no
+  spinning wheel); loading skeletons `breathe` instead of pulsing.
+- The toast slides out over 200ms after it closes (a leaving toast takes no
+  taps). The delete dialog on History uses `ModalShell`: backdrop click or Esc
+  plays the exit first, buttons inside close at once.
+- Try the app without Google sign-in: the Playwright helper
+  `bypassFirebaseAuth` in `tests/helpers/auth-setup.ts`.
+

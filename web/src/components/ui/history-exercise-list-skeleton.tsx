@@ -6,7 +6,7 @@ export function HistoryExerciseListSkeleton({ className }: { className?: string 
       {Array.from({ length: 5 }, (_, i) => (
         <li
           key={i}
-          className="animate-pulse rounded-lg border border-border bg-card p-3"
+          className="breathe rounded-lg border border-border bg-card p-3"
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="h-4 w-48 max-w-[70%] rounded bg-muted" />
