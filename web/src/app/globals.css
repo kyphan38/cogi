@@ -488,24 +488,25 @@
   animation: breathe 3.2s ease-in-out infinite;
 }
 
-/* A list whose items rise in one after another: AI feedback that just arrived.
+/* A list whose children rise in one after another: AI feedback or ideas that just
+   arrived.
    40ms apart; from the sixth item on they share one delay. */
-.rise-list > li {
+.rise-list > * {
   animation: rise 240ms var(--ease-soft) both;
 }
-.rise-list > li:nth-child(2) {
+.rise-list > :nth-child(2) {
   animation-delay: 40ms;
 }
-.rise-list > li:nth-child(3) {
+.rise-list > :nth-child(3) {
   animation-delay: 80ms;
 }
-.rise-list > li:nth-child(4) {
+.rise-list > :nth-child(4) {
   animation-delay: 120ms;
 }
-.rise-list > li:nth-child(5) {
+.rise-list > :nth-child(5) {
   animation-delay: 160ms;
 }
-.rise-list > li:nth-child(n + 6) {
+.rise-list > :nth-child(n + 6) {
   animation-delay: 200ms;
 }
 

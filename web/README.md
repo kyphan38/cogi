@@ -109,4 +109,12 @@ under `prefers-reduced-motion`.
   step before it. Feedback opened from History or a saved exercise is still.
 - "Go deeper": one arrow that turns (not two icons), the body rises in, and
   `Thinking...` breathes.
+- Generated lists: ideas from Generate on the practice page (`TopicIdeasPanel`)
+  and suggestions in `TopicSuggestionPicker` rise in one after another
+  (`.rise-list`, now for any children) only when they just arrived from the AI
+  in this visit (`fresh`; `useTopicSuggestions` returns it). A list restored
+  from the session or the cache shows at once.
+- Press feedback: practice cards, level options, suggestion cards and topic
+  rows shrink to 0.99 while pressed. `Button` already moves 1px when pressed,
+  so it is unchanged. "Saved" after Finish fades in once.
 

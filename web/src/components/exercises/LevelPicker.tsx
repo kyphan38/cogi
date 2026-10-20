@@ -29,7 +29,7 @@ export function LevelPicker({
               aria-pressed={active}
               onClick={() => onChange(level)}
               className={cn(
-                "flex flex-col items-start gap-1 rounded-xl border px-3 py-2.5 text-left transition-colors",
+                "flex flex-col items-start gap-1 rounded-xl border px-3 py-2.5 text-left transition-[color,background-color,border-color,scale] duration-150 active:scale-[0.99]",
                 active ? "border-zinc-900 bg-zinc-50" : "border-zinc-200 bg-white hover:bg-zinc-50",
               )}
             >

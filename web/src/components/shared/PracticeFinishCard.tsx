@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -29,9 +30,18 @@ export function PracticeFinishCard({
   finished,
   takeawayPlaceholder,
 }: PracticeFinishCardProps) {
+  // "Saved" fades in only when Finish was pressed in this visit. A finished
+  // exercise that opens saved shows it at once.
+  const [prevFinished, setPrevFinished] = useState(finished);
+  const [justSaved, setJustSaved] = useState(false);
+  if (finished !== prevFinished) {
+    setPrevFinished(finished);
+    setJustSaved(finished);
+  }
+
   if (finished) {
     return (
-      <Card>
+      <Card className={justSaved ? "fade-in" : undefined}>
         <CardHeader>
           <CardTitle className="text-base">Saved</CardTitle>
         </CardHeader>

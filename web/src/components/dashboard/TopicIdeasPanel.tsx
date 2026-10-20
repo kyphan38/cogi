@@ -72,6 +72,9 @@ export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
   const [domain, setDomain] = useState("");
   const [ideas, setIdeas] = useState<TopicIdea[] | null>(null);
   const [loading, setLoading] = useState(false);
+  // True after a Generate in this visit: the list rises in. A list restored from
+  // the session shows at once.
+  const [fresh, setFresh] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scenario, setScenario] = useState("");
   const [recs, setRecs] = useState<Recommendation[] | null>(null);
@@ -123,6 +126,7 @@ export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
 
   const resetList = () => {
     setIdeas(null);
+    setFresh(false);
     setError(null);
   };
 
@@ -142,6 +146,7 @@ export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
         (ideas ?? []).map((i) => i.title),
       );
       setIdeas(next);
+      setFresh(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not get topic ideas.");
     } finally {
@@ -297,7 +302,7 @@ export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
             <p className="text-muted-foreground text-sm">Finding 10 topics for you. This takes about 15 seconds.</p>
           ) : ideas ? (
             <div className={cn("space-y-2", loading && "opacity-60")}>
-              <TopicList ideas={ideas} showMode={!fixedMode} savedKeys={savedKeys} onToggleSave={toggleSaved} />
+              <TopicList ideas={ideas} showMode={!fixedMode} savedKeys={savedKeys} onToggleSave={toggleSaved} fresh={fresh} />
               <button type="button" className="text-muted-foreground text-xs hover:text-foreground active:text-foreground" onClick={clearAll} data-testid="topic-clear">
                 Clear list and filters
               </button>
@@ -393,6 +398,7 @@ function TopicList({
   savedKeys,
   onToggleSave,
   testId = "topic-list",
+  fresh = false,
 }: {
   ideas: TopicIdea[];
   showMode: boolean;
@@ -400,18 +406,20 @@ function TopicList({
   savedKeys?: Set<string>;
   onToggleSave?: (idea: TopicIdea) => void;
   testId?: string;
+  /** The ideas just arrived: they rise in one after another. */
+  fresh?: boolean;
 }) {
   return (
     <div className="space-y-2">
       {note ? <p className="text-muted-foreground text-sm">{note}</p> : null}
-      <ol className="space-y-2" data-testid={testId}>
+      <ol className={cn("space-y-2", fresh && "rise-list")} data-testid={testId}>
         {ideas.map((idea, i) => {
           const isSaved = savedKeys?.has(savedTopicKey(idea)) ?? false;
           return (
             <li key={`${idea.mode}-${idea.title}`} className="flex items-stretch gap-1">
               <Link
                 href={topicHref(idea)}
-                className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm hover:bg-zinc-50"
+                className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm transition-[color,background-color,scale] duration-150 hover:bg-zinc-50 active:scale-[0.99]"
                 data-testid="topic-row"
               >
                 <span className="text-muted-foreground w-5 shrink-0 text-right tabular-nums">{i + 1}</span>

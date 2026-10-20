@@ -28,7 +28,7 @@ interface TopicSuggestionPickerProps {
 export function TopicSuggestionPicker({ area, kind, seedSuggestions, onPick }: TopicSuggestionPickerProps) {
   const [pickingTitle, setPickingTitle] = useState<string | null>(null);
   const [pickError, setPickError] = useState<string | null>(null);
-  const { suggestions, loadingInitial, loadingMore, error, moreDisabled, fetchMore, retry, regenerate } =
+  const { suggestions, loadingInitial, loadingMore, error, moreDisabled, fresh, fetchMore, retry, regenerate } =
     useTopicSuggestions({
       area,
       kind,
@@ -79,14 +79,14 @@ export function TopicSuggestionPicker({ area, kind, seedSuggestions, onPick }: T
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className={cn("grid grid-cols-1 gap-3 sm:grid-cols-2", fresh && "rise-list")}>
           {(seedSuggestions ?? []).map((s) => (
             <button
               key={`seed-${s.title}`}
               type="button"
               disabled={disabled}
               onClick={() => void handlePick({ title: s.title, scenarioId: s.scenarioId })}
-              className="text-left disabled:cursor-not-allowed disabled:opacity-50"
+              className="text-left transition-transform duration-100 enabled:active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Card variant="boxed" className={cn("h-full gap-2 transition-colors hover:border-zinc-300", pickingTitle === s.title && "border-zinc-400")}>
                 <CardContent className="space-y-1.5">
@@ -107,7 +107,7 @@ export function TopicSuggestionPicker({ area, kind, seedSuggestions, onPick }: T
               type="button"
               disabled={disabled}
               onClick={() => void handlePick({ title: s.title })}
-              className="text-left disabled:cursor-not-allowed disabled:opacity-50"
+              className="text-left transition-transform duration-100 enabled:active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Card variant="boxed" className={cn("h-full gap-2 transition-colors hover:border-zinc-300", pickingTitle === s.title && "border-zinc-400")}>
                 <CardContent className="space-y-1.5">

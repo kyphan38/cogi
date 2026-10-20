@@ -28,6 +28,8 @@ interface UseTopicSuggestionsResult {
   loadingMore: boolean;
   error: string | null;
   moreDisabled: boolean;
+  /** A batch arrived from the AI in this visit (not restored from the cache). */
+  fresh: boolean;
   fetchMore: () => void;
   retry: () => void;
   /** Force a fresh AI batch, discarding suggestion history for this area, and overwrite the cache. */
@@ -41,6 +43,7 @@ export function useTopicSuggestions(params: UseTopicSuggestionsParams): UseTopic
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [moreClicks, setMoreClicks] = useState(0);
+  const [fresh, setFresh] = useState(false);
 
   const shownTitlesRef = useRef<string[]>([]);
   const practicedTitlesRef = useRef<string[]>([]);
@@ -72,6 +75,7 @@ export function useTopicSuggestions(params: UseTopicSuggestionsParams): UseTopic
         }
         shownTitlesRef.current = [...shownTitlesRef.current, ...json.suggestions.map((s) => s.title)];
         setSuggestions(json.suggestions);
+        setFresh(true);
         void putCachedTopicList({
           id: `${kind}:${area}`,
           area,
@@ -140,6 +144,7 @@ export function useTopicSuggestions(params: UseTopicSuggestionsParams): UseTopic
     loadingMore,
     error,
     moreDisabled: moreClicks >= MAX_MORE_CLICKS,
+    fresh,
     fetchMore,
     retry,
     regenerate,
