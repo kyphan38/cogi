@@ -117,4 +117,12 @@ under `prefers-reduced-motion`.
 - Press feedback: practice cards, level options, suggestion cards and topic
   rows shrink to 0.99 while pressed. `Button` already moves 1px when pressed,
   so it is unchanged. "Saved" after Finish fades in once.
+- Top bar words change color over 150ms when the page changes (no marker, the
+  words are the navigation).
+- History list: a row a live update removes (a delete) stays 180ms with
+  `row-out`, is `inert`, and the rows below slide up (`useRowMotion` +
+  `useFlip`). A new filter, the first load (plus one frame) and a swap of
+  more than 3 rows play nothing. The detail panel is unchanged.
+- Page change keeps `cogi-main-route-enter` (220ms). The exercise shell does
+  not animate on its first render, so the two never stack.
 

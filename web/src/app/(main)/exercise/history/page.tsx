@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { ModalShell } from "@/components/ui/modal-shell";
+import { useFlip } from "@/lib/hooks/useFlip";
+import { useRowMotion } from "@/lib/hooks/useRowMotion";
 import { useToast } from "@/components/ui/toast";
 import { HistoryExerciseListSkeleton } from "@/components/ui/history-exercise-list-skeleton";
 import {
@@ -329,6 +331,18 @@ function HistoryPageInner() {
 
   const [allCompletedRows, setAllCompletedRows] = useState<Exercise[]>([]);
 
+  // A row a live update removes (a delete) slides out; a new filter or a big swap
+  // of the list plays nothing.
+  const { shown, goingIds } = useRowMotion(
+    rows,
+    `${typeFilter}|${domainQ}|${fromDate}|${toDate}`,
+    filteredListReady,
+    // Same order the list query uses: newest first.
+    (a, b) => b.createdAt.localeCompare(a.createdAt),
+  );
+  // The rows below one that leaves slide up to its place.
+  const flip = useFlip(shown.map((ex) => ex.id));
+
   const openExerciseId = searchParams.get("openExercise")?.trim() || null;
 
   useEffect(() => {
@@ -604,14 +618,20 @@ function HistoryPageInner() {
       >
         {!filteredListReady ? (
           <HistoryExerciseListSkeleton />
-        ) : rows.length === 0 ? (
+        ) : shown.length === 0 ? (
           <p className="text-muted-foreground text-sm italic">
             No exercises match these filters.
           </p>
         ) : (
           <ul className="divide-y border-y">
-            {rows.map((ex) => (
-              <li key={ex.id}>
+            {shown.map((ex) => (
+              <li
+                key={ex.id}
+                ref={flip(ex.id)}
+                className={goingIds.has(ex.id) ? "row-out" : undefined}
+                aria-hidden={goingIds.has(ex.id) || undefined}
+                inert={goingIds.has(ex.id)}
+              >
                 <div
                   className={cn(
                     "group relative text-sm transition-colors",

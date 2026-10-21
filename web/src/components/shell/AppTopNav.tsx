@@ -63,7 +63,7 @@ export function AppTopNav() {
                   href={href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "py-2 hover:text-foreground",
+                    "py-2 transition-colors duration-150 hover:text-foreground",
                     active && "font-medium text-foreground",
                   )}
                 >
