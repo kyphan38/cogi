@@ -10,17 +10,32 @@
  */
 import { ApiError, GoogleGenAI, ThinkingLevel } from "@google/genai";
 
+/**
+ * fast: lists, labels and the simpler exercises (strategy, judgment, reframe).
+ * thinking: analytical-style exercises and all coaching. In tests Flash wrote
+ * weaker analytical passages and timed out on coaching, so these stay on argon.
+ */
 export type GeminiModel = "fast" | "thinking";
 
-const MODEL_IDS: Record<GeminiModel, string> = {
-  fast: process.env.GEMINI_MODEL_FAST ?? process.env.GEMINI_MODEL ?? "gemini-4-argon",
-  thinking: process.env.GEMINI_MODEL_THINKING ?? "gemini-4-argon",
+type Level = "low" | "medium" | "high";
+const LEVELS: Record<Level, ThinkingLevel> = {
+  low: ThinkingLevel.LOW,
+  medium: ThinkingLevel.MEDIUM,
+  high: ThinkingLevel.HIGH,
 };
 
-/** "fast" tasks are short lists and labels: low thinking cuts latency from ~10s to ~4s. */
-const THINKING: Partial<Record<GeminiModel, { thinkingLevel: ThinkingLevel }>> = {
-  fast: { thinkingLevel: ThinkingLevel.LOW },
+const DEFAULTS: Record<GeminiModel, { model: string; thinking: Level | "default" }> = {
+  fast: { model: "gemini-3.8-flash", thinking: "low" },
+  thinking: { model: "gemini-4-argon", thinking: "default" },
 };
+
+/** Env overrides (GEMINI_MODEL_FAST, GEMINI_THINKING_FAST, ...), read per call. */
+function tier(name: GeminiModel): { model: string; thinkingConfig?: { thinkingLevel: ThinkingLevel } } {
+  const key = name.toUpperCase();
+  const model = process.env[`GEMINI_MODEL_${key}`]?.trim() || DEFAULTS[name].model;
+  const level = process.env[`GEMINI_THINKING_${key}`]?.trim() || DEFAULTS[name].thinking;
+  return level in LEVELS ? { model, thinkingConfig: { thinkingLevel: LEVELS[level as Level] } } : { model };
+}
 
 let client: GoogleGenAI | null = null;
 
@@ -43,12 +58,13 @@ async function generateText(
 ): Promise<string> {
   let response;
   try {
+    const { model, thinkingConfig } = tier(modelName);
     response = await getClient().models.generateContent({
-      model: MODEL_IDS[modelName],
+      model,
       contents: fullPrompt,
       config: {
         ...config,
-        ...(THINKING[modelName] ? { thinkingConfig: THINKING[modelName] } : {}),
+        ...(thinkingConfig ? { thinkingConfig } : {}),
         httpOptions: { timeout: timeoutMs },
       },
     });

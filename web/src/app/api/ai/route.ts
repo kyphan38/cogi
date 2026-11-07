@@ -240,6 +240,7 @@ export async function POST(req: Request) {
         validate: (data) => validateStrategySemantics(data, { aOptionCount: cfg.aOptionCount }),
         retrySuffix: STRATEGY_RETRY_SUFFIX,
         responseJsonSchema: strategyResponseSchema(),
+        model: "fast",
       });
       if (!r.ok) return validatedJsonFailureResponse(r);
       return NextResponse.json({ ok: true, data: r.data });
@@ -273,6 +274,8 @@ export async function POST(req: Request) {
           }),
         retrySuffix: REFRAME_RETRY_SUFFIX,
         responseJsonSchema: reframeResponseSchema(),
+        // The user's own situation includes a safety check: keep the stronger model.
+        model: ownSituation ? "thinking" : "fast",
       });
       if (!r.ok) return validatedJsonFailureResponse(r);
       if (r.data.safety === "concern") return concern();
@@ -296,6 +299,7 @@ export async function POST(req: Request) {
         validate: (data) => validateJudgmentSemantics(data, { responseCount: cfg.responseCount }),
         retrySuffix: JUDGMENT_RETRY_SUFFIX,
         responseJsonSchema: judgmentResponseSchema(),
+        model: "fast",
       });
       if (!r.ok) return validatedJsonFailureResponse(r);
       return NextResponse.json({ ok: true, data: r.data });
