@@ -38,8 +38,8 @@ test.describe("Learning tracks", () => {
 
   test("the tracks page lists every track and step", async ({ page }) => {
     await gotoAuthenticated(page, "/tracks");
-    await expect(page.getByTestId("track")).toHaveCount(3);
-    await expect(page.getByTestId("track-step")).toHaveCount(15);
+    await expect(page.getByTestId("track")).toHaveCount(7);
+    await expect(page.getByTestId("track-step")).toHaveCount(35);
     await expect(page.getByText("How countries trade and compete")).toBeVisible();
   });
 

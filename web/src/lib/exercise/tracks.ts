@@ -19,8 +19,13 @@ export interface TrackStep {
 export interface Track {
   id: string;
   title: string;
-  area: "finance" | "economics" | "geopolitics";
+  area: "finance" | "economics" | "geopolitics" | "business" | "society" | "politics";
   description: string;
+  /**
+   * Steps are about real events, laws and institutions, so generation prompts get the
+   * fact-safety rule (no invented statistics, dates or quotes). PLAN-society.md S1.
+   */
+  realWorld?: boolean;
   /** Anchor of a related simulator on /simulators (PLAN-learning.md L4). */
   simulator?: "loan" | "savings" | "import";
   steps: TrackStep[];
@@ -150,6 +155,161 @@ export const TRACKS: Track[] = [
       },
     ],
   },
+  {
+    id: "news-detective",
+    title: "Read the news like a detective",
+    area: "society",
+    description: "Who gains from a story, whose voice is missing, and how to check a viral claim before you share it.",
+    steps: [
+      {
+        id: "missing-voice",
+        type: "analytical",
+        domain: "A news story where only one side gets quoted",
+        learn: "Notice whose voice is missing from a story.",
+      },
+      {
+        id: "who-gains",
+        type: "systems",
+        domain: "How a celebrity scandal spreads online and who earns from it",
+        learn: "Follow who gains clicks, money or power from a story.",
+      },
+      {
+        id: "charity-post",
+        type: "analytical",
+        domain: "A viral post claiming a charity kept the donations for itself",
+        learn: "Ask what the records really show before you share.",
+      },
+      {
+        id: "two-sources",
+        type: "evaluative",
+        domain: "Which source to trust when two news sites report opposite facts",
+        learn: "Compare sources by evidence, track record and who pays them.",
+      },
+      {
+        id: "family-rumour",
+        type: "judgment",
+        domain: "Family: a relative shares a shocking rumour in the family group chat",
+        learn: "Correct a rumour without starting a family fight.",
+      },
+    ],
+  },
+  {
+    id: "small-business",
+    title: "Open a small business",
+    area: "business",
+    description: "Cash, costs and people: what to check before you put your savings into a shop or a company.",
+    steps: [
+      {
+        id: "rich-quick",
+        type: "analytical",
+        domain: "A course promising you can get rich in six months with no experience",
+        learn: "Spot the tricks in get-rich-quick promises.",
+      },
+      {
+        id: "coffee-break-even",
+        type: "evaluative",
+        domain: "Opening a coffee shop: rent, staff and how many cups you must sell to break even",
+        learn: "Count fixed costs and the break-even point before you invest.",
+      },
+      {
+        id: "sales-no-cash",
+        type: "systems",
+        domain: "Why a shop with high sales can still run out of cash",
+        learn: "See the gap between revenue on paper and cash in the bank.",
+      },
+      {
+        id: "star-employee",
+        type: "judgment",
+        domain: "Work: your best salesperson breaks team rules and asks for a bigger share",
+        learn: "Keep a star employee without breaking fairness.",
+      },
+      {
+        id: "choose-partner",
+        type: "evaluative",
+        domain: "Choosing a business partner: money, skills or shared values",
+        learn: "Weigh what keeps partners together after the first year.",
+      },
+    ],
+  },
+  {
+    id: "vietnam-economy",
+    title: "Vietnam's economy from above",
+    area: "economics",
+    description: "How US interest rates, the central bank and the state budget reach prices and pay in Vietnam.",
+    simulator: "import",
+    realWorld: true,
+    steps: [
+      {
+        id: "fed-to-vnd",
+        type: "systems",
+        domain: "How a US Federal Reserve rate rise reaches the VND exchange rate and prices in Vietnam",
+        learn: "Trace how US rates move the dong and Vietnamese prices.",
+      },
+      {
+        id: "just-cut-rates",
+        type: "analytical",
+        domain: "A claim that the State Bank of Vietnam should simply cut rates to help business",
+        learn: "Find what a simple rate-cut claim leaves out.",
+      },
+      {
+        id: "public-pay",
+        type: "evaluative",
+        domain: "Raising public sector pay in Vietnam fast or slowly: budget, prices and fairness",
+        learn: "Weigh higher pay against budget and price risks.",
+      },
+      {
+        id: "set-prices",
+        type: "systems",
+        domain: "Why the state sets electricity and fuel prices in Vietnam, and who pays the gap",
+        learn: "See who is protected and who pays when prices are set.",
+      },
+      {
+        id: "which-project",
+        type: "evaluative",
+        domain: "Which to fund first in Vietnam: a new expressway, an airport or local hospitals",
+        learn: "Compare public projects by cost, benefit and who gains.",
+      },
+    ],
+  },
+  {
+    id: "us-politics",
+    title: "How US politics works",
+    area: "politics",
+    description: "Elections, money and the big problems of US society - how the system works, not who is right.",
+    realWorld: true,
+    steps: [
+      {
+        id: "popular-vote",
+        type: "analytical",
+        domain: "A claim that the candidate with the most votes always wins the US presidency",
+        learn: "See how the electoral college can differ from the popular vote.",
+      },
+      {
+        id: "swing-states",
+        type: "systems",
+        domain: "How a few swing states shape US campaign promises and spending",
+        learn: "See why a few states get most of the attention.",
+      },
+      {
+        id: "lobbying",
+        type: "analytical",
+        domain: "A claim that lobbying in Washington is just free speech and changes nothing",
+        learn: "Separate what lobbying does from how people describe it.",
+      },
+      {
+        id: "fentanyl",
+        type: "systems",
+        domain: "How the fentanyl crisis links drug supply, health care and homelessness in the US",
+        learn: "Map how one crisis feeds others.",
+      },
+      {
+        id: "us-debt",
+        type: "evaluative",
+        domain: "Three ways to bring down the US national debt: higher taxes, spending cuts or growth",
+        learn: "Compare debt plans by who pays and how fast they work.",
+      },
+    ],
+  },
 ];
 
 /** Exercise page for a step, with its topic filled in (the user still presses Generate). */
@@ -183,4 +343,10 @@ export function currentTrack(completed: Exercise[]): Track | null {
     if (last && (!best || last > best.at)) best = { track, at: last };
   }
   return best?.track ?? TRACKS.find((t) => trackProgress(t, completed).next) ?? null;
+}
+
+/** True when the topic is a step of a track about real events and institutions. */
+export function isRealWorldTrackDomain(domain: string): boolean {
+  const d = domain.trim();
+  return TRACKS.some((t) => t.realWorld && t.steps.some((s) => s.domain === d));
 }

@@ -15,6 +15,9 @@ const AREA_LABELS = {
   finance: "Finance",
   economics: "Economics",
   geopolitics: "Geopolitics",
+  business: "Business",
+  society: "Society & media",
+  politics: "Politics",
 } as const;
 
 /** All topic tracks with their steps and progress (PLAN-learning.md L3). */

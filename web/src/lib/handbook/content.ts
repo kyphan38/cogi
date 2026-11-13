@@ -407,9 +407,9 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     title: "Learning tracks",
     href: "/tracks",
     group: "tool",
-    trains: "Short paths through economics, finance and geopolitics, using the exercises above.",
+    trains: "Short paths through money, the economy, business, the news and politics, using the exercises above.",
     benefits: [
-      "You learn how money, prices and trade work, one topic at a time.",
+      "You learn how money, prices, trade, small businesses, the news and US politics work, one topic at a time.",
       "You never have to think about what to practise next.",
     ],
     howToPractice: [
@@ -418,7 +418,11 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "A step is done when you finish an exercise on that topic. One step a day is plenty.",
       "If you started a step, the button says Continue. To drop that exercise and start fresh, tap the small bin icon next to it.",
     ],
-    tips: ["Each track has a simulator. Try it after a few steps to see the numbers behind the ideas."],
+    tips: [
+      "Some tracks have a simulator. Try it after a few steps to see the numbers behind the ideas.",
+      "Tracks about real events (Vietnam's economy, US politics) teach how the system works. The AI is told not to make up numbers or quotes, but a story can still be simplified. Check key facts in a trusted source.",
+      "These tracks train how you reason about a topic, not which side you take.",
+    ],
   },
   {
     id: "simulators",
