@@ -7,3 +7,13 @@ export const GEO_FACT_RULE = `FACT SAFETY (important):
 - Never invent statistics, dates, quotes, or treaty details, and never attribute words to a real, named person.
 - Anything hypothetical must read as hypothetical: start it with "Suppose" or use clearly made-up names (e.g. "Country A").
 - If you need a number to illustrate a point, round it and call it an illustration ("roughly", "for example").`;
+
+/**
+ * For non-geopolitics topics about real institutions, laws and events (US politics,
+ * Vietnam's economy, fraud cases). PLAN-society.md S1.
+ */
+export const REAL_WORLD_FACT_RULE = `FACT SAFETY (important): this topic is about real institutions and events.
+- Use only facts that are widely established (how an institution works, well-known laws and events).
+- Never invent statistics, dates, quotes, court findings or poll results, and never attribute words to a real, named person.
+- Never say a real, named person or company did something unless it is widely reported and settled. For the story itself, prefer made-up people and companies.
+- If you need a number to illustrate a point, round it and call it an illustration ("roughly", "for example").`;
