@@ -12,10 +12,11 @@ import { ApiError, GoogleGenAI, ThinkingLevel } from "@google/genai";
 
 /**
  * fast: lists, labels and the simpler exercises (strategy, judgment, reframe).
- * thinking: analytical-style exercises and all coaching. In tests Flash wrote
- * weaker analytical passages and timed out on coaching, so these stay on argon.
+ * create: analytical-style exercises. thinking: coaching, deep dive and
+ * own-situation reframe (safety check). Hydrogen matched argon in tests and
+ * ran 1.5-2x faster; Flash wrote weaker passages and timed out on coaching.
  */
-export type GeminiModel = "fast" | "thinking";
+export type GeminiModel = "fast" | "create" | "thinking";
 
 type Level = "low" | "medium" | "high";
 const LEVELS: Record<Level, ThinkingLevel> = {
@@ -26,7 +27,10 @@ const LEVELS: Record<Level, ThinkingLevel> = {
 
 const DEFAULTS: Record<GeminiModel, { model: string; thinking: Level | "default" }> = {
   fast: { model: "gemini-3.8-flash", thinking: "low" },
-  thinking: { model: "gemini-4-argon", thinking: "default" },
+  // Medium timed out on creation (25 s budget); low did not.
+  create: { model: "gemini-4-hydrogen", thinking: "low" },
+  // Low put one wrong label on coaching cards; medium did not.
+  thinking: { model: "gemini-4-hydrogen", thinking: "medium" },
 };
 
 /** Env overrides (GEMINI_MODEL_FAST, GEMINI_THINKING_FAST, ...), read per call. */

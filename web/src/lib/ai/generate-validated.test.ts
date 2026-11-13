@@ -25,7 +25,7 @@ describe("generateValidatedJson", () => {
     const r = await generateValidatedJson({ prompt: "P", parse, validate, responseJsonSchema: schema });
     expect(r).toEqual({ ok: true, data: { n: 1 } });
     expect(mockGenerateRaw).toHaveBeenCalledTimes(1);
-    expect(mockGenerateRaw.mock.calls[0]).toEqual(["P", "thinking", undefined, schema]);
+    expect(mockGenerateRaw.mock.calls[0]).toEqual(["P", "create", undefined, schema]);
   });
 
   it("retries once with the suffix and the parse error", async () => {

@@ -22,7 +22,7 @@ export async function generateValidatedJson<T>(opts: {
   timeoutMs?: number;
 }): Promise<ValidatedJsonResult<T>> {
   const { prompt, parse, validate, retrySuffix, responseJsonSchema } = opts;
-  const model = opts.model ?? "thinking";
+  const model = opts.model ?? "create";
 
   const attempt = async (p: string): Promise<ValidatedJsonResult<T>> => {
     const raw = await generateAnalyticalExerciseRaw(p, model, opts.timeoutMs, responseJsonSchema);

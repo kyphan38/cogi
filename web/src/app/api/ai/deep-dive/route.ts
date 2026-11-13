@@ -88,6 +88,7 @@ export async function POST(req: Request) {
       validate: validateAnalyticalDeepDive,
       retrySuffix: DEEP_DIVE_RETRY_SUFFIX,
       responseJsonSchema: analyticalDeepDiveResponseSchema(),
+      model: "thinking",
       timeoutMs: 25_000,
     });
     if (!result.ok) return validatedJsonFailureResponse(result, "AI could not explain this one. Please try again.");
