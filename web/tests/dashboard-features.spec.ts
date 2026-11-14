@@ -60,69 +60,60 @@ test.describe("Reasoning page - exercise picker and navigation", () => {
     await stubFirestoreReads(page);
   });
 
-  test("renders the reasoning heading and the mode cards under A mode", async ({ page }) => {
+  test("renders the heading and every mode behind change, none of the removed ones", async ({ page }) => {
     await gotoAuthenticated(page, "/reasoning");
-    await expect(page.getByRole("heading", { name: "New exercise" })).toBeVisible();
-    await page.getByRole("radio", { name: "A mode" }).click();
+    await expect(page.getByRole("heading", { name: "New exercise", level: 1 })).toBeVisible();
+    await page.getByTestId("options-toggle").click();
     const modes = page.getByRole("radiogroup", { name: "Exercise mode" });
-    for (const name of [/Evaluative.*Compare options fairly/, /Systems.*Map feedback loops/, /Analytical.*Spot flawed reasoning/]) {
-      await expect(modes.getByRole("radio", { name })).toBeVisible();
-    }
-    // Removed types (PLAN-simplify.md) have no card.
+    await expect(modes.getByRole("radio")).toHaveText([
+      "Picked for you", "Evaluative", "Systems", "Analytical", "Life situations", "Strategic situations", "Reframe", "Calibration",
+    ]);
+    await expect(modes.getByRole("radio", { name: "Picked for you" })).toHaveAttribute("aria-checked", "true");
     for (const name of [/Combo/, /Sequential/, /Generative/]) {
       await expect(modes.getByRole("radio", { name })).toHaveCount(0);
     }
   });
 
-  test("start from a mode: no AI until Generate; filters fit the mode; rows show no mode", async ({ page }) => {
-    let calls = 0;
-    page.on("request", (r) => {
-      if (r.url().includes("/api/ai/topic-ideas")) calls += 1;
-    });
+  test("a chosen mode: areas fit the mode; topics come for it and rows show no mode", async ({ page }) => {
     await gotoAuthenticated(page, "/reasoning");
-    await page.getByRole("radio", { name: "A mode" }).click();
-    await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: /Strategic situations/ }).click();
-    const panel = page.getByTestId("mode-panel");
-    await expect(panel.getByTestId("topic-mode")).toHaveCount(0);
-    // Strategy takes no own scenario.
-    await expect(panel.getByRole("radio", { name: "Specific scenario" })).toHaveCount(0);
+    await expect(page.getByTestId("topic-row")).toHaveCount(5);
+    await page.getByTestId("options-toggle").click();
+    await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: "Strategic situations" }).click();
     // Only areas that fit the mode: Strategy fits Business, not Mind & emotions.
-    await expect(panel.getByTestId("topic-group").locator("option", { hasText: "Business & economy" })).toHaveCount(1);
-    await expect(panel.getByTestId("topic-group").locator("option", { hasText: "Mind & emotions" })).toHaveCount(0);
-    expect(calls).toBe(0);
+    await expect(page.getByTestId("topic-group").locator("option", { hasText: "Business & economy" })).toHaveCount(1);
+    await expect(page.getByTestId("topic-group").locator("option", { hasText: "Mind & emotions" })).toHaveCount(0);
+    // The old list was for every mode: it goes until asked for again.
+    await expect(page.getByTestId("topic-row")).toHaveCount(0);
 
     const request = page.waitForRequest((r) => r.url().endsWith("/api/ai/topic-ideas"));
-    await panel.getByTestId("topic-generate").click();
+    await page.getByTestId("topic-generate").click();
     expect(((await request).postDataJSON() as { mode: string }).mode).toBe("strategy");
-    const rows = panel.getByTestId("topic-row");
-    await expect(rows).toHaveCount(10);
+    const rows = page.getByTestId("topic-row");
+    await expect(rows).toHaveCount(5);
     await expect(rows.first()).not.toContainText("Strategic situations");
     await rows.first().click();
     await page.waitForURL(/\/exercise\/strategy\?domain=Mock%20topic/, { timeout: 15_000 });
   });
 
-  test("start from a mode: Calibration lists its question bank and opens the topic", async ({ page }) => {
+  test("Calibration lists its question bank and opens the topic", async ({ page }) => {
     await gotoAuthenticated(page, "/reasoning");
-    await page.getByRole("radio", { name: "A mode" }).click();
-    await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: /Calibration/ }).click();
-    const panel = page.getByTestId("mode-panel");
-    await expect(panel.getByTestId("topic-generate")).toHaveCount(0);
-    await panel.getByTestId("topic-row").filter({ hasText: "Vietnam" }).click();
+    await page.getByTestId("options-toggle").click();
+    await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: "Calibration" }).click();
+    await expect(page.getByTestId("topic-generate")).toHaveCount(0);
+    await page.getByTestId("topic-row").filter({ hasText: "Vietnam" }).click();
     await page.waitForURL(/\/exercise\/calibration\?domain=Vietnam/, { timeout: 15_000 });
     await expect(page.getByTestId("calibration-topics").getByRole("button", { name: "Vietnam", exact: true })).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("the mode choice is remembered; a mode's own scenario goes straight into it", async ({ page }) => {
+  test("the chosen mode is kept for the tab; own text goes straight into it", async ({ page }) => {
     await gotoAuthenticated(page, "/reasoning");
-    await page.getByRole("radio", { name: "A mode" }).click();
-    await gotoAuthenticated(page, "/reasoning");
-    await expect(page.getByRole("radio", { name: "A mode" })).toHaveAttribute("aria-checked", "true");
-    await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: /Reframe/ }).click();
-    const panel = page.getByTestId("mode-panel");
-    await panel.getByRole("radio", { name: "Specific scenario" }).click();
+    await page.getByTestId("options-toggle").click();
+    await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: "Reframe" }).click();
+    await page.reload();
+    await expect(page.getByText("Mode: Reframe")).toBeVisible();
     const text = "I made a small mistake in a meeting and now I keep thinking everyone sees me as useless.";
-    await panel.getByTestId("topic-scenario").fill(text);
-    await panel.getByTestId("scenario-start").click();
+    await page.getByLabel("What do you want to think about?").fill(text);
+    await page.getByTestId("own-start").click();
     await page.waitForURL(/\/exercise\/reframe\?source=custom_scenario/, { timeout: 15_000 });
     await expect(page.getByLabel("My situation")).toHaveValue(text);
   });

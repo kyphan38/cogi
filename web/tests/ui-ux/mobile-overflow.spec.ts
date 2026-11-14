@@ -284,11 +284,15 @@ for (const width of [360, 390]) {
       expect(await layoutProblems(page)).toEqual([]);
     });
 
-    test("practice page: start from a mode with filters and 10 topics", async ({ page }) => {
+    test("new exercise: own text, options open and all 10 topics", async ({ page }) => {
       await gotoAuthenticated(page, "/reasoning");
-      await page.getByRole("radio", { name: "A mode" }).click();
-      await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: /Life situations/ }).click();
-      await page.getByTestId("mode-panel").getByTestId("topic-generate").click();
+      await expect(page.getByTestId("topic-row")).toHaveCount(5);
+      await page.getByLabel("What do you want to think about?").fill("Should I take a better paid job in another city, far from my parents?");
+      await page.getByTestId("options-toggle").click();
+      await page.getByRole("radiogroup", { name: "Exercise mode" }).getByRole("radio", { name: "Life situations" }).click();
+      await page.getByTestId("topic-generate").click();
+      await expect(page.getByTestId("topic-row")).toHaveCount(5);
+      await page.getByTestId("topic-more").click();
       await expect(page.getByTestId("topic-row")).toHaveCount(10);
       expect(await layoutProblems(page)).toEqual([]);
     });

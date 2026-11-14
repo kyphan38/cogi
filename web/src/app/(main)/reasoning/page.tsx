@@ -1,124 +1,12 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
-
-import { PRACTICE_EXERCISE_CARDS } from "@/lib/exercise/exercise-mode-cards";
-import { TopicIdeasPanel } from "@/components/dashboard/TopicIdeasPanel";
-import { readSessionState, writeSessionState } from "@/lib/session-state";
-import { cn } from "@/lib/utils";
-import type { ThinkingType } from "@/lib/types/exercise";
+import { NewExercise } from "@/components/dashboard/NewExercise";
 import { PageHeader } from "@/components/shared/PageHeader";
 
-/** Remembers "start from a topic / a mode" on this device. */
-const START_FROM_KEY = "cogi:practice-start-from";
-/** The mode picked under "A mode", kept for this tab so Back returns to it. */
-const PICKED_MODE_KEY = "cogi:practice-picked-mode";
-
-type StartFrom = "topic" | "mode";
-
-/**
- * New exercise. "A topic": filters, Generate, and 10 concrete topics, each with its mode,
- * or your own scenario (PLAN-topic-ideas.md T2). "A mode": pick the skill first, then the
- * same filters and Generate, without the mode filter (T3).
- */
+/** New exercise on one screen (PLAN-refine R6). */
 export default function ReasoningPage() {
-  const [startFrom, setStartFrom] = useState<StartFrom>("topic");
-  const [pickedMode, setPickedMode] = useState<ThinkingType | null>(null);
-
-  useEffect(() => {
-    try {
-      // Read after mount so the server and first client render match.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (localStorage.getItem(START_FROM_KEY) === "mode") setStartFrom("mode");
-    } catch {
-      // Storage blocked: start from a topic.
-    }
-    const m = readSessionState<ThinkingType>(PICKED_MODE_KEY);
-    if (m && PRACTICE_EXERCISE_CARDS.some((c) => c.type === m)) setPickedMode(m);
-  }, []);
-
-  const chooseStart = (next: StartFrom) => {
-    setStartFrom(next);
-    try {
-      localStorage.setItem(START_FROM_KEY, next);
-    } catch {
-      // Only a convenience.
-    }
-  };
-
-  const panelRef = useRef<HTMLDivElement>(null);
-  const pickMode = (m: ThinkingType) => {
-    setPickedMode(m);
-    writeSessionState(PICKED_MODE_KEY, m);
-    // On a phone the panel sits below all the mode cards: bring it into view.
-    requestAnimationFrame(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
-  };
-
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
+    <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-8 px-4 pt-8 pb-24 sm:px-6">
       <PageHeader title="New exercise" />
-
-      <div className="space-y-2">
-        <p className="text-sm font-medium">Start from</p>
-        <div className="flex flex-wrap gap-x-4" role="radiogroup" aria-label="Start from">
-          {(
-            [
-              ["topic", "A topic"],
-              ["mode", "A mode"],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              role="radio"
-              aria-checked={startFrom === value}
-              onClick={() => chooseStart(value)}
-              className={cn(
-                "py-1 text-sm",
-                startFrom === value ? "font-medium text-foreground" : "text-faint hover:text-foreground",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <p className="text-meta text-muted-foreground">
-          {startFrom === "topic" ? "Get 10 topics, each with a mode." : "Pick a skill, then get 10 topics for it."}
-        </p>
-      </div>
-
-      {startFrom === "topic" ? <TopicIdeasPanel /> : null}
-
-      {startFrom === "mode" ? (
-        <div className="space-y-4">
-          <div className="grid gap-2.5 sm:grid-cols-2" role="radiogroup" aria-label="Exercise mode">
-            {PRACTICE_EXERCISE_CARDS.map((c) => (
-              <button
-                key={c.type}
-                type="button"
-                role="radio"
-                aria-checked={pickedMode === c.type}
-                onClick={() => pickMode(c.type as ThinkingType)}
-                className={cn(
-                  "rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/80",
-                  pickedMode === c.type ? "border-foreground ring-1 ring-foreground" : "border-border hover:border-input",
-                )}
-              >
-                <p className="section-label mb-1 text-faint">{c.label}</p>
-                <p className="text-sm font-medium text-foreground">{c.title}</p>
-                {c.desc ? <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{c.desc}</p> : null}
-              </button>
-            ))}
-          </div>
-          <div ref={panelRef} className="scroll-mt-20" data-testid="mode-panel">
-            {pickedMode ? (
-              <TopicIdeasPanel key={pickedMode} fixedMode={pickedMode} />
-            ) : (
-              <p className="text-muted-foreground text-sm">Pick a mode, then generate topics for it.</p>
-            )}
-          </div>
-        </div>
-      ) : null}
+      <NewExercise />
     </main>
   );
 }

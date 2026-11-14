@@ -141,7 +141,6 @@ test.describe("State preservation - leaving an exercise", () => {
     page,
   }) => {
     await gotoAuthenticated(page, "/reasoning");
-    await page.getByTestId("topic-generate").click();
     const list = page.getByTestId("topic-list").getByTestId("topic-row");
     await list.first().click();
     await page.waitForURL(/\/exercise\/judgment\?domain=/, { timeout: 15_000 });
@@ -150,14 +149,14 @@ test.describe("State preservation - leaving an exercise", () => {
     await expect(page).toHaveURL(/\/exercise\/judgment\?resumeId=/);
 
     await page.goBack();
-    await expect(list).toHaveCount(10);
+    await expect(list).toHaveCount(5);
     await page.goForward();
     await expect(page.getByTestId("concept-list")).toBeVisible({ timeout: 15_000 });
     await page.reload();
     await expect(page.getByTestId("concept-list")).toBeVisible({ timeout: 15_000 });
 
     await page.goBack();
-    await expect(list).toHaveCount(10);
+    await expect(list).toHaveCount(5);
     await list.first().click();
     await expect(page.getByTestId("unfinished-topic")).toBeVisible();
     await page.getByTestId("unfinished-continue").click();
