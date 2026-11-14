@@ -39,6 +39,7 @@ test.describe("Geo Lab", () => {
 
     await gotoAuthenticated(page, "/tracks");
     await expect(page.getByTestId("explore-tabs").getByRole("link", { name: "Geo Lab" })).toHaveAttribute("href", "/geo");
+    await page.getByRole("button", { name: /How countries trade and compete/ }).click();
     await expect(page.getByTestId("track-geo-lab-link")).toHaveCount(1);
   });
 

@@ -147,14 +147,16 @@ test.describe("AppTopNav navigation", () => {
   test("the path shows where you are: section, then page", async ({ page }) => {
     const nav = page.getByRole("navigation", { name: "Main" });
     for (const [path, section, here] of [
-      ["/reasoning", "Today", "New exercise"],
-      ["/exercise/evaluative", "Today", "Evaluative"],
+      // The exercise page goes last: leaving it mid-load can abort the next goto.
       ["/tracks", "Explore", "Tracks"],
       ["/geo", "Explore", "Geo Lab"],
       ["/simulators", "Explore", "Simulators"],
       ["/terms", "History", "My terms"],
+      ["/reasoning", "Today", "New exercise"],
+      ["/exercise/evaluative", "Today", "Evaluative"],
     ] as const) {
-      await gotoAuthenticated(page, path);
+      // A busy dev server can abort a goto that follows a heavy page; one retry.
+      await gotoAuthenticated(page, path).catch(() => gotoAuthenticated(page, path));
       await expect(nav.getByRole("link", { name: section, exact: true })).toBeVisible();
       await expect(nav.locator('[aria-current="page"]')).toHaveText(here);
     }

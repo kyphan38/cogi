@@ -414,6 +414,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     ],
     howToPractice: [
       "Start from \"Next up\" on the Today page, or from Explore > Tracks. Press Start for the next step.",
+      "On Explore > Tracks, your track is open at the top. Tap any other track to see its steps.",
       "The topic is filled in. Choose your level and press Generate.",
       "A step is done when you finish an exercise on that topic. One step a day is plenty.",
       "If you started a step, the button says Continue. To drop that exercise and start fresh, tap the small bin icon next to it.",

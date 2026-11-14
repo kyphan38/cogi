@@ -39,8 +39,19 @@ test.describe("Learning tracks", () => {
   test("the tracks page lists every track and step", async ({ page }) => {
     await gotoAuthenticated(page, "/tracks");
     await expect(page.getByTestId("track")).toHaveCount(7);
-    await expect(page.getByTestId("track-step")).toHaveCount(35);
-    await expect(page.getByText("How countries trade and compete")).toBeVisible();
+    // Your track is open with its steps and the page's one filled Start.
+    const mine = page.locator('[data-testid="track"][data-current="true"]');
+    await expect(mine).toContainText("Money and interest rates");
+    await expect(page.getByTestId("track-step")).toHaveCount(5);
+    await expect(mine.getByTestId("track-step-start")).toHaveAttribute("href", /\/exercise\/analytical\?domain=/);
+    // Another track opens in place, and closes again.
+    const row = page.getByRole("button", { name: /How countries trade and compete/ });
+    await expect(row).toHaveAttribute("aria-expanded", "false");
+    await row.click();
+    await expect(row).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByTestId("track-step")).toHaveCount(10);
+    await row.click();
+    await expect(page.getByTestId("track-step")).toHaveCount(5);
   });
 
   test("an unfinished step shows Continue with a visible discard icon on phones", async ({ page }) => {
