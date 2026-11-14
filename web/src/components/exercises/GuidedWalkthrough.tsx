@@ -241,7 +241,7 @@ export function GuidedWalkthrough({
                     className="flex flex-col items-start gap-0.5 rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:bg-muted"
                   >
                     <span className="font-medium">{TAG_LABELS[tag].label}</span>
-                    <span className="text-xs text-faint">{TAG_CHECK_QUESTIONS[tag]}</span>
+                    <span className="text-xs text-muted-foreground">{TAG_CHECK_QUESTIONS[tag]}</span>
                   </button>
                 ))}
               </div>

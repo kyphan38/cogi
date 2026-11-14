@@ -82,10 +82,8 @@ export default function ReasoningPage() {
             </button>
           ))}
         </div>
-        <p className="text-muted-foreground text-xs">
-          {startFrom === "topic"
-            ? "Not sure what to practise? Get 10 concrete topics, each with a mode, or start from your own situation."
-            : "You know which skill to train: pick a mode, then generate 10 topics for it or use your own situation."}
+        <p className="text-meta text-muted-foreground">
+          {startFrom === "topic" ? "Get 10 topics, each with a mode." : "Pick a skill, then get 10 topics for it."}
         </p>
       </div>
 

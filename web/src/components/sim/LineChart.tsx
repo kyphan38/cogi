@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 export interface LineSeries {
   name: string;
@@ -33,7 +33,20 @@ export function LineChart({
   title: string;
 }) {
   const id = useId();
-  const width = 320;
+  // Draw at the real pixel width, so text, strokes and dots keep their size
+  // instead of growing with the page (a fixed viewBox scaled them 2x on desktop).
+  const box = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(320);
+  useEffect(() => {
+    const el = box.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([entry]) => {
+      const w = Math.round(entry?.contentRect.width ?? 0);
+      if (w > 0) setWidth(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const pad = { top: 12, right: 12, bottom: 28, left: 12 };
   const all = series.flatMap((s) => s.points);
   const xs = all.map((p) => p.x);
@@ -64,10 +77,12 @@ export function LineChart({
           ))}
         </div>
       ) : null}
-      <div className="relative">
+      <div className="relative" ref={box}>
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="w-full text-foreground"
+          width={width}
+          height={height}
+          className="block max-w-full text-foreground"
           role="img"
           aria-label={`${title}. ${xLabel} from ${formatX(x0)} to ${formatX(x1)}.`}
           onPointerMove={(e) => {
@@ -90,13 +105,13 @@ export function LineChart({
             />
           ))}
           <line x1={pad.left} x2={width - pad.right} y1={sy(y0)} y2={sy(y0)} stroke="currentColor" strokeOpacity="0.3" />
-          <text x={pad.left} y={height - 8} fontSize="10" fill="currentColor" fillOpacity="0.6">
+          <text x={pad.left} y={height - 8} fontSize="12" fill="currentColor" fillOpacity="0.65">
             {formatX(x0)}
           </text>
-          <text x={width - pad.right} y={height - 8} fontSize="10" textAnchor="end" fill="currentColor" fillOpacity="0.6">
+          <text x={width - pad.right} y={height - 8} fontSize="12" textAnchor="end" fill="currentColor" fillOpacity="0.65">
             {formatX(x1)}
           </text>
-          <text x={width / 2} y={height - 8} fontSize="10" textAnchor="middle" fill="currentColor" fillOpacity="0.6">
+          <text x={width / 2} y={height - 8} fontSize="12" textAnchor="middle" fill="currentColor" fillOpacity="0.65">
             {xLabel}
           </text>
           {series.map((s) => (
@@ -116,7 +131,7 @@ export function LineChart({
               <line x1={sx(shownX)} x2={sx(shownX)} y1={pad.top} y2={sy(y0)} stroke="currentColor" strokeOpacity="0.25" />
               {series.map((s) => {
                 const p = s.points.find((q) => q.x === shownX) ?? s.points.reduce((b, q) => (Math.abs(q.x - shownX) < Math.abs(b.x - shownX) ? q : b));
-                return <circle key={s.name} cx={sx(p.x)} cy={sy(p.y)} r="4.5" fill="currentColor" stroke="white" strokeWidth="2" />;
+                return <circle key={s.name} cx={sx(p.x)} cy={sy(p.y)} r="4.5" fill="currentColor" stroke="var(--background)" strokeWidth="2" />;
               })}
             </>
           ) : null}

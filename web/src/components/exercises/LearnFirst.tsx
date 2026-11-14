@@ -27,7 +27,7 @@ export function ConceptList({ concepts }: { concepts: LearnConcept[] }) {
         <li key={c.term} className="border-t border-border pt-3">
           <p className="font-medium text-foreground">{c.term}</p>
           <p className="text-sm text-foreground/80">{c.plain}</p>
-          <p className="text-sm text-faint">Example: {c.example}</p>
+          <p className="text-sm text-muted-foreground">Example: {c.example}</p>
         </li>
       ))}
     </ul>

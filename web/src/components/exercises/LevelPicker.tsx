@@ -34,7 +34,7 @@ export function LevelPicker({
               )}
             >
               <span className="text-sm font-medium text-foreground">{LEVEL_LABELS[level]}</span>
-              <span className="text-xs text-faint">{descriptions[level]}</span>
+              <span className="text-xs text-muted-foreground">{descriptions[level]}</span>
             </button>
           );
         })}

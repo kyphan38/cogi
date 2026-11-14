@@ -24,7 +24,7 @@ export function SystemsLoopList({
             {l.kind ? (
               <p>
                 <span className="font-medium">{LOOP_KIND_INFO[l.kind].label}</span>
-                <span className="text-faint"> - {LOOP_KIND_INFO[l.kind].meaning}</span>
+                <span className="text-muted-foreground"> - {LOOP_KIND_INFO[l.kind].meaning}</span>
               </p>
             ) : null}
             <p className="text-muted-foreground">{[...l.nodes, l.nodes[0]!].map(label).join(" -> ")}</p>

@@ -36,16 +36,9 @@ test.describe("Settings page - layout and controls", () => {
     await expect(textarea).toHaveValue("I am a senior engineer focused on distributed systems");
   });
 
-  test("renders Save button and navigation links", async ({ page }) => {
+  test("renders Save button", async ({ page }) => {
     await gotoAuthenticated(page, "/settings");
     await expect(page.getByRole("button", { name: "Save" })).toBeVisible();
-    await expect(page.getByRole("main").getByRole("link", { name: "Home" })).toBeVisible();
-  });
-
-  test("Home link navigates to /", async ({ page }) => {
-    await gotoAuthenticated(page, "/settings");
-    await page.getByRole("main").getByRole("link", { name: "Home" }).click();
-    await expect(page).toHaveURL("/");
   });
 });
 
@@ -78,6 +71,7 @@ test.describe("Settings page - data backup card", () => {
     await expect(
       page.getByRole("button", { name: "Download JSON backup" }),
     ).toBeVisible();
-    await expect(page.getByLabel("Import JSON backup")).toBeVisible();
+    await expect(page.getByText("Import JSON backup", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Import JSON backup")).toHaveAttribute("type", "file");
   });
 });

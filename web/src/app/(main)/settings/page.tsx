@@ -6,7 +6,6 @@ import {
   useSyncExternalStore,
   type ChangeEvent,
 } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { Button } from "@/components/ui/button";
@@ -167,12 +166,9 @@ export default function SettingsPage() {
               <span key={l}>{l}</span>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Controls sentence complexity and vocabulary in generated exercises,
-            independent of difficulty. Your current real-world level is roughly
-            IELTS 6.0-6.5, so &quot;Intermediate&quot; is the default. Raise
-            this over time as your English improves.
-          </p>
+          {/* Sets sentence length and vocabulary in generated exercises, not
+              difficulty. Default Intermediate (about IELTS 6.0-6.5). */}
+          <p className="text-meta text-muted-foreground">Sets how hard the English is.</p>
         </section>
 
         <section className="mt-10 grid gap-2">
@@ -188,9 +184,6 @@ export default function SettingsPage() {
             <Button type="button" onClick={() => void save()}>
               Save
             </Button>
-            <Link href="/" className={WORD}>
-              Home
-            </Link>
             {saved ? (
               <span className="text-sm text-muted-foreground">Saved.</span>
             ) : null}
@@ -247,16 +240,17 @@ export default function SettingsPage() {
             >
               Download JSON backup
             </button>
-            <div className="grid gap-2">
-              <Label htmlFor="import-json">Import JSON backup</Label>
-              <input
-                id="import-json"
-                type="file"
-                accept="application/json,.json"
-                className="text-muted-foreground text-sm"
-                onChange={onImportFile}
-              />
-            </div>
+            {/* The file input is hidden; its label is the word you tap. */}
+            <label htmlFor="import-json" className={cn(WORD, "w-fit cursor-pointer")}>
+              Import JSON backup
+            </label>
+            <input
+              id="import-json"
+              type="file"
+              accept="application/json,.json"
+              className="sr-only"
+              onChange={onImportFile}
+            />
             {backupMsg ? (
               <p className="text-muted-foreground">{backupMsg}</p>
             ) : null}

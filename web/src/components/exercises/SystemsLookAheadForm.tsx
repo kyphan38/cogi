@@ -26,7 +26,7 @@ export function SystemsLookAheadForm({
       <div className="space-y-2">
         <p className="text-sm">Which loop drives this situation?</p>
         {loops.length === 0 ? (
-          <p className="text-sm text-faint">
+          <p className="text-sm text-muted-foreground">
             Your map has no loop yet. You can go back and look for one, or answer below without it.
           </p>
         ) : (

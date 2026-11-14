@@ -85,7 +85,7 @@ export function SemanticTagPicker({
             ) : null}
             <span className={geo ? undefined : "font-medium"}>{label}</span>
             {!geo && showQuestions && question ? (
-              <span className="text-xs font-normal text-faint">{question}</span>
+              <span className="text-xs font-normal text-muted-foreground">{question}</span>
             ) : null}
           </button>
         );

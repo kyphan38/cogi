@@ -11,7 +11,7 @@ function GuideList({ types }: { types: SystemsConnectionType[] }) {
         return (
           <li key={key} className="text-sm">
             <span className="font-medium text-foreground">A {t.label} B</span>
-            <span className="text-faint"> - {t.meaning}</span>
+            <span className="text-muted-foreground"> - {t.meaning}</span>
           </li>
         );
       })}

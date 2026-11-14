@@ -12,7 +12,7 @@ function QuestionList({ tags }: { tags: TagType[] }) {
       {tags.map((tag) => (
         <li key={tag} className="text-sm">
           <span className="text-foreground">{TAG_CHECK_QUESTIONS[tag]}</span>
-          <span className="text-faint"> - if yes: {TAG_LABELS[tag].label}</span>
+          <span className="text-muted-foreground"> - if yes: {TAG_LABELS[tag].label}</span>
         </li>
       ))}
     </ul>

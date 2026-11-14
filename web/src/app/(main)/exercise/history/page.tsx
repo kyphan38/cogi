@@ -188,16 +188,18 @@ function startOfWeekMonday(d: Date): Date {
   return x;
 }
 
+// Four gray steps far enough apart to tell at a glance (DESIGN.md: gray only,
+// the name always next to it). Opacity on ink works in light and dark.
 function typeSwatchClass(t: Exercise["type"]): string {
   switch (t) {
-    case "analytical":
-      return "bg-foreground/80";
-    case "systems":
-      return "bg-faint";
     case "evaluative":
-      return "bg-primary/90";
+      return "bg-foreground";
+    case "systems":
+      return "bg-foreground/55";
+    case "analytical":
+      return "bg-foreground/30";
     default:
-      return "bg-faint/70";
+      return "bg-foreground/15";
   }
 }
 
@@ -252,10 +254,11 @@ function HistoryActivityHeatmap({ rows }: { rows: Exercise[] }) {
     }
   }
 
-  const legend: { type: Exercise["type"]; label: string }[] = [
-    { type: "analytical", label: "Analytical" },
-    { type: "systems", label: "Systems" },
+  const legend: { type: Exercise["type"] | "other"; label: string }[] = [
     { type: "evaluative", label: "Evaluative" },
+    { type: "systems", label: "Systems" },
+    { type: "analytical", label: "Analytical" },
+    { type: "other", label: "Other" },
   ];
 
   return (
@@ -274,11 +277,6 @@ function HistoryActivityHeatmap({ rows }: { rows: Exercise[] }) {
           {cells}
         </div>
       </div>
-      <p className="text-muted-foreground text-xs leading-relaxed">
-        Each square is one day (Mon–Sun top to bottom; columns are weeks). If
-        you finish more than one exercise on a day, the color follows the latest
-        completion that day.
-      </p>
       <div className="flex flex-wrap gap-x-3 gap-y-1.5">
         {legend.map(({ type, label }) => (
           <div
@@ -288,7 +286,7 @@ function HistoryActivityHeatmap({ rows }: { rows: Exercise[] }) {
             <span
               className={cn(
                 "size-2.5 shrink-0 rounded-sm",
-                typeSwatchClass(type),
+                typeSwatchClass(type as Exercise["type"]),
               )}
             />
             <span>{label}</span>

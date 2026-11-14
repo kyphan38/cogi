@@ -458,7 +458,7 @@ export function HighlightTag({
       onMouseDown={(e) => e.preventDefault()}
     >
       <div className="shrink-0 border-b border-border/60 px-3 py-2">
-        <span className="text-sm text-faint" data-testid="pick-tag-prompt">
+        <span className="text-sm text-muted-foreground" data-testid="pick-tag-prompt">
           {editing ? "Change the tag:" : "Pick a tag:"}
         </span>
       </div>

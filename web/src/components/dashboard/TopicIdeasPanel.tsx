@@ -307,11 +307,7 @@ export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
                 Clear list and filters
               </button>
             </div>
-          ) : (
-            <p className="text-muted-foreground text-sm">
-              Choose filters if you like, then press Generate. Leave them on &quot;Any&quot; for a mix.
-            </p>
-          )}
+          ) : null}
 
           {!isCalibration && savedHere.length > 0 ? (
             <div className="space-y-2" data-testid="saved-topics">
