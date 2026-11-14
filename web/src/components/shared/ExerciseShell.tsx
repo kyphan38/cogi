@@ -163,7 +163,7 @@ export function ExerciseShell({
 
   return (
     <div className="mx-auto flex min-h-full w-full min-w-0 max-w-3xl flex-col gap-8 px-4 pt-8 pb-24 sm:px-6">
-      {/* Steps as words (DESIGN.md "Words as navigation"): done steps muted,
+      {/* Steps as words: done steps muted,
           the current one ink, later ones faint. */}
       <nav
         aria-label="Exercise progress"

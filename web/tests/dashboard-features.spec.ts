@@ -116,7 +116,7 @@ test.describe("AppTopNav navigation", () => {
   test("nav bar renders all primary links", async ({ page }) => {
     await gotoAuthenticated(page, "/");
     const nav = page.getByRole("navigation", { name: "Main" });
-    await expect(nav.getByRole("link")).toHaveText(["cogi", "practice", "history", "handbook", "settings"]);
+    await expect(nav.getByRole("link")).toHaveText(["cogi", "Practice", "History", "Handbook", "Settings"]);
   });
 
   test("the Handbook tab opens the handbook, active in the nav", async ({ page }) => {
