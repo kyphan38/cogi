@@ -40,7 +40,7 @@ export const HANDBOOK_START: { title: string; steps: string[]; rhythm: string } 
   title: "Start here",
   steps: [
     "Pick one exercise type and stay at Guided for your first few exercises. Life situations or Analytical are good first choices.",
-    "Do the Learning track on the Today page: one step a day is enough.",
+    "Do the step under \"Next up\" on the Today page: one step a day is enough.",
     "Read the feedback slowly. The most useful part is \"Next time, ask\": copy that question into your head, not the answer.",
     "Write one line in \"What will you take away?\" at the end. It makes the lesson stick.",
     "When the app suggests a higher level, try it. If it feels too hard, go back - that is normal.",
@@ -61,7 +61,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     ],
     howToPractice: [
       "Setup: choose a level and a topic, then press Generate.",
-      "Do the work. Your answers save by themselves, so you can stop and come back from Today > Continue.",
+      "Do the work. Your answers save by themselves, so you can stop and come back from Today > In progress.",
       "Do not want to finish one? Tap the small bin icon next to it in Continue (on a computer, it shows when you point at the row).",
       "Before feedback, set how sure you are. Later, compare it with your result.",
       "Finish with one takeaway line. History keeps everything.",
@@ -413,10 +413,11 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "You never have to think about what to practise next.",
     ],
     howToPractice: [
-      "Start from the Learning track card on the Today page, or from Explore > Tracks. Press Start for the next step.",
+      "Start from \"Next up\" on the Today page, or from Explore > Tracks. Press Start for the next step.",
       "The topic is filled in. Choose your level and press Generate.",
       "A step is done when you finish an exercise on that topic. One step a day is plenty.",
       "If you started a step, the button says Continue. To drop that exercise and start fresh, tap the small bin icon next to it.",
+      "Not today? Press \"not today\" and the step waits until tomorrow. Press \"show\" to bring it back.",
     ],
     tips: [
       "Some tracks have a simulator. Try it after a few steps to see the numbers behind the ideas.",
@@ -454,7 +455,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "A short daily quiz builds your mental map, a little each day.",
     ],
     howToPractice: [
-      "Open it from Explore > Geo Lab, the Geo Lab card on the Today page, or the geopolitics track.",
+      "Open it from Explore > Geo Lab, the Daily map quiz row on the Today page, or the geopolitics track.",
       "Daily map quiz: 5 places, about 2 minutes. Tap where each place is. The question tells you how close you need to be.",
       "Your tap puts a mark on the map. Tap again to move it. Press \"Check\" when you are sure.",
       "Not sure? Press \"I don't know\" to see the answer. That is fine.",

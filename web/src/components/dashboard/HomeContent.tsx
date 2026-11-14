@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { Trash2 } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
-import { ChevronRight, Plus, Trash2 } from "lucide-react";
 import {
   deleteExercise,
   listCompletedExercises,
@@ -14,65 +13,43 @@ import { logFirestoreQueryError } from "@/lib/db/firestore";
 import type { Exercise } from "@/lib/types/exercise";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
 import { computeStreak } from "@/lib/exercise/streak";
+import { currentTrack, trackProgress } from "@/lib/exercise/tracks";
 import { Section } from "@/components/shared/Section";
-import { TrackCard } from "@/components/dashboard/TrackCard";
-import { GeoLabCard } from "@/components/dashboard/GeoLabCard";
-import { DISCARD_BUTTON_CLASS } from "@/components/dashboard/discard-button";
-import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { NextUp, exerciseForStep } from "@/components/dashboard/NextUp";
+import { HomeExplore } from "@/components/dashboard/HomeExplore";
+import { DISCARD_BUTTON_CLASS } from "@/components/dashboard/discard-button";
 
-/** How many in-progress and recently finished exercises the start page lists. */
+/** How many unfinished exercises the page lists. */
 const HOME_LIST_SIZE = 5;
 
 function resumeHref(ex: Exercise): string {
   return `/exercise/${ex.type}?resumeId=${ex.id}`;
 }
 
+const noSubscribe = () => () => {};
+
+const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" });
+
 /**
- * Type and title on one line, domain below; both cut with "..." when too long. The
- * title must be a block to truncate: on an inline span, `truncate` only stops wrapping,
- * which stretched the row (and the page) past a phone screen.
+ * Today (PLAN-refine R5): one main action (the next track step), a way to
+ * start your own, unfinished work, and the Explore tools. Past work lives in
+ * History.
  */
-function ExerciseRowLabel({ ex }: { ex: Exercise }) {
-  return (
-    <div className="min-w-0 flex-1">
-      <div className="flex min-w-0 items-baseline gap-2">
-        <span className="text-muted-foreground shrink-0 text-xs font-medium uppercase">
-          {TYPE_LABEL[ex.type] ?? ex.type}
-        </span>
-        <span className="min-w-0 truncate font-medium">{ex.title}</span>
-      </div>
-      {ex.domain ? <p className="text-muted-foreground truncate text-xs">{ex.domain}</p> : null}
-    </div>
-  );
-}
-
-/** A plain row: hairline between rows, the title darkens on hover. */
-const rowLinkClass =
-  "group/row flex min-w-0 flex-1 items-center justify-between py-2.5 text-sm transition-colors";
-
-/** Start page: one way to begin, then pick up unfinished work or look back at recent ones. */
 export function HomeContent() {
-  const [incompleteExercises, setIncompleteExercises] = useState<Exercise[]>([]);
-  const [completedExercises, setCompletedExercises] = useState<Exercise[]>([]);
-  const [allCompleted, setAllCompleted] = useState<Exercise[] | null>(null);
-  const [allIncomplete, setAllIncomplete] = useState<Exercise[]>([]);
-  const [stats, setStats] = useState<{ completed: number; streak: number } | null>(null);
+  const [completed, setCompleted] = useState<Exercise[] | null>(null);
+  const [incomplete, setIncomplete] = useState<Exercise[]>([]);
+  // The device's date, not the server's: nothing on the server, the date in the browser.
+  const today = useSyncExternalStore(noSubscribe, () => DATE_FORMAT.format(new Date()), () => null);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const [incomplete, completed] = await Promise.all([
-          listIncompleteExercises(),
-          listCompletedExercises(),
-        ]);
+        const [inc, done] = await Promise.all([listIncompleteExercises(), listCompletedExercises()]);
         if (cancelled) return;
-        setIncompleteExercises(incomplete.slice(0, HOME_LIST_SIZE));
-        setAllIncomplete(incomplete);
-        setCompletedExercises(completed.slice(0, HOME_LIST_SIZE));
-        setAllCompleted(completed);
-        setStats({ completed: completed.length, streak: computeStreak(completed) });
+        setIncomplete(inc);
+        setCompleted(done);
       } catch (e) {
         if (!cancelled) logFirestoreQueryError("HomeContent", "listExercises", e);
       }
@@ -87,51 +64,68 @@ export function HomeContent() {
     e.stopPropagation();
     // A stray tap on a phone should not lose work.
     if (!window.confirm("Discard this unfinished exercise? This cannot be undone.")) return;
-    setIncompleteExercises((prev) => prev.filter((ex) => ex.id !== id));
-    setAllIncomplete((prev) => prev.filter((ex) => ex.id !== id));
+    setIncomplete((prev) => prev.filter((ex) => ex.id !== id));
     try {
       await deleteExercise(id);
     } catch {
-      // restore on failure
-      const rows = await listIncompleteExercises();
-      setIncompleteExercises(rows.slice(0, HOME_LIST_SIZE));
-      setAllIncomplete(rows);
+      setIncomplete(await listIncompleteExercises());
     }
   };
+
+  const stats = completed && completed.length > 0 ? { n: completed.length, streak: computeStreak(completed) } : null;
+
+  // The track step's own unfinished exercise is already under Next up.
+  const track = completed ? currentTrack(completed) : null;
+  const stepExercise = track && completed ? exerciseForStep(incomplete, trackProgress(track, completed).next) : undefined;
+  const inProgress = incomplete.filter((ex) => ex.id !== stepExercise?.id).slice(0, HOME_LIST_SIZE);
 
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
       <PageHeader
         title="Today"
         sub={
-          stats && stats.completed > 0 ? (
-            <span className="text-meta tabular-nums" data-testid="home-stats">
-              {stats.completed} completed · {stats.streak} day streak
+          today || stats ? (
+            <span className="text-meta">
+              {today}
+              {today && stats ? " · " : null}
+              {stats ? (
+                <span className="tabular-nums" data-testid="home-stats">
+                  {stats.n} completed · {stats.streak} day streak
+                </span>
+              ) : null}
             </span>
           ) : undefined
         }
-        action={
-          <Link href="/reasoning" className={cn(buttonVariants(), "inline-flex items-center gap-1.5")}>
-            <Plus className="size-4" aria-hidden />
-            New exercise
-          </Link>
-        }
       />
 
-      {allCompleted ? (
-        <TrackCard completed={allCompleted} incomplete={allIncomplete} onDiscard={discardIncomplete} />
-      ) : null}
+      {completed ? <NextUp completed={completed} incomplete={incomplete} onDiscard={discardIncomplete} /> : null}
 
-      <GeoLabCard completed={allCompleted} />
+      <Section title="Start your own">
+        <Link
+          href="/reasoning"
+          className="group/new flex h-12 items-center justify-between gap-4 rounded-lg border border-input bg-card px-4 transition-colors hover:border-foreground/40"
+        >
+          <span className="min-w-0 truncate text-body text-muted-foreground">A decision, a claim, a news story…</span>
+          <span className="shrink-0 text-sm text-muted-foreground transition-colors after:ml-1 after:content-['›'] group-hover/new:text-foreground">
+            New exercise
+          </span>
+        </Link>
+      </Section>
 
-      {incompleteExercises.length > 0 && (
-        <Section title="Continue">
-          <div className="divide-y border-y">
-            {incompleteExercises.map((ex) => (
-              <div key={ex.id} className="group/item flex items-center gap-1">
-                <Link href={resumeHref(ex)} className={rowLinkClass}>
-                  <ExerciseRowLabel ex={ex} />
-                  <ChevronRight className="ml-3 size-4 shrink-0 text-muted-foreground opacity-40 group-hover/row:opacity-100" aria-hidden />
+      {inProgress.length > 0 ? (
+        <Section title="In progress">
+          <div className="border-b border-border">
+            {inProgress.map((ex) => (
+              <div key={ex.id} className="group/item flex min-w-0 items-center gap-1 border-t border-border">
+                <Link href={resumeHref(ex)} className="group/row flex min-w-0 flex-1 items-center justify-between gap-4 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-body">{ex.title}</p>
+                    <p className="truncate text-meta text-muted-foreground">
+                      {TYPE_LABEL[ex.type] ?? ex.type}
+                      {ex.domain ? ` · ${ex.domain}` : ""}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-sm font-medium text-foreground after:ml-1 after:content-['›']">Continue</span>
                 </Link>
                 <button
                   type="button"
@@ -145,28 +139,9 @@ export function HomeContent() {
             ))}
           </div>
         </Section>
-      )}
+      ) : null}
 
-      {completedExercises.length > 0 && (
-        <Section title="Recently completed">
-          <div className="divide-y border-y">
-            {completedExercises.map((ex) => (
-              <Link
-                key={ex.id}
-                href={`/exercise/history?openExercise=${encodeURIComponent(ex.id)}`}
-                className={rowLinkClass}
-              >
-                <ExerciseRowLabel ex={ex} />
-                <ChevronRight className="ml-3 size-4 shrink-0 text-muted-foreground opacity-40 group-hover/row:opacity-100" aria-hidden />
-              </Link>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {incompleteExercises.length === 0 && completedExercises.length === 0 && (
-        <p className="text-muted-foreground text-sm italic">No exercises yet. Start with New exercise.</p>
-      )}
+      <HomeExplore completed={completed} />
     </main>
   );
 }

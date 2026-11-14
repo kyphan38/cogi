@@ -29,7 +29,28 @@ test.describe("Home page - resume and navigation", () => {
     await gotoAuthenticated(page, "/");
     await expect(page.getByRole("link", { name: "Math", exact: true })).toHaveCount(0);
     await expect(page.getByText("Learning Notes")).toHaveCount(0);
-    await expect(page.getByText("No exercises yet. Start with New exercise.")).toBeVisible();
+  });
+
+  test("Today: one filled button, Next up can wait until tomorrow", async ({ page }) => {
+    await gotoAuthenticated(page, "/");
+    const card = page.getByTestId("track-card");
+    await expect(card.getByTestId("track-next-step")).toHaveText("Start");
+    await expect(page.getByRole("main").locator(".bg-primary")).toHaveCount(1);
+    await card.getByTestId("next-up-skip").click();
+    await expect(card.getByTestId("track-next-step")).toHaveCount(0);
+    await expect(card.getByTestId("next-up-skipped")).toContainText("Back tomorrow.");
+    // Still hidden after a reload, the same day.
+    await page.reload();
+    await expect(page.getByTestId("next-up-skipped")).toBeVisible();
+    await page.getByTestId("next-up-skipped").getByRole("button", { name: "show" }).click();
+    await expect(card.getByTestId("track-next-step")).toBeVisible();
+  });
+
+  test("Today lists the Explore tools", async ({ page }) => {
+    await gotoAuthenticated(page, "/");
+    for (const [name, url] of [["Daily map quiz", "/geo"], ["Simulators", "/simulators"], ["All tracks", "/tracks"]] as const) {
+      await expect(page.getByRole("main").getByRole("link", { name: new RegExp(`^${name}`) }).last()).toHaveAttribute("href", url);
+    }
   });
 });
 
