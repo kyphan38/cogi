@@ -12,7 +12,7 @@ Commit only. Do not push unless explicitly asked.
 
 ## Handbook (user docs) - keep it in sync
 
-The in-app Handbook (`/handbook`, tab next to Practice / History / Settings) explains every
+The in-app Handbook (`/handbook`, tab next to Today / Explore / History / Settings) explains every
 user-facing feature. Its content lives in `web/src/lib/handbook/content.ts`.
 
 When you add a feature or change how one works (a new exercise type, a level, a tool, a

@@ -16,7 +16,7 @@ function quizStatus(completed: Exercise[]): string {
     : "Today's map quiz is ready.";
 }
 
-/** Practice page: a door to the Geo Lab with today's map quiz status (PLAN-geopolitics.md G2). */
+/** Today page: a door to the Geo Lab with today's map quiz status (PLAN-geopolitics.md G2). */
 export function GeoLabCard({ completed }: { completed: Exercise[] | null }) {
   return (
     <Section data-testid="geo-lab-card" title="Geo Lab">

@@ -15,7 +15,7 @@ test.describe("Home page - resume and navigation", () => {
   test("renders the home heading", async ({ page }) => {
     await gotoAuthenticated(page, "/");
     await expect(
-      page.getByRole("heading", { name: "Practice" }),
+      page.getByRole("heading", { name: "Today", level: 1 }),
     ).toBeVisible();
   });
 
@@ -116,7 +116,7 @@ test.describe("AppTopNav navigation", () => {
   test("nav bar renders all primary links", async ({ page }) => {
     await gotoAuthenticated(page, "/");
     const nav = page.getByRole("navigation", { name: "Main" });
-    await expect(nav.getByRole("link")).toHaveText(["cogi", "Practice", "History", "Handbook", "Settings"]);
+    await expect(nav.getByRole("link")).toHaveText(["cogi", "Today", "Explore", "History", "Handbook", "Settings"]);
   });
 
   test("the Handbook tab opens the handbook, active in the nav", async ({ page }) => {
@@ -132,12 +132,31 @@ test.describe("AppTopNav navigation", () => {
     await expect(page).toHaveURL(/#strategy$/);
   });
 
-  test("Practice stays active while picking and doing an exercise", async ({ page }) => {
+  test("the path shows where you are: section, then page", async ({ page }) => {
     const nav = page.getByRole("navigation", { name: "Main" });
-    for (const path of ["/reasoning", "/exercise/evaluative"]) {
+    for (const [path, section, here] of [
+      ["/reasoning", "Today", "New exercise"],
+      ["/exercise/evaluative", "Today", "Evaluative"],
+      ["/tracks", "Explore", "Tracks"],
+      ["/geo", "Explore", "Geo Lab"],
+      ["/simulators", "Explore", "Simulators"],
+      ["/terms", "History", "My terms"],
+    ] as const) {
       await gotoAuthenticated(page, path);
-      await expect(nav.getByRole("link", { name: "Practice" })).toHaveClass(/font-medium/);
+      await expect(nav.getByRole("link", { name: section, exact: true })).toBeVisible();
+      await expect(nav.locator('[aria-current="page"]')).toHaveText(here);
     }
+  });
+
+  test("Explore opens Tracks, with tabs to Geo Lab and Simulators", async ({ page }) => {
+    await gotoAuthenticated(page, "/");
+    await clickMainNavLink(page, "Explore", "/tracks");
+    const tabs = page.getByTestId("explore-tabs");
+    await expect(tabs.getByRole("link")).toHaveText(["Tracks", "Geo Lab", "Simulators"]);
+    await expect(tabs.getByRole("link", { name: "Tracks" })).toHaveAttribute("aria-current", "page");
+    await tabs.getByRole("link", { name: "Simulators" }).click();
+    await expect(page).toHaveURL(/\/simulators$/);
+    await expect(page.getByRole("heading", { name: "Simulators", level: 1 })).toBeVisible();
   });
 
   test("navigating to /settings via nav link", async ({ page }) => {
@@ -160,7 +179,7 @@ test.describe("AppTopNav navigation", () => {
     await clickMainNavLink(page, "History", "/exercise/history");
     await expect(nav).toBeVisible();
 
-    await clickMainNavLink(page, "Practice", "/");
+    await clickMainNavLink(page, "Today", "/");
     await expect(nav).toBeVisible();
   });
 

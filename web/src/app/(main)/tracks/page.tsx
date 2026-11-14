@@ -11,6 +11,7 @@ import type { Exercise } from "@/lib/types/exercise";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
 import { TRACKS, trackProgress, trackStepHref } from "@/lib/exercise/tracks";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { ExploreTabs } from "@/components/shell/ExploreTabs";
 
 const AREA_LABELS = {
   finance: "Finance",
@@ -38,21 +39,7 @@ export default function TracksPage() {
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
       <div className="space-y-3">
         <PageHeader title="Learning tracks" sub="One exercise a day, in order." />
-        <div className="flex flex-col gap-1">
-          <Link
-            href="/simulators"
-            className="text-sm after:ml-1 after:content-['›']"
-          >
-            Simulators: play with loans, savings and import prices
-          </Link>
-          <Link
-            href="/geo"
-            className="text-sm after:ml-1 after:content-['›']"
-            data-testid="tracks-geo-lab-link"
-          >
-            Geo Lab: maps, sea routes and a daily map quiz
-          </Link>
-        </div>
+        <ExploreTabs />
       </div>
       {TRACKS.map((track) => {
         const { doneIds, next } = trackProgress(track, completed ?? []);

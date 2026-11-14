@@ -41,7 +41,7 @@ test.describe("Simulators", () => {
 
   test("tracks link to their simulator", async ({ page }) => {
     await gotoAuthenticated(page, "/tracks");
-    await expect(page.getByTestId("track-simulator-link")).toHaveCount(3);
+    await expect(page.getByTestId("track-simulator-link")).toHaveCount(4);
     await expect(page.getByTestId("track-simulator-link").first()).toHaveAttribute("href", "/simulators#loan");
   });
 });

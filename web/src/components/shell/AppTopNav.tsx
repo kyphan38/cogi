@@ -3,38 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const links = [
-  { href: "/", label: "Practice" },
-  { href: "/exercise/history", label: "History" },
-  { href: "/handbook", label: "Handbook" },
-  { href: "/settings", label: "Settings" },
-] as const;
-
-/** Practice covers the start page, the exercise picker and exercises in progress. */
-function isPracticePath(pathname: string | null): boolean {
-  if (!pathname || pathname === "/") return true;
-  if (pathname === "/reasoning") return true;
-  return (
-    pathname.startsWith("/exercise/") &&
-    !pathname.startsWith("/exercise/history")
-  );
-}
-
-function isActive(href: string, pathname: string | null): boolean {
-  return href === "/"
-    ? isPracticePath(pathname)
-    : pathname === href || (pathname?.startsWith(href + "/") ?? false);
-}
+import { NAV_SECTIONS, navPlace } from "@/lib/nav/place";
 
 /**
  * cogi's own nav (DESIGN.md "Nav: one signature per app"): a path on the
- * left, `cogi / Practice`, and the other places as plain sans words on the
- * right. Sign out lives in Settings.
+ * left, `cogi / Today / Evaluative`, and the other places as plain sans words
+ * on the right. The last part of the path is the current place: ink, medium.
+ * Below 420px the path is just the section.
+ * Sign out lives in Settings.
  */
 export function AppTopNav() {
   const pathname = usePathname();
-  const current = links.find((l) => isActive(l.href, pathname)) ?? links[0];
-  const others = links.filter((l) => l !== current);
+  const { section, page } = navPlace(pathname);
+  const others = NAV_SECTIONS.filter((s) => s.href !== section.href);
 
   return (
     <header className="mx-auto w-full max-w-3xl px-4 pt-[calc(env(safe-area-inset-top)+12px)] sm:px-6">
@@ -54,14 +35,29 @@ export function AppTopNav() {
             /
           </span>
           <Link
-            href={current.href}
-            aria-current="page"
-            className="truncate py-2 font-medium text-foreground"
+            href={section.href}
+            aria-current={page ? undefined : "page"}
+            className={
+              page
+                ? "shrink-0 py-2 font-medium text-foreground min-[420px]:font-normal"
+                : "truncate py-2 font-medium text-foreground"
+            }
           >
-            {current.label}
+            {section.label}
           </Link>
+          {/* On narrow phones only the section shows; the page title says the rest. */}
+          {page ? (
+            <>
+              <span className="hidden text-muted-foreground/60 min-[420px]:inline" aria-hidden>
+                /
+              </span>
+              <span aria-current="page" className="hidden min-w-0 truncate py-2 font-medium text-foreground min-[420px]:inline">
+                {page}
+              </span>
+            </>
+          ) : null}
         </div>
-        <div className="flex shrink-0 items-baseline gap-4 text-meta">
+        <div className="flex shrink-0 items-baseline gap-3 text-meta sm:gap-4">
           {others.map(({ href, label }) => (
             <Link
               key={href}

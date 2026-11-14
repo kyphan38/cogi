@@ -102,7 +102,7 @@ export function HomeContent() {
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
       <PageHeader
-        title="Practice"
+        title="Today"
         sub={
           stats && stats.completed > 0 ? (
             <span className="text-meta tabular-nums" data-testid="home-stats">

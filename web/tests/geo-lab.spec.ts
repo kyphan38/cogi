@@ -29,7 +29,7 @@ test.describe("Geo Lab", () => {
     await stubFirestoreReads(page);
   });
 
-  test("Practice links to the Geo Lab, and the geopolitics track does too", async ({ page }) => {
+  test("Today links to the Geo Lab, and so do the Explore tabs and the geopolitics track", async ({ page }) => {
     await gotoAuthenticated(page, "/");
     await expect(page.getByTestId("geo-lab-card")).toBeVisible();
     await expect(page.getByTestId("geo-lab-card-status")).toHaveText("Today's map quiz is ready.");
@@ -38,7 +38,7 @@ test.describe("Geo Lab", () => {
     await expect(page.getByRole("heading", { name: "Geo Lab" })).toBeVisible();
 
     await gotoAuthenticated(page, "/tracks");
-    await expect(page.getByTestId("tracks-geo-lab-link")).toHaveAttribute("href", "/geo");
+    await expect(page.getByTestId("explore-tabs").getByRole("link", { name: "Geo Lab" })).toHaveAttribute("href", "/geo");
     await expect(page.getByTestId("track-geo-lab-link")).toHaveCount(1);
   });
 

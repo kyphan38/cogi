@@ -40,7 +40,7 @@ export const HANDBOOK_START: { title: string; steps: string[]; rhythm: string } 
   title: "Start here",
   steps: [
     "Pick one exercise type and stay at Guided for your first few exercises. Life situations or Analytical are good first choices.",
-    "Do the Learning track on the Practice page: one step a day is enough.",
+    "Do the Learning track on the Today page: one step a day is enough.",
     "Read the feedback slowly. The most useful part is \"Next time, ask\": copy that question into your head, not the answer.",
     "Write one line in \"What will you take away?\" at the end. It makes the lesson stick.",
     "When the app suggests a higher level, try it. If it feels too hard, go back - that is normal.",
@@ -61,7 +61,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     ],
     howToPractice: [
       "Setup: choose a level and a topic, then press Generate.",
-      "Do the work. Your answers save by themselves, so you can stop and come back from Practice > Continue.",
+      "Do the work. Your answers save by themselves, so you can stop and come back from Today > Continue.",
       "Do not want to finish one? Tap the small bin icon next to it in Continue (on a computer, it shows when you point at the row).",
       "Before feedback, set how sure you are. Later, compare it with your result.",
       "Finish with one takeaway line. History keeps everything.",
@@ -76,7 +76,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     title: "Choosing what to practise",
     href: "/reasoning",
     group: "basics",
-    trains: "Two ways to start on the Practice page: from a topic, or from a mode.",
+    trains: "Two ways to start, from Today > New exercise: from a topic, or from a mode.",
     benefits: [
       "You never get stuck on a blank topic box.",
       "Every topic ends up in the exercise that trains it best.",
@@ -91,7 +91,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Like a topic? Tap the bookmark next to it. Saved topics show under \"Saved topics\", so you can start them later without generating again. Tap the bookmark again to remove one.",
       "Go back from an exercise and your list of topics is still there. Press \"Clear list and filters\" to start fresh.",
       "Left an exercise half way? Back, Forward or a reload opens it at the same step. Open the same topic again and you can choose Continue or Start over.",
-      "Inside an exercise, the quick buttons (Work, Family, Negotiation...) are a shortcut for a broad area. The Practice page is for a specific topic.",
+      "Inside an exercise, the quick buttons (Work, Family, Negotiation...) are a shortcut for a broad area. New exercise is for a specific topic.",
       "Calibration uses a checked question bank, so it offers its own topics (Science, History, Vietnam...) without Generate.",
       "Nothing is generated until you press Generate.",
     ],
@@ -398,7 +398,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     tips: [
       "Ask \"who would write it this way?\" before you tag anything.",
       "A trap can sound one-sided and still be a well-supported fact.",
-      "For real practice, paste an article from a think tank or newspaper (Practice > New exercise > Specific scenario).",
+      "For real practice, paste an article from a think tank or newspaper (Today > New exercise > Specific scenario).",
       "To see the places and sea routes on a map, open the Geo Lab.",
     ],
   },
@@ -413,7 +413,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "You never have to think about what to practise next.",
     ],
     howToPractice: [
-      "Start from the Learning track card on the Practice page. Press Start for the next step.",
+      "Start from the Learning track card on the Today page, or from Explore > Tracks. Press Start for the next step.",
       "The topic is filled in. Choose your level and press Generate.",
       "A step is done when you finish an exercise on that topic. One step a day is plenty.",
       "If you started a step, the button says Continue. To drop that exercise and start fresh, tap the small bin icon next to it.",
@@ -435,6 +435,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "These are exact formulas, not forecasts, so you can trust the numbers.",
     ],
     howToPractice: [
+      "Open it from Explore > Simulators, or from a track that has one.",
       "Answer the \"Guess first\" question before you touch the sliders.",
       "After you answer, the sliders jump to that case. Check the numbers.",
       "Then move one slider at a time and watch what changes.",
@@ -453,7 +454,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "A short daily quiz builds your mental map, a little each day.",
     ],
     howToPractice: [
-      "Open it from the Geo Lab card on the Practice page, or from the geopolitics track.",
+      "Open it from Explore > Geo Lab, the Geo Lab card on the Today page, or the geopolitics track.",
       "Daily map quiz: 5 places, about 2 minutes. Tap where each place is. The question tells you how close you need to be.",
       "Your tap puts a mark on the map. Tap again to move it. Press \"Check\" when you are sure.",
       "Not sure? Press \"I don't know\" to see the answer. That is fine.",

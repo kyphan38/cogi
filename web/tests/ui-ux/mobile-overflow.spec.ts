@@ -131,7 +131,7 @@ for (const width of [360, 390]) {
       await generateExercise(page, LONG_DOMAIN);
       await expect(page.getByText(LONG_TITLE)).toBeVisible({ timeout: 15_000 });
       // Client navigation: the e2e store lives in the page, a reload would empty it.
-      await clickMainNavLink(page, "Practice", /\/$/);
+      await clickMainNavLink(page, "Today", /\/$/);
       await expect(page.getByText("Continue", { exact: true })).toBeVisible();
       await expect(page.getByText(LONG_TITLE)).toBeVisible();
       expect(await layoutProblems(page)).toEqual([]);

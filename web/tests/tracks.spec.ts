@@ -30,7 +30,7 @@ test.describe("Learning tracks", () => {
     await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 15_000 });
 
     // Client navigation keeps the in-page e2e store.
-    await clickMainNavLink(page, "Practice", /\/$/);
+    await clickMainNavLink(page, "Today", /\/$/);
     const card = page.getByTestId("track-card");
     await expect(card).toContainText("1 of 5 steps done");
     await expect(card).toContainText("Step 2 · Systems");
@@ -49,7 +49,7 @@ test.describe("Learning tracks", () => {
     await generateExercise(page, FIRST_DOMAIN);
     await expect(page.getByText("Structural reasoning passage")).toBeVisible({ timeout: 15_000 });
     // Leave it unfinished (client navigation keeps the e2e store).
-    await clickMainNavLink(page, "Practice", /\/$/);
+    await clickMainNavLink(page, "Today", /\/$/);
 
     const card = page.getByTestId("track-card");
     await expect(card.getByTestId("track-next-step")).toHaveText(/Continue/);
