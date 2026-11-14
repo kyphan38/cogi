@@ -55,7 +55,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           // A new id is a new toast: its own entry animation.
           key={shown.id}
           className={cn(
-            "toast-cogi pointer-events-auto flex max-w-[min(360px,calc(100vw-2rem))] items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-primary-foreground",
+            "toast-cogi pointer-events-auto flex max-w-[min(360px,calc(100vw-2rem))] items-center gap-3 rounded-xl px-4 py-3 text-body font-medium text-primary-foreground",
             shown.type === "success" && "toast-cogi-success",
             shown.type === "error" && "toast-cogi-error",
             shown.type === "info" && "toast-cogi-info",
@@ -64,7 +64,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           role="status"
           aria-hidden={leaving || undefined}
         >
-          <span aria-hidden className="shrink-0 text-base leading-none opacity-90">
+          <span aria-hidden className="shrink-0 text-body leading-none opacity-90">
             {shown.type === "success" ? "✓" : shown.type === "error" ? "✕" : "ℹ"}
           </span>
           <span className="min-w-0 flex-1">{shown.message}</span>

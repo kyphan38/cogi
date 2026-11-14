@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 export function ExploreTabs() {
   const { page } = navPlace(usePathname());
   return (
-    <nav aria-label="Explore" className="flex flex-wrap gap-x-5 gap-y-1 text-sm" data-testid="explore-tabs">
+    <nav aria-label="Explore" className="flex flex-wrap gap-x-5 gap-y-1 text-body" data-testid="explore-tabs">
       {EXPLORE_PAGES.map(({ href, label }) => {
         const current = label === page;
         return (

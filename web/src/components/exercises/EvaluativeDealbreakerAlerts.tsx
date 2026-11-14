@@ -12,11 +12,11 @@ export function EvaluativeDealbreakerAlerts({
   if (disqualified.length === 0) return null;
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium">Deal-breaker disqualifications</p>
+      <p className="text-body font-medium">Deal-breaker disqualifications</p>
       {disqualified.map((d) => (
         <Alert key={d.optionId} variant="destructive">
-          <AlertTitle className="text-sm">{d.optionTitle} disqualified</AlertTitle>
-          <AlertDescription className="text-sm">
+          <AlertTitle className="text-body">{d.optionTitle} disqualified</AlertTitle>
+          <AlertDescription className="text-body">
             {d.reasons.map((r) => (
               <div key={r.criterionId}>
                 Scored {r.userScore}/5 on deal-breaker criterion &quot;{r.criterionLabel}&quot;

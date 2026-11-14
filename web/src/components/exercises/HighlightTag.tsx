@@ -137,7 +137,7 @@ function HighlightTagBadge({ tag, geoContext = false }: { tag: TagType; geoConte
     return (
       <span
         className={cn(
-          "mr-2 inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-xs font-medium",
+          "mr-2 inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-meta font-medium",
           accent.chipClass,
         )}
       >
@@ -152,7 +152,7 @@ function HighlightTagBadge({ tag, geoContext = false }: { tag: TagType; geoConte
   return (
     <span
       className={cn(
-        "mr-2 inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium",
+        "mr-2 inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-meta font-medium",
         TAG_LABELS[tag].colorClass,
       )}
     >
@@ -458,7 +458,7 @@ export function HighlightTag({
       onMouseDown={(e) => e.preventDefault()}
     >
       <div className="shrink-0 border-b border-border/60 px-3 py-2">
-        <span className="text-sm text-muted-foreground" data-testid="pick-tag-prompt">
+        <span className="text-body text-muted-foreground" data-testid="pick-tag-prompt">
           {editing ? "Change the tag:" : "Pick a tag:"}
         </span>
       </div>
@@ -504,7 +504,7 @@ export function HighlightTag({
     staged && !pending && hintStyle ? (
       <div
         data-testid="tag-selection-hint"
-        className="pointer-events-none fixed z-[199] rounded-full border border-border bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
+        className="pointer-events-none fixed z-[199] rounded-full border border-border bg-primary px-3 py-1.5 text-meta font-medium text-primary-foreground"
         style={hintStyle}
       >
         Tap selection to tag
@@ -521,7 +521,7 @@ export function HighlightTag({
   return (
     <div className="space-y-4">
       {sentenceMode ? (
-        <p className="text-muted-foreground text-sm" data-testid="sentence-mode-hint">
+        <p className="text-muted-foreground text-body" data-testid="sentence-mode-hint">
           Tap a sentence to tag it. Tap a tagged sentence to change or remove its tag.
         </p>
       ) : null}
@@ -529,7 +529,7 @@ export function HighlightTag({
         ref={ref}
         data-testid="text-passage"
         className={cn(
-          "touch-manipulation whitespace-pre-wrap border-l-2 border-border pl-4 text-base leading-[1.75] text-foreground",
+          "touch-manipulation whitespace-pre-wrap border-l-2 border-border pl-4 text-body leading-[1.75] text-foreground",
           sentenceMode ? "select-none" : "select-text cursor-text [-webkit-user-select:text]",
         )}
         onPointerUp={onPointerUp}
@@ -591,7 +591,7 @@ export function HighlightTag({
         : null}
 
       {highlights.length > 0 ? (
-        <ul className="space-y-2 text-sm">
+        <ul className="space-y-2 text-body">
           {highlights.map((h) => (
             <li
               key={h.id}

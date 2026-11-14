@@ -21,14 +21,14 @@ function EntryCard({ entry }: { entry: HandbookEntry }) {
     <Card id={entry.id} className="scroll-mt-20" data-testid="handbook-entry">
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <CardTitle className="text-base">{entry.title}</CardTitle>
-          <Link href={entry.href} className="text-xs after:ml-1 after:content-['›']">
+          <CardTitle className="text-body">{entry.title}</CardTitle>
+          <Link href={entry.href} className="text-meta after:ml-1 after:content-['›']">
             Open
           </Link>
         </div>
-        <p className="text-muted-foreground text-sm">{entry.trains}</p>
+        <p className="text-muted-foreground text-body">{entry.trains}</p>
       </CardHeader>
-      <CardContent className="space-y-4 text-sm leading-relaxed">
+      <CardContent className="space-y-4 text-body leading-relaxed">
         <section className="space-y-1">
           <h3 className="text-foreground font-medium">What you get</h3>
           <List items={entry.benefits} />
@@ -68,7 +68,7 @@ export default function HandbookPage() {
         sub="What each part trains, and how to practise it."
       />
 
-      <nav aria-label="Handbook contents" className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm" data-testid="handbook-contents">
+      <nav aria-label="Handbook contents" className="flex flex-wrap gap-x-4 gap-y-1.5 text-body" data-testid="handbook-contents">
         {HANDBOOK_ENTRIES.map((e) => (
           <a key={e.id} href={`#${e.id}`} className="text-muted-foreground hover:text-foreground active:text-foreground">
             {e.title}
@@ -78,9 +78,9 @@ export default function HandbookPage() {
 
       <Card data-testid="handbook-start">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">{HANDBOOK_START.title}</CardTitle>
+          <CardTitle className="text-body">{HANDBOOK_START.title}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm leading-relaxed">
+        <CardContent className="space-y-3 text-body leading-relaxed">
           <ol className="list-decimal space-y-1 pl-5">
             {HANDBOOK_START.steps.map((s) => (
               <li key={s}>{s}</li>
@@ -92,7 +92,7 @@ export default function HandbookPage() {
 
       {HANDBOOK_GROUPS.map((g) => (
         <section key={g.id} className="space-y-4">
-          <h2 className="text-lg font-semibold tracking-tight">{g.title}</h2>
+          <h2 className="text-lead font-semibold tracking-tight">{g.title}</h2>
           {HANDBOOK_ENTRIES.filter((e) => e.group === g.id).map((e) => (
             <EntryCard key={e.id} entry={e} />
           ))}

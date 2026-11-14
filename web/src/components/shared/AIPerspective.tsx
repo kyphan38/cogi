@@ -37,7 +37,7 @@ function PerspectivePoint({ children }: { children: ReactNode }) {
 
 function CriterionBreakdownTable({ breakdown }: { breakdown: EvaluativeScoringCriterionBreakdown }) {
   return (
-    <div className="border-muted border-l-2 pl-3 text-xs">
+    <div className="border-muted border-l-2 pl-3 text-meta">
       <p className="text-foreground mb-1 font-medium">
         Your weight: {breakdown.userWeight}/5
         {breakdown.aiSuggestedWeight != null ? (
@@ -104,14 +104,14 @@ export function AIPerspective({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">AI perspective</CardTitle>
+        <CardTitle className="text-lead">AI perspective</CardTitle>
         {suitableFor ? (
-          <p className="text-muted-foreground text-sm font-normal">{suitableFor}</p>
+          <p className="text-muted-foreground text-body font-normal">{suitableFor}</p>
         ) : null}
       </CardHeader>
       <CardContent className="max-h-[min(70vh,720px)] overflow-y-auto pr-1">
         {viewModel?.format === "clarity_v2" ? (
-          <div className="text-muted-foreground space-y-6 text-sm leading-relaxed">
+          <div className="text-muted-foreground space-y-6 text-body leading-relaxed">
             <ul className={list}>
               {viewModel.blocks.map((b) => {
                 const breakdown = breakdownById.get(b.id);
@@ -122,7 +122,7 @@ export function AIPerspective({
                       {breakdown ? (
                         <CriterionBreakdownTable breakdown={breakdown} />
                       ) : b.userSnippet ? (
-                        <div className="border-muted border-l-2 pl-3 text-xs">
+                        <div className="border-muted border-l-2 pl-3 text-meta">
                           <span className="text-foreground font-medium">You wrote / selected: </span>
                           <span className="whitespace-pre-wrap">{b.userSnippet}</span>
                         </div>
@@ -155,7 +155,7 @@ export function AIPerspective({
             ) : null}
           </div>
         ) : legacySections ? (
-          <div className="text-muted-foreground space-y-6 text-sm leading-relaxed">
+          <div className="text-muted-foreground space-y-6 text-body leading-relaxed">
             {legacySections.map((sec) => (
               <div key={sec.key}>
                 <h3 className="text-foreground mb-3 font-semibold">{sec.title}</h3>
@@ -178,7 +178,7 @@ export function AIPerspective({
             ))}
           </div>
         ) : (
-          <div className="text-muted-foreground whitespace-pre-wrap text-sm leading-relaxed">
+          <div className="text-muted-foreground whitespace-pre-wrap text-body leading-relaxed">
             {text}
           </div>
         )}

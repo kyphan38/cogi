@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 // A notice is a thin rule on the left, not a box (DESIGN.md "Layout").
 const alertVariants = cva(
-  "group/alert relative grid w-full gap-0.5 border-l-2 border-input py-1 pl-3 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4",
+  "group/alert relative grid w-full gap-0.5 border-l-2 border-input py-1 pl-3 text-left text-body has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -56,7 +56,7 @@ function AlertDescription({
     <div
       data-slot="alert-description"
       className={cn(
-        "text-sm text-balance text-muted-foreground md:text-pretty [&_a]:font-medium [&_a]:text-foreground [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4",
+        "text-body text-balance text-muted-foreground md:text-pretty [&_a]:font-medium [&_a]:text-foreground [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4",
         className,
       )}
       {...props}

@@ -66,9 +66,9 @@ export function SystemsAnswerKey({
   return (
     <Card data-testid="systems-answer-key">
       <CardHeader>
-        <CardTitle className="text-lg">Compared with the model</CardTitle>
+        <CardTitle className="text-lead">Compared with the model</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6 text-sm leading-relaxed">
+      <CardContent className="space-y-6 text-body leading-relaxed">
         <div className="grid grid-cols-3 gap-2">
           <Stat label="Sound links" value={`${sound.sound}/${sound.total}`} />
           <Stat label="Right sign" value={`${result.connectionsExact}/${result.connectionsTotal}`} />

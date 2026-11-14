@@ -22,11 +22,11 @@ export function SystemsLookAheadForm({
   const pickedKey = value.loop?.join(">") ?? null;
   return (
     <div className="space-y-4 border-t pt-3" data-testid="look-ahead">
-      <p className="text-sm font-medium text-foreground">Look ahead</p>
+      <p className="text-body font-medium text-foreground">Look ahead</p>
       <div className="space-y-2">
-        <p className="text-sm">Which loop drives this situation?</p>
+        <p className="text-body">Which loop drives this situation?</p>
         {loops.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             Your map has no loop yet. You can go back and look for one, or answer below without it.
           </p>
         ) : (

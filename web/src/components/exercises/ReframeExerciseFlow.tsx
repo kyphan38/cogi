@@ -114,13 +114,13 @@ function TrapPicker({
             disabled={disabled}
             onClick={() => onPick(a)}
             className={cn(
-              "rounded-xl border px-3 py-2 text-left text-sm disabled:cursor-default",
+              "rounded-xl border px-3 py-2 text-left text-body disabled:cursor-default",
               isPicked ? "border-foreground bg-muted font-medium" : "border-border hover:bg-muted",
               a === "realistic" && !isPicked ? "border-dashed" : null,
             )}
           >
             <span className="block">{info.name}</span>
-            {showQuestions ? <span className="text-muted-foreground block text-xs font-normal">{info.question}</span> : null}
+            {showQuestions ? <span className="text-muted-foreground block text-meta font-normal">{info.question}</span> : null}
           </button>
         );
       })}
@@ -130,7 +130,7 @@ function TrapPicker({
 
 function TrapGuide({ options }: { options: ReframeAnswer[] }) {
   return (
-    <details className="border-t border-border pt-2 text-sm" data-testid="trap-guide">
+    <details className="border-t border-border pt-2 text-body" data-testid="trap-guide">
       <summary className="cursor-pointer font-medium">Trap guide: the question behind each name</summary>
       <ul className="mt-2 space-y-1">
         {options.map((a) => {
@@ -438,12 +438,12 @@ export function ReframeExerciseFlow({
 
   const scenarioBlock = exercise ? (
     <div className="space-y-2">
-      <div className="whitespace-pre-wrap border-l-2 border-border pl-4 text-base leading-[1.75] text-foreground">
+      <div className="whitespace-pre-wrap border-l-2 border-border pl-4 text-body leading-[1.75] text-foreground">
         {exercise.scenario}
       </div>
       <button
         type="button"
-        className="text-muted-foreground text-xs hover:text-foreground active:text-foreground"
+        className="text-muted-foreground text-meta hover:text-foreground active:text-foreground"
         onClick={() => setShowTerms((v) => !v)}
       >
         {showTerms ? "Hide the ideas" : "Show the ideas from Learn first"}
@@ -454,7 +454,7 @@ export function ReframeExerciseFlow({
 
   const feelingBlock = exercise ? (
     <div className="space-y-3" data-testid="feeling-step">
-      <p className="text-sm font-medium text-foreground">First, name the main feeling. Be specific.</p>
+      <p className="text-body font-medium text-foreground">First, name the main feeling. Be specific.</p>
       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Main feeling">
         {FEELING_WORDS.map((w) => (
           <button
@@ -464,7 +464,7 @@ export function ReframeExerciseFlow({
             aria-checked={exercise.feeling === w}
             onClick={() => save({ feeling: w })}
             className={cn(
-              "rounded-md border px-3 py-1.5 text-sm",
+              "rounded-md border px-3 py-1.5 text-body",
               exercise.feeling === w ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
             )}
           >
@@ -490,10 +490,10 @@ export function ReframeExerciseFlow({
       picked != null && (picked === t.trap || (picked !== "realistic" && t.alsoAccepted.includes(picked)));
     return (
       <div className="space-y-3" data-testid="thought-question">
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground text-meta">
           Thought {i + 1} of {ex.thoughts.length}
         </p>
-        <blockquote className="border-l-2 border-foreground pl-3 text-base italic text-foreground">{t.text}</blockquote>
+        <blockquote className="border-l-2 border-foreground pl-3 text-body italic text-foreground">{t.text}</blockquote>
         <TrapPicker
           options={options}
           picked={picked}
@@ -504,7 +504,7 @@ export function ReframeExerciseFlow({
         />
         {picked != null ? (
           <>
-            <p className="flex items-start gap-2 text-sm" data-testid="thought-feedback">
+            <p className="flex items-start gap-2 text-body" data-testid="thought-feedback">
               {right ? <Check className="mt-0.5 size-4 shrink-0" aria-hidden /> : <X className="mt-0.5 size-4 shrink-0" aria-hidden />}
               <span>
                 <span className="font-medium">{right ? "Right. " : `Not quite: it is ${answerName(t.trap)}. `}</span>
@@ -532,7 +532,7 @@ export function ReframeExerciseFlow({
       <TrapGuide options={options} />
       {ex.thoughts.map((t, i) => (
         <div key={t.id} className="space-y-2" data-testid="thought-question">
-          <p className="text-muted-foreground text-xs">Thought {i + 1}</p>
+          <p className="text-muted-foreground text-meta">Thought {i + 1}</p>
           <blockquote className="border-l-2 border-foreground pl-3 italic text-foreground">{t.text}</blockquote>
           <TrapPicker
             options={options}
@@ -551,8 +551,8 @@ export function ReframeExerciseFlow({
     return (
       <div className="space-y-4">
         <TrapGuide options={options} />
-        <p className="text-muted-foreground text-xs">Tap a thought to mark it. Leave fair thoughts as they are.</p>
-        <p className="border-l-2 border-border pl-4 text-base leading-[1.75] text-foreground" data-testid="monologue">
+        <p className="text-muted-foreground text-meta">Tap a thought to mark it. Leave fair thoughts as they are.</p>
+        <p className="border-l-2 border-border pl-4 text-body leading-[1.75] text-foreground" data-testid="monologue">
           {ex.thoughts.map((t) => {
             const a = answers[t.id];
             const marked = a != null && a !== "realistic";
@@ -569,14 +569,14 @@ export function ReframeExerciseFlow({
                 >
                   {t.text}
                 </button>
-                {marked ? <span className="text-muted-foreground ml-1 text-xs">[{answerName(a)}]</span> : null}{" "}
+                {marked ? <span className="text-muted-foreground ml-1 text-meta">[{answerName(a)}]</span> : null}{" "}
               </span>
             );
           })}
         </p>
         {sel ? (
           <div className="space-y-2" data-testid="thought-question">
-            <p className="text-sm font-medium text-foreground">&ldquo;{sel.text}&rdquo;</p>
+            <p className="text-body font-medium text-foreground">&ldquo;{sel.text}&rdquo;</p>
             <TrapPicker
               options={options}
               picked={answers[sel.id]}
@@ -634,7 +634,7 @@ export function ReframeExerciseFlow({
                   aria-pressed={area === a}
                   onClick={() => setArea(a)}
                   className={cn(
-                    "rounded-md border px-3 py-1.5 text-sm",
+                    "rounded-md border px-3 py-1.5 text-body",
                     area === a ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                   )}
                 >
@@ -696,7 +696,7 @@ export function ReframeExerciseFlow({
                     onChange={(e) => setOwnSituation(e.target.value)}
                     placeholder="What happened, and what went through your mind right after."
                   />
-                  <p className="text-muted-foreground text-xs">
+                  <p className="text-muted-foreground text-meta">
                     Private. No real names. In crisis? Talk to someone you trust.
                   </p>
                 </>
@@ -749,8 +749,8 @@ export function ReframeExerciseFlow({
               {scenarioBlock}
               {feelingBlock}
               <div className="space-y-1">
-                <p className="text-sm font-medium text-foreground">Now look at the thoughts that came next.</p>
-                <p className="text-muted-foreground text-xs" data-testid="count-hint">
+                <p className="text-body font-medium text-foreground">Now look at the thoughts that came next.</p>
+                <p className="text-muted-foreground text-meta" data-testid="count-hint">
                   {countHint}
                 </p>
               </div>
@@ -764,24 +764,24 @@ export function ReframeExerciseFlow({
                   Reframe a thought
                 </Button>
               ) : null}
-              {!exercise.feeling ? <p className="text-muted-foreground text-xs">Name the feeling first to go on.</p> : null}
+              {!exercise.feeling ? <p className="text-muted-foreground text-meta">Name the feeling first to go on.</p> : null}
             </>
           ) : null}
 
           {part === "reframe" && target ? (
             <>
               <div className="space-y-2">
-                <p className="text-sm font-medium text-foreground">Rewrite this thought in a fair, balanced way.</p>
-                <blockquote className="border-l-2 border-foreground pl-3 text-base italic text-foreground" data-testid="rewrite-target">
+                <p className="text-body font-medium text-foreground">Rewrite this thought in a fair, balanced way.</p>
+                <blockquote className="border-l-2 border-foreground pl-3 text-body italic text-foreground" data-testid="rewrite-target">
                   {target.text}
                 </blockquote>
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground text-meta">
                   Balanced, not positive. Stay true to the facts.
                 </p>
               </div>
               {cfg.rewrite === "choose" ? (
                 <div className="grid gap-2" role="radiogroup" aria-label={exercise.rewrite.question}>
-                  <p className="text-sm font-medium text-foreground">{exercise.rewrite.question}</p>
+                  <p className="text-body font-medium text-foreground">{exercise.rewrite.question}</p>
                   {rewriteOrder.map((oi) => (
                     <button
                       key={oi}
@@ -790,7 +790,7 @@ export function ReframeExerciseFlow({
                       aria-checked={exercise.rewriteChoice === oi}
                       onClick={() => save({ rewriteChoice: oi })}
                       className={cn(
-                        "rounded-xl border px-3 py-2.5 text-left text-sm",
+                        "rounded-xl border px-3 py-2.5 text-left text-body",
                         exercise.rewriteChoice === oi ? "border-foreground bg-muted" : "border-border hover:bg-muted",
                       )}
                     >

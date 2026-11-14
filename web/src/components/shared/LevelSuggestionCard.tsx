@@ -17,7 +17,7 @@ export function LevelSuggestionCard({
   const to = LEVEL_LABELS[suggestion.to];
   return (
     <Card data-testid="level-suggestion">
-      <CardContent className="space-y-3 pt-6 text-sm">
+      <CardContent className="space-y-3 pt-6 text-body">
         <p>
           {suggestion.direction === "up"
             ? `Your last three exercises went well. Ready to try ${to}?`

@@ -39,7 +39,7 @@ function SliderRow({
 }) {
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor={id} className="flex justify-between gap-2 text-sm">
+      <Label htmlFor={id} className="flex justify-between gap-2 text-body">
         <span>{label}</span>
         <span className="tabular-nums font-medium" data-testid={`${id}-value`}>
           {display}
@@ -64,8 +64,8 @@ function SliderRow({
 function Result({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-t border-border pt-2">
-      <p className="text-foreground text-base font-semibold tabular-nums">{value}</p>
-      <p className="text-muted-foreground text-xs">{label}</p>
+      <p className="text-foreground text-body font-semibold tabular-nums">{value}</p>
+      <p className="text-muted-foreground text-meta">{label}</p>
     </div>
   );
 }
@@ -74,8 +74,8 @@ function SimCard({ id, title, intro, children }: { id: string; title: string; in
   return (
     <Card id={id} data-testid={`sim-${id}`} className="scroll-mt-20">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">{title}</CardTitle>
-        <p className="text-muted-foreground text-sm">{intro}</p>
+        <CardTitle className="text-body">{title}</CardTitle>
+        <p className="text-muted-foreground text-body">{intro}</p>
       </CardHeader>
       <CardContent className="space-y-5">{children}</CardContent>
     </Card>

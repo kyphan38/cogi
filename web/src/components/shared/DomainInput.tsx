@@ -247,7 +247,7 @@ export function DomainInput({
         key={`${domain}-${index}`}
         data-domain-active={active ? "true" : undefined}
         className={cn(
-          "group/item flex cursor-default items-center justify-between py-1.5 pr-2.5 text-sm",
+          "group/item flex cursor-default items-center justify-between py-1.5 pr-2.5 text-body",
           active ? "bg-accent text-accent-foreground" : "hover:bg-accent/50",
         )}
         style={{ paddingLeft: `${10 + depth * 14}px` }}
@@ -281,7 +281,7 @@ export function DomainInput({
         <button
           type="button"
           className={cn(
-            "flex w-full items-center gap-1.5 py-1.5 pr-2.5 text-left text-sm font-medium",
+            "flex w-full items-center gap-1.5 py-1.5 pr-2.5 text-left text-body font-medium",
             depth === 0 ? "text-foreground" : "text-muted-foreground",
           )}
           style={{ paddingLeft: `${6 + depth * 14}px` }}
@@ -297,7 +297,7 @@ export function DomainInput({
             <ChevronRight className="size-3.5 shrink-0 opacity-70" aria-hidden />
           )}
           <span className="min-w-0 flex-1 truncate">{group.label}</span>
-          <span className="shrink-0 text-xs font-normal tabular-nums text-muted-foreground">
+          <span className="shrink-0 text-meta font-normal tabular-nums text-muted-foreground">
             {childCount}
           </span>
         </button>
@@ -326,7 +326,7 @@ export function DomainInput({
         }}
       >
         {!isFiltering ? (
-          <li className="list-none px-3 py-1.5 text-xs text-muted-foreground">
+          <li className="list-none px-3 py-1.5 text-meta text-muted-foreground">
             Expand a group to browse all domains
           </li>
         ) : null}

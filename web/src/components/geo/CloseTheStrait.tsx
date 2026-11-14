@@ -37,7 +37,7 @@ const fmtInt = (n: number) => Math.round(n).toLocaleString("en-US");
 function SourceLinks({ sources }: { sources: GeoSource[] }) {
   const unique = sources.filter((s, i) => sources.findIndex((x) => x.url === s.url) === i);
   return (
-    <span className="text-muted-foreground text-xs">
+    <span className="text-muted-foreground text-meta">
       Source:{" "}
       {unique.map((s, i) => (
         <span key={s.url}>
@@ -55,8 +55,8 @@ function SourceLinks({ sources }: { sources: GeoSource[] }) {
 function StatTile({ value, label }: { value: string; label: string }) {
   return (
     <div className="border-t border-border pt-2">
-      <p className="text-lg font-semibold text-foreground">{value}</p>
-      <p className="text-muted-foreground text-xs">{label}</p>
+      <p className="text-lead font-semibold text-foreground">{value}</p>
+      <p className="text-muted-foreground text-meta">{label}</p>
     </div>
   );
 }
@@ -202,7 +202,7 @@ export function CloseTheStrait({
 
       {step === "pick" ? (
         <div className="space-y-3">
-          <p className="text-sm">
+          <p className="text-body">
             A <span className="font-medium">chokepoint</span> is a narrow sea passage that many ships must use. Pick one and
             imagine it is closed for a month.
           </p>
@@ -223,7 +223,7 @@ export function CloseTheStrait({
             ))}
           </div>
           {cp ? (
-            <div className="space-y-2 border-t border-border pt-3 text-sm" data-testid="strait-intro">
+            <div className="space-y-2 border-t border-border pt-3 text-body" data-testid="strait-intro">
               <p className="font-medium text-foreground">{cp.name}</p>
               <p>Connects {cp.connects}.</p>
               <p>{cp.why}</p>
@@ -240,7 +240,7 @@ export function CloseTheStrait({
 
       {step === "countries" && cp && game ? (
         <div className="space-y-3">
-          <p className="text-sm font-medium text-foreground">
+          <p className="text-body font-medium text-foreground">
             Guess first: the {cp.name} is closed. Which countries would be hit hardest? Pick every country you think depends
             most on it.
           </p>
@@ -253,7 +253,7 @@ export function CloseTheStrait({
 
       {step === "route" && cp && game ? (
         <div className="space-y-3">
-          <p className="text-sm font-medium text-foreground">How would ships or oil get around it?</p>
+          <p className="text-body font-medium text-foreground">How would ships or oil get around it?</p>
           <div className="grid gap-2" role="radiogroup" aria-label="The way around">
             {game.routeOptions.map((r) => (
               <button
@@ -263,7 +263,7 @@ export function CloseTheStrait({
                 aria-checked={route === r}
                 onClick={() => setRoute(r)}
                 className={cn(
-                  "rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+                  "rounded-lg border px-3 py-2 text-left text-body transition-colors",
                   route === r ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                 )}
                 data-testid={`route-option-${r}`}
@@ -285,8 +285,8 @@ export function CloseTheStrait({
 
       {step === "reveal" && cp && game && result ? (
         <div className="space-y-4" data-testid="strait-answer">
-          <div className="space-y-1 text-sm">
-            <p className="text-base font-medium text-foreground" data-testid="strait-score">
+          <div className="space-y-1 text-body">
+            <p className="text-body font-medium text-foreground" data-testid="strait-score">
               You found {result.found.length} of {game.dependents.length}.
               {result.extra.length > 0 ? ` ${result.extra.length} of your picks ${result.extra.length === 1 ? "was" : "were"} not on the list.` : ""}
             </p>
@@ -298,13 +298,13 @@ export function CloseTheStrait({
             </p>
           </div>
 
-          <div className="space-y-1 text-sm">
+          <div className="space-y-1 text-body">
             <p className="font-medium text-foreground">Who depends on it most: {names(game.dependents)}</p>
             <p>{game.dependentsWhy}</p>
             <SourceLinks sources={game.dependentsSources} />
           </div>
 
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2 text-body">
             <p className="font-medium text-foreground">The way around</p>
             {game.detour.nauticalMiles || game.detour.days ? (
               <div className="grid grid-cols-2 gap-2">
@@ -321,7 +321,7 @@ export function CloseTheStrait({
             <SourceLinks sources={[game.detour.source]} />
           </div>
 
-          <div className="space-y-2 border-t border-border pt-3 text-sm" data-testid="strait-note">
+          <div className="space-y-2 border-t border-border pt-3 text-body" data-testid="strait-note">
             <p className="font-medium text-foreground">Coach&apos;s note</p>
             {note.state === "loading" ? (
               <p className="text-muted-foreground inline-flex items-center gap-2">
@@ -347,12 +347,12 @@ export function CloseTheStrait({
                     <li key={p}>{p}</li>
                   ))}
                 </ul>
-                <p className="text-muted-foreground text-xs">Written by AI from the checked facts above.</p>
+                <p className="text-muted-foreground text-meta">Written by AI from the checked facts above.</p>
               </>
             ) : null}
           </div>
 
-          <details className="text-xs text-muted-foreground" data-testid="strait-data">
+          <details className="text-meta text-muted-foreground" data-testid="strait-data">
             <summary className="cursor-pointer">Show the data</summary>
             <table className="mt-2 w-full text-left">
               <tbody>

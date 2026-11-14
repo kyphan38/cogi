@@ -21,15 +21,15 @@ export function EvaluativeOutcomeInputRow({
   return (
     <div className="space-y-2 border-t pt-3 first:border-t-0 first:pt-0">
       <div>
-        <p className="text-sm font-medium">{outcome.label}</p>
-        <p className="text-muted-foreground text-xs">{outcome.explanation}</p>
+        <p className="text-body font-medium">{outcome.label}</p>
+        <p className="text-muted-foreground text-meta">{outcome.explanation}</p>
       </div>
-      <p className="text-muted-foreground text-xs">
+      <p className="text-muted-foreground text-meta">
         AI: {Math.round(outcome.probability * 100)}% / ${outcome.payoff}
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <div className="text-xs">Your probability ({probabilityPct}%)</div>
+          <div className="text-meta">Your probability ({probabilityPct}%)</div>
           <Slider
             min={0}
             max={100}
@@ -42,7 +42,7 @@ export function EvaluativeOutcomeInputRow({
           />
         </div>
         <div>
-          <div className="text-xs">Your payoff</div>
+          <div className="text-meta">Your payoff</div>
           <Input
             type="number"
             value={userPayoff ?? 0}

@@ -27,12 +27,12 @@ export function GeopoliticsRealDataHints({
   return (
     <div className="animate-in fade-in-0 min-h-[2.5rem] duration-200">
       {mode === "generated" ? (
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground text-meta">
           Tip: paste a real article for real bias.
         </p>
       ) : null}
       {mode === "real_data" ? (
-        <details className="text-muted-foreground text-xs">
+        <details className="text-muted-foreground text-meta">
           <summary className="cursor-pointer">Suggested sources for geopolitics practice</summary>
           <ul className="mt-2 list-inside list-disc space-y-1">
             {GEOPOLITICS_REAL_DATA_SOURCES.map((s) => (

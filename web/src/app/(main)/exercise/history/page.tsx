@@ -97,8 +97,8 @@ function HistoryPerspectiveBody({
     const vm = getPerspectiveViewModel(structured, kind);
     if (vm.format === "clarity_v2") {
       return (
-        <div className="text-muted-foreground space-y-4 text-sm leading-relaxed">
-          <p className="text-foreground text-sm font-medium">
+        <div className="text-muted-foreground space-y-4 text-body leading-relaxed">
+          <p className="text-foreground text-body font-medium">
             {vm.suitableFor}
           </p>
           <ul className="list-none space-y-4 pl-0">
@@ -108,14 +108,14 @@ function HistoryPerspectiveBody({
                   <p className="text-foreground font-medium">{b.title}</p>
                 ) : null}
                 {b.userSnippet ? (
-                  <p className="border-l-2 pl-3 text-xs">
+                  <p className="border-l-2 pl-3 text-meta">
                     <span className="font-medium">You wrote / selected: </span>
                     {b.userSnippet}
                   </p>
                 ) : null}
                 <p className="whitespace-pre-wrap">{b.body}</p>
                 {b.remediation ? (
-                  <p className="whitespace-pre-wrap text-xs">
+                  <p className="whitespace-pre-wrap text-meta">
                     <span className="font-medium">Stronger alternative: </span>
                     {b.remediation}
                   </p>
@@ -143,7 +143,7 @@ function HistoryPerspectiveBody({
   }
   if (isLegacyPerspectiveStructured(structured)) {
     return (
-      <div className="text-muted-foreground space-y-4 text-sm leading-relaxed">
+      <div className="text-muted-foreground space-y-4 text-body leading-relaxed">
         {getStructuredPerspectiveSections(structured).map((sec) => (
           <div key={sec.key}>
             <h4 className="text-foreground mb-2 font-medium">{sec.title}</h4>
@@ -502,10 +502,10 @@ function HistoryPageInner() {
 
       {openExerciseHiddenByFilters ? (
         <Alert>
-          <AlertTitle className="text-sm">
+          <AlertTitle className="text-body">
             Linked exercise is hidden by filters
           </AlertTitle>
-          <AlertDescription className="flex flex-col gap-2 text-xs sm:flex-row sm:items-center sm:justify-between">
+          <AlertDescription className="flex flex-col gap-2 text-meta sm:flex-row sm:items-center sm:justify-between">
             <span>Clear filters to show it in the list below.</span>
             <Button
               type="button"
@@ -521,8 +521,8 @@ function HistoryPageInner() {
 
       {openExerciseMissing ? (
         <Alert variant="destructive">
-          <AlertTitle className="text-sm">Exercise not found</AlertTitle>
-          <AlertDescription className="text-xs">
+          <AlertTitle className="text-body">Exercise not found</AlertTitle>
+          <AlertDescription className="text-meta">
             No completed exercise with this id is in your history. It may have
             been removed.
           </AlertDescription>
@@ -532,7 +532,7 @@ function HistoryPageInner() {
       <Section
         title="Activity"
         action={
-          <p className="text-muted-foreground text-xs tabular-nums">
+          <p className="text-muted-foreground text-meta tabular-nums">
             Streak:{" "}
             <span className="font-medium text-foreground">{streakDays}</span>{" "}
             day
@@ -618,7 +618,7 @@ function HistoryPageInner() {
         {!filteredListReady ? (
           <HistoryExerciseListSkeleton />
         ) : shown.length === 0 ? (
-          <p className="text-muted-foreground text-sm italic">
+          <p className="text-muted-foreground text-body italic">
             No exercises match these filters.
           </p>
         ) : (
@@ -633,7 +633,7 @@ function HistoryPageInner() {
               >
                 <div
                   className={cn(
-                    "group relative text-sm transition-colors",
+                    "group relative text-body transition-colors",
                     selectedId === ex.id ? "bg-muted/60" : "hover:bg-muted/30",
                   )}
                 >
@@ -656,11 +656,11 @@ function HistoryPageInner() {
                           </span>
                         ) : null}
                       </span>
-                      <span className="text-muted-foreground text-xs">
+                      <span className="text-muted-foreground text-meta">
                         {formatDate(ex.completedAt!)}
                       </span>
                     </div>
-                    <p className="mt-1 flex min-w-0 items-baseline gap-2 text-xs text-muted-foreground">
+                    <p className="mt-1 flex min-w-0 items-baseline gap-2 text-meta text-muted-foreground">
                       <span className="section-label shrink-0">
                         {ex.type}
                       </span>
@@ -692,7 +692,7 @@ function HistoryPageInner() {
         <section className="group/review relative">
           <div className="flex flex-row flex-wrap items-start justify-between gap-2 pb-4">
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-semibold">Review</h2>
+              <h2 className="text-lead font-semibold">Review</h2>
               <p className="section-label">{detailEx.type}</p>
             </div>
             <Button
@@ -707,7 +707,7 @@ function HistoryPageInner() {
               <Trash2 className="size-4" aria-hidden />
             </Button>
           </div>
-          <div className="space-y-6 text-sm">
+          <div className="space-y-6 text-body">
             {isAnalyticalExercise(detailEx) ? (
               <>
                 {detailEx.level ? (
@@ -910,11 +910,11 @@ function HistoryPageInner() {
         <ModalShell onClose={closeDeleteDialog} labelledBy="delete-ex-title">
           <h2
             id="delete-ex-title"
-            className="font-heading text-lg font-medium"
+            className="font-heading text-lead font-medium"
           >
             Delete exercise?
           </h2>
-          <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+          <p className="text-muted-foreground mt-2 text-body leading-relaxed">
             Deletes{" "}
             <span className="font-medium text-foreground">
               &quot;{pendingDelete.title}&quot;
@@ -942,7 +942,7 @@ function HistoryPageInner() {
             />
           </div>
           {deleteErr ? (
-            <p className="text-destructive mt-2 text-sm" role="alert">
+            <p className="text-destructive mt-2 text-body" role="alert">
               {deleteErr}
             </p>
           ) : null}
@@ -974,7 +974,7 @@ export default function HistoryPage() {
     <Suspense
       fallback={
         <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
-          <p className="text-muted-foreground text-sm">Loading history…</p>
+          <p className="text-muted-foreground text-body">Loading history…</p>
           <HistoryExerciseListSkeleton />
         </div>
       }

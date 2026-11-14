@@ -23,7 +23,7 @@ const AREA_LABELS = {
   politics: "Politics",
 } as const;
 
-const GO = "shrink-0 text-sm after:ml-1 after:content-['›']";
+const GO = "shrink-0 text-body after:ml-1 after:content-['›']";
 
 /** A thin progress bar; scaleX so a change can animate on transform only. */
 function ProgressBar({ done, total, label }: { done: number; total: number; label: string }) {
@@ -196,7 +196,7 @@ export default function TracksPage() {
                         {done} of {track.steps.length}
                       </span>
                     </span>
-                    <span className="w-10 text-right text-sm text-muted-foreground transition-colors group-hover/row:text-foreground">
+                    <span className="w-10 text-right text-body text-muted-foreground transition-colors group-hover/row:text-foreground">
                       {isOpen ? "Close" : "Open"}
                     </span>
                   </button>

@@ -63,11 +63,11 @@ function MainClaimStep({
     <div className="space-y-4" data-testid="main-claim-step">
       <div>
         <p className="font-medium text-foreground">First, read the passage. What is its main claim?</p>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-body">
           Knowing what the writer wants you to believe makes the weak spots easier to see.
         </p>
       </div>
-      <div className="whitespace-pre-wrap border-l-2 border-border pl-4 text-base leading-[1.75] text-foreground">
+      <div className="whitespace-pre-wrap border-l-2 border-border pl-4 text-body leading-[1.75] text-foreground">
         {ex.passage}
       </div>
       <div className="grid gap-2" role="radiogroup" aria-label="Main claim">
@@ -83,7 +83,7 @@ function MainClaimStep({
               disabled={picked != null}
               onClick={() => setPicked(i)}
               className={cn(
-                "flex items-start gap-2 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors disabled:cursor-default",
+                "flex items-start gap-2 rounded-xl border px-3 py-2.5 text-left text-body transition-colors disabled:cursor-default",
                 isAnswer
                   ? "border-foreground bg-muted"
                   : isPicked
@@ -100,7 +100,7 @@ function MainClaimStep({
       </div>
       {picked != null ? (
         <div className="space-y-3" data-testid="main-claim-feedback">
-          <p className="text-sm">
+          <p className="text-body">
             <span className="font-medium">{correct ? "Right. " : "Not quite. "}</span>
             {quiz.explanation}
           </p>
@@ -181,7 +181,7 @@ export function GuidedWalkthrough({
 
   return (
     <div className="space-y-4" data-testid="guided-walkthrough">
-      <p className="text-sm text-foreground">
+      <p className="text-body text-foreground">
         This passage has <span className="font-medium">{ex.embeddedIssues.length} issues</span> and{" "}
         <span className="font-medium">{ex.validPoints.length} traps</span> (sound statements that only
         look suspicious). Check the {candidates.length} shaded sentences one by one.
@@ -189,7 +189,7 @@ export function GuidedWalkthrough({
       <CheckQuestions mode="shown" />
       <div
         data-testid="text-passage"
-        className="whitespace-pre-wrap border-l-2 border-border pl-4 text-base leading-[1.75] text-foreground"
+        className="whitespace-pre-wrap border-l-2 border-border pl-4 text-body leading-[1.75] text-foreground"
       >
         {pieces.map((p, i) => {
           if (p.candidate == null) return <span key={i} className="text-faint">{p.text}</span>;
@@ -224,24 +224,24 @@ export function GuidedWalkthrough({
 
       {current ? (
         <div className="space-y-3 border-t border-border pt-4" data-testid="guided-current">
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-meta">
             Sentence {index + 1} of {candidates.length}
             {currentAnswer ? ` · your answer: ${choiceLabel(currentAnswer.tag)}` : ""}
           </p>
           <p className="italic text-foreground">&ldquo;{ex.passage.slice(current.start, current.end)}&rdquo;</p>
           {askingTag ? (
             <div className="space-y-2">
-              <p className="text-sm font-medium">Which question gets a yes?</p>
+              <p className="text-body font-medium">Which question gets a yes?</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {PROBLEM_TAGS.map((tag) => (
                   <button
                     key={tag}
                     type="button"
                     onClick={() => answer(tag)}
-                    className="flex flex-col items-start gap-0.5 rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:bg-muted"
+                    className="flex flex-col items-start gap-0.5 rounded-xl border border-border bg-card px-3 py-2.5 text-left text-body hover:bg-muted"
                   >
                     <span className="font-medium">{TAG_LABELS[tag].label}</span>
-                    <span className="text-xs text-muted-foreground">{TAG_CHECK_QUESTIONS[tag]}</span>
+                    <span className="text-meta text-muted-foreground">{TAG_CHECK_QUESTIONS[tag]}</span>
                   </button>
                 ))}
               </div>
@@ -270,7 +270,7 @@ export function GuidedWalkthrough({
         </div>
       ) : (
         <div className="space-y-2 border-t border-border pt-4" data-testid="guided-done">
-          <p className="text-sm">
+          <p className="text-body">
             All {candidates.length} sentences checked. You marked {flagged} as having a problem.
           </p>
           <Button type="button" variant="ghost" size="sm" onClick={() => goTo(0)}>

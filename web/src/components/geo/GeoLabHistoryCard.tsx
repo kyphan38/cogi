@@ -28,7 +28,7 @@ export function GeoLabHistoryCard({ row }: { row: GeoLabExerciseRow }) {
             </li>
           ))}
         </ul>
-        <Link href="/geo" className="text-xs after:ml-1 after:content-['›']">
+        <Link href="/geo" className="text-meta after:ml-1 after:content-['›']">
           Open the Geo Lab
         </Link>
       </div>

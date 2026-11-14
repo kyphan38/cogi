@@ -46,7 +46,7 @@ export default function LayoutFixturesPage() {
   if (process.env.NODE_ENV === "production") {
     return (
       <main className="mx-auto max-w-lg p-8">
-        <p className="text-sm text-muted-foreground">Not available in production.</p>
+        <p className="text-body text-muted-foreground">Not available in production.</p>
       </main>
     );
   }
@@ -54,8 +54,8 @@ export default function LayoutFixturesPage() {
   return (
     <main className="mx-auto max-w-3xl space-y-10 px-4 py-8 sm:px-6">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Layout fixtures</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="text-page font-semibold tracking-tight">Layout fixtures</h1>
+        <p className="text-body text-muted-foreground">
           Dev-only surfaces for Nordic Mono structural Playwright tests.
         </p>
       </header>
@@ -103,7 +103,7 @@ export default function LayoutFixturesPage() {
             </MinimalContainerFooter>
           }
         >
-          <p className="text-base leading-relaxed">
+          <p className="text-body leading-relaxed">
             Body content uses relaxed line-height and balanced vertical rhythm.
           </p>
         </MinimalContainer>

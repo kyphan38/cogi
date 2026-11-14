@@ -40,9 +40,9 @@ export function JudgmentAnswerKey({
   return (
     <Card data-testid="judgment-answer-key">
       <CardHeader>
-        <CardTitle className="text-lg">Compared with an expert</CardTitle>
+        <CardTitle className="text-lead">Compared with an expert</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6 text-sm leading-relaxed">
+      <CardContent className="space-y-6 text-body leading-relaxed">
         <div className="grid grid-cols-3 gap-2">
           <Stat label="Same best response" value={result.topMatch ? "Yes" : "No"} />
           <Stat label="Pairs like the expert" value={`${pairs.agree}/${pairs.total}`} />

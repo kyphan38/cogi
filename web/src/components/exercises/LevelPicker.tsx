@@ -18,7 +18,7 @@ export function LevelPicker({
 }) {
   return (
     <fieldset className="grid gap-2" data-testid="level-picker">
-      <legend className="mb-2 text-sm font-medium">Level</legend>
+      <legend className="mb-2 text-body font-medium">Level</legend>
       <div className="grid gap-2 sm:grid-cols-3">
         {PRACTICE_LEVELS.map((level) => {
           const active = level === value;
@@ -33,13 +33,13 @@ export function LevelPicker({
                 active ? "border-foreground bg-muted" : "border-border bg-card hover:bg-muted",
               )}
             >
-              <span className="text-sm font-medium text-foreground">{LEVEL_LABELS[level]}</span>
-              <span className="text-xs text-muted-foreground">{descriptions[level]}</span>
+              <span className="text-body font-medium text-foreground">{LEVEL_LABELS[level]}</span>
+              <span className="text-meta text-muted-foreground">{descriptions[level]}</span>
             </button>
           );
         })}
       </div>
-      {note ? <p className="text-muted-foreground text-xs">{note}</p> : null}
+      {note ? <p className="text-muted-foreground text-meta">{note}</p> : null}
     </fieldset>
   );
 }

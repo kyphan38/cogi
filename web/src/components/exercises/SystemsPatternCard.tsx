@@ -21,9 +21,9 @@ export function SystemsPatternCard({
   return (
     <Card data-testid="pattern-card">
       <CardHeader>
-        <CardTitle className="text-base">The pattern: {info.name}</CardTitle>
+        <CardTitle className="text-body">The pattern: {info.name}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 text-sm leading-relaxed">
+      <CardContent className="space-y-3 text-body leading-relaxed">
         <p>{info.meaning}</p>
         <p className="text-muted-foreground">Here: {archetype.howItShows}</p>
         <p className="text-muted-foreground">Ask next time: {info.ask}</p>

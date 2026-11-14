@@ -36,9 +36,9 @@ export function CalibrationAnswerKey({
   return (
     <Card data-testid="calibration-answer-key">
       <CardHeader>
-        <CardTitle className="text-lg">How sure vs how right</CardTitle>
+        <CardTitle className="text-lead">How sure vs how right</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6 text-sm leading-relaxed">
+      <CardContent className="space-y-6 text-body leading-relaxed">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {r.binary.count > 0 ? <Stat label="Two-answer questions right" value={`${r.binary.right}/${r.binary.count}`} /> : null}
           {r.binary.brier != null ? <Stat label="Brier score (lower is better)" value={r.binary.brier.toFixed(2)} /> : null}
@@ -55,8 +55,8 @@ export function CalibrationAnswerKey({
         {r.binary.buckets.length > 0 ? (
           <section className="space-y-2" data-testid="confidence-table">
             <h3 className="text-foreground font-semibold">When you said...</h3>
-            <table className="w-full max-w-sm text-left text-sm tabular-nums">
-              <thead className="text-muted-foreground text-xs">
+            <table className="w-full max-w-sm text-left text-body tabular-nums">
+              <thead className="text-muted-foreground text-meta">
                 <tr>
                   <th className="py-1 font-normal">How sure</th>
                   <th className="py-1 font-normal">Answers</th>
@@ -104,7 +104,7 @@ export function CalibrationAnswerKey({
                     {item.options[item.answerIndex]}
                   </p>
                   <Coaching item={coach} fallback={item.explanation} />
-                  <p className="text-muted-foreground text-xs">Source: {item.source}</p>
+                  <p className="text-muted-foreground text-meta">Source: {item.source}</p>
                 </Row>
               );
             }
@@ -126,7 +126,7 @@ export function CalibrationAnswerKey({
                     <p className="text-muted-foreground">Very wide: the high end is more than 10 times the low end.</p>
                   ) : null}
                   <Coaching item={coach} fallback={item.explanation} />
-                  <p className="text-muted-foreground text-xs">Source: {item.source}</p>
+                  <p className="text-muted-foreground text-meta">Source: {item.source}</p>
                 </Row>
               );
             }

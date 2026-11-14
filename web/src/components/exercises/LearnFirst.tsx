@@ -26,8 +26,8 @@ export function ConceptList({ concepts }: { concepts: LearnConcept[] }) {
       {concepts.map((c) => (
         <li key={c.term} className="border-t border-border pt-3">
           <p className="font-medium text-foreground">{c.term}</p>
-          <p className="text-sm text-foreground/80">{c.plain}</p>
-          <p className="text-sm text-muted-foreground">Example: {c.example}</p>
+          <p className="text-body text-foreground/80">{c.plain}</p>
+          <p className="text-body text-muted-foreground">Example: {c.example}</p>
         </li>
       ))}
     </ul>
@@ -64,14 +64,14 @@ export function LearnFirst({
     <div className="space-y-5" data-testid="learn-first">
       <div>
         <p className="font-medium text-foreground">First, a few ideas you will use in this exercise.</p>
-        <p className="text-muted-foreground text-sm">Read them, then answer the quick check.</p>
+        <p className="text-muted-foreground text-body">Read them, then answer the quick check.</p>
       </div>
       <ConceptList concepts={concepts} />
       {checks.map((check, ci) => {
         const picked = answers[ci];
         return (
           <div key={ci} className="space-y-2" data-testid="concept-check">
-            <p className="text-sm font-medium text-foreground">Quick check: {check.question}</p>
+            <p className="text-body font-medium text-foreground">Quick check: {check.question}</p>
             <div className="grid gap-2" role="radiogroup" aria-label={check.question}>
               {orders[ci]!.map((oi) => {
                 const isPicked = picked === oi;
@@ -85,7 +85,7 @@ export function LearnFirst({
                     disabled={picked != null}
                     onClick={() => onAnswer(ci, oi)}
                     className={cn(
-                      "flex items-start gap-2 rounded-xl border px-3 py-2.5 text-left text-sm disabled:cursor-default",
+                      "flex items-start gap-2 rounded-xl border px-3 py-2.5 text-left text-body disabled:cursor-default",
                       isAnswer ? "border-foreground bg-muted" : isPicked ? "border-foreground/40" : "border-border hover:bg-muted",
                     )}
                   >
@@ -97,7 +97,7 @@ export function LearnFirst({
               })}
             </div>
             {picked != null ? (
-              <p className="text-sm" data-testid="concept-check-feedback">
+              <p className="text-body" data-testid="concept-check-feedback">
                 <span className="font-medium">{picked === check.answerIndex ? "Right. " : "Not quite. "}</span>
                 {check.explanation}
               </p>

@@ -106,7 +106,7 @@ export function MinimalContainer({
               <h2 className="text-lead text-foreground">{title}</h2>
             ) : null}
             {description != null ? (
-              <p className="text-sm text-muted-foreground">{description}</p>
+              <p className="text-body text-muted-foreground">{description}</p>
             ) : null}
           </div>
           {headerAside ? (

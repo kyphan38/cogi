@@ -11,12 +11,12 @@ export function EvaluativeWeightAlignment({
 }) {
   return (
     <div className="space-y-2 border-t pt-3">
-      <p className="text-sm font-medium">Strategic alignment - your weights vs the advising actor</p>
-      <p className="text-muted-foreground text-xs">
+      <p className="text-body font-medium">Strategic alignment - your weights vs the advising actor</p>
+      <p className="text-muted-foreground text-meta">
         Compare how you prioritized stakeholder interests with the model the scenario was built from.
       </p>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[320px] border-collapse text-sm">
+        <table className="w-full min-w-[320px] border-collapse text-body">
           <thead>
             <tr>
               <th className="border p-2 text-left">Criterion</th>
@@ -34,7 +34,7 @@ export function EvaluativeWeightAlignment({
                 <tr key={c.id}>
                   <td className="border p-2">
                     <p className="font-medium">{c.label}</p>
-                    <p className="text-muted-foreground text-xs">{c.description}</p>
+                    <p className="text-muted-foreground text-meta">{c.description}</p>
                   </td>
                   <td className="border p-2 text-center">{user}</td>
                   <td className="border p-2 text-center">{ai}</td>

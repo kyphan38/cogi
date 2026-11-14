@@ -25,7 +25,7 @@ export function PredictQuestion({
   const [picked, setPicked] = useState<number | null>(null);
   return (
     <div className="space-y-2 border-t border-border pt-3" data-testid="predict-question">
-      <p className="text-sm font-medium text-foreground">Guess first: {question}</p>
+      <p className="text-body font-medium text-foreground">Guess first: {question}</p>
       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={question}>
         {options.map((o, i) => {
           const isPicked = picked === i;
@@ -53,7 +53,7 @@ export function PredictQuestion({
         })}
       </div>
       {picked != null ? (
-        <p className="text-sm" data-testid="predict-feedback">
+        <p className="text-body" data-testid="predict-feedback">
           <span className="font-medium">{picked === answerIndex ? "Right. " : "Not quite. "}</span>
           {explanation} The sliders now show this case.
         </p>

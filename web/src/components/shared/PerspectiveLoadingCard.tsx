@@ -4,7 +4,7 @@ export function PerspectiveLoadingCard() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Generating perspective…</CardTitle>
+        <CardTitle className="text-body">Generating perspective…</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">

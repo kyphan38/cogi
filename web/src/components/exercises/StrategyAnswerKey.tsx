@@ -43,9 +43,9 @@ export function StrategyAnswerKey({
   return (
     <Card data-testid="strategy-answer-key">
       <CardHeader>
-        <CardTitle className="text-lg">How the game works out</CardTitle>
+        <CardTitle className="text-lead">How the game works out</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6 text-sm leading-relaxed">
+      <CardContent className="space-y-6 text-body leading-relaxed">
         <div className="grid grid-cols-2 gap-2">
           {result.bestReplies.length > 0 ? (
             <Stat label="Best replies right" value={`${brRight}/${result.bestReplies.length}`} />
@@ -60,7 +60,7 @@ export function StrategyAnswerKey({
 
         <div className="space-y-2">
           <PayoffMatrix game={exercise} showPayoffs facts={f} testId="answer-matrix" />
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-meta">
             Bold = best reply. Both bold = equilibrium.
           </p>
           <OutcomeStories game={exercise} />

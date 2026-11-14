@@ -318,20 +318,20 @@ export function StrategyExerciseFlow({
   const storyBlock = exercise && A && B ? (
     <div className="space-y-2">
       {exercise.geoCaseId ? (
-        <p className="text-muted-foreground text-xs" data-testid="geo-scenario-label">
+        <p className="text-muted-foreground text-meta" data-testid="geo-scenario-label">
           Scenario: a made-up story shaped like a real case. The real case comes at the end.
         </p>
       ) : null}
-      <div className="whitespace-pre-wrap border-l-2 border-border pl-4 text-base leading-[1.75] text-foreground">
+      <div className="whitespace-pre-wrap border-l-2 border-border pl-4 text-body leading-[1.75] text-foreground">
         {exercise.scenario}
       </div>
-      <p className="text-sm text-foreground/80">
+      <p className="text-body text-foreground/80">
         <span className="font-medium">{A.name}</span> wants: {A.goal} <span className="font-medium">{B.name}</span> wants:{" "}
         {B.goal}
       </p>
       <button
         type="button"
-        className="text-muted-foreground text-xs hover:text-foreground active:text-foreground"
+        className="text-muted-foreground text-meta hover:text-foreground active:text-foreground"
         onClick={() => setShowTerms((v) => !v)}
       >
         {showTerms ? "Hide the terms" : "Show the terms from Learn first"}
@@ -376,7 +376,7 @@ export function StrategyExerciseFlow({
                     setGeoCaseId(null);
                   }}
                   className={cn(
-                    "rounded-md border px-3 py-1.5 text-sm",
+                    "rounded-md border px-3 py-1.5 text-body",
                     !pickedCase && area === a ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                   )}
                 >
@@ -396,7 +396,7 @@ export function StrategyExerciseFlow({
           </div>
           <div className="grid gap-2" data-testid="geo-cases">
             <Label>Or start from a real case (geopolitics)</Label>
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground text-meta">
               You play a made-up story with the same game. At the end you see what really happened, with sources.
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -407,20 +407,20 @@ export function StrategyExerciseFlow({
                   aria-pressed={geoCaseId === c.id}
                   onClick={() => setGeoCaseId(geoCaseId === c.id ? null : c.id)}
                   className={cn(
-                    "rounded-xl border px-3 py-2 text-left text-sm",
+                    "rounded-xl border px-3 py-2 text-left text-body",
                     geoCaseId === c.id ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                   )}
                   data-testid={`geo-case-${c.id}`}
                 >
                   <span className="block font-medium">{c.title}</span>
-                  <span className={cn("block text-xs", geoCaseId === c.id ? "text-primary-foreground/70" : "text-muted-foreground")}>{c.when}</span>
+                  <span className={cn("block text-meta", geoCaseId === c.id ? "text-primary-foreground/70" : "text-muted-foreground")}>{c.when}</span>
                 </button>
               ))}
             </div>
             {pickedCase ? (
-              <div className="space-y-1 border-l-2 border-border pl-4 text-sm" data-testid="geo-case-summary">
+              <div className="space-y-1 border-l-2 border-border pl-4 text-body" data-testid="geo-case-summary">
                 <p className="leading-relaxed">{pickedCase.summary}</p>
-                <p className="text-muted-foreground text-xs">Real cases use 2 choices for each side at every level.</p>
+                <p className="text-muted-foreground text-meta">Real cases use 2 choices for each side at every level.</p>
               </div>
             ) : null}
           </div>
@@ -486,10 +486,10 @@ export function StrategyExerciseFlow({
                   return (
                     <div className="space-y-3" data-testid="best-reply-question">
                       <PayoffMatrix game={exercise} showPayoffs />
-                      <p className="text-muted-foreground text-xs">
+                      <p className="text-muted-foreground text-meta">
                         Question {questionIndex + 1} of {questions.length} · best reply
                       </p>
-                      <p className="text-sm font-medium text-foreground">
+                      <p className="text-body font-medium text-foreground">
                         If {oppLabel}, what is the best reply for {me.name}?
                       </p>
                       <div className="grid gap-2" role="radiogroup" aria-label="Best reply">
@@ -505,7 +505,7 @@ export function StrategyExerciseFlow({
                               disabled={given != null}
                               onClick={() => saveAnswers({ bestReplies: { ...answers.bestReplies, [q.key]: c.id } })}
                               className={cn(
-                                "flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm disabled:cursor-default",
+                                "flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-body disabled:cursor-default",
                                 showRight ? "border-foreground bg-muted" : picked ? "border-foreground/40" : "border-border hover:bg-muted",
                               )}
                             >
@@ -518,7 +518,7 @@ export function StrategyExerciseFlow({
                       </div>
                       {given != null ? (
                         <>
-                          <p className="text-sm" data-testid="best-reply-feedback">
+                          <p className="text-body" data-testid="best-reply-feedback">
                             <span className="font-medium">{given === best ? "Right. " : "Not quite. "}</span>
                             {`${me.name} gets ${choices.map((c) => `${payoff(c.id)} with "${c.label}"`).join(" and ")}, so the best reply is "${choices.find((c) => c.id === best)?.label}".`}
                           </p>
@@ -539,7 +539,7 @@ export function StrategyExerciseFlow({
               ) : (
                 <div className="space-y-3" data-testid="rank-outcomes">
                   <OutcomeStories game={exercise} />
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-body font-medium text-foreground">
                     {rankPlayer === "A" ? "1 of 2" : "2 of 2"} · How good is each outcome for{" "}
                     {rankPlayer === "A" ? A.name : B.name}? Best at the top.
                   </p>
@@ -578,7 +578,7 @@ export function StrategyExerciseFlow({
             <>
               {storyBlock}
               <div className="space-y-2">
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-body font-medium text-foreground">
                   Where do they end up? Pick the outcome where neither side wants to change (pick two if you see two).
                 </p>
                 <PayoffMatrix
@@ -598,7 +598,7 @@ export function StrategyExerciseFlow({
                     const opts = p === "A" ? exercise.optionsA : exercise.optionsB;
                     return (
                       <div key={p} className="space-y-2" data-testid="dominant-question">
-                        <p className="text-sm font-medium text-foreground">
+                        <p className="text-body font-medium text-foreground">
                           Does {who.name} have a choice that is best whatever the other side does?
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -619,7 +619,7 @@ export function StrategyExerciseFlow({
                     );
                   })}
                   <div className="space-y-2" data-testid="better-question">
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-body font-medium text-foreground">
                       Is there an outcome that would be better for BOTH than where they end up? Pick it, or leave none
                       picked.
                     </p>

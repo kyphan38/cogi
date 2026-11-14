@@ -68,7 +68,7 @@ export function Row({
         {marker ? <Marker>{marker}</Marker> : null}
         <StatusIcon status={status} />
         <span className="text-foreground font-medium">{heading}</span>
-        {aside ? <span className="text-muted-foreground ml-auto text-xs">{aside}</span> : null}
+        {aside ? <span className="text-muted-foreground ml-auto text-meta">{aside}</span> : null}
       </div>
       {quote ? <p className="text-muted-foreground italic">&ldquo;{quote}&rdquo;</p> : null}
       {children}
@@ -83,7 +83,7 @@ export function Section({ title, hint, children }: { title: string; hint?: strin
     <section className="space-y-3">
       <div>
         <h3 className="text-foreground font-semibold">{title}</h3>
-        {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+        {hint ? <p className="text-muted-foreground text-meta">{hint}</p> : null}
       </div>
       <ul className={cn("list-none pl-0", fresh && "rise-list")}>{children}</ul>
     </section>
@@ -93,8 +93,8 @@ export function Section({ title, hint, children }: { title: string; hint?: strin
 export function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-muted border-t pt-2">
-      <p className="text-foreground text-lg font-semibold tabular-nums">{value}</p>
-      <p className="text-muted-foreground text-xs">{label}</p>
+      <p className="text-foreground text-lead font-semibold tabular-nums">{value}</p>
+      <p className="text-muted-foreground text-meta">{label}</p>
     </div>
   );
 }

@@ -62,11 +62,11 @@ export function LineChart({
 
   return (
     <figure className="space-y-2" aria-labelledby={`${id}-title`}>
-      <figcaption id={`${id}-title`} className="text-sm font-medium text-foreground">
+      <figcaption id={`${id}-title`} className="text-body font-medium text-foreground">
         {title}
       </figcaption>
       {series.length > 1 ? (
-        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground" aria-hidden>
+        <div className="flex flex-wrap gap-4 text-meta text-muted-foreground" aria-hidden>
           {series.map((s) => (
             <span key={s.name} className="inline-flex items-center gap-1.5">
               <svg width="20" height="6">
@@ -137,7 +137,7 @@ export function LineChart({
           ) : null}
         </svg>
         {shownX != null ? (
-          <div className="pointer-events-none mt-1 text-xs text-foreground/80" data-testid="chart-readout">
+          <div className="pointer-events-none mt-1 text-meta text-foreground/80" data-testid="chart-readout">
             {formatX(shownX)}:{" "}
             {series
               .map((s) => {
@@ -148,7 +148,7 @@ export function LineChart({
           </div>
         ) : null}
       </div>
-      <details className="text-xs text-muted-foreground">
+      <details className="text-meta text-muted-foreground">
         <summary className="cursor-pointer">Show the numbers</summary>
         <table className="mt-1 w-full text-left tabular-nums">
           <thead>

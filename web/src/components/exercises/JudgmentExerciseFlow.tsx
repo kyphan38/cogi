@@ -95,7 +95,7 @@ function ChoiceButtons({
             disabled={reveal && picked != null}
             onClick={() => onPick(oi)}
             className={cn(
-              "flex items-start gap-2 rounded-xl border px-3 py-2.5 text-left text-sm disabled:cursor-default",
+              "flex items-start gap-2 rounded-xl border px-3 py-2.5 text-left text-body disabled:cursor-default",
               showAnswer || (!reveal && isPicked) ? "border-foreground bg-muted" : isPicked ? "border-foreground/40" : "border-border hover:bg-muted",
             )}
           >
@@ -359,12 +359,12 @@ export function JudgmentExerciseFlow({
 
   const scenarioBlock = exercise ? (
     <div className="space-y-2">
-      <div className="whitespace-pre-wrap border-l-2 border-border pl-4 text-base leading-[1.75] text-foreground">
+      <div className="whitespace-pre-wrap border-l-2 border-border pl-4 text-body leading-[1.75] text-foreground">
         {exercise.scenario}
       </div>
       <button
         type="button"
-        className="text-muted-foreground text-xs hover:text-foreground active:text-foreground"
+        className="text-muted-foreground text-meta hover:text-foreground active:text-foreground"
         onClick={() => setShowTerms((v) => !v)}
       >
         {showTerms ? "Hide the ideas" : "Show the ideas from Learn first"}
@@ -406,7 +406,7 @@ export function JudgmentExerciseFlow({
                   aria-pressed={area === a}
                   onClick={() => setArea(a)}
                   className={cn(
-                    "rounded-md border px-3 py-1.5 text-sm",
+                    "rounded-md border px-3 py-1.5 text-body",
                     area === a ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                   )}
                 >
@@ -468,7 +468,7 @@ export function JudgmentExerciseFlow({
                     onChange={(e) => setOwnSituation(e.target.value)}
                     placeholder="What happened, who was involved, and what you have to decide."
                   />
-                  <p className="text-muted-foreground text-xs">
+                  <p className="text-muted-foreground text-meta">
                     Private. No real names.
                   </p>
                 </>
@@ -519,17 +519,17 @@ export function JudgmentExerciseFlow({
           {part === "lenses" ? (
             <>
               {scenarioBlock}
-              <p className="text-sm font-medium text-foreground">Look at it through three lenses.</p>
+              <p className="text-body font-medium text-foreground">Look at it through three lenses.</p>
               {cfg.lensMode === "one-by-one"
                 ? (() => {
                     const q = exercise.lensQuestions[Math.min(lensIndex, exercise.lensQuestions.length - 1)]!;
                     const picked = lensAnswers[q.lens];
                     return (
                       <div className="space-y-3" data-testid="lens-question">
-                        <p className="text-muted-foreground text-xs">
+                        <p className="text-muted-foreground text-meta">
                           Lens {Math.min(lensIndex, 2) + 1} of 3 · {LENS_INFO[q.lens].name}
                         </p>
-                        <p className="text-sm font-medium text-foreground">{q.question}</p>
+                        <p className="text-body font-medium text-foreground">{q.question}</p>
                         <ChoiceButtons
                           options={q.options}
                           order={lensOrders[q.lens] ?? [0, 1, 2]}
@@ -541,7 +541,7 @@ export function JudgmentExerciseFlow({
                         />
                         {picked != null ? (
                           <>
-                            <p className="text-sm">{q.explanation}</p>
+                            <p className="text-body">{q.explanation}</p>
                             <Button
                               type="button"
                               onClick={() => {
@@ -560,8 +560,8 @@ export function JudgmentExerciseFlow({
                   <div className="space-y-5">
                     {exercise.lensQuestions.map((q) => (
                       <div key={q.lens} className="space-y-2" data-testid="lens-question">
-                        <p className="text-muted-foreground text-xs">{LENS_INFO[q.lens].name}</p>
-                        <p className="text-sm font-medium text-foreground">{q.question}</p>
+                        <p className="text-muted-foreground text-meta">{LENS_INFO[q.lens].name}</p>
+                        <p className="text-body font-medium text-foreground">{q.question}</p>
                         {cfg.lensMode === "free" ? (
                           <Textarea
                             aria-label={`${LENS_INFO[q.lens].name}: ${q.question}`}
@@ -594,7 +594,7 @@ export function JudgmentExerciseFlow({
             <>
               {scenarioBlock}
               <div className="space-y-2">
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-body font-medium text-foreground">
                   Put the ways to respond in order: best at the top.
                 </p>
                 <RankList

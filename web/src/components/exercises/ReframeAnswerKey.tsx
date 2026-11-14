@@ -53,9 +53,9 @@ export function ReframeAnswerKey({
   return (
     <Card data-testid="reframe-answer-key">
       <CardHeader>
-        <CardTitle className="text-lg">Thinking traps: the answer key</CardTitle>
+        <CardTitle className="text-lead">Thinking traps: the answer key</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6 text-sm leading-relaxed">
+      <CardContent className="space-y-6 text-body leading-relaxed">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat label="Traps found" value={`${result.found}/${result.total}`} />
           <Stat label="Right name" value={`${result.tagsMatched}/${result.total}`} />

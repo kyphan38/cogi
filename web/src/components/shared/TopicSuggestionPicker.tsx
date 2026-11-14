@@ -94,8 +94,8 @@ export function TopicSuggestionPicker({ area, kind, seedSuggestions, onPick }: T
                     <Badge variant="positive">{s.badge ?? "Verified scenario"}</Badge>
                     {pickingTitle === s.title ? <InlineSpinner /> : null}
                   </div>
-                  <p className="text-sm font-medium">{s.title}</p>
-                  {s.blurb ? <p className="text-muted-foreground text-xs">{s.blurb}</p> : null}
+                  <p className="text-body font-medium">{s.title}</p>
+                  {s.blurb ? <p className="text-muted-foreground text-meta">{s.blurb}</p> : null}
                 </CardContent>
               </Card>
             </button>
@@ -119,8 +119,8 @@ export function TopicSuggestionPicker({ area, kind, seedSuggestions, onPick }: T
                       </span>
                     ) : null}
                   </div>
-                  <p className="text-sm font-medium">{s.title}</p>
-                  <p className="text-muted-foreground text-xs">{s.blurb}</p>
+                  <p className="text-body font-medium">{s.title}</p>
+                  <p className="text-muted-foreground text-meta">{s.blurb}</p>
                 </CardContent>
               </Card>
             </button>
@@ -131,7 +131,7 @@ export function TopicSuggestionPicker({ area, kind, seedSuggestions, onPick }: T
       {!loadingInitial && !error && suggestions.length > 0 ? (
         <div className="flex flex-wrap items-center justify-center gap-2">
           {moreDisabled ? (
-            <p className="text-muted-foreground text-center text-xs italic">
+            <p className="text-muted-foreground text-center text-meta italic">
               That&apos;s all for now - check back later for more suggestions.
             </p>
           ) : (

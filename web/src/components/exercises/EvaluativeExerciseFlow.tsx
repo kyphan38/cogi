@@ -968,7 +968,7 @@ export function EvaluativeExerciseFlow({
                 />
               </div>
             ) : null}
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground text-meta">
               Personal context for AI is read from{" "}
               <Link href="/settings" className="font-medium text-foreground">
                 Settings
@@ -1004,12 +1004,12 @@ export function EvaluativeExerciseFlow({
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <h3 className="text-sm font-medium">Options</h3>
-              <ul className="space-y-2 text-sm">
+              <h3 className="text-body font-medium">Options</h3>
+              <ul className="space-y-2 text-body">
                 {exercise.options.map((o) => (
                   <li key={o.id} className="border-t pt-2">
                     <p className="font-medium">{o.title}</p>
-                    <p className="text-muted-foreground text-xs">{o.description}</p>
+                    <p className="text-muted-foreground text-meta">{o.description}</p>
                   </li>
                 ))}
               </ul>
@@ -1058,12 +1058,12 @@ export function EvaluativeExerciseFlow({
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <h3 className="text-sm font-medium">Options</h3>
-              <ul className="space-y-2 text-sm">
+              <h3 className="text-body font-medium">Options</h3>
+              <ul className="space-y-2 text-body">
                 {exercise.options.map((o) => (
                   <li key={o.id} className="border-t pt-2">
                     <p className="font-medium">{o.title}</p>
-                    <p className="text-muted-foreground text-xs">{o.description}</p>
+                    <p className="text-muted-foreground text-meta">{o.description}</p>
                   </li>
                 ))}
               </ul>
@@ -1097,7 +1097,7 @@ export function EvaluativeExerciseFlow({
               />
             ) : criteriaPhase === "input" ? (
               <div className="space-y-3">
-                <p className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground text-body">
                   Name 2–4 criteria and why each matters.
                 </p>
                 {exLevel.criteriaCandidates &&
@@ -1128,7 +1128,7 @@ export function EvaluativeExerciseFlow({
                               })
                             }
                             className={cn(
-                              "rounded-md border px-3 py-1.5 text-sm transition-colors",
+                              "rounded-md border px-3 py-1.5 text-body transition-colors",
                               selected
                                 ? "border-primary bg-primary text-primary-foreground"
                                 : "hover:bg-accent",
@@ -1139,7 +1139,7 @@ export function EvaluativeExerciseFlow({
                         );
                       })}
                     </div>
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-muted-foreground text-meta">
                       {userProposedCriteria.filter((r) => r.name.trim()).length}/4 selected
                     </p>
                   </div>
@@ -1158,7 +1158,7 @@ export function EvaluativeExerciseFlow({
                     return (
                       <div key={idx} className="grid gap-2">
                         {hasCandidates ? (
-                          <p className="text-sm font-medium">{row.name}</p>
+                          <p className="text-body font-medium">{row.name}</p>
                         ) : (
                           <Input
                             value={row.name}
@@ -1188,7 +1188,7 @@ export function EvaluativeExerciseFlow({
                         />
                         <p
                           className={cn(
-                            "text-right text-xs",
+                            "text-right text-meta",
                             wordCount > 500 ? "text-destructive" : "text-muted-foreground",
                           )}
                         >
@@ -1233,46 +1233,46 @@ export function EvaluativeExerciseFlow({
               <div className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="border-t pt-3">
-                    <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">
+                    <p className="text-muted-foreground mb-2 text-meta font-medium uppercase">
                       Your criteria
                     </p>
-                    <ul className="space-y-2 text-sm">
+                    <ul className="space-y-2 text-body">
                       {userProposedCriteria
                         .map((c) => ({ name: c.name.trim(), rationale: c.rationale.trim() }))
                         .filter((c) => c.name && c.rationale)
                         .map((c, i) => (
                           <li key={i}>
                             <p className="font-medium">{c.name}</p>
-                            <p className="text-muted-foreground text-xs">{c.rationale}</p>
+                            <p className="text-muted-foreground text-meta">{c.rationale}</p>
                           </li>
                         ))}
                     </ul>
                   </div>
                   <div className="border-t pt-3">
-                    <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">
+                    <p className="text-muted-foreground mb-2 text-meta font-medium uppercase">
                       AI framework
                     </p>
                     {exercise.variant === "matrix" ? (
-                      <div className="space-y-2 text-sm">
+                      <div className="space-y-2 text-body">
                         <div>
                           <p className="font-medium">X: {exercise.axisX.label}</p>
-                          <p className="text-muted-foreground text-xs">
+                          <p className="text-muted-foreground text-meta">
                             {exercise.axisX.lowLabel} → {exercise.axisX.highLabel}
                           </p>
                         </div>
                         <div>
                           <p className="font-medium">Y: {exercise.axisY.label}</p>
-                          <p className="text-muted-foreground text-xs">
+                          <p className="text-muted-foreground text-meta">
                             {exercise.axisY.lowLabel} → {exercise.axisY.highLabel}
                           </p>
                         </div>
                       </div>
                     ) : (
-                      <ul className="space-y-2 text-sm">
+                      <ul className="space-y-2 text-body">
                         {exercise.criteria.map((c) => (
                           <li key={c.id}>
                             <p className="font-medium">{c.label}</p>
-                            <p className="text-muted-foreground text-xs">{c.description}</p>
+                            <p className="text-muted-foreground text-meta">{c.description}</p>
                           </li>
                         ))}
                       </ul>
@@ -1280,15 +1280,15 @@ export function EvaluativeExerciseFlow({
                   </div>
                 </div>
                 {criteriaFeedbackLoading ? (
-                  <div className="text-muted-foreground flex items-center gap-2 text-sm">
+                  <div className="text-muted-foreground flex items-center gap-2 text-body">
                     <InlineSpinner /> Getting AI feedback on your criteria…
                   </div>
                 ) : criteriaFeedback ? (
                   <div className="border-t pt-3">
-                    <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">
+                    <p className="text-muted-foreground mb-2 text-meta font-medium uppercase">
                       AI feedback on your criteria
                     </p>
-                    <p className="text-sm whitespace-pre-wrap">{criteriaFeedback.text}</p>
+                    <p className="text-body whitespace-pre-wrap">{criteriaFeedback.text}</p>
                   </div>
                 ) : null}
                 <div className="flex flex-wrap gap-2">
@@ -1354,7 +1354,7 @@ export function EvaluativeExerciseFlow({
                     <div key={o.id} className="space-y-3 border-t pt-3">
                       <div>
                         <p className="font-medium">{o.title}</p>
-                        <p className="text-muted-foreground text-xs">{o.description}</p>
+                        <p className="text-muted-foreground text-meta">{o.description}</p>
                       </div>
                       {o.outcomes.map((out) => (
                         <EvaluativeOutcomeInputRow
@@ -1376,14 +1376,14 @@ export function EvaluativeExerciseFlow({
                           }
                         />
                       ))}
-                      <p className="text-sm font-medium">
+                      <p className="text-body font-medium">
                         Your expected value: {ev === null ? "-" : `$${ev.toFixed(2)}`}
                       </p>
                     </div>
                   );
                 })}
                 {!uncertaintyReady() ? (
-                  <p className="text-destructive text-xs">
+                  <p className="text-destructive text-meta">
                     For each option, your outcome probabilities must sum to 100% and every outcome
                     needs a payoff.
                   </p>
@@ -1397,7 +1397,7 @@ export function EvaluativeExerciseFlow({
                   />
                 ) : null}
                 <div className="max-h-[min(60vh,640px)] overflow-auto">
-                <table className="w-full min-w-[480px] border-collapse text-sm">
+                <table className="w-full min-w-[480px] border-collapse text-body">
                   <thead>
                     <tr>
                       <th className="border p-2 text-left sticky top-0 z-10 bg-card">Option</th>
@@ -1407,10 +1407,10 @@ export function EvaluativeExerciseFlow({
                           className="border p-2 text-left align-bottom sticky top-0 z-10 bg-card"
                         >
                           <div className="font-medium">{c.label}</div>
-                          <p className="text-muted-foreground mt-1 text-xs font-normal">
+                          <p className="text-muted-foreground mt-1 text-meta font-normal">
                             {c.description}
                           </p>
-                          <div className="mt-2 text-xs">Weight (1–5)</div>
+                          <div className="mt-2 text-meta">Weight (1–5)</div>
                           <Slider
                             min={1}
                             max={5}
@@ -1424,7 +1424,7 @@ export function EvaluativeExerciseFlow({
                             }}
                             className="mt-2 w-full"
                           />
-                          <span className="text-muted-foreground text-xs">
+                          <span className="text-muted-foreground text-meta">
                             AI suggested: {c.suggestedWeight}
                           </span>
                         </th>
@@ -1439,11 +1439,11 @@ export function EvaluativeExerciseFlow({
                       <tr key={o.id}>
                         <td className="border p-2 align-top">
                           <p className="font-medium">{o.title}</p>
-                          <p className="text-muted-foreground text-xs">{o.description}</p>
+                          <p className="text-muted-foreground text-meta">{o.description}</p>
                         </td>
                         {exercise.criteria.map((c) => (
                           <td key={c.id} className="border p-2 align-top">
-                            <div className="text-xs">Score (1–5)</div>
+                            <div className="text-meta">Score (1–5)</div>
                             <Slider
                               min={1}
                               max={5}
@@ -1457,7 +1457,7 @@ export function EvaluativeExerciseFlow({
                               }}
                               className="mt-2 w-full"
                             />
-                            <span className="text-muted-foreground text-xs">
+                            <span className="text-muted-foreground text-meta">
                               AI: {o.suggestedScores[c.id]}
                             </span>
                           </td>

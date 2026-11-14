@@ -44,7 +44,7 @@ export function UnfinishedTopicNotice({ type, domain }: { type: string; domain: 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-6 sm:px-6">
       <div
-        className="flex flex-wrap items-center justify-between gap-3 border-y border-border py-2.5 text-sm"
+        className="flex flex-wrap items-center justify-between gap-3 border-y border-border py-2.5 text-body"
         data-testid="unfinished-topic"
       >
         <p className="min-w-0">You started this topic before.</p>

@@ -29,8 +29,8 @@ export function Section({
 
 /** A secondary action as a plain word. */
 export const WORD_LINK =
-  "text-muted-foreground text-xs hover:text-foreground active:text-foreground";
+  "text-muted-foreground text-meta hover:text-foreground active:text-foreground";
 
 /** A forward action inside a group ("Start", "Open"): ink word with a chevron. */
 export const GO_LINK =
-  "inline-flex shrink-0 items-center gap-0.5 text-sm font-medium text-foreground";
+  "inline-flex shrink-0 items-center gap-0.5 text-body font-medium text-foreground";

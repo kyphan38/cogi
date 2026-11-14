@@ -49,9 +49,9 @@ const isScenarioMode = (m: string | null): m is ScenarioMode =>
   m != null && (SCENARIO_MODES as readonly string[]).includes(m);
 
 const selectClass =
-  "h-9 w-full min-w-0 rounded-lg border border-border bg-card px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring";
+  "h-9 w-full min-w-0 rounded-lg border border-border bg-card px-2.5 text-body text-foreground focus-visible:outline-2 focus-visible:outline-ring";
 
-const WORD = "text-sm text-muted-foreground transition-colors hover:text-foreground active:text-foreground";
+const WORD = "text-body text-muted-foreground transition-colors hover:text-foreground active:text-foreground";
 
 /**
  * New exercise on one screen (PLAN-refine R6): type what you want to think
@@ -201,7 +201,7 @@ export function NewExercise() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="A decision, a claim, a news story… or paste a whole article."
-            className="w-full resize-none bg-transparent text-base leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/70"
+            className="w-full resize-none bg-transparent text-body leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/70"
             data-testid="own-topic"
           />
           <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -228,7 +228,7 @@ export function NewExercise() {
 
         {showOptions ? (
           <div className="mt-5 space-y-4" data-testid="options">
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm" role="radiogroup" aria-label="Exercise mode">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-body" role="radiogroup" aria-label="Exercise mode">
               {[null, ...PRACTICE_EXERCISE_TYPES].map((m) => (
                 <button
                   key={m ?? "auto"}
@@ -244,7 +244,7 @@ export function NewExercise() {
             </div>
             {!isCalibration ? (
               <div className="grid gap-2 sm:grid-cols-2">
-                <label className="grid min-w-0 gap-1 text-sm">
+                <label className="grid min-w-0 gap-1 text-body">
                   <span className="font-medium">Area</span>
                   <select
                     className={selectClass}
@@ -264,7 +264,7 @@ export function NewExercise() {
                     ))}
                   </select>
                 </label>
-                <label className="grid min-w-0 gap-1 text-sm">
+                <label className="grid min-w-0 gap-1 text-body">
                   <span className="font-medium">Domain</span>
                   <select
                     className={selectClass}
@@ -331,7 +331,7 @@ export function NewExercise() {
       ) : null}
 
       {error ? (
-        <p className="text-sm font-medium text-foreground" role="alert" data-testid="topic-error">
+        <p className="text-body font-medium text-foreground" role="alert" data-testid="topic-error">
           {error.message}{" "}
           <button type="button" className="font-semibold" onClick={error.retry}>
             Try again
@@ -371,7 +371,7 @@ function TopicRows({
                 </span>
               </span>
               {/* Phones: the whole row is the tap target, so the word gives way to the title. */}
-              <span className="hidden shrink-0 text-sm font-medium text-foreground opacity-0 transition-opacity after:ml-1 after:content-['›'] group-hover/row:opacity-100 group-focus-visible/row:opacity-100 sm:inline">
+              <span className="hidden shrink-0 text-body font-medium text-foreground opacity-0 transition-opacity after:ml-1 after:content-['›'] group-hover/row:opacity-100 group-focus-visible/row:opacity-100 sm:inline">
                 Use
               </span>
             </Link>

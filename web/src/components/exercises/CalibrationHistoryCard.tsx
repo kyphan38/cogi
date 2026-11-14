@@ -74,7 +74,7 @@ function CalibrationCurve({ h }: { h: CalibrationHistory }) {
       </svg>
       {active ? (
         <div
-          className="bg-popover text-popover-foreground pointer-events-none absolute rounded-md border px-2 py-1 text-xs"
+          className="bg-popover text-popover-foreground pointer-events-none absolute rounded-md border px-2 py-1 text-meta"
           style={{
             left: `${(x(active.confidence) / W) * 100}%`,
             top: `${(y(active.pct) / H) * 100}%`,
@@ -99,8 +99,8 @@ export function CalibrationHistoryCard({ rows }: { rows: Exercise[] }) {
   if (h.answered < CALIBRATION_HISTORY_MIN) return null;
   return (
     <Section data-testid="calibration-history" title="How sure vs how right">
-      <div className="space-y-4 text-sm">
-        <p className="text-muted-foreground text-xs">
+      <div className="space-y-4 text-body">
+        <p className="text-muted-foreground text-meta">
           From {h.answered} answers in {h.exercises} Calibration exercises. Dots below the dashed line mean you were more
           sure than right.
         </p>
@@ -118,10 +118,10 @@ export function CalibrationHistoryCard({ rows }: { rows: Exercise[] }) {
           ) : null}
         </div>
         {h.buckets.length > 0 ? (
-          <details className="text-sm">
+          <details className="text-body">
             <summary className="cursor-pointer">Show the numbers</summary>
             <table className="mt-2 w-full max-w-sm text-left tabular-nums">
-              <thead className="text-muted-foreground text-xs">
+              <thead className="text-muted-foreground text-meta">
                 <tr>
                   <th className="py-1 font-normal">How sure</th>
                   <th className="py-1 font-normal">Answers</th>

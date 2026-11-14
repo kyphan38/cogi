@@ -18,7 +18,7 @@ export function WordChoice<T extends string>({
   label: string;
 }) {
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm" role="group" aria-label={label}>
+    <div className="flex flex-wrap gap-x-4 gap-y-1 text-body" role="group" aria-label={label}>
       {options.map((o) => (
         <button
           key={o.value}

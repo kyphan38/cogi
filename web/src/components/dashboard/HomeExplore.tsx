@@ -22,7 +22,7 @@ function quizStatus(completed: Exercise[]): { line: string; ready: boolean } {
 
 const ROW =
   "group/row flex min-w-0 items-center justify-between gap-4 border-t border-border py-3 transition-colors";
-const GO = "shrink-0 text-sm text-muted-foreground transition-colors after:ml-1 after:content-['›'] group-hover/row:text-foreground";
+const GO = "shrink-0 text-body text-muted-foreground transition-colors after:ml-1 after:content-['›'] group-hover/row:text-foreground";
 
 /** Today page: the tools under Explore, one row each (PLAN-refine R5). */
 export function HomeExplore({ completed }: { completed: Exercise[] | null }) {

@@ -90,7 +90,7 @@ export function FrequencyTable({ item }: { item: BaseRateItem }) {
   const c = item.counts;
   const l = item.labels;
   return (
-    <div className="border-t border-border pt-3 text-sm" data-testid="frequency-table">
+    <div className="border-t border-border pt-3 text-body" data-testid="frequency-table">
       <p className="font-medium">
         Out of {fmt(BASE_RATE_POPULATION)} {l.unit}:
       </p>
@@ -240,7 +240,7 @@ export function CalibrationExerciseFlow({
     const stored = answers[id]?.[field];
     return (
       <div className="grid gap-1">
-        <Label htmlFor={key} className="text-xs">
+        <Label htmlFor={key} className="text-meta">
           {label}
         </Label>
         <div className="flex items-center gap-2">
@@ -254,7 +254,7 @@ export function CalibrationExerciseFlow({
               setAnswer(id, { [field]: parseNumber(e.target.value) });
             }}
           />
-          {suffix ? <span className="text-muted-foreground shrink-0 text-sm">{suffix}</span> : null}
+          {suffix ? <span className="text-muted-foreground shrink-0 text-body">{suffix}</span> : null}
         </div>
       </div>
     );
@@ -329,7 +329,7 @@ export function CalibrationExerciseFlow({
     ) : (
       <button
         type="button"
-        className="text-muted-foreground text-xs hover:text-foreground active:text-foreground"
+        className="text-muted-foreground text-meta hover:text-foreground active:text-foreground"
         onClick={() => setOpenTips((t) => ({ ...t, [key]: true }))}
       >
         {label}
@@ -340,15 +340,15 @@ export function CalibrationExerciseFlow({
     const a = answers[item.id];
     return (
       <div key={item.id} className="space-y-3 border-t border-border pt-4" data-testid="calibration-item">
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground text-meta">
           Question {i + 1} of {exercise!.items.length}
           {item.kind === "baserate" ? " · Base rate" : null}
           {item.kind !== "baserate" && item.seenBefore ? (
             <span data-testid="seen-before"> · Seen before, not counted in your History chart</span>
           ) : null}
         </p>
-        {item.kind === "baserate" ? <p className="text-sm leading-relaxed">{item.story}</p> : null}
-        <p className="text-sm font-medium text-foreground">{item.question}</p>
+        {item.kind === "baserate" ? <p className="text-body leading-relaxed">{item.story}</p> : null}
+        <p className="text-body font-medium text-foreground">{item.question}</p>
 
         {item.kind === "binary" ? (
           <>
@@ -361,7 +361,7 @@ export function CalibrationExerciseFlow({
                   aria-checked={a?.choice === oi}
                   onClick={() => setAnswer(item.id, { choice: oi as 0 | 1 })}
                   className={cn(
-                    "rounded-xl border px-3 py-2.5 text-left text-sm",
+                    "rounded-xl border px-3 py-2.5 text-left text-body",
                     a?.choice === oi ? "border-foreground bg-muted font-medium" : "border-border hover:bg-muted",
                   )}
                 >
@@ -370,7 +370,7 @@ export function CalibrationExerciseFlow({
               ))}
             </div>
             <div className="space-y-1">
-              <p className="text-xs font-medium">How sure are you?</p>
+              <p className="text-meta font-medium">How sure are you?</p>
               <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={`How sure: ${item.question}`}>
                 {BINARY_CONFIDENCE_STEPS.map((c) => (
                   <button
@@ -380,7 +380,7 @@ export function CalibrationExerciseFlow({
                     aria-checked={a?.confidence === c}
                     onClick={() => setAnswer(item.id, { confidence: c })}
                     className={cn(
-                      "rounded-md border px-3 py-1 text-sm tabular-nums",
+                      "rounded-md border px-3 py-1 text-body tabular-nums",
                       a?.confidence === c ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                     )}
                   >
@@ -388,14 +388,14 @@ export function CalibrationExerciseFlow({
                   </button>
                 ))}
               </div>
-              {i === 0 ? <p className="text-muted-foreground text-xs">50% means a pure guess. 100% means you would bet anything on it.</p> : null}
+              {i === 0 ? <p className="text-muted-foreground text-meta">50% means a pure guess. 100% means you would bet anything on it.</p> : null}
             </div>
           </>
         ) : null}
 
         {item.kind === "interval" ? (
           <>
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground text-meta">
               Give a range you are {cfg.intervalTarget}% sure holds the answer ({item.unit}).
             </p>
             <div className="grid grid-cols-2 gap-3">
@@ -406,7 +406,7 @@ export function CalibrationExerciseFlow({
               `range-${item.id}`,
               cfg.rangeTip,
               "Show a tip",
-              <p className="text-muted-foreground text-xs">
+              <p className="text-muted-foreground text-meta">
                 Tip: most people make ranges too narrow.
               </p>,
             )}
@@ -458,7 +458,7 @@ export function CalibrationExerciseFlow({
                   aria-pressed={topic === t}
                   onClick={() => setTopic(t)}
                   className={cn(
-                    "rounded-md border px-3 py-1.5 text-sm",
+                    "rounded-md border px-3 py-1.5 text-body",
                     topic === t ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                   )}
                 >
@@ -466,7 +466,7 @@ export function CalibrationExerciseFlow({
                 </button>
               ))}
             </div>
-            <p className="text-muted-foreground text-xs">Base-rate problems are the same for every topic.</p>
+            <p className="text-muted-foreground text-meta">Base-rate problems are the same for every topic.</p>
           </div>
           <div>
             <Button type="button" disabled={loading} onClick={() => void generate()}>
@@ -505,11 +505,11 @@ export function CalibrationExerciseFlow({
 
           {part === "answer" ? (
             <>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-body">
                 Don&apos;t look anything up.
               </p>
               <div className="space-y-4">{exercise.items.map(itemCard)}</div>
-              <p className="text-muted-foreground text-xs" data-testid="answered-count">
+              <p className="text-muted-foreground text-meta" data-testid="answered-count">
                 {answeredCount} of {exercise.items.length} answered
               </p>
               <ConfidenceSlider

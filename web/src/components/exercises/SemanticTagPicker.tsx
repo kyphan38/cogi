@@ -75,7 +75,7 @@ export function SemanticTagPicker({
             aria-pressed={selected ? isSelected : undefined}
             onClick={() => onSelect(tag)}
             className={cn(
-              "flex gap-2.5 rounded-xl border px-3 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50",
+              "flex gap-2.5 rounded-xl border px-3 py-2.5 text-left text-body text-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50",
               geo ? "items-center" : "flex-col items-start gap-0.5",
               isSelected ? "border-foreground bg-muted" : "border-border bg-card",
             )}
@@ -85,7 +85,7 @@ export function SemanticTagPicker({
             ) : null}
             <span className={geo ? undefined : "font-medium"}>{label}</span>
             {!geo && showQuestions && question ? (
-              <span className="text-xs font-normal text-muted-foreground">{question}</span>
+              <span className="text-meta font-normal text-muted-foreground">{question}</span>
             ) : null}
           </button>
         );

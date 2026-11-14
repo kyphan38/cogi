@@ -81,7 +81,7 @@ export function DeepDivePanel({
         )}
       </Button>
       {error ? (
-        <p className="text-destructive text-xs" role="alert">
+        <p className="text-destructive text-meta" role="alert">
           {error}
         </p>
       ) : null}

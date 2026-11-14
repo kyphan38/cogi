@@ -45,14 +45,14 @@ export function ExercisePickerCard({
           {label}
           {recommended ? " · best fit" : null}
         </p>
-        <p className={cn("text-sm font-medium text-foreground", recommended && "text-foreground")}>
+        <p className={cn("text-body font-medium text-foreground", recommended && "text-foreground")}>
           {title}
         </p>
         {desc ? (
-          <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{desc}</p>
+          <p className="text-muted-foreground mt-1 text-meta leading-relaxed">{desc}</p>
         ) : null}
         {reason ? (
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground italic">{reason}</p>
+          <p className="mt-1 text-meta leading-relaxed text-muted-foreground italic">{reason}</p>
         ) : null}
       </div>
       {TrailingIcon ? (

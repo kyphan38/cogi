@@ -104,8 +104,8 @@ export function LoginView({ appName, subtitle, className, externalError }: Login
       <div className="flex flex-col items-center gap-4">
         <Image src="/branding/cogi-icon.svg" alt="" width={40} height={40} />
         <div>
-          <h1 className="text-xl font-medium tracking-tight text-foreground">{appName}</h1>
-          {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
+          <h1 className="text-page font-medium tracking-tight text-foreground">{appName}</h1>
+          {subtitle ? <p className="mt-1 text-body text-muted-foreground">{subtitle}</p> : null}
         </div>
       </div>
 
@@ -113,13 +113,13 @@ export function LoginView({ appName, subtitle, className, externalError }: Login
         type="button"
         onClick={() => void onGoogleSignIn()}
         disabled={loading}
-        className="w-full max-w-xs rounded-full border border-border px-4 py-3 text-sm text-foreground transition-colors hover:bg-foreground/[0.06] disabled:opacity-40"
+        className="w-full max-w-xs rounded-full border border-border px-4 py-3 text-body text-foreground transition-colors hover:bg-foreground/[0.06] disabled:opacity-40"
       >
         {loading ? "Signing in…" : "Continue with Google"}
       </button>
 
       {error || externalError ? (
-        <p role="alert" className="max-w-xs text-sm text-muted-foreground">
+        <p role="alert" className="max-w-xs text-body text-muted-foreground">
           {error ?? externalError}
         </p>
       ) : null}

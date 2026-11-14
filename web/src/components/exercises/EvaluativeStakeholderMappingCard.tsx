@@ -33,7 +33,7 @@ export function EvaluativeStakeholderMappingCard({
   if (!revealed) {
     return (
       <div className="space-y-3">
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-body">
           Before scoring, list the stakeholders affected by this decision and what each one wants.
         </p>
         {hasCandidates ? (
@@ -66,7 +66,7 @@ export function EvaluativeStakeholderMappingCard({
                       }
                     }}
                     className={cn(
-                      "rounded-md border px-3 py-1.5 text-sm transition-colors",
+                      "rounded-md border px-3 py-1.5 text-body transition-colors",
                       selected
                         ? "border-primary bg-primary text-primary-foreground"
                         : "hover:bg-accent",
@@ -77,7 +77,7 @@ export function EvaluativeStakeholderMappingCard({
                 );
               })}
             </div>
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground text-meta">
               {rows.filter((r) => r.name.trim()).length}/5 selected
             </p>
           </div>
@@ -88,7 +88,7 @@ export function EvaluativeStakeholderMappingCard({
             return (
               <div key={idx} className="grid gap-2 sm:grid-cols-2">
                 {hasCandidates ? (
-                  <p className="flex items-center text-sm font-medium">{row.name}</p>
+                  <p className="flex items-center text-body font-medium">{row.name}</p>
                 ) : (
                   <Input
                     value={row.name}
@@ -161,21 +161,21 @@ export function EvaluativeStakeholderMappingCard({
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="border-t pt-3">
-          <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">
+          <p className="text-muted-foreground mb-2 text-meta font-medium uppercase">
             Your stakeholders
           </p>
-          <ul className="space-y-2 text-sm">
+          <ul className="space-y-2 text-body">
             {cleaned.map((e, i) => (
               <li key={i}>
                 <p className="font-medium">{e.name}</p>
-                <p className="text-muted-foreground text-xs">{e.wants}</p>
+                <p className="text-muted-foreground text-meta">{e.wants}</p>
               </li>
             ))}
           </ul>
         </div>
         <div className="border-t pt-3">
-          <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">AI reference</p>
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">{exercise.stakeholderNote}</p>
+          <p className="text-muted-foreground mb-2 text-meta font-medium uppercase">AI reference</p>
+          <p className="text-body leading-relaxed whitespace-pre-wrap">{exercise.stakeholderNote}</p>
         </div>
       </div>
       <div className="flex flex-wrap gap-2">

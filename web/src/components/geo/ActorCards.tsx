@@ -21,7 +21,7 @@ function Line({ line }: { line: CardLine }) {
         rel="noreferrer"
         title={line.source.label}
         aria-label={`Source: ${line.source.label}`}
-        className="text-muted-foreground text-xs hover:text-foreground active:text-foreground"
+        className="text-muted-foreground text-meta hover:text-foreground active:text-foreground"
       >
         Source
       </a>
@@ -32,13 +32,13 @@ function Line({ line }: { line: CardLine }) {
 /** One country or group card; sections with no lines are left out. */
 export function ActorCardView({ actor }: { actor: ActorCard }) {
   return (
-    <div className="space-y-3 text-sm" data-testid={`actor-card-${actor.id}`}>
+    <div className="space-y-3 text-body" data-testid={`actor-card-${actor.id}`}>
       {SECTIONS.map(({ key, title, note }) =>
         actor[key].length ? (
           <section key={key} className="space-y-1">
             <h4 className="font-medium text-foreground">
               {title}
-              {note ? <span className="text-muted-foreground ml-2 text-xs font-normal">{note}</span> : null}
+              {note ? <span className="text-muted-foreground ml-2 text-meta font-normal">{note}</span> : null}
             </h4>
             <ul className="list-disc space-y-1 pl-5">
               {actor[key].map((line) => (
@@ -67,10 +67,10 @@ export function ActorCards({ ids, openFirst = false }: { ids?: ActorId[]; openFi
           className="group rounded-xl border border-border bg-card px-3 py-2"
           data-testid={`actor-${a.id}`}
         >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 py-1 text-sm font-medium text-foreground [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 py-1 text-body font-medium text-foreground [&::-webkit-details-marker]:hidden">
             <span>
               {a.name}
-              <span className="text-muted-foreground ml-2 text-xs font-normal">{a.kind === "group" ? "Group" : "Country"}</span>
+              <span className="text-muted-foreground ml-2 text-meta font-normal">{a.kind === "group" ? "Group" : "Country"}</span>
             </span>
             <ChevronDown className="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden />
           </summary>

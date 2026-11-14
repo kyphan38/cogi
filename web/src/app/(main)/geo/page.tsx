@@ -125,7 +125,7 @@ export default function GeoLabPage() {
         {view.kind !== "home" ? (
           <button
             type="button"
-            className="text-sm text-muted-foreground hover:text-foreground active:text-foreground"
+            className="text-body text-muted-foreground hover:text-foreground active:text-foreground"
             onClick={() => setView({ kind: "home" })}
             data-testid="geo-back"
           >
@@ -138,12 +138,12 @@ export default function GeoLabPage() {
         <>
           <Card data-testid="geo-quiz-card">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Daily map quiz</CardTitle>
-              <p className="text-muted-foreground text-sm">
+              <CardTitle className="text-body">Daily map quiz</CardTitle>
+              <p className="text-muted-foreground text-body">
                 {QUIZ_LENGTH} places, about 2 minutes.
               </p>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
+            <CardContent className="space-y-3 text-body">
               {rows == null ? (
                 <p className="text-muted-foreground">Loading...</p>
               ) : doneToday && lastToday ? (
@@ -170,8 +170,8 @@ export default function GeoLabPage() {
 
           <Card data-testid="geo-strait-card">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Close the strait</CardTitle>
-              <p className="text-muted-foreground text-sm">
+              <CardTitle className="text-body">Close the strait</CardTitle>
+              <p className="text-muted-foreground text-body">
                 A sea route closes. Who gets hit?
               </p>
             </CardHeader>
@@ -189,8 +189,8 @@ export default function GeoLabPage() {
 
           <Card data-testid="geo-timelines-card">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Timelines</CardTitle>
-              <p className="text-muted-foreground text-sm">
+              <CardTitle className="text-body">Timelines</CardTitle>
+              <p className="text-muted-foreground text-body">
                 Decide at key moments of a real crisis.
               </p>
             </CardHeader>
@@ -203,8 +203,8 @@ export default function GeoLabPage() {
 
           <Card data-testid="geo-cards-card">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Country cards</CardTitle>
-              <p className="text-muted-foreground text-sm">
+              <CardTitle className="text-body">Country cards</CardTitle>
+              <p className="text-muted-foreground text-body">
                 What 10 players want, with sources.
               </p>
             </CardHeader>
@@ -217,13 +217,13 @@ export default function GeoLabPage() {
 
           <Card data-testid="geo-games-card">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Geopolitical games</CardTitle>
-              <p className="text-muted-foreground text-sm">
+              <CardTitle className="text-body">Geopolitical games</CardTitle>
+              <p className="text-muted-foreground text-body">
                 Play a made-up version, then see the real case.
               </p>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-1.5 text-sm">
+              <ul className="space-y-1.5 text-body">
                 {GEO_GAME_CASES.map((c) => (
                   <li key={c.id}>
                     <Link
@@ -233,14 +233,14 @@ export default function GeoLabPage() {
                     >
                       {c.title}
                     </Link>{" "}
-                    <span className="text-muted-foreground text-xs">{c.when}</span>
+                    <span className="text-muted-foreground text-meta">{c.when}</span>
                   </li>
                 ))}
               </ul>
             </CardContent>
           </Card>
 
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-meta">
             Shapes only. Disputed areas are not named.
           </p>
         </>
@@ -266,11 +266,11 @@ export default function GeoLabPage() {
               key={c.id}
               type="button"
               onClick={() => setView({ kind: "timeline", caseId: c.id, startedAt: new Date().toISOString() })}
-              className="rounded-xl border border-border bg-card px-3 py-2 text-left text-sm hover:bg-muted"
+              className="rounded-xl border border-border bg-card px-3 py-2 text-left text-body hover:bg-muted"
               data-testid={`timeline-option-${c.id}`}
             >
               <span className="block font-medium">{c.title}</span>
-              <span className="text-muted-foreground block text-xs">{c.when}</span>
+              <span className="text-muted-foreground block text-meta">{c.when}</span>
             </button>
           ))}
         </div>
@@ -286,7 +286,7 @@ export default function GeoLabPage() {
 
       {view.kind === "cards" ? (
         <div className="space-y-3">
-          <p className="text-sm">
+          <p className="text-body">
             &quot;Says it wants&quot; and &quot;Red lines&quot; are in each side&apos;s own words, with who said it and when.
             Strengths and weak spots are facts and numbers from neutral sources such as the World Bank and the EIA.
           </p>

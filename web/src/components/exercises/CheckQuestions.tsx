@@ -10,7 +10,7 @@ function QuestionList({ tags }: { tags: TagType[] }) {
   return (
     <ul className="space-y-1.5">
       {tags.map((tag) => (
-        <li key={tag} className="text-sm">
+        <li key={tag} className="text-body">
           <span className="text-foreground">{TAG_CHECK_QUESTIONS[tag]}</span>
           <span className="text-muted-foreground"> - if yes: {TAG_LABELS[tag].label}</span>
         </li>
@@ -28,14 +28,14 @@ export function CheckQuestions({ mode, geopolitics = false }: { mode: "shown" | 
   if (mode === "shown") {
     return (
       <div className="border-t border-border pt-4" data-testid="check-questions">
-        <p className="mb-2 text-sm font-medium text-foreground">Ask of each sentence:</p>
+        <p className="mb-2 text-body font-medium text-foreground">Ask of each sentence:</p>
         <QuestionList tags={tags} />
       </div>
     );
   }
   return (
     <details className="border-t border-border pt-4" data-testid="check-questions">
-      <summary className="cursor-pointer text-sm font-medium text-foreground">
+      <summary className="cursor-pointer text-body font-medium text-foreground">
         Questions to ask of each sentence
       </summary>
       <div className="mt-2">

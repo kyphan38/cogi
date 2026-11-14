@@ -39,7 +39,7 @@ function Options({
           aria-checked={picked === i}
           onClick={() => onPick(i)}
           className={cn(
-            "rounded-xl border px-3 py-2 text-left text-sm",
+            "rounded-xl border px-3 py-2 text-left text-body",
             picked === i ? "border-foreground bg-muted font-medium" : "border-border hover:bg-muted",
           )}
         >
@@ -74,7 +74,7 @@ export function GeoGuessStep({
   return (
     <div className="space-y-6">
       <section className="space-y-2">
-        <Label className="text-sm font-medium">Whose viewpoint is this written from?</Label>
+        <Label className="text-body font-medium">Whose viewpoint is this written from?</Label>
         {writeFirst ? (
           <Textarea
             aria-label="Your guess in your own words"
@@ -84,7 +84,7 @@ export function GeoGuessStep({
             onChange={(e) => onChange({ userPerspectiveGuess: e.target.value })}
           />
         ) : null}
-        {writeFirst ? <p className="text-muted-foreground text-xs">Now pick the closest:</p> : null}
+        {writeFirst ? <p className="text-muted-foreground text-meta">Now pick the closest:</p> : null}
         <Options
           label="Whose viewpoint"
           testId="perspective-options"
@@ -96,7 +96,7 @@ export function GeoGuessStep({
       </section>
 
       <section className="space-y-2">
-        <Label className="text-sm font-medium">Who is affected but never heard? (pick all that fit)</Label>
+        <Label className="text-body font-medium">Who is affected but never heard? (pick all that fit)</Label>
         <div className="flex flex-wrap gap-2" data-testid="actor-options">
           {actorOrder.map((i) => {
             const a = actors[i]!;
@@ -110,7 +110,7 @@ export function GeoGuessStep({
                   onChange({ actorChoices: on ? chosenActors.filter((x) => x !== a) : [...chosenActors, a] })
                 }
                 className={cn(
-                  "rounded-md border px-3 py-1.5 text-sm",
+                  "rounded-md border px-3 py-1.5 text-body",
                   on ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                 )}
               >
@@ -124,8 +124,8 @@ export function GeoGuessStep({
       {(ex.lensQuestions ?? []).length > 0 ? (
         <section className="space-y-4" data-testid="lens-step">
           <div>
-            <p className="text-sm font-medium">Read it through four lenses</p>
-            <p className="text-muted-foreground text-xs">
+            <p className="text-body font-medium">Read it through four lenses</p>
+            <p className="text-muted-foreground text-meta">
               Each lens asks a different question. None is the whole truth.
             </p>
           </div>
@@ -134,10 +134,10 @@ export function GeoGuessStep({
             const order = shuffledOrder(q.options.length, `${ex.id}-lens-${lens}`);
             return (
               <div key={lens} className="space-y-2" data-testid="lens-question">
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground text-meta">
                   {GEO_LENS_INFO[lens].name} · {GEO_LENS_INFO[lens].question}
                 </p>
-                <p className="text-sm text-foreground">{q.question}</p>
+                <p className="text-body text-foreground">{q.question}</p>
                 {cfg.lenses === "free" ? (
                   <Textarea
                     aria-label={`${GEO_LENS_INFO[lens].name}: ${q.question}`}
@@ -204,21 +204,21 @@ export function GeoReveal({ ex, guess }: { ex: AnalyticalExerciseRow; guess: Geo
   const missing = ex.missingActors ?? [];
   const picked = ex.perspectiveChoice != null ? ex.perspectiveOptions?.[ex.perspectiveChoice] : undefined;
   return (
-    <div className="space-y-4 text-sm" data-testid="geo-reveal">
+    <div className="space-y-4 text-body" data-testid="geo-reveal">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <div className="border-t border-border pt-2">
-          <p className="text-lg font-semibold">{guess.perspectiveCorrect ? "Yes" : "No"}</p>
-          <p className="text-muted-foreground text-xs">Right viewpoint</p>
+          <p className="text-lead font-semibold">{guess.perspectiveCorrect ? "Yes" : "No"}</p>
+          <p className="text-muted-foreground text-meta">Right viewpoint</p>
         </div>
         <div className="border-t border-border pt-2">
-          <p className="text-lg font-semibold tabular-nums">
+          <p className="text-lead font-semibold tabular-nums">
             {guess.actorsFound}/{guess.actorsTotal}
           </p>
-          <p className="text-muted-foreground text-xs">Missing actors found</p>
+          <p className="text-muted-foreground text-meta">Missing actors found</p>
         </div>
         <div className="border-t border-border pt-2">
-          <p className="text-lg font-semibold tabular-nums">{guess.score}</p>
-          <p className="text-muted-foreground text-xs">Perspective score (of 100)</p>
+          <p className="text-lead font-semibold tabular-nums">{guess.score}</p>
+          <p className="text-muted-foreground text-meta">Perspective score (of 100)</p>
         </div>
       </div>
       <p className="flex items-start gap-2">

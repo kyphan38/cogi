@@ -808,7 +808,7 @@ export function SystemsExerciseFlow({
                 />
               </div>
             ) : null}
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground text-meta">
               Personal context for AI is read from{" "}
               <Link href="/settings" className="font-medium text-foreground">
                 Settings
@@ -843,10 +843,10 @@ export function SystemsExerciseFlow({
             <CardDescription>Domain: {exercise.domain}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm leading-relaxed">{exercise.scenario}</p>
+            <p className="text-body leading-relaxed">{exercise.scenario}</p>
             {decomposePhase === "input" ? (
               <div className="space-y-3">
-                <p className="text-muted-foreground text-sm" data-testid="decompose-hint">
+                <p className="text-muted-foreground text-body" data-testid="decompose-hint">
                   Pick the 6 factors that matter most.
                 </p>
                 {exLevel.componentCandidates &&
@@ -869,7 +869,7 @@ export function SystemsExerciseFlow({
                               })
                             }
                             className={cn(
-                              "rounded-md border px-3 py-1.5 text-sm transition-colors",
+                              "rounded-md border px-3 py-1.5 text-body transition-colors",
                               selected
                                 ? "border-primary bg-primary text-primary-foreground"
                                 : "hover:bg-accent",
@@ -880,7 +880,7 @@ export function SystemsExerciseFlow({
                         );
                       })}
                     </div>
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-muted-foreground text-meta">
                       {userProposedComponents.length}/6 selected
                     </p>
                   </div>
@@ -932,18 +932,18 @@ export function SystemsExerciseFlow({
               <div className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="border-t pt-3">
-                    <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">
+                    <p className="text-muted-foreground mb-2 text-meta font-medium uppercase">
                       Your components
                     </p>
-                    <ul className="list-inside list-disc space-y-1 text-sm">
+                    <ul className="list-inside list-disc space-y-1 text-body">
                       {userProposedComponents.map((s, i) => (
                         <li key={i}>{s.trim() || "-"}</li>
                       ))}
                     </ul>
                   </div>
                   <div className="border-t pt-3">
-                    <p className="text-muted-foreground mb-2 text-xs font-medium uppercase">AI nodes</p>
-                    <ul className="list-inside list-disc space-y-1 text-sm">
+                    <p className="text-muted-foreground mb-2 text-meta font-medium uppercase">AI nodes</p>
+                    <ul className="list-inside list-disc space-y-1 text-body">
                       {exercise.nodes.map((n) => (
                         <li key={n.id}>{n.label}</li>
                       ))}
@@ -984,9 +984,9 @@ export function SystemsExerciseFlow({
             <CardDescription>Domain: {exercise.domain}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm leading-relaxed">{exercise.scenario}</p>
+            <p className="text-body leading-relaxed">{exercise.scenario}</p>
             {exLevel.linkCountHint ? (
-              <p className="text-sm text-foreground" data-testid="link-count-hint">
+              <p className="text-body text-foreground" data-testid="link-count-hint">
                 The model draws <span className="font-medium">{exercise.intendedConnections.length} links</span>{" "}
                 between these nodes. Try to find them.
               </p>
@@ -994,7 +994,7 @@ export function SystemsExerciseFlow({
             {exLevel.linkTypeGuide !== "hidden" ? (
               <LinkTypeGuide mode={exLevel.linkTypeGuide} types={linkTypes} />
             ) : null}
-            <p className="text-muted-foreground text-xs" data-testid="connect-hint">
+            <p className="text-muted-foreground text-meta" data-testid="connect-hint">
               Tap a part, then tap the part it affects.
             </p>
             <SystemsFlowCanvas
@@ -1006,7 +1006,7 @@ export function SystemsExerciseFlow({
               linkTypes={linkTypes}
             />
             {userEdges.length > 0 ? (
-              <ul className="space-y-2 border-t pt-2 text-sm" data-testid="link-list">
+              <ul className="space-y-2 border-t pt-2 text-body" data-testid="link-list">
                 {userEdges.map((e) => (
                   <li key={e.id} className="flex flex-wrap items-center gap-2">
                     <span className="min-w-0 flex-1">
@@ -1093,8 +1093,8 @@ export function SystemsExerciseFlow({
                   className="flex items-center justify-between gap-3 border-t pt-2"
                 >
                   <div>
-                    <p className="text-sm font-medium">{n.label}</p>
-                    <p className="text-muted-foreground text-xs">{n.description}</p>
+                    <p className="text-body font-medium">{n.label}</p>
+                    <p className="text-muted-foreground text-meta">{n.description}</p>
                   </div>
                   <Input
                     type="number"
@@ -1173,9 +1173,9 @@ export function SystemsExerciseFlow({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm font-medium">{exercise.shockEvent.description}</p>
+            <p className="text-body font-medium">{exercise.shockEvent.description}</p>
             {exLevel.impactCountHint ? (
-              <p className="text-sm text-foreground" data-testid="impact-count-hint">
+              <p className="text-body text-foreground" data-testid="impact-count-hint">
                 In the model, {exercise.shockEvent.directlyAffected.length} node
                 {exercise.shockEvent.directlyAffected.length === 1 ? " is" : "s are"} directly and{" "}
                 {exercise.shockEvent.indirectlyAffected.length} indirectly affected.
@@ -1200,8 +1200,8 @@ export function SystemsExerciseFlow({
               return (
                 <div className="space-y-3 border-t border-border pt-4" data-testid="spread-questions">
                   <div>
-                    <p className="text-sm font-medium text-foreground">How does the shock reach each indirect node?</p>
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-body font-medium text-foreground">How does the shock reach each indirect node?</p>
+                    <p className="text-muted-foreground text-meta">
                       Pick the node it passes through.
                     </p>
                   </div>
@@ -1211,12 +1211,12 @@ export function SystemsExerciseFlow({
                     );
                     return (
                       <div key={n.id} className="space-y-1.5" data-testid="spread-question">
-                        <p className="text-sm">
+                        <p className="text-body">
                           <span className="font-medium">{n.label}</span> is hit through:
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {choices.length === 0 ? (
-                            <span className="text-muted-foreground text-xs">Mark another node as affected first.</span>
+                            <span className="text-muted-foreground text-meta">Mark another node as affected first.</span>
                           ) : (
                             choices.map((m) => (
                               <Button
@@ -1281,7 +1281,7 @@ export function SystemsExerciseFlow({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm font-medium">{exercise.secondShockEvent.description}</p>
+            <p className="text-body font-medium">{exercise.secondShockEvent.description}</p>
             <SystemsFlowCanvas
               nodes={exercise.nodes}
               userEdges={userEdges}
@@ -1296,7 +1296,7 @@ export function SystemsExerciseFlow({
               }}
             />
             <div className="space-y-2">
-              <p className="text-sm font-medium">Criticality ranking: you vs. the model</p>
+              <p className="text-body font-medium">Criticality ranking: you vs. the model</p>
               <ul className="space-y-1.5">
                 {(exercise.criticalityGroundTruth ?? [])
                   .slice()
@@ -1309,14 +1309,14 @@ export function SystemsExerciseFlow({
                       <li
                         key={hint.nodeId}
                         className={cn(
-                          "border-l-2 pl-3 text-sm",
+                          "border-l-2 pl-3 text-body",
                           match ? "border-foreground" : "border-input",
                         )}
                       >
                         <span className="font-medium">{node?.label ?? hint.nodeId}</span>
                         {" - "}your rank: {userRank ?? "-"}, model rank: {hint.criticalityRank}
                         {match ? <span className="font-medium">{" · match"}</span> : null}
-                        <p className="text-muted-foreground mt-0.5 text-xs">{hint.rationale}</p>
+                        <p className="text-muted-foreground mt-0.5 text-meta">{hint.rationale}</p>
                       </li>
                     );
                   })}
@@ -1367,7 +1367,7 @@ export function SystemsExerciseFlow({
           <CardContent className="space-y-4">
             {exercise.intendedConnectionsB && exercise.shockEventB && !exercise.revealedB ? (
               <div className="space-y-3 border-t border-border pt-4" data-testid="predict-b">
-                <p className="text-sm font-medium">
+                <p className="text-body font-medium">
                   Predict first: from {exercise.perspectiveBName ?? "Actor B"}&apos;s view, which parts does the shock hit
                   directly?
                 </p>
@@ -1386,7 +1386,7 @@ export function SystemsExerciseFlow({
                           void putExercise(next);
                         }}
                         className={cn(
-                          "rounded-md border px-3 py-1.5 text-sm",
+                          "rounded-md border px-3 py-1.5 text-body",
                           on ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                         )}
                       >
@@ -1413,7 +1413,7 @@ export function SystemsExerciseFlow({
                 const actual = new Set(exercise.shockEventB.directlyAffected);
                 const hits = exercise.predictedDirectB.filter((id) => actual.has(id)).length;
                 return (
-                  <p className="text-sm" data-testid="predict-b-result">
+                  <p className="text-body" data-testid="predict-b-result">
                     Your prediction matched <span className="font-medium">{hits} of {actual.size}</span> directly hit
                     parts
                     {exercise.predictedDirectB.length > hits

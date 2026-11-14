@@ -19,7 +19,7 @@ function Card({
       data-size={size}
       data-variant={variant}
       className={cn(
-        "group/card flex flex-col gap-4 text-sm text-card-foreground data-[size=sm]:gap-3",
+        "group/card flex flex-col gap-4 text-body text-card-foreground data-[size=sm]:gap-3",
         variant === "boxed" &&
           "overflow-hidden rounded-xl border border-border bg-card py-4 transition-colors has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
         className,
@@ -51,7 +51,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"h2">) {
     <h2
       data-slot="card-title"
       className={cn(
-        "font-heading text-body font-medium group-data-[size=sm]/card:text-sm",
+        "font-heading text-body font-medium group-data-[size=sm]/card:text-body",
         className,
       )}
       {...props}
@@ -63,7 +63,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-body text-muted-foreground", className)}
       {...props}
     />
   );

@@ -43,11 +43,11 @@ export function PracticeFinishCard({
     return (
       <Card className={justSaved ? "fade-in" : undefined}>
         <CardHeader>
-          <CardTitle className="text-base">Saved</CardTitle>
+          <CardTitle className="text-body">Saved</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {takeaway.trim() ? (
-            <p className="text-sm">
+            <p className="text-body">
               <span className="text-muted-foreground">Takeaway: </span>
               {takeaway.trim()}
             </p>
@@ -68,7 +68,7 @@ export function PracticeFinishCard({
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
-        <Label htmlFor="practice-takeaway" className="text-sm font-medium">
+        <Label htmlFor="practice-takeaway" className="text-body font-medium">
           What will you take away? <span className="text-muted-foreground font-normal">(optional)</span>
         </Label>
         <Textarea

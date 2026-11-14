@@ -161,7 +161,7 @@ export default function SettingsPage() {
               onLanguageLevelChange(typeof n === "number" ? n : 0);
             }}
           />
-          <div className="flex justify-between text-xs text-muted-foreground">
+          <div className="flex justify-between text-meta text-muted-foreground">
             {LANGUAGE_LEVELS.map((l) => (
               <span key={l}>{l}</span>
             ))}
@@ -185,7 +185,7 @@ export default function SettingsPage() {
               Save
             </Button>
             {saved ? (
-              <span className="text-sm text-muted-foreground">Saved.</span>
+              <span className="text-body text-muted-foreground">Saved.</span>
             ) : null}
           </div>
         </section>
@@ -193,7 +193,7 @@ export default function SettingsPage() {
         <Section className="mt-12" title="Theme">
           {/* The current choice is ink and medium; the others are faint and tappable. */}
           <div
-            className="flex gap-4 text-sm"
+            className="flex gap-4 text-body"
             role="radiogroup"
             aria-label="Theme"
           >
@@ -217,10 +217,10 @@ export default function SettingsPage() {
         </Section>
 
         <Section className="mt-12" title="Keyboard">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             <span className="font-medium text-foreground">Delete dialog:</span>{" "}
             press{" "}
-            <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+            <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-meta text-foreground">
               Escape
             </kbd>{" "}
             to close. Type{" "}
@@ -232,7 +232,7 @@ export default function SettingsPage() {
         </Section>
 
         <Section className="mt-12" title="Data backup">
-          <div className="grid gap-3 text-sm">
+          <div className="grid gap-3 text-body">
             <button
               type="button"
               onClick={() => void exportJson()}
@@ -276,6 +276,6 @@ export default function SettingsPage() {
 
 /** A secondary action as a plain word (DESIGN.md "Words as buttons"). */
 const WORD =
-  "text-sm text-muted-foreground hover:text-foreground active:text-foreground";
+  "text-body text-muted-foreground hover:text-foreground active:text-foreground";
 
 

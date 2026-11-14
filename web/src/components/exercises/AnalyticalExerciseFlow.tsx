@@ -720,7 +720,7 @@ export function AnalyticalExerciseFlow({
                   placeholder="Paste context, stakeholders, and the tension you want to practice..."
                   className="min-h-[5rem]"
                 />
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground text-meta">
                   Optional domain above steers tone/register; the scenario drives content.
                 </p>
               </div>
@@ -803,10 +803,10 @@ export function AnalyticalExerciseFlow({
                   </Button>
                 </div>
                 {pasteNotice ? (
-                  <p className="text-muted-foreground text-xs">{pasteNotice}</p>
+                  <p className="text-muted-foreground text-meta">{pasteNotice}</p>
                 ) : null}
                 {realText.trim() ? (
-                  <p className="text-muted-foreground text-xs">
+                  <p className="text-muted-foreground text-meta">
                     Words after sanitization (same rules as server): {realSanitizedPreview.wordCount}
                     {realSanitizedPreview.wordCount > 2000 ? (
                       <span className="text-destructive font-medium">
@@ -817,13 +817,13 @@ export function AnalyticalExerciseFlow({
                     {realWordCount ? ` · Last generate used: ${realWordCount} words` : null}
                   </p>
                 ) : (
-                  <p className="text-muted-foreground text-xs">
+                  <p className="text-muted-foreground text-meta">
                     Tip: paste an email, plan, or article you want to analyze.
                   </p>
                 )}
               </div>
             ) : null}
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground text-meta">
               Personal context for AI is read from{" "}
               <Link href="/settings" className="font-medium text-foreground">
                 Settings
@@ -882,12 +882,12 @@ export function AnalyticalExerciseFlow({
             ) : (
               <>
                 {exercise.isGeopolitics && exercise.source !== "real_data" ? (
-                  <p className="text-muted-foreground text-xs" data-testid="fiction-label">
+                  <p className="text-muted-foreground text-meta" data-testid="fiction-label">
                     Scenario: some details may be fictional. Do not learn facts from it; learn to read it.
                   </p>
                 ) : null}
                 {levelConfig?.countHint === "issues-and-traps" && !exercise.isSoundReasoning ? (
-                  <p className="text-sm text-foreground" data-testid="issue-count-hint">
+                  <p className="text-body text-foreground" data-testid="issue-count-hint">
                     This passage has <span className="font-medium">{exercise.embeddedIssues.length} issues</span> and{" "}
                     <span className="font-medium">
                       {exercise.validPoints.length} trap{exercise.validPoints.length === 1 ? "" : "s"}
@@ -896,7 +896,7 @@ export function AnalyticalExerciseFlow({
                   </p>
                 ) : null}
                 {levelConfig?.countHint === "issues" && !exercise.isSoundReasoning ? (
-                  <p className="text-sm text-foreground" data-testid="issue-count-hint">
+                  <p className="text-body text-foreground" data-testid="issue-count-hint">
                     This passage has <span className="font-medium">{exercise.embeddedIssues.length} issues</span>{" "}
                     to find.
                   </p>
@@ -1063,7 +1063,7 @@ export function AnalyticalExerciseFlow({
                     : null}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm">
+              <CardContent className="space-y-3 text-body">
                 <p>
                   <span className="font-medium">Hidden perspective: </span>
                   {exercise.hiddenPerspective}

@@ -111,7 +111,7 @@ export function FirebaseAuthGate({ children }: FirebaseAuthGateProps) {
 
   if (status !== "ready") {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center p-8 text-sm text-muted-foreground">
+      <div className="flex min-h-[50vh] items-center justify-center p-8 text-body text-muted-foreground">
         Checking access...
       </div>
     );

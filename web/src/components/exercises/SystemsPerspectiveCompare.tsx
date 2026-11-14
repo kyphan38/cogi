@@ -44,7 +44,7 @@ export function SystemsPerspectiveCompare({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <p className="text-sm font-medium">Your map ({perspectiveAName})</p>
+        <p className="text-body font-medium">Your map ({perspectiveAName})</p>
         <SystemsFlowCanvas
           nodes={nodes}
           userEdges={userEdges}
@@ -57,7 +57,7 @@ export function SystemsPerspectiveCompare({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-2">
-          <p className="text-sm font-medium">A - {perspectiveAName}</p>
+          <p className="text-body font-medium">A - {perspectiveAName}</p>
           <SystemsFlowCanvas
             nodes={nodes}
             userEdges={[]}
@@ -70,7 +70,7 @@ export function SystemsPerspectiveCompare({
           />
         </div>
         <div className="space-y-2">
-          <p className="text-sm font-medium">B - {perspectiveBName}</p>
+          <p className="text-body font-medium">B - {perspectiveBName}</p>
           <SystemsFlowCanvas
             nodes={nodes}
             userEdges={[]}
@@ -84,11 +84,11 @@ export function SystemsPerspectiveCompare({
         </div>
       </div>
 
-      <div className="border-t pt-3 text-sm">
+      <div className="border-t pt-3 text-body">
         <p className="mb-2 font-medium">{shockEvent.description}</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <p className="text-muted-foreground text-xs font-medium uppercase">
+            <p className="text-muted-foreground text-meta font-medium uppercase">
               {perspectiveAName} - shock ripples
             </p>
             <p className="mt-1">
@@ -99,10 +99,10 @@ export function SystemsPerspectiveCompare({
               <span className="font-medium">Indirect: </span>
               {formatNodeList(shockEvent.indirectlyAffected, nodes)}
             </p>
-            <p className="text-muted-foreground mt-1 text-xs">{shockEvent.explanation}</p>
+            <p className="text-muted-foreground mt-1 text-meta">{shockEvent.explanation}</p>
           </div>
           <div>
-            <p className="text-muted-foreground text-xs font-medium uppercase">
+            <p className="text-muted-foreground text-meta font-medium uppercase">
               {perspectiveBName} - shock ripples
             </p>
             <p className="mt-1">
@@ -113,7 +113,7 @@ export function SystemsPerspectiveCompare({
               <span className="font-medium">Indirect: </span>
               {formatNodeList(shockEventB.indirectlyAffected, nodes)}
             </p>
-            <p className="text-muted-foreground mt-1 text-xs">{shockEventB.explanation}</p>
+            <p className="text-muted-foreground mt-1 text-meta">{shockEventB.explanation}</p>
           </div>
         </div>
       </div>

@@ -41,9 +41,9 @@ export default function TermsPage() {
         <Input aria-label="Search terms" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
       ) : null}
       {terms === null ? (
-        <p className="text-muted-foreground text-sm">Loading…</p>
+        <p className="text-muted-foreground text-body">Loading…</p>
       ) : terms.length === 0 ? (
-        <p className="text-muted-foreground text-sm italic">
+        <p className="text-muted-foreground text-body italic">
           No terms yet. Do a Life situations exercise to collect your first ones.
         </p>
       ) : (
@@ -51,11 +51,11 @@ export default function TermsPage() {
           {shown.map((t) => (
             <li key={t.term}>
               <Card>
-                <CardContent className="space-y-1 pt-5 text-sm">
+                <CardContent className="space-y-1 pt-5 text-body">
                   <p className="text-foreground font-medium">{t.term}</p>
                   <p>{t.plain}</p>
                   <p className="text-muted-foreground">Example: {t.example}</p>
-                  <p className="text-muted-foreground text-xs">
+                  <p className="text-muted-foreground text-meta">
                     Seen in:{" "}
                     {t.seenIn.slice(0, 3).map((s, i) => (
                       <span key={s.id}>

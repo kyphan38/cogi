@@ -106,7 +106,7 @@ export function HomeContent() {
           className="group/new flex h-12 items-center justify-between gap-4 rounded-lg border border-input bg-card px-4 transition-colors hover:border-foreground/40"
         >
           <span className="min-w-0 truncate text-body text-muted-foreground">A decision, a claim, a news story…</span>
-          <span className="shrink-0 text-sm text-muted-foreground transition-colors after:ml-1 after:content-['›'] group-hover/new:text-foreground">
+          <span className="shrink-0 text-body text-muted-foreground transition-colors after:ml-1 after:content-['›'] group-hover/new:text-foreground">
             New exercise
           </span>
         </Link>
@@ -125,7 +125,7 @@ export function HomeContent() {
                       {ex.domain ? ` · ${ex.domain}` : ""}
                     </p>
                   </div>
-                  <span className="shrink-0 text-sm font-medium text-foreground after:ml-1 after:content-['›']">Continue</span>
+                  <span className="shrink-0 text-body font-medium text-foreground after:ml-1 after:content-['›']">Continue</span>
                 </Link>
                 <button
                   type="button"

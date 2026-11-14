@@ -84,9 +84,9 @@ export function AnalyticalAnswerKey({
   return (
     <Card data-testid="analytical-answer-key">
       <CardHeader>
-        <CardTitle className="text-lg">Answer key</CardTitle>
+        <CardTitle className="text-lead">Answer key</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6 text-sm leading-relaxed">
+      <CardContent className="space-y-6 text-body leading-relaxed">
         <div className="grid grid-cols-3 gap-2">
           <Stat
             label="Issues found"
@@ -103,12 +103,12 @@ export function AnalyticalAnswerKey({
         {calibration ? <p className="text-muted-foreground">{calibration}</p> : null}
 
         <div>
-          <p className="text-muted-foreground mb-2 text-xs">
+          <p className="text-muted-foreground mb-2 text-meta">
             Numbers mark planned issues, letters mark traps. Shaded text is what you highlighted.
           </p>
           <div
             data-testid="answer-key-passage"
-            className="border-muted whitespace-pre-wrap border-l-2 pl-4 text-base leading-[1.75]"
+            className="border-muted whitespace-pre-wrap border-l-2 pl-4 text-body leading-[1.75]"
           >
             {pieces.map((p, i) => (
               <span key={i}>

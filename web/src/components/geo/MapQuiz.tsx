@@ -90,7 +90,7 @@ export function MapQuiz({
   return (
     <div className="space-y-3" data-testid="map-quiz">
       <div className="space-y-1">
-        <p className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
+        <p className="text-muted-foreground flex flex-wrap items-center gap-2 text-meta">
           <span className="tabular-nums" data-testid="quiz-progress">
             Question {index + 1} of {places.length}
           </span>
@@ -99,10 +99,10 @@ export function MapQuiz({
           <span aria-hidden>·</span>
           <span>{region.label}</span>
         </p>
-        <p className="text-base font-medium text-foreground" data-testid="quiz-question">
+        <p className="text-body font-medium text-foreground" data-testid="quiz-question">
           {placeQuestion(place)}
         </p>
-        {place.alsoCalled ? <p className="text-muted-foreground text-sm">Also called {place.alsoCalled}.</p> : null}
+        {place.alsoCalled ? <p className="text-muted-foreground text-body">Also called {place.alsoCalled}.</p> : null}
       </div>
 
       <GeoMap
@@ -142,7 +142,7 @@ export function MapQuiz({
 
       {answer ? (
         <div className="space-y-3">
-          <p className="flex items-start gap-2 text-sm" data-testid="quiz-feedback" data-correct={answer.correct ? "true" : "false"}>
+          <p className="flex items-start gap-2 text-body" data-testid="quiz-feedback" data-correct={answer.correct ? "true" : "false"}>
             {answer.correct ? <Check className="mt-0.5 size-4 shrink-0" aria-hidden /> : <X className="mt-0.5 size-4 shrink-0" aria-hidden />}
             <span>{feedback(place, answer)}</span>
           </p>
@@ -169,11 +169,11 @@ export function MapQuizResults({ places, answers }: { places: Place[]; answers: 
   const right = answers.filter((a) => a.correct).length;
   return (
     <div className="space-y-3" data-testid="quiz-results">
-      <p className="text-2xl font-semibold text-foreground">
+      <p className="text-page font-semibold text-foreground">
         {right} of {answers.length}
       </p>
-      <table className="w-full text-left text-sm">
-        <thead className="text-muted-foreground text-xs">
+      <table className="w-full text-left text-body">
+        <thead className="text-muted-foreground text-meta">
           <tr>
             <th className="py-1 font-medium">Place</th>
             <th className="py-1 font-medium">Result</th>
@@ -199,7 +199,7 @@ export function MapQuizResults({ places, answers }: { places: Place[]; answers: 
         </tbody>
       </table>
       {right < answers.length ? (
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-body">
           Misses come back after {REVIEW_INTERVALS[0]}, {REVIEW_INTERVALS[1]} and {REVIEW_INTERVALS[2]} days.
         </p>
       ) : null}
