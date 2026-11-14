@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ChevronRight, Trash2 } from "lucide-react";
-import { GO_LINK, HomeSection, WORD_LINK } from "@/components/dashboard/HomeSection";
+import { GO_LINK, Section, WORD_LINK } from "@/components/shared/Section";
 import type { Exercise } from "@/lib/types/exercise";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
 import { currentTrack, trackProgress, trackStepHref } from "@/lib/exercise/tracks";
@@ -21,7 +21,7 @@ export function TrackCard({
 }) {
   const track = currentTrack(completed);
   return (
-    <HomeSection
+    <Section
       data-testid="track-card"
       title="Learning track"
       action={
@@ -83,6 +83,6 @@ export function TrackCard({
           <p className="text-muted-foreground">You finished every track. New ones will come.</p>
         )}
       </div>
-    </HomeSection>
+    </Section>
   );
 }

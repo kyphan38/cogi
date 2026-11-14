@@ -32,8 +32,12 @@ const buttonVariants = cva(
         "icon-sm":
           "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
         "icon-lg": "size-9",
+        // Phone main action: a 44px tap target.
+        touch: "h-11 gap-1.5 px-5 text-body",
       },
     },
+    // The filled main action has one size everywhere: 36px, 16px sides.
+    compoundVariants: [{ variant: "default", size: "default", class: "h-9 px-4" }],
     defaultVariants: {
       variant: "default",
       size: "default",

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { GO_LINK } from "@/components/dashboard/HomeSection";
+import { GO_LINK } from "@/components/shared/Section";
 import { ActorCards } from "@/components/geo/ActorCards";
 import { CloseTheStrait } from "@/components/geo/CloseTheStrait";
 import { TimelineGame } from "@/components/geo/TimelineGame";

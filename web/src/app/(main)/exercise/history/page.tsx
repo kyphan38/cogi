@@ -7,7 +7,7 @@ import { startTransition, Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { HomeSection, WORD_LINK } from "@/components/dashboard/HomeSection";
+import { Section, WORD_LINK } from "@/components/shared/Section";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -530,7 +530,7 @@ function HistoryPageInner() {
         </Alert>
       ) : null}
 
-      <HomeSection
+      <Section
         title="Activity"
         action={
           <p className="text-muted-foreground text-xs tabular-nums">
@@ -542,12 +542,12 @@ function HistoryPageInner() {
         }
       >
         <HistoryActivityHeatmap rows={rows} />
-      </HomeSection>
+      </Section>
 
       <CalibrationHistoryCard rows={rows} />
 
       {showFilters ? (
-        <HomeSection title="Filters" data-testid="history-filters">
+        <Section title="Filters" data-testid="history-filters">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label>Type</Label>
@@ -598,10 +598,10 @@ function HistoryPageInner() {
               />
             </div>
           </div>
-        </HomeSection>
+        </Section>
       ) : null}
 
-      <HomeSection
+      <Section
         title="Completed exercises"
         action={
           filtersActive ? null : (
@@ -687,7 +687,7 @@ function HistoryPageInner() {
             ))}
           </ul>
         )}
-      </HomeSection>
+      </Section>
 
       {selected && detailEx ? (
         <section className="group/review relative">

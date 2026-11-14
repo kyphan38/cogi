@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { GO_LINK, HomeSection } from "@/components/dashboard/HomeSection";
+import { GO_LINK, Section } from "@/components/shared/Section";
 import { localDay, reviewCounts } from "@/lib/geo/quiz";
 import { quizAttempts, quizDoneOn } from "@/lib/geo/rows";
 import type { Exercise } from "@/lib/types/exercise";
@@ -19,7 +19,7 @@ function quizStatus(completed: Exercise[]): string {
 /** Practice page: a door to the Geo Lab with today's map quiz status (PLAN-geopolitics.md G2). */
 export function GeoLabCard({ completed }: { completed: Exercise[] | null }) {
   return (
-    <HomeSection data-testid="geo-lab-card" title="Geo Lab">
+    <Section data-testid="geo-lab-card" title="Geo Lab">
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <div className="min-w-0 flex-1">
           <p className="text-foreground">Maps, sea routes and a 2-minute daily map quiz.</p>
@@ -37,6 +37,6 @@ export function GeoLabCard({ completed }: { completed: Exercise[] | null }) {
           Open <ChevronRight className="size-4" aria-hidden />
         </Link>
       </div>
-    </HomeSection>
+    </Section>
   );
 }

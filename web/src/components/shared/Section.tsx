@@ -4,7 +4,7 @@ import type { HTMLAttributes, ReactNode } from "react";
  * One group on a page: a small label, an optional word action on the right,
  * then the content. Space separates groups, not a card (DESIGN.md "Layout").
  */
-export function HomeSection({
+export function Section({
   title,
   action,
   children,

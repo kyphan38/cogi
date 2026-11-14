@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { HomeSection } from "@/components/dashboard/HomeSection";
+import { Section } from "@/components/shared/Section";
 import { Stat } from "@/components/shared/AnswerKeyParts";
 import { isCalibrationExercise, type Exercise } from "@/lib/types/exercise";
 import { aggregateCalibration, CALIBRATION_HISTORY_MIN, type CalibrationHistory } from "@/lib/exercise/calibration-score";
@@ -98,7 +98,7 @@ export function CalibrationHistoryCard({ rows }: { rows: Exercise[] }) {
   );
   if (h.answered < CALIBRATION_HISTORY_MIN) return null;
   return (
-    <HomeSection data-testid="calibration-history" title="How sure vs how right">
+    <Section data-testid="calibration-history" title="How sure vs how right">
       <div className="space-y-4 text-sm">
         <p className="text-muted-foreground text-xs">
           From {h.answered} answers in {h.exercises} Calibration exercises. Dots below the dashed line mean you were more
@@ -141,6 +141,6 @@ export function CalibrationHistoryCard({ rows }: { rows: Exercise[] }) {
           </details>
         ) : null}
       </div>
-    </HomeSection>
+    </Section>
   );
 }

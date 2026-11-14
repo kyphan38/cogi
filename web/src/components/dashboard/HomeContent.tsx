@@ -14,7 +14,7 @@ import { logFirestoreQueryError } from "@/lib/db/firestore";
 import type { Exercise } from "@/lib/types/exercise";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
 import { computeStreak } from "@/lib/exercise/streak";
-import { HomeSection } from "@/components/dashboard/HomeSection";
+import { Section } from "@/components/shared/Section";
 import { TrackCard } from "@/components/dashboard/TrackCard";
 import { GeoLabCard } from "@/components/dashboard/GeoLabCard";
 import { DISCARD_BUTTON_CLASS } from "@/components/dashboard/discard-button";
@@ -122,7 +122,7 @@ export function HomeContent() {
       <GeoLabCard completed={allCompleted} />
 
       {incompleteExercises.length > 0 && (
-        <HomeSection title="Continue">
+        <Section title="Continue">
           <div className="divide-y border-y">
             {incompleteExercises.map((ex) => (
               <div key={ex.id} className="group/item flex items-center gap-1">
@@ -141,11 +141,11 @@ export function HomeContent() {
               </div>
             ))}
           </div>
-        </HomeSection>
+        </Section>
       )}
 
       {completedExercises.length > 0 && (
-        <HomeSection title="Recently completed">
+        <Section title="Recently completed">
           <div className="divide-y border-y">
             {completedExercises.map((ex) => (
               <Link
@@ -158,7 +158,7 @@ export function HomeContent() {
               </Link>
             ))}
           </div>
-        </HomeSection>
+        </Section>
       )}
 
       {incompleteExercises.length === 0 && completedExercises.length === 0 && (

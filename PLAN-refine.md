@@ -64,8 +64,12 @@ xong ở PLAN-calm-layout (C1-C6).
 
 1. `cd web && npx tsc --noEmit && npm run lint && npm run test:unit`
 2. Playwright các spec liên quan, và luôn chạy `tests/ui-ux/`. Server dev
-   chạy ở port khác 3000 nếu port 3000 đang bận (app khác hay dùng port này):
-   `PLAYWRIGHT_BASE_URL=http://localhost:3100`.
+   chạy ở port khác 3000 nếu port 3000 đang bận (app khác hay dùng port này).
+   `playwright.config.ts` ghi cứng `localhost:3000`, nên tạo một config tạm
+   (không commit) ghi đè `use.baseURL` và `webServer` sang port 3100, rồi
+   chạy với `PLAYWRIGHT_BASE_URL=http://localhost:3100` (cookie E2E đọc biến này).
+   Lần chạy đầu khi server vừa bật có thể lỗi vài test do chậm: chạy lại test
+   lỗi một mình trước khi kết luận.
 3. Chụp màn hình đã đổi ở 360, 390 và 1280px, sáng và tối. Kiểm tra: không
    gì tràn mép phải, không gì đè lên nhau.
 4. Đếm lại số liệu ở bảng "Vì sao" nếu phase đụng tới nó, ghi vào "Tiến độ".
@@ -86,7 +90,7 @@ Chưa đổi bố cục. Chỉ tạo các mảnh dùng chung.
 2. **`PageHeader`** (`components/shared/PageHeader.tsx`): `title`, `sub?`
    (một dòng, muted), `action?` (bên phải). Đúng như mockup.
 3. **`Section`**: đổi tên `HomeSection` thành `Section` và chuyển vào
-   `components/shared/`. Giữ export cũ một thời gian để không vỡ import.
+   `components/shared/`. Sửa mọi import trong cùng commit.
 4. **Nút**: `Button` mặc định cao 36px (`h-9`), padding 16px, bo 8px,
    chữ 14px/500. Bỏ các size tự đặt ở nơi gọi. Trên điện thoại nút chính có
    thể `h-11` (44px, vùng bấm đủ lớn), qua một prop `size="touch"`.
@@ -209,4 +213,4 @@ Theo mockup "Explore / Tracks". File: `app/(main)/tracks/page.tsx`.
 
 ## Tiến độ
 
-(chưa bắt đầu)
+- R1 (2026-11-14): 5 cỡ chữ (`text-page`, `text-lead`, `text-body`, `text-meta`, `text-label`) trong `@theme` của `globals.css`; `section-label` giờ dùng `text-label` (11px, 500, tracking 0.08em, trước là 600 và 0.07em). `PageHeader` mới trong `components/shared/` (chưa trang nào dùng, R2 làm). `HomeSection` đổi tên thành `Section` và chuyển sang `components/shared/Section.tsx`, sửa 6 import, không giữ file cũ. `Button`: nút tô nền cỡ default giờ 36px, padding 16px (trước 32px, 10px) qua `compoundVariants`; thêm `size="touch"` (44px). Settings vẫn có `Section` riêng trong file (R2 thay). Kiểm tra: tsc, lint (0 lỗi mới), vitest 800/800 (có 3 test mới), `tests/ui-ux` 72/72 (2 test chấm semantic lỗi ở lần chạy đầu do server vừa bật, chạy lại thì qua; trước R1 cũng qua). Ảnh chụp Home, New exercise, Geo, Settings, History ở 390 và 1280px: không vỡ bố cục. Chưa chụp dark và 360px.
