@@ -15,6 +15,7 @@ import {
   relativeChange,
   savingsVsInflation,
 } from "@/lib/sim/finance";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 function SliderRow({
   id,
@@ -61,7 +62,7 @@ function SliderRow({
 
 function Result({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-t border-zinc-200 pt-2">
+    <div className="border-t border-border pt-2">
       <p className="text-foreground text-base font-semibold tabular-nums">{value}</p>
       <p className="text-muted-foreground text-xs">{label}</p>
     </div>
@@ -221,12 +222,7 @@ function ImportSim() {
 export default function SimulatorsPage() {
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl tracking-tight">Simulators</h1>
-        <p className="text-muted-foreground text-sm">
-          Guess first, then move the sliders.
-        </p>
-      </div>
+      <PageHeader title="Simulators" sub="Guess first, then move the sliders." />
       <LoanSim />
       <SavingsSim />
       <ImportSim />

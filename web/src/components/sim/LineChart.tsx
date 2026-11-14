@@ -49,11 +49,11 @@ export function LineChart({
 
   return (
     <figure className="space-y-2" aria-labelledby={`${id}-title`}>
-      <figcaption id={`${id}-title`} className="text-sm font-medium text-zinc-900">
+      <figcaption id={`${id}-title`} className="text-sm font-medium text-foreground">
         {title}
       </figcaption>
       {series.length > 1 ? (
-        <div className="flex flex-wrap gap-4 text-xs text-zinc-600" aria-hidden>
+        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground" aria-hidden>
           {series.map((s) => (
             <span key={s.name} className="inline-flex items-center gap-1.5">
               <svg width="20" height="6">
@@ -67,7 +67,7 @@ export function LineChart({
       <div className="relative">
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="w-full text-zinc-900"
+          className="w-full text-foreground"
           role="img"
           aria-label={`${title}. ${xLabel} from ${formatX(x0)} to ${formatX(x1)}.`}
           onPointerMove={(e) => {
@@ -122,7 +122,7 @@ export function LineChart({
           ) : null}
         </svg>
         {shownX != null ? (
-          <div className="pointer-events-none mt-1 text-xs text-zinc-700" data-testid="chart-readout">
+          <div className="pointer-events-none mt-1 text-xs text-foreground/80" data-testid="chart-readout">
             {formatX(shownX)}:{" "}
             {series
               .map((s) => {
@@ -133,7 +133,7 @@ export function LineChart({
           </div>
         ) : null}
       </div>
-      <details className="text-xs text-zinc-600">
+      <details className="text-xs text-muted-foreground">
         <summary className="cursor-pointer">Show the numbers</summary>
         <table className="mt-1 w-full text-left tabular-nums">
           <thead>

@@ -5,13 +5,13 @@ import { cn } from "@/lib/utils";
 
 // A notice is a thin rule on the left, not a box (DESIGN.md "Layout").
 const alertVariants = cva(
-  "group/alert relative grid w-full gap-0.5 border-l-2 border-zinc-300 py-1 pl-3 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4",
+  "group/alert relative grid w-full gap-0.5 border-l-2 border-input py-1 pl-3 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default: "text-card-foreground",
         destructive:
-          "border-zinc-900 font-medium text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current",
+          "border-foreground font-medium text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current",
       },
     },
     defaultVariants: {

@@ -40,7 +40,7 @@ function Options({
           onClick={() => onPick(i)}
           className={cn(
             "rounded-xl border px-3 py-2 text-left text-sm",
-            picked === i ? "border-zinc-900 bg-zinc-50 font-medium" : "border-zinc-200 hover:bg-zinc-50",
+            picked === i ? "border-foreground bg-muted font-medium" : "border-border hover:bg-muted",
           )}
         >
           {options[i]}
@@ -111,7 +111,7 @@ export function GeoGuessStep({
                 }
                 className={cn(
                   "rounded-md border px-3 py-1.5 text-sm",
-                  on ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
+                  on ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                 )}
               >
                 {a}
@@ -137,7 +137,7 @@ export function GeoGuessStep({
                 <p className="text-muted-foreground text-xs">
                   {GEO_LENS_INFO[lens].name} · {GEO_LENS_INFO[lens].question}
                 </p>
-                <p className="text-sm text-zinc-900">{q.question}</p>
+                <p className="text-sm text-foreground">{q.question}</p>
                 {cfg.lenses === "free" ? (
                   <Textarea
                     aria-label={`${GEO_LENS_INFO[lens].name}: ${q.question}`}
@@ -206,17 +206,17 @@ export function GeoReveal({ ex, guess }: { ex: AnalyticalExerciseRow; guess: Geo
   return (
     <div className="space-y-4 text-sm" data-testid="geo-reveal">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <div className="border-t border-zinc-200 pt-2">
+        <div className="border-t border-border pt-2">
           <p className="text-lg font-semibold">{guess.perspectiveCorrect ? "Yes" : "No"}</p>
           <p className="text-muted-foreground text-xs">Right viewpoint</p>
         </div>
-        <div className="border-t border-zinc-200 pt-2">
+        <div className="border-t border-border pt-2">
           <p className="text-lg font-semibold tabular-nums">
             {guess.actorsFound}/{guess.actorsTotal}
           </p>
           <p className="text-muted-foreground text-xs">Missing actors found</p>
         </div>
-        <div className="border-t border-zinc-200 pt-2">
+        <div className="border-t border-border pt-2">
           <p className="text-lg font-semibold tabular-nums">{guess.score}</p>
           <p className="text-muted-foreground text-xs">Perspective score (of 100)</p>
         </div>

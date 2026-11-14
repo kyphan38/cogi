@@ -99,7 +99,7 @@ export function MapQuiz({
           <span aria-hidden>·</span>
           <span>{region.label}</span>
         </p>
-        <p className="text-base font-medium text-zinc-900" data-testid="quiz-question">
+        <p className="text-base font-medium text-foreground" data-testid="quiz-question">
           {placeQuestion(place)}
         </p>
         {place.alsoCalled ? <p className="text-muted-foreground text-sm">Also called {place.alsoCalled}.</p> : null}
@@ -169,7 +169,7 @@ export function MapQuizResults({ places, answers }: { places: Place[]; answers: 
   const right = answers.filter((a) => a.correct).length;
   return (
     <div className="space-y-3" data-testid="quiz-results">
-      <p className="text-2xl font-semibold text-zinc-900">
+      <p className="text-2xl font-semibold text-foreground">
         {right} of {answers.length}
       </p>
       <table className="w-full text-left text-sm">
@@ -184,7 +184,7 @@ export function MapQuizResults({ places, answers }: { places: Place[]; answers: 
           {answers.map((a) => {
             const p = places.find((x) => x.id === a.placeId);
             return (
-              <tr key={a.placeId} className="border-t border-zinc-100">
+              <tr key={a.placeId} className="border-t border-border/60">
                 <td className="py-1.5 pr-2">{p?.name ?? a.placeId}</td>
                 <td className="py-1.5 pr-2">
                   <span className="inline-flex items-center gap-1">

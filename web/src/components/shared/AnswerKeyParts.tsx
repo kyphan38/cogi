@@ -23,7 +23,7 @@ export function StatusIcon({ status }: { status: Status }) {
 
 export function Marker({ children }: { children: ReactNode }) {
   return (
-    <span className="border-foreground/30 text-foreground inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded border px-1 text-[11px] font-medium tabular-nums">
+    <span className="border-foreground/30 text-foreground inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded border px-1 text-label tabular-nums">
       {children}
     </span>
   );

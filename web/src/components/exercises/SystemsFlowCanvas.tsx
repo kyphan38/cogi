@@ -45,9 +45,9 @@ function SystemFlowNode({ data }: NodeProps) {
   // the border just backs it up (solid = direct, dashed = indirect).
   const border =
     d.impact === "direct"
-      ? "border-zinc-900 bg-zinc-900/10"
+      ? "border-foreground bg-foreground/10"
       : d.impact === "indirect"
-        ? "border-dashed border-zinc-900 bg-zinc-900/5"
+        ? "border-dashed border-foreground bg-foreground/5"
         : "border-border bg-card";
   return (
     <>
@@ -75,11 +75,11 @@ function SystemFlowNode({ data }: NodeProps) {
         className={cn(
           "min-w-[96px] max-w-[132px] rounded-md border px-2 py-1.5 text-left text-xs",
           border,
-          d.picked && "ring-2 ring-zinc-900 ring-offset-2",
+          d.picked && "ring-2 ring-foreground ring-offset-2",
         )}
       >
         {d.impact !== "none" ? (
-          <div className="text-[9px] font-medium uppercase tracking-wider text-zinc-600">{d.impact}</div>
+          <div className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">{d.impact}</div>
         ) : null}
         <div className="font-medium leading-tight">{d.label}</div>
         <div className="text-muted-foreground mt-0.5 line-clamp-3 text-[10px] leading-snug">
@@ -368,7 +368,7 @@ export function SystemsFlowCanvas({
       </ReactFlow>
     </div>
       {mode === "connect" && pickedId ? (
-        <p className="text-sm text-zinc-900" data-testid="link-picked">
+        <p className="text-sm text-foreground" data-testid="link-picked">
           From <span className="font-medium">{labelOf(pickedId)}</span>: now tap the part it affects.
         </p>
       ) : null}

@@ -616,7 +616,7 @@ export function AnalyticalExerciseFlow({
         : undefined;
 
   return (
-    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Highlight & tag")} partLabel={partLabel}>
+    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Highlight & tag")} partLabel={partLabel} title="Analytical" sub="Generate a passage, then tag its issues.">
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -641,8 +641,6 @@ export function AnalyticalExerciseFlow({
       {step === 0 ? (
         <ExerciseStepCard
           data-testid="analytical-exercise-card"
-          title="Analytical exercise"
-          description="Generate a passage, then tag its issues."
         >
             <LevelPicker
               value={level}
@@ -889,7 +887,7 @@ export function AnalyticalExerciseFlow({
                   </p>
                 ) : null}
                 {levelConfig?.countHint === "issues-and-traps" && !exercise.isSoundReasoning ? (
-                  <p className="text-sm text-zinc-900" data-testid="issue-count-hint">
+                  <p className="text-sm text-foreground" data-testid="issue-count-hint">
                     This passage has <span className="font-medium">{exercise.embeddedIssues.length} issues</span> and{" "}
                     <span className="font-medium">
                       {exercise.validPoints.length} trap{exercise.validPoints.length === 1 ? "" : "s"}
@@ -898,7 +896,7 @@ export function AnalyticalExerciseFlow({
                   </p>
                 ) : null}
                 {levelConfig?.countHint === "issues" && !exercise.isSoundReasoning ? (
-                  <p className="text-sm text-zinc-900" data-testid="issue-count-hint">
+                  <p className="text-sm text-foreground" data-testid="issue-count-hint">
                     This passage has <span className="font-medium">{exercise.embeddedIssues.length} issues</span>{" "}
                     to find.
                   </p>

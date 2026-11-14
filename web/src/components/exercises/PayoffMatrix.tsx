@@ -46,7 +46,7 @@ export function PayoffMatrix({
           <tr>
             <th className="w-[28%]" />
             {game.optionsB.map((b) => (
-              <th key={b.id} className="break-words px-1 pb-1 text-left text-xs font-medium text-zinc-700">
+              <th key={b.id} className="break-words px-1 pb-1 text-left text-xs font-medium text-foreground/80">
                 {B.name}: {b.label}
               </th>
             ))}
@@ -55,7 +55,7 @@ export function PayoffMatrix({
         <tbody>
           {game.optionsA.map((a) => (
             <tr key={a.id}>
-              <th className="break-words pr-1 text-left align-middle text-xs font-medium text-zinc-700">
+              <th className="break-words pr-1 text-left align-middle text-xs font-medium text-foreground/80">
                 {A.name}: {a.label}
               </th>
               {game.optionsB.map((b) => {
@@ -80,14 +80,14 @@ export function PayoffMatrix({
                 );
                 const cls = cn(
                   "w-full rounded-lg border px-1 py-2 text-center",
-                  isNash ? "border-zinc-900 border-2" : isSelected ? "border-zinc-900 bg-zinc-900/10" : "border-zinc-200",
+                  isNash ? "border-foreground border-2" : isSelected ? "border-foreground bg-foreground/10" : "border-border",
                 );
                 return (
                   <td key={b.id} className="align-middle">
                     {onToggle ? (
                       <button
                         type="button"
-                        className={cn(cls, "hover:bg-zinc-50")}
+                        className={cn(cls, "hover:bg-muted")}
                         aria-pressed={isSelected}
                         aria-label={`Outcome ${numbers.get(key)}: ${A.name} ${a.label}, ${B.name} ${b.label}`}
                         data-testid="matrix-cell"

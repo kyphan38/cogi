@@ -10,6 +10,7 @@ import { logFirestoreQueryError } from "@/lib/db/firestore";
 import type { Exercise } from "@/lib/types/exercise";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
 import { TRACKS, trackProgress, trackStepHref } from "@/lib/exercise/tracks";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 const AREA_LABELS = {
   finance: "Finance",
@@ -35,11 +36,8 @@ export default function TracksPage() {
 
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl tracking-tight">Learning tracks</h1>
-        <p className="text-muted-foreground text-sm">
-          One exercise a day, in order.
-        </p>
+      <div className="space-y-3">
+        <PageHeader title="Learning tracks" sub="One exercise a day, in order." />
         <div className="flex flex-col gap-1">
           <Link
             href="/simulators"
@@ -102,7 +100,7 @@ export default function TracksPage() {
                       data-testid="track-step"
                       data-done={done ? "true" : undefined}
                     >
-                      <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border text-[11px] tabular-nums">
+                      <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border text-label tabular-nums">
                         {done ? (
                           <Check className="size-3" aria-label="Done" />
                         ) : (

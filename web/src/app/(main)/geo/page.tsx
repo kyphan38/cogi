@@ -21,6 +21,7 @@ import { localDay, pickQuizPlaces, QUIZ_LENGTH, reviewCounts, type GeoQuizAnswer
 import { makeQuizRow, makeStraitRow, makeTimelineRow, placesAskedOn, quizAttempts, quizDoneOn, quizRows } from "@/lib/geo/rows";
 import type { StraitResult } from "@/lib/geo/strait";
 import type { Exercise, GeoLabExerciseRow } from "@/lib/types/exercise";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 type View =
   | { kind: "home" }
@@ -117,11 +118,8 @@ export default function GeoLabPage() {
 
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-10 px-4 pt-8 pb-24 sm:px-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl tracking-tight">Geo Lab</h1>
-        <p className="text-muted-foreground text-sm">
-          Guess first, then check. Every fact has a source.
-        </p>
+      <div className="space-y-3">
+        <PageHeader title="Geo Lab" sub="Guess first, then check. Every fact has a source." />
         {view.kind !== "home" ? (
           <button
             type="button"
@@ -266,7 +264,7 @@ export default function GeoLabPage() {
               key={c.id}
               type="button"
               onClick={() => setView({ kind: "timeline", caseId: c.id, startedAt: new Date().toISOString() })}
-              className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-left text-sm hover:bg-zinc-50"
+              className="rounded-xl border border-border bg-card px-3 py-2 text-left text-sm hover:bg-muted"
               data-testid={`timeline-option-${c.id}`}
             >
               <span className="block font-medium">{c.title}</span>

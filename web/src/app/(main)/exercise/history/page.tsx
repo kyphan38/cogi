@@ -71,6 +71,7 @@ import { Trash2 } from "lucide-react";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { computeStreak } from "@/lib/exercise/streak";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 type ThinkingTypeFilter = "all" | ThinkingType | "geo";
 
@@ -190,18 +191,18 @@ function startOfWeekMonday(d: Date): Date {
 function typeSwatchClass(t: Exercise["type"]): string {
   switch (t) {
     case "analytical":
-      return "bg-zinc-700";
+      return "bg-foreground/80";
     case "systems":
-      return "bg-zinc-500";
+      return "bg-faint";
     case "evaluative":
-      return "bg-zinc-800";
+      return "bg-primary/90";
     default:
-      return "bg-zinc-400";
+      return "bg-faint/70";
   }
 }
 
 const EXERCISE_META_BADGE =
-  "ml-2 text-[10px] font-normal uppercase tracking-wide text-muted-foreground";
+  "ml-2 text-label uppercase text-muted-foreground";
 
 function HistoryActivityHeatmap({ rows }: { rows: Exercise[] }) {
   const today = new Date();
@@ -282,7 +283,7 @@ function HistoryActivityHeatmap({ rows }: { rows: Exercise[] }) {
         {legend.map(({ type, label }) => (
           <div
             key={type}
-            className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+            className="flex items-center gap-1.5 text-meta text-muted-foreground"
           >
             <span
               className={cn(
@@ -492,14 +493,14 @@ function HistoryPageInner() {
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Exercise history
-        </h1>
-        <Link href="/terms" className={WORD_LINK} data-testid="my-terms-link">
-          My terms
-        </Link>
-      </div>
+      <PageHeader
+        title="Exercise history"
+        action={
+          <Link href="/terms" className={WORD_LINK} data-testid="my-terms-link">
+            My terms
+          </Link>
+        }
+      />
 
       {openExerciseHiddenByFilters ? (
         <Alert>
@@ -662,7 +663,7 @@ function HistoryPageInner() {
                       </span>
                     </div>
                     <p className="mt-1 flex min-w-0 items-baseline gap-2 text-xs text-muted-foreground">
-                      <span className="font-tracker shrink-0 text-[11px]">
+                      <span className="section-label shrink-0">
                         {ex.type}
                       </span>
                       <span className="min-w-0 truncate">{ex.domain}</span>
@@ -694,7 +695,7 @@ function HistoryPageInner() {
           <div className="flex flex-row flex-wrap items-start justify-between gap-2 pb-4">
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-semibold">Review</h2>
-              <p className="font-tracker text-[11px]">{detailEx.type}</p>
+              <p className="section-label">{detailEx.type}</p>
             </div>
             <Button
               type="button"

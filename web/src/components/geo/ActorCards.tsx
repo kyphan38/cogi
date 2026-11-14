@@ -36,7 +36,7 @@ export function ActorCardView({ actor }: { actor: ActorCard }) {
       {SECTIONS.map(({ key, title, note }) =>
         actor[key].length ? (
           <section key={key} className="space-y-1">
-            <h4 className="font-medium text-zinc-900">
+            <h4 className="font-medium text-foreground">
               {title}
               {note ? <span className="text-muted-foreground ml-2 text-xs font-normal">{note}</span> : null}
             </h4>
@@ -64,10 +64,10 @@ export function ActorCards({ ids, openFirst = false }: { ids?: ActorId[]; openFi
         <details
           key={a.id}
           open={openFirst && i === 0}
-          className="group rounded-xl border border-zinc-200 bg-white px-3 py-2"
+          className="group rounded-xl border border-border bg-card px-3 py-2"
           data-testid={`actor-${a.id}`}
         >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 py-1 text-sm font-medium text-zinc-900 [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 py-1 text-sm font-medium text-foreground [&::-webkit-details-marker]:hidden">
             <span>
               {a.name}
               <span className="text-muted-foreground ml-2 text-xs font-normal">{a.kind === "group" ? "Group" : "Country"}</span>

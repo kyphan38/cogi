@@ -24,10 +24,10 @@ export function ConceptList({ concepts }: { concepts: LearnConcept[] }) {
   return (
     <ul className="space-y-3" data-testid="concept-list">
       {concepts.map((c) => (
-        <li key={c.term} className="border-t border-zinc-200 pt-3">
-          <p className="font-medium text-zinc-900">{c.term}</p>
-          <p className="text-sm text-zinc-700">{c.plain}</p>
-          <p className="text-sm text-zinc-500">Example: {c.example}</p>
+        <li key={c.term} className="border-t border-border pt-3">
+          <p className="font-medium text-foreground">{c.term}</p>
+          <p className="text-sm text-foreground/80">{c.plain}</p>
+          <p className="text-sm text-faint">Example: {c.example}</p>
         </li>
       ))}
     </ul>
@@ -63,7 +63,7 @@ export function LearnFirst({
   return (
     <div className="space-y-5" data-testid="learn-first">
       <div>
-        <p className="font-medium text-zinc-900">First, a few ideas you will use in this exercise.</p>
+        <p className="font-medium text-foreground">First, a few ideas you will use in this exercise.</p>
         <p className="text-muted-foreground text-sm">Read them, then answer the quick check.</p>
       </div>
       <ConceptList concepts={concepts} />
@@ -71,7 +71,7 @@ export function LearnFirst({
         const picked = answers[ci];
         return (
           <div key={ci} className="space-y-2" data-testid="concept-check">
-            <p className="text-sm font-medium text-zinc-900">Quick check: {check.question}</p>
+            <p className="text-sm font-medium text-foreground">Quick check: {check.question}</p>
             <div className="grid gap-2" role="radiogroup" aria-label={check.question}>
               {orders[ci]!.map((oi) => {
                 const isPicked = picked === oi;
@@ -86,7 +86,7 @@ export function LearnFirst({
                     onClick={() => onAnswer(ci, oi)}
                     className={cn(
                       "flex items-start gap-2 rounded-xl border px-3 py-2.5 text-left text-sm disabled:cursor-default",
-                      isAnswer ? "border-zinc-900 bg-zinc-50" : isPicked ? "border-zinc-400" : "border-zinc-200 hover:bg-zinc-50",
+                      isAnswer ? "border-foreground bg-muted" : isPicked ? "border-foreground/40" : "border-border hover:bg-muted",
                     )}
                   >
                     {isAnswer ? <Check className="mt-0.5 size-4 shrink-0" aria-hidden /> : null}

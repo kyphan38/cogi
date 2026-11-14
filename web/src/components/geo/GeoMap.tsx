@@ -237,7 +237,7 @@ export function GeoMap({
 
   return (
     <figure className="space-y-2" data-testid={testId}>
-      <div className="relative overflow-hidden rounded-xl border border-zinc-200 bg-white">
+      <div className="relative overflow-hidden rounded-xl border border-border bg-card">
         <svg
           ref={svgRef}
           viewBox={`0 0 ${MAP_WIDTH} ${height}`}
@@ -245,7 +245,7 @@ export function GeoMap({
             "block w-full select-none outline-none",
             // Zoomed in, every touch moves the map. Zoomed out, one finger still scrolls the page.
             zoomed ? "touch-none" : "touch-pan-y",
-            onTap && "cursor-crosshair focus-visible:ring-2 focus-visible:ring-zinc-400",
+            onTap && "cursor-crosshair focus-visible:ring-2 focus-visible:ring-ring",
           )}
           role={onTap ? "application" : "img"}
           aria-label={
@@ -340,7 +340,7 @@ export function GeoMap({
                   aria-label={m.onSelect ? `${m.label}${m.selected ? " (selected)" : ""}` : undefined}
                   aria-pressed={m.onSelect ? !!m.selected : undefined}
                   tabIndex={m.onSelect ? 0 : undefined}
-                  className={cn(m.onSelect && "cursor-pointer outline-none [&:focus-visible>circle:first-child]:stroke-zinc-400")}
+                  className={cn(m.onSelect && "cursor-pointer outline-none [&:focus-visible>circle:first-child]:stroke-faint")}
                   onPointerMove={() => showTip(xy, m.label, tipText)}
                   onFocus={() => showTip(xy, m.label, tipText)}
                   onBlur={() => setTip(null)}
@@ -415,16 +415,16 @@ export function GeoMap({
         {tip ? (
           <div
             role="status"
-            className="pointer-events-none absolute z-10 max-w-[14rem] -translate-x-1/2 -translate-y-[calc(100%+12px)] rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs"
+            className="pointer-events-none absolute z-10 max-w-[14rem] -translate-x-1/2 -translate-y-[calc(100%+12px)] rounded-md border border-border bg-card px-2 py-1 text-xs"
             style={{ left: tipLeft, top: tipTop }}
             data-testid="map-tooltip"
           >
-            <p className="font-medium text-zinc-900">{tip.title}</p>
-            {tip.detail ? <p className="text-zinc-600">{tip.detail}</p> : null}
+            <p className="font-medium text-foreground">{tip.title}</p>
+            {tip.detail ? <p className="text-muted-foreground">{tip.detail}</p> : null}
           </div>
         ) : null}
       </div>
-      <figcaption id={`${id}-desc`} className="text-xs text-zinc-600">
+      <figcaption id={`${id}-desc`} className="text-xs text-muted-foreground">
         {children}
       </figcaption>
     </figure>
@@ -452,7 +452,7 @@ function ZoomButton({
       onClick={onClick}
       disabled={disabled}
       data-testid={testId}
-      className="flex size-9 items-center justify-center rounded-md border border-zinc-200 bg-white/90 text-zinc-800 hover:bg-zinc-50 disabled:opacity-40"
+      className="flex size-9 items-center justify-center rounded-md border border-border bg-card/90 text-foreground hover:bg-muted disabled:opacity-40"
     >
       {children}
     </button>

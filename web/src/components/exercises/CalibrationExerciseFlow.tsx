@@ -90,7 +90,7 @@ export function FrequencyTable({ item }: { item: BaseRateItem }) {
   const c = item.counts;
   const l = item.labels;
   return (
-    <div className="border-t border-zinc-200 pt-3 text-sm" data-testid="frequency-table">
+    <div className="border-t border-border pt-3 text-sm" data-testid="frequency-table">
       <p className="font-medium">
         Out of {fmt(BASE_RATE_POPULATION)} {l.unit}:
       </p>
@@ -339,7 +339,7 @@ export function CalibrationExerciseFlow({
   const itemCard = (item: CalibrationItem, i: number) => {
     const a = answers[item.id];
     return (
-      <div key={item.id} className="space-y-3 border-t border-zinc-200 pt-4" data-testid="calibration-item">
+      <div key={item.id} className="space-y-3 border-t border-border pt-4" data-testid="calibration-item">
         <p className="text-muted-foreground text-xs">
           Question {i + 1} of {exercise!.items.length}
           {item.kind === "baserate" ? " · Base rate" : null}
@@ -348,7 +348,7 @@ export function CalibrationExerciseFlow({
           ) : null}
         </p>
         {item.kind === "baserate" ? <p className="text-sm leading-relaxed">{item.story}</p> : null}
-        <p className="text-sm font-medium text-zinc-900">{item.question}</p>
+        <p className="text-sm font-medium text-foreground">{item.question}</p>
 
         {item.kind === "binary" ? (
           <>
@@ -362,7 +362,7 @@ export function CalibrationExerciseFlow({
                   onClick={() => setAnswer(item.id, { choice: oi as 0 | 1 })}
                   className={cn(
                     "rounded-xl border px-3 py-2.5 text-left text-sm",
-                    a?.choice === oi ? "border-zinc-900 bg-zinc-50 font-medium" : "border-zinc-200 hover:bg-zinc-50",
+                    a?.choice === oi ? "border-foreground bg-muted font-medium" : "border-border hover:bg-muted",
                   )}
                 >
                   {o}
@@ -381,7 +381,7 @@ export function CalibrationExerciseFlow({
                     onClick={() => setAnswer(item.id, { confidence: c })}
                     className={cn(
                       "rounded-md border px-3 py-1 text-sm tabular-nums",
-                      a?.confidence === c ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
+                      a?.confidence === c ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                     )}
                   >
                     {c}%
@@ -426,7 +426,7 @@ export function CalibrationExerciseFlow({
   const answeredCount = exercise ? exercise.items.filter((it) => isAnswered(it, answers[it.id])).length : 0;
 
   return (
-    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Think it through")} partLabel={partLabel}>
+    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Think it through")} partLabel={partLabel} title="Calibration" sub="Say how sure you are, then check.">
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -437,8 +437,6 @@ export function CalibrationExerciseFlow({
       {step === 0 ? (
         <ExerciseStepCard
           data-testid="calibration-setup"
-          title="Calibration"
-          description="Say how sure you are, then check."
         >
           <LevelPicker
             value={level}
@@ -461,7 +459,7 @@ export function CalibrationExerciseFlow({
                   onClick={() => setTopic(t)}
                   className={cn(
                     "rounded-md border px-3 py-1.5 text-sm",
-                    topic === t ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
+                    topic === t ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                   )}
                 >
                   {t}

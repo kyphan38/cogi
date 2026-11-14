@@ -23,7 +23,7 @@ export function TimelineAxis({ events, shown, currentId }: { events: TimelineEve
 
   return (
     <figure className="relative hidden sm:block" aria-label="Timeline of the events so far" data-testid="timeline-axis">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full text-zinc-900" role="group">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full text-foreground" role="group">
         <line x1={PAD} x2={W - PAD} y1={28} y2={28} stroke="currentColor" strokeOpacity="0.2" strokeWidth={2} strokeLinecap="round" />
         <text x={PAD} y={56} fontSize="11" fill="currentColor" fillOpacity="0.6">
           {events[0]!.dateLabel.replace(/^\d+ /, "")}
@@ -40,7 +40,7 @@ export function TimelineAxis({ events, shown, currentId }: { events: TimelineEve
               tabIndex={0}
               role="img"
               aria-label={`${e.dateLabel}: ${e.text}`}
-              className="cursor-default outline-none [&:focus-visible>circle:last-child]:stroke-zinc-400"
+              className="cursor-default outline-none [&:focus-visible>circle:last-child]:stroke-faint"
               onPointerEnter={() => setTip(e)}
               onPointerLeave={() => setTip(null)}
               onFocus={() => setTip(e)}
@@ -56,12 +56,12 @@ export function TimelineAxis({ events, shown, currentId }: { events: TimelineEve
       {tip ? (
         <div
           role="status"
-          className="pointer-events-none absolute top-0 z-10 max-w-[16rem] -translate-x-1/2 -translate-y-full rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs"
+          className="pointer-events-none absolute top-0 z-10 max-w-[16rem] -translate-x-1/2 -translate-y-full rounded-md border border-border bg-card px-2 py-1 text-xs"
           style={{ left: `${(x(tip) / W) * 100}%` }}
           data-testid="timeline-tooltip"
         >
-          <p className="font-medium text-zinc-900">{tip.dateLabel}</p>
-          <p className="text-zinc-600">{tip.text}</p>
+          <p className="font-medium text-foreground">{tip.dateLabel}</p>
+          <p className="text-muted-foreground">{tip.text}</p>
         </div>
       ) : null}
     </figure>

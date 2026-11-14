@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export interface MinimalContainerProps {
@@ -24,13 +25,10 @@ export interface MinimalContainerActionProps {
   className?: string;
 }
 
-const actionBase =
-  "inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50";
-
+// Same look as Button: filled main action, plain word for the rest.
 const actionVariants = {
-  primary: "bg-zinc-900 text-white hover:bg-zinc-800",
-  secondary:
-    "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50",
+  primary: buttonVariants(),
+  secondary: buttonVariants({ variant: "secondary" }),
 } as const;
 
 export function MinimalContainerAction({
@@ -42,7 +40,7 @@ export function MinimalContainerAction({
   disabled,
   className,
 }: MinimalContainerActionProps) {
-  const classes = cn(actionBase, actionVariants[variant], className);
+  const classes = cn(actionVariants[variant], className);
 
   if (href && !disabled) {
     return (
@@ -74,7 +72,7 @@ export function MinimalContainerFooter({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 border-t border-zinc-200 pt-4 sm:flex-row sm:items-center sm:justify-end",
+        "flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-end",
         className,
       )}
     >
@@ -105,10 +103,10 @@ export function MinimalContainer({
         <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 flex-1 space-y-1">
             {title != null ? (
-              <h2 className="text-lg font-semibold text-zinc-900">{title}</h2>
+              <h2 className="text-lead text-foreground">{title}</h2>
             ) : null}
             {description != null ? (
-              <p className="text-sm text-zinc-500">{description}</p>
+              <p className="text-sm text-muted-foreground">{description}</p>
             ) : null}
           </div>
           {headerAside ? (
@@ -124,7 +122,7 @@ export function MinimalContainer({
       </div>
       {footer ? (
         typeof footer === "string" ? (
-          <footer className="border-t border-zinc-200 pt-4">
+          <footer className="border-t border-border pt-4">
             {footer}
           </footer>
         ) : (

@@ -851,7 +851,7 @@ export function EvaluativeExerciseFlow({
   const partLabel = phase === 1 ? `Part ${step} of 2 · ${partLabels[step]}` : undefined;
 
   return (
-    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Evaluate")} partLabel={partLabel}>
+    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Evaluate")} partLabel={partLabel} title="Evaluative" sub="Weigh options on a board, then compare with the AI.">
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -875,13 +875,6 @@ export function EvaluativeExerciseFlow({
 
       {step === 0 ? (
         <Card>
-          <CardHeader>
-            <CardTitle>Evaluative exercise</CardTitle>
-            <CardDescription>
-              AI picks a 2×2 matrix (two criteria) or a weighted scoring table (three or more
-              criteria). Then you compare with the model’s framing.
-            </CardDescription>
-          </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <WordChoice
               label="Topic"

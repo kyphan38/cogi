@@ -40,7 +40,7 @@ export function EvaluativeWeightAlignment({
                   <td className="border p-2 text-center">{ai}</td>
                   <td
                     className={`border p-2 text-center font-medium ${
-                      delta < 0 ? "text-zinc-500" : ""
+                      delta < 0 ? "text-faint" : ""
                     }`}
                   >
                     {delta > 0 ? `+${delta}` : delta}

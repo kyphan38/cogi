@@ -27,10 +27,10 @@ function Sources({ sources }: { sources: GeoSource[] }) {
 export function GeoCasePanel({ gameCase }: { gameCase: GeoGameCase }) {
   const { A, B } = gameCase.players;
   return (
-    <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-4 text-sm" data-testid="geo-case-panel">
+    <div className="space-y-4 rounded-2xl border border-border bg-card p-4 text-sm" data-testid="geo-case-panel">
       <div className="space-y-1">
         <p className="text-muted-foreground text-xs uppercase">What really happened</p>
-        <h3 className="text-base font-medium text-zinc-900">
+        <h3 className="text-base font-medium text-foreground">
           {gameCase.title} <span className="text-muted-foreground font-normal">({gameCase.when})</span>
         </h3>
       </div>
@@ -39,7 +39,7 @@ export function GeoCasePanel({ gameCase }: { gameCase: GeoGameCase }) {
         <caption className="text-muted-foreground mb-1 text-left text-xs">The real sides and their choices</caption>
         <tbody>
           {[A, B].map((p) => (
-            <tr key={p.name} className="border-t border-zinc-100 align-top">
+            <tr key={p.name} className="border-t border-border/60 align-top">
               <th scope="row" className="py-1.5 pr-3 font-medium">
                 {p.name}
               </th>
@@ -49,11 +49,11 @@ export function GeoCasePanel({ gameCase }: { gameCase: GeoGameCase }) {
         </tbody>
       </table>
       <div className="space-y-1" data-testid="geo-case-outcome">
-        <p className="font-medium text-zinc-900">The outcome</p>
+        <p className="font-medium text-foreground">The outcome</p>
         <p className="leading-relaxed">{gameCase.whatHappened}</p>
       </div>
       <div className="space-y-1">
-        <p className="font-medium text-zinc-900">The game: {GEO_GAME_LABELS[gameCase.gameType]}</p>
+        <p className="font-medium text-foreground">The game: {GEO_GAME_LABELS[gameCase.gameType]}</p>
         <p className="leading-relaxed">{gameCase.lesson}</p>
         {gameCase.modelNote ? (
           <p className="text-muted-foreground leading-relaxed">
@@ -67,7 +67,7 @@ export function GeoCasePanel({ gameCase }: { gameCase: GeoGameCase }) {
       <Sources sources={gameCase.sources} />
       {gameCase.actorIds.length ? (
         <details className="space-y-2" data-testid="geo-case-cards">
-          <summary className="cursor-pointer font-medium text-zinc-900">Use the cards: the players today</summary>
+          <summary className="cursor-pointer font-medium text-foreground">Use the cards: the players today</summary>
           <p className="text-muted-foreground mt-2 text-xs">
             Each side in its own words, plus neutral facts.
           </p>

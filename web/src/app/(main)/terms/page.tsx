@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { listCompletedExercises, listIncompleteExercises } from "@/lib/db/exercises";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
 import { collectTerms, type LearnedTerm } from "@/lib/exercise/terms";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 /** "My terms": every idea met in "Learn first", to look back over (PLAN-learning.md). */
 export default function TermsPage() {
@@ -32,12 +33,10 @@ export default function TermsPage() {
 
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl tracking-tight">My terms</h1>
-        <p className="text-muted-foreground text-sm">
-          From &ldquo;Learn first&rdquo;. Review before your next exercise.
-        </p>
-      </div>
+      <PageHeader
+        title="My terms"
+        sub={<>From &ldquo;Learn first&rdquo;. Review before your next exercise.</>}
+      />
       {terms && terms.length > 0 ? (
         <Input aria-label="Search terms" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
       ) : null}

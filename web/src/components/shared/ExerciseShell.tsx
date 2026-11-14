@@ -2,13 +2,13 @@
 
 import {
   createContext,
-  Fragment,
   useContext,
   useEffect,
   useRef,
   useState,
   type ReactNode,
 } from "react";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { reducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -112,6 +112,10 @@ export interface ExerciseShellProps {
   stepLabels: ExerciseShellStepLabels;
   /** Shown under the bar, e.g. "Part 2 of 3 · Connect". */
   partLabel?: string;
+  /** The exercise type as the page title, e.g. "Evaluative". */
+  title?: string;
+  /** One line under the title, shown on the setup step only. */
+  sub?: string;
 }
 
 /**
@@ -130,6 +134,8 @@ export function ExerciseShell({
   children,
   stepLabels,
   partLabel,
+  title,
+  sub,
 }: ExerciseShellProps) {
   const body = useRef<HTMLDivElement>(null);
   const lastStep = useRef(stepIndex);
@@ -163,36 +169,40 @@ export function ExerciseShell({
 
   return (
     <div className="mx-auto flex min-h-full w-full min-w-0 max-w-3xl flex-col gap-8 px-4 pt-8 pb-24 sm:px-6">
-      {/* Steps as words: done steps muted,
-          the current one ink, later ones faint. */}
+      {/* Each step is a short bar and a word: done and current in ink, later
+          ones faint. The current word is medium. */}
       <nav
         aria-label="Exercise progress"
-        className="flex flex-wrap items-baseline font-mono text-[11px] tracking-[0.04em]"
+        className="grid gap-1.5"
+        style={{ gridTemplateColumns: `repeat(${stepLabels.length}, minmax(0, 1fr))` }}
       >
         {stepLabels.map((label, i) => (
-          <Fragment key={`${i}-${label}`}>
-            {i > 0 ? (
-              <span className="px-1.5 text-zinc-400" aria-hidden>
-                ·
-              </span>
-            ) : null}
+          <div key={`${i}-${label}`} className="min-w-0">
+            <div
+              aria-hidden
+              className={cn(
+                "h-0.5 rounded-full transition-colors duration-150",
+                i <= stepIndex ? "bg-foreground" : "bg-input",
+              )}
+            />
             <span
               aria-current={i === stepIndex ? "step" : undefined}
               className={cn(
-                "transition-colors duration-150",
+                "mt-2 block truncate text-meta transition-colors duration-150",
                 i === stepIndex
-                  ? "font-medium text-zinc-900"
+                  ? "font-medium text-foreground"
                   : i < stepIndex
-                    ? "text-zinc-600"
-                    : "text-zinc-400",
+                    ? "text-muted-foreground"
+                    : "text-muted-foreground/70",
               )}
             >
-              {i + 1}. {label}
+              {label}
             </span>
-          </Fragment>
+          </div>
         ))}
       </nav>
-      {partLabel ? <p className="-mt-6 text-xs text-muted-foreground">{partLabel}</p> : null}
+      {partLabel ? <p className="-mt-6 text-meta text-muted-foreground">{partLabel}</p> : null}
+      {title ? <PageHeader title={title} sub={stepIndex === 0 ? sub : undefined} /> : null}
       <FreshFeedbackContext.Provider value={fresh}>
         <div ref={body} className="flex-1">
           {children}

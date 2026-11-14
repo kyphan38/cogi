@@ -105,7 +105,7 @@ export function LoginView({ appName, subtitle, className, externalError }: Login
         <Image src="/branding/cogi-icon.svg" alt="" width={40} height={40} />
         <div>
           <h1 className="text-xl font-medium tracking-tight text-foreground">{appName}</h1>
-          {subtitle ? <p className="mt-1 text-sm text-zinc-500">{subtitle}</p> : null}
+          {subtitle ? <p className="mt-1 text-sm text-faint">{subtitle}</p> : null}
         </div>
       </div>
 

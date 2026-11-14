@@ -7,6 +7,7 @@ import { TopicIdeasPanel } from "@/components/dashboard/TopicIdeasPanel";
 import { readSessionState, writeSessionState } from "@/lib/session-state";
 import { cn } from "@/lib/utils";
 import type { ThinkingType } from "@/lib/types/exercise";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 /** Remembers "start from a topic / a mode" on this device. */
 const START_FROM_KEY = "cogi:practice-start-from";
@@ -55,9 +56,7 @@ export default function ReasoningPage() {
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">New exercise</h1>
-      </div>
+      <PageHeader title="New exercise" />
 
       <div className="space-y-2">
         <p className="text-sm font-medium">Start from</p>
@@ -76,7 +75,7 @@ export default function ReasoningPage() {
               onClick={() => chooseStart(value)}
               className={cn(
                 "py-1 text-sm",
-                startFrom === value ? "font-medium text-zinc-900" : "text-zinc-500 hover:text-zinc-900",
+                startFrom === value ? "font-medium text-foreground" : "text-faint hover:text-foreground",
               )}
             >
               {label}
@@ -103,12 +102,12 @@ export default function ReasoningPage() {
                 aria-checked={pickedMode === c.type}
                 onClick={() => pickMode(c.type as ThinkingType)}
                 className={cn(
-                  "rounded-xl border bg-white p-4 text-left transition-colors hover:bg-zinc-50/80",
-                  pickedMode === c.type ? "border-zinc-900 ring-1 ring-zinc-900" : "border-zinc-200 hover:border-zinc-300",
+                  "rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/80",
+                  pickedMode === c.type ? "border-foreground ring-1 ring-foreground" : "border-border hover:border-input",
                 )}
               >
-                <p className="section-label mb-1 text-zinc-500">{c.label}</p>
-                <p className="text-sm font-medium text-zinc-900">{c.title}</p>
+                <p className="section-label mb-1 text-faint">{c.label}</p>
+                <p className="text-sm font-medium text-foreground">{c.title}</p>
                 {c.desc ? <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{c.desc}</p> : null}
               </button>
             ))}

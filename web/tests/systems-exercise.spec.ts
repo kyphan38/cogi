@@ -18,7 +18,7 @@ test.describe("Systems exercise - setup phase", () => {
   test("renders setup card with heading and generate button", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/systems");
     await expect(
-      page.getByRole("heading", { name: "Systems exercise" }),
+      page.getByRole("heading", { name: "Systems", level: 1 }),
     ).toBeVisible();
     await expect(page.getByLabel("Domain")).toBeVisible();
     await expect(
@@ -44,7 +44,7 @@ test.describe("Systems exercise - setup phase", () => {
     await gotoAuthenticated(page, "/exercise/systems");
     const progressNav = page.getByRole("navigation", { name: "Exercise progress" });
     await expect(progressNav).toBeVisible();
-    await expect(progressNav.getByText("1. Setup")).toBeVisible();
+    await expect(progressNav.getByText("Setup", { exact: true })).toBeVisible();
   });
 });
 

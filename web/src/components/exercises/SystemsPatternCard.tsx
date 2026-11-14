@@ -25,8 +25,8 @@ export function SystemsPatternCard({
       </CardHeader>
       <CardContent className="space-y-3 text-sm leading-relaxed">
         <p>{info.meaning}</p>
-        <p className="text-zinc-600">Here: {archetype.howItShows}</p>
-        <p className="text-zinc-600">Ask next time: {info.ask}</p>
+        <p className="text-muted-foreground">Here: {archetype.howItShows}</p>
+        <p className="text-muted-foreground">Ask next time: {info.ask}</p>
         {finished ? (
           lifeExample.trim() ? (
             <p>

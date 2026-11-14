@@ -13,22 +13,22 @@ export const GEOPOLITICS_SEMANTIC_ACCENTS: Record<
   framing_bias: {
     label: "Framing Bias",
     dotClass: "bg-semantic-framing",
-    chipClass: "border border-zinc-200 bg-zinc-50 text-zinc-800",
+    chipClass: "border border-border bg-muted text-foreground",
   },
   missing_actor: {
     label: "Missing Actor / Perspective",
     dotClass: "bg-semantic-missing-actor",
-    chipClass: "border border-zinc-200 bg-zinc-50 text-zinc-800",
+    chipClass: "border border-border bg-muted text-foreground",
   },
   assumed_causation: {
     label: "Assumed Causation",
     dotClass: "bg-semantic-assumed-causation",
-    chipClass: "border border-zinc-200 bg-zinc-50 text-zinc-800",
+    chipClass: "border border-border bg-muted text-foreground",
   },
   analogy_misuse: {
     label: "Analogy Misuse",
     dotClass: "bg-semantic-analogy-misuse",
-    chipClass: "border border-zinc-200 bg-zinc-50 text-zinc-800",
+    chipClass: "border border-border bg-muted text-foreground",
   },
 };
 
@@ -38,8 +38,8 @@ export const GEOPOLITICS_SEMANTIC_ACCENTS: Record<
  * means "no problem here", a grey dot means "not decided".
  */
 export const NEUTRAL_TAG_MARKERS: Record<"valid_point" | "unclear", string> = {
-  valid_point: "border border-zinc-500 bg-transparent",
-  unclear: "bg-zinc-300",
+  valid_point: "border border-faint bg-transparent",
+  unclear: "bg-input",
 };
 
 export function tagMarkerClass(tag: TagType): string | null {
@@ -74,19 +74,19 @@ export const TAG_LABELS: Record<
 > = {
   logical_fallacy: {
     label: "Logical Fallacy",
-    colorClass: "border border-zinc-200 bg-zinc-50 text-zinc-800",
+    colorClass: "border border-border bg-muted text-foreground",
   },
   hidden_assumption: {
     label: "Hidden Assumption",
-    colorClass: "border border-zinc-200 bg-zinc-50 text-zinc-800",
+    colorClass: "border border-border bg-muted text-foreground",
   },
   weak_evidence: {
     label: "Weak Evidence",
-    colorClass: "border border-zinc-200 bg-zinc-50 text-zinc-800",
+    colorClass: "border border-border bg-muted text-foreground",
   },
   bias: {
     label: "Bias / Motivated Reasoning",
-    colorClass: "border border-zinc-200 bg-zinc-50 text-zinc-800",
+    colorClass: "border border-border bg-muted text-foreground",
   },
   framing_bias: {
     label: GEOPOLITICS_SEMANTIC_ACCENTS.framing_bias.label,
@@ -106,11 +106,11 @@ export const TAG_LABELS: Record<
   },
   valid_point: {
     label: "Valid Point",
-    colorClass: "border border-zinc-200 bg-zinc-50 text-zinc-800",
+    colorClass: "border border-border bg-muted text-foreground",
   },
   unclear: {
     label: "Unclear / Needs More Info",
-    colorClass: "border border-zinc-200 bg-zinc-50 text-zinc-800",
+    colorClass: "border border-border bg-muted text-foreground",
   },
 };
 

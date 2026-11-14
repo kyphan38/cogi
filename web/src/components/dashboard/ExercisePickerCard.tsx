@@ -29,8 +29,8 @@ export function ExercisePickerCard({
       href={href}
       onClick={onClick}
       className={cn(
-        "rounded-xl border border-zinc-200 bg-white p-4 transition-[color,background-color,border-color,scale] duration-150 hover:border-zinc-300 hover:bg-zinc-50/80 active:scale-[0.99]",
-        recommended && "border-zinc-400 bg-zinc-50 hover:border-zinc-500 hover:bg-zinc-100/80",
+        "rounded-xl border border-border bg-card p-4 transition-[color,background-color,border-color,scale] duration-150 hover:border-input hover:bg-muted/80 active:scale-[0.99]",
+        recommended && "border-foreground/40 bg-muted hover:border-faint hover:bg-muted/80",
         TrailingIcon && "flex items-center justify-between gap-3 px-4 py-3.5",
         className,
       )}
@@ -38,21 +38,21 @@ export function ExercisePickerCard({
       <div className={cn(TrailingIcon && "min-w-0 flex-1")}>
         <p
           className={cn(
-            "section-label mb-1 text-zinc-500",
-            recommended && "text-zinc-800",
+            "section-label mb-1 text-faint",
+            recommended && "text-foreground",
           )}
         >
           {label}
           {recommended ? " · best fit" : null}
         </p>
-        <p className={cn("text-sm font-medium text-zinc-900", recommended && "text-zinc-950")}>
+        <p className={cn("text-sm font-medium text-foreground", recommended && "text-foreground")}>
           {title}
         </p>
         {desc ? (
           <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{desc}</p>
         ) : null}
         {reason ? (
-          <p className="mt-1 text-xs leading-relaxed text-zinc-600 italic">{reason}</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground italic">{reason}</p>
         ) : null}
       </div>
       {TrailingIcon ? (

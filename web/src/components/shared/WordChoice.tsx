@@ -27,7 +27,7 @@ export function WordChoice<T extends string>({
           onClick={() => onChange(o.value)}
           className={cn(
             "py-1",
-            value === o.value ? "font-medium text-foreground" : "text-zinc-500 hover:text-foreground",
+            value === o.value ? "font-medium text-foreground" : "text-faint hover:text-foreground",
           )}
         >
           {o.label}

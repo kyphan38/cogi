@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LEVEL_LABELS, PRACTICE_LEVELS } from "@/lib/exercise/levels";
 import { HANDBOOK_ENTRIES, HANDBOOK_GROUPS, HANDBOOK_START, type HandbookEntry } from "@/lib/handbook/content";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 function List({ items }: { items: string[] }) {
   return (
@@ -62,12 +63,10 @@ function EntryCard({ entry }: { entry: HandbookEntry }) {
 export default function HandbookPage() {
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl tracking-tight">Handbook</h1>
-        <p className="text-muted-foreground text-sm">
-          What each part of the app trains, what you get from it, and how to practise. Come back whenever you forget.
-        </p>
-      </div>
+      <PageHeader
+        title="Handbook"
+        sub="What each part trains, and how to practise it."
+      />
 
       <nav aria-label="Handbook contents" className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm" data-testid="handbook-contents">
         {HANDBOOK_ENTRIES.map((e) => (

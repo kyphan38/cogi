@@ -37,7 +37,7 @@ type ModeFilter = AiTopicMode | "calibration" | "all";
 type Recommendation = { mode: string; reason: string };
 
 const selectClass =
-  "h-9 w-full min-w-0 rounded-lg border border-zinc-200 bg-white px-2.5 text-sm text-zinc-900 focus-visible:outline-2 focus-visible:outline-zinc-400";
+  "h-9 w-full min-w-0 rounded-lg border border-border bg-card px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring";
 
 /** Up to this many modes are suggested for a scenario. */
 const SUGGESTED_MODES = 3;
@@ -200,7 +200,7 @@ export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
                 setInput(value);
                 setError(null);
               }}
-              className={cn("py-1 text-sm", input === value ? "font-medium text-zinc-900" : "text-zinc-500 hover:text-zinc-900")}
+              className={cn("py-1 text-sm", input === value ? "font-medium text-foreground" : "text-faint hover:text-foreground")}
             >
               {label}
             </button>
@@ -360,7 +360,7 @@ export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
                   <button
                     type="button"
                     onClick={() => startScenario(r.mode as ScenarioMode)}
-                    className="flex w-full items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-left text-sm hover:bg-zinc-50"
+                    className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2 text-left text-sm hover:bg-muted"
                   >
                     <span className="min-w-0">
                       <span className="block font-medium">{TYPE_LABEL[r.mode] ?? r.mode}</span>
@@ -376,7 +376,7 @@ export function TopicIdeasPanel({ fixedMode }: { fixedMode?: ThinkingType }) {
       )}
 
       {error ? (
-        <p className="text-sm font-medium text-zinc-900" role="alert" data-testid="topic-error">
+        <p className="text-sm font-medium text-foreground" role="alert" data-testid="topic-error">
           {error}{" "}
           <button type="button" className="font-semibold" onClick={() => void (input === "domain" ? generate() : suggestModes())}>
             Try again
@@ -419,18 +419,18 @@ function TopicList({
             <li key={`${idea.mode}-${idea.title}`} className="flex items-stretch gap-1">
               <Link
                 href={topicHref(idea)}
-                className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm transition-[color,background-color,scale] duration-150 hover:bg-zinc-50 active:scale-[0.99]"
+                className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5 text-sm transition-[color,background-color,scale] duration-150 hover:bg-muted active:scale-[0.99]"
                 data-testid="topic-row"
               >
                 <span className="text-muted-foreground w-5 shrink-0 text-right tabular-nums">{i + 1}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-zinc-900">{idea.title}</span>
+                  <span className="block text-foreground">{idea.title}</span>
                   <span className="text-muted-foreground block text-xs">
                     {showMode ? `${TYPE_LABEL[idea.mode] ?? idea.mode} · ` : ""}
                     {idea.domain}
                   </span>
                 </span>
-                <ChevronRight className="size-4 shrink-0 text-zinc-400" aria-hidden />
+                <ChevronRight className="size-4 shrink-0 text-faint" aria-hidden />
               </Link>
               {onToggleSave ? (
                 <button
@@ -439,10 +439,10 @@ function TopicList({
                   aria-label={isSaved ? `Remove "${idea.title}" from saved topics` : `Save "${idea.title}"`}
                   aria-pressed={isSaved}
                   title={isSaved ? "Saved" : "Save for later"}
-                  className="flex w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+                  className="flex w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:bg-muted"
                   data-testid="topic-save"
                 >
-                  {isSaved ? <BookmarkCheck className="size-4 text-zinc-900" aria-hidden /> : <Bookmark className="size-4" aria-hidden />}
+                  {isSaved ? <BookmarkCheck className="size-4 text-foreground" aria-hidden /> : <Bookmark className="size-4" aria-hidden />}
                 </button>
               ) : null}
             </li>

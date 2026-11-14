@@ -26,9 +26,9 @@ export function RankList({
         const item = items.find((x) => x.id === id);
         if (!item) return null;
         return (
-          <li key={id} className="flex items-start gap-2 rounded-xl border border-zinc-200 p-3" data-testid="rank-item">
-            <span className="mt-0.5 w-5 shrink-0 text-sm font-semibold tabular-nums text-zinc-900">{i + 1}</span>
-            <p className="min-w-0 flex-1 text-sm text-zinc-900">{item.text}</p>
+          <li key={id} className="flex items-start gap-2 rounded-xl border border-border p-3" data-testid="rank-item">
+            <span className="mt-0.5 w-5 shrink-0 text-sm font-semibold tabular-nums text-foreground">{i + 1}</span>
+            <p className="min-w-0 flex-1 text-sm text-foreground">{item.text}</p>
             <div className="flex shrink-0 flex-col gap-1">
               <Button
                 type="button"

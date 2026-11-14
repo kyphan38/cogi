@@ -70,11 +70,12 @@ test.describe("Nordic Mono layout architecture", () => {
       expect(parseFloat(await getComputed(body, "paddingLeft"))).toBe(0);
     });
 
-    test("container title uses semibold structural weight", async ({ page }) => {
+    test("container title uses the lead size (18px, medium)", async ({ page }) => {
       const title = page
         .getByTestId("layout-fixture-container")
         .getByRole("heading", { level: 2 });
-      await assertFontWeightAtLeast(title, 600);
+      await assertFontWeightAtLeast(title, 500);
+      expect(parseFloat(await getComputed(title, "fontSize"))).toBe(18);
     });
   });
 

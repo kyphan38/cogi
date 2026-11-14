@@ -322,10 +322,10 @@ export function StrategyExerciseFlow({
           Scenario: a made-up story shaped like a real case. The real case comes at the end.
         </p>
       ) : null}
-      <div className="whitespace-pre-wrap border-l-2 border-zinc-200 pl-4 text-base leading-[1.75] text-zinc-900">
+      <div className="whitespace-pre-wrap border-l-2 border-border pl-4 text-base leading-[1.75] text-foreground">
         {exercise.scenario}
       </div>
-      <p className="text-sm text-zinc-700">
+      <p className="text-sm text-foreground/80">
         <span className="font-medium">{A.name}</span> wants: {A.goal} <span className="font-medium">{B.name}</span> wants:{" "}
         {B.goal}
       </p>
@@ -341,7 +341,7 @@ export function StrategyExerciseFlow({
   ) : null;
 
   return (
-    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Read the game")} partLabel={partLabel}>
+    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Read the game")} partLabel={partLabel} title="Strategic situations" sub="Game theory in real stories.">
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -352,8 +352,6 @@ export function StrategyExerciseFlow({
       {step === 0 ? (
         <ExerciseStepCard
           data-testid="strategy-setup"
-          title="Strategic situations"
-          description="Game theory in real stories."
         >
           <LevelPicker
             value={level}
@@ -379,7 +377,7 @@ export function StrategyExerciseFlow({
                   }}
                   className={cn(
                     "rounded-md border px-3 py-1.5 text-sm",
-                    !pickedCase && area === a ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
+                    !pickedCase && area === a ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                   )}
                 >
                   {a}
@@ -410,17 +408,17 @@ export function StrategyExerciseFlow({
                   onClick={() => setGeoCaseId(geoCaseId === c.id ? null : c.id)}
                   className={cn(
                     "rounded-xl border px-3 py-2 text-left text-sm",
-                    geoCaseId === c.id ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
+                    geoCaseId === c.id ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                   )}
                   data-testid={`geo-case-${c.id}`}
                 >
                   <span className="block font-medium">{c.title}</span>
-                  <span className={cn("block text-xs", geoCaseId === c.id ? "text-zinc-300" : "text-muted-foreground")}>{c.when}</span>
+                  <span className={cn("block text-xs", geoCaseId === c.id ? "text-primary-foreground/70" : "text-muted-foreground")}>{c.when}</span>
                 </button>
               ))}
             </div>
             {pickedCase ? (
-              <div className="space-y-1 border-l-2 border-zinc-200 pl-4 text-sm" data-testid="geo-case-summary">
+              <div className="space-y-1 border-l-2 border-border pl-4 text-sm" data-testid="geo-case-summary">
                 <p className="leading-relaxed">{pickedCase.summary}</p>
                 <p className="text-muted-foreground text-xs">Real cases use 2 choices for each side at every level.</p>
               </div>
@@ -491,7 +489,7 @@ export function StrategyExerciseFlow({
                       <p className="text-muted-foreground text-xs">
                         Question {questionIndex + 1} of {questions.length} · best reply
                       </p>
-                      <p className="text-sm font-medium text-zinc-900">
+                      <p className="text-sm font-medium text-foreground">
                         If {oppLabel}, what is the best reply for {me.name}?
                       </p>
                       <div className="grid gap-2" role="radiogroup" aria-label="Best reply">
@@ -508,7 +506,7 @@ export function StrategyExerciseFlow({
                               onClick={() => saveAnswers({ bestReplies: { ...answers.bestReplies, [q.key]: c.id } })}
                               className={cn(
                                 "flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm disabled:cursor-default",
-                                showRight ? "border-zinc-900 bg-zinc-50" : picked ? "border-zinc-400" : "border-zinc-200 hover:bg-zinc-50",
+                                showRight ? "border-foreground bg-muted" : picked ? "border-foreground/40" : "border-border hover:bg-muted",
                               )}
                             >
                               {showRight ? <Check className="size-4 shrink-0" aria-hidden /> : null}
@@ -541,7 +539,7 @@ export function StrategyExerciseFlow({
               ) : (
                 <div className="space-y-3" data-testid="rank-outcomes">
                   <OutcomeStories game={exercise} />
-                  <p className="text-sm font-medium text-zinc-900">
+                  <p className="text-sm font-medium text-foreground">
                     {rankPlayer === "A" ? "1 of 2" : "2 of 2"} · How good is each outcome for{" "}
                     {rankPlayer === "A" ? A.name : B.name}? Best at the top.
                   </p>
@@ -580,7 +578,7 @@ export function StrategyExerciseFlow({
             <>
               {storyBlock}
               <div className="space-y-2">
-                <p className="text-sm font-medium text-zinc-900">
+                <p className="text-sm font-medium text-foreground">
                   Where do they end up? Pick the outcome where neither side wants to change (pick two if you see two).
                 </p>
                 <PayoffMatrix
@@ -600,7 +598,7 @@ export function StrategyExerciseFlow({
                     const opts = p === "A" ? exercise.optionsA : exercise.optionsB;
                     return (
                       <div key={p} className="space-y-2" data-testid="dominant-question">
-                        <p className="text-sm font-medium text-zinc-900">
+                        <p className="text-sm font-medium text-foreground">
                           Does {who.name} have a choice that is best whatever the other side does?
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -621,7 +619,7 @@ export function StrategyExerciseFlow({
                     );
                   })}
                   <div className="space-y-2" data-testid="better-question">
-                    <p className="text-sm font-medium text-zinc-900">
+                    <p className="text-sm font-medium text-foreground">
                       Is there an outcome that would be better for BOTH than where they end up? Pick it, or leave none
                       picked.
                     </p>

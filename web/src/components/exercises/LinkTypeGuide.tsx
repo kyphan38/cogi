@@ -10,8 +10,8 @@ function GuideList({ types }: { types: SystemsConnectionType[] }) {
         const t = CONNECTION_TYPE_INFO[key];
         return (
           <li key={key} className="text-sm">
-            <span className="font-medium text-zinc-900">A {t.label} B</span>
-            <span className="text-zinc-500"> - {t.meaning}</span>
+            <span className="font-medium text-foreground">A {t.label} B</span>
+            <span className="text-faint"> - {t.meaning}</span>
           </li>
         );
       })}
@@ -23,15 +23,15 @@ function GuideList({ types }: { types: SystemsConnectionType[] }) {
 export function LinkTypeGuide({ mode, types }: { mode: "shown" | "toggle"; types: SystemsConnectionType[] }) {
   if (mode === "shown") {
     return (
-      <div className="border-t border-zinc-200 pt-4" data-testid="link-type-guide">
-        <p className="mb-2 text-sm font-medium text-zinc-900">Link types (arrow A -&gt; B):</p>
+      <div className="border-t border-border pt-4" data-testid="link-type-guide">
+        <p className="mb-2 text-sm font-medium text-foreground">Link types (arrow A -&gt; B):</p>
         <GuideList types={types} />
       </div>
     );
   }
   return (
-    <details className="border-t border-zinc-200 pt-4" data-testid="link-type-guide">
-      <summary className="cursor-pointer text-sm font-medium text-zinc-900">What each link type means</summary>
+    <details className="border-t border-border pt-4" data-testid="link-type-guide">
+      <summary className="cursor-pointer text-sm font-medium text-foreground">What each link type means</summary>
       <div className="mt-2">
         <GuideList types={types} />
       </div>

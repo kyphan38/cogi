@@ -109,7 +109,7 @@ export default function AiSmokePage() {
           <AlertDescription className="space-y-2">
             <p>{result.error}</p>
             {result.rawSnippet ? (
-              <pre className="mt-2 max-h-40 overflow-auto rounded bg-black/5 p-2 text-xs dark:bg-white/10">
+              <pre className="mt-2 max-h-40 overflow-auto rounded bg-black/5 p-2 text-xs dark:bg-card/10">
                 {result.rawSnippet}
               </pre>
             ) : null}

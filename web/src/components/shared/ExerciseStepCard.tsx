@@ -9,7 +9,7 @@ export function ExerciseStepCard({
   bodyClassName,
   "data-testid": dataTestId,
 }: {
-  title: ReactNode;
+  title?: ReactNode;
   description?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
@@ -31,4 +31,4 @@ export function ExerciseStepCard({
 
 /** Nordic meta badge for exercise step headers (e.g. sound-reasoning passages). */
 export const EXERCISE_STEP_META_BADGE =
-  "ml-2 text-[10px] font-normal uppercase tracking-wide text-muted-foreground";
+  "ml-2 text-label uppercase text-muted-foreground";

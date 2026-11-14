@@ -19,6 +19,7 @@ import { TrackCard } from "@/components/dashboard/TrackCard";
 import { GeoLabCard } from "@/components/dashboard/GeoLabCard";
 import { DISCARD_BUTTON_CLASS } from "@/components/dashboard/discard-button";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 /** How many in-progress and recently finished exercises the start page lists. */
 const HOME_LIST_SIZE = 5;
@@ -100,20 +101,22 @@ export function HomeContent() {
 
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-2xl tracking-tight sm:text-[1.65rem]">Practice</h1>
-          {stats && stats.completed > 0 ? (
-            <p className="text-muted-foreground text-xs tabular-nums" data-testid="home-stats">
+      <PageHeader
+        title="Practice"
+        sub={
+          stats && stats.completed > 0 ? (
+            <span className="text-meta tabular-nums" data-testid="home-stats">
               {stats.completed} completed · {stats.streak} day streak
-            </p>
-          ) : null}
-        </div>
-        <Link href="/reasoning" className={cn(buttonVariants(), "inline-flex items-center gap-1.5")}>
-          <Plus className="size-4" aria-hidden />
-          New exercise
-        </Link>
-      </div>
+            </span>
+          ) : undefined
+        }
+        action={
+          <Link href="/reasoning" className={cn(buttonVariants(), "inline-flex items-center gap-1.5")}>
+            <Plus className="size-4" aria-hidden />
+            New exercise
+          </Link>
+        }
+      />
 
       {allCompleted ? (
         <TrackCard completed={allCompleted} incomplete={allIncomplete} onDiscard={discardIncomplete} />

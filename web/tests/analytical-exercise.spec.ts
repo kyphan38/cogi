@@ -17,7 +17,7 @@ test.describe("Analytical exercise - setup phase", () => {
   }) => {
     await gotoAuthenticated(page, "/exercise/analytical");
     await expect(
-      page.getByRole("heading", { name: "Analytical exercise" }),
+      page.getByRole("heading", { name: "Analytical", level: 1 }),
     ).toBeVisible();
     await expect(page.getByRole("main").getByRole("textbox", { name: "Domain" })).toBeVisible();
     await expect(exerciseSourceCombobox(page)).toBeVisible();
@@ -60,7 +60,7 @@ test.describe("Analytical exercise - setup phase", () => {
       name: "Exercise progress",
     });
     await expect(progressNav).toBeVisible();
-    await expect(progressNav.getByText(/^\d\. /)).toHaveText(["1. Setup", "2. Highlight & tag", "3. AI feedback"]);
+    await expect(progressNav.locator("span")).toHaveText(["Setup", "Highlight & tag", "AI feedback"]);
   });
 
   test("has a settings link for personal context", async ({ page }) => {

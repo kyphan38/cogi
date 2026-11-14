@@ -62,12 +62,12 @@ function MainClaimStep({
   return (
     <div className="space-y-4" data-testid="main-claim-step">
       <div>
-        <p className="font-medium text-zinc-900">First, read the passage. What is its main claim?</p>
+        <p className="font-medium text-foreground">First, read the passage. What is its main claim?</p>
         <p className="text-muted-foreground text-sm">
           Knowing what the writer wants you to believe makes the weak spots easier to see.
         </p>
       </div>
-      <div className="whitespace-pre-wrap border-l-2 border-zinc-200 pl-4 text-base leading-[1.75] text-zinc-900">
+      <div className="whitespace-pre-wrap border-l-2 border-border pl-4 text-base leading-[1.75] text-foreground">
         {ex.passage}
       </div>
       <div className="grid gap-2" role="radiogroup" aria-label="Main claim">
@@ -85,10 +85,10 @@ function MainClaimStep({
               className={cn(
                 "flex items-start gap-2 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors disabled:cursor-default",
                 isAnswer
-                  ? "border-zinc-900 bg-zinc-50"
+                  ? "border-foreground bg-muted"
                   : isPicked
-                    ? "border-zinc-400 bg-white"
-                    : "border-zinc-200 bg-white hover:bg-zinc-50",
+                    ? "border-foreground/40 bg-card"
+                    : "border-border bg-card hover:bg-muted",
               )}
             >
               {isAnswer ? <Check className="mt-0.5 size-4 shrink-0" aria-hidden /> : null}
@@ -181,7 +181,7 @@ export function GuidedWalkthrough({
 
   return (
     <div className="space-y-4" data-testid="guided-walkthrough">
-      <p className="text-sm text-zinc-900">
+      <p className="text-sm text-foreground">
         This passage has <span className="font-medium">{ex.embeddedIssues.length} issues</span> and{" "}
         <span className="font-medium">{ex.validPoints.length} traps</span> (sound statements that only
         look suspicious). Check the {candidates.length} shaded sentences one by one.
@@ -189,10 +189,10 @@ export function GuidedWalkthrough({
       <CheckQuestions mode="shown" />
       <div
         data-testid="text-passage"
-        className="whitespace-pre-wrap border-l-2 border-zinc-200 pl-4 text-base leading-[1.75] text-zinc-900"
+        className="whitespace-pre-wrap border-l-2 border-border pl-4 text-base leading-[1.75] text-foreground"
       >
         {pieces.map((p, i) => {
-          if (p.candidate == null) return <span key={i} className="text-zinc-500">{p.text}</span>;
+          if (p.candidate == null) return <span key={i} className="text-faint">{p.text}</span>;
           const c = candidates[p.candidate]!;
           const a = answerFor(c);
           // A span, not a button: buttons break the line and split the paragraph.
@@ -211,7 +211,7 @@ export function GuidedWalkthrough({
                 }
               }}
               className={cn(
-                "cursor-pointer rounded-sm bg-foreground/5 focus-visible:outline-2 focus-visible:outline-zinc-900",
+                "cursor-pointer rounded-sm bg-foreground/5 focus-visible:outline-2 focus-visible:outline-foreground",
                 p.candidate === index && "bg-foreground/15",
                 a && p.candidate !== index && "bg-foreground/10",
               )}
@@ -223,12 +223,12 @@ export function GuidedWalkthrough({
       </div>
 
       {current ? (
-        <div className="space-y-3 border-t border-zinc-200 pt-4" data-testid="guided-current">
+        <div className="space-y-3 border-t border-border pt-4" data-testid="guided-current">
           <p className="text-muted-foreground text-xs">
             Sentence {index + 1} of {candidates.length}
             {currentAnswer ? ` · your answer: ${choiceLabel(currentAnswer.tag)}` : ""}
           </p>
-          <p className="italic text-zinc-900">&ldquo;{ex.passage.slice(current.start, current.end)}&rdquo;</p>
+          <p className="italic text-foreground">&ldquo;{ex.passage.slice(current.start, current.end)}&rdquo;</p>
           {askingTag ? (
             <div className="space-y-2">
               <p className="text-sm font-medium">Which question gets a yes?</p>
@@ -238,10 +238,10 @@ export function GuidedWalkthrough({
                     key={tag}
                     type="button"
                     onClick={() => answer(tag)}
-                    className="flex flex-col items-start gap-0.5 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-left text-sm hover:bg-zinc-50"
+                    className="flex flex-col items-start gap-0.5 rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:bg-muted"
                   >
                     <span className="font-medium">{TAG_LABELS[tag].label}</span>
-                    <span className="text-xs text-zinc-500">{TAG_CHECK_QUESTIONS[tag]}</span>
+                    <span className="text-xs text-faint">{TAG_CHECK_QUESTIONS[tag]}</span>
                   </button>
                 ))}
               </div>
@@ -269,7 +269,7 @@ export function GuidedWalkthrough({
           )}
         </div>
       ) : (
-        <div className="space-y-2 border-t border-zinc-200 pt-4" data-testid="guided-done">
+        <div className="space-y-2 border-t border-border pt-4" data-testid="guided-done">
           <p className="text-sm">
             All {candidates.length} sentences checked. You marked {flagged} as having a problem.
           </p>

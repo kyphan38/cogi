@@ -11,8 +11,8 @@ function QuestionList({ tags }: { tags: TagType[] }) {
     <ul className="space-y-1.5">
       {tags.map((tag) => (
         <li key={tag} className="text-sm">
-          <span className="text-zinc-900">{TAG_CHECK_QUESTIONS[tag]}</span>
-          <span className="text-zinc-500"> - if yes: {TAG_LABELS[tag].label}</span>
+          <span className="text-foreground">{TAG_CHECK_QUESTIONS[tag]}</span>
+          <span className="text-faint"> - if yes: {TAG_LABELS[tag].label}</span>
         </li>
       ))}
     </ul>
@@ -27,15 +27,15 @@ export function CheckQuestions({ mode, geopolitics = false }: { mode: "shown" | 
   const tags = geopolitics ? GEO_PROBLEM_TAGS : PROBLEM_TAGS;
   if (mode === "shown") {
     return (
-      <div className="border-t border-zinc-200 pt-4" data-testid="check-questions">
-        <p className="mb-2 text-sm font-medium text-zinc-900">Ask of each sentence:</p>
+      <div className="border-t border-border pt-4" data-testid="check-questions">
+        <p className="mb-2 text-sm font-medium text-foreground">Ask of each sentence:</p>
         <QuestionList tags={tags} />
       </div>
     );
   }
   return (
-    <details className="border-t border-zinc-200 pt-4" data-testid="check-questions">
-      <summary className="cursor-pointer text-sm font-medium text-zinc-900">
+    <details className="border-t border-border pt-4" data-testid="check-questions">
+      <summary className="cursor-pointer text-sm font-medium text-foreground">
         Questions to ask of each sentence
       </summary>
       <div className="mt-2">

@@ -691,7 +691,7 @@ export function SystemsExerciseFlow({
   const exLevel = SYSTEMS_LEVELS[exerciseLevel];
 
   return (
-    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Map the system")} partLabel={partLabel}>
+    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Map the system")} partLabel={partLabel} title="Systems" sub="Map the system, then follow a shock through it.">
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -715,12 +715,6 @@ export function SystemsExerciseFlow({
 
       {step === 0 ? (
         <Card>
-          <CardHeader>
-            <CardTitle>Systems exercise</CardTitle>
-            <CardDescription>
-              Map dependencies on a fixed canvas, then respond to a shock scenario.
-            </CardDescription>
-          </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <WordChoice
               label="Topic"
@@ -992,7 +986,7 @@ export function SystemsExerciseFlow({
           <CardContent className="space-y-4">
             <p className="text-sm leading-relaxed">{exercise.scenario}</p>
             {exLevel.linkCountHint ? (
-              <p className="text-sm text-zinc-900" data-testid="link-count-hint">
+              <p className="text-sm text-foreground" data-testid="link-count-hint">
                 The model draws <span className="font-medium">{exercise.intendedConnections.length} links</span>{" "}
                 between these nodes. Try to find them.
               </p>
@@ -1181,7 +1175,7 @@ export function SystemsExerciseFlow({
           <CardContent className="space-y-4">
             <p className="text-sm font-medium">{exercise.shockEvent.description}</p>
             {exLevel.impactCountHint ? (
-              <p className="text-sm text-zinc-900" data-testid="impact-count-hint">
+              <p className="text-sm text-foreground" data-testid="impact-count-hint">
                 In the model, {exercise.shockEvent.directlyAffected.length} node
                 {exercise.shockEvent.directlyAffected.length === 1 ? " is" : "s are"} directly and{" "}
                 {exercise.shockEvent.indirectlyAffected.length} indirectly affected.
@@ -1204,9 +1198,9 @@ export function SystemsExerciseFlow({
               const indirect = exercise.nodes.filter((n) => nodeImpact[n.id] === "indirect");
               if (indirect.length === 0) return null;
               return (
-                <div className="space-y-3 border-t border-zinc-200 pt-4" data-testid="spread-questions">
+                <div className="space-y-3 border-t border-border pt-4" data-testid="spread-questions">
                   <div>
-                    <p className="text-sm font-medium text-zinc-900">How does the shock reach each indirect node?</p>
+                    <p className="text-sm font-medium text-foreground">How does the shock reach each indirect node?</p>
                     <p className="text-muted-foreground text-xs">
                       Pick the node it passes through.
                     </p>
@@ -1316,7 +1310,7 @@ export function SystemsExerciseFlow({
                         key={hint.nodeId}
                         className={cn(
                           "border-l-2 pl-3 text-sm",
-                          match ? "border-zinc-900" : "border-zinc-300",
+                          match ? "border-foreground" : "border-input",
                         )}
                       >
                         <span className="font-medium">{node?.label ?? hint.nodeId}</span>
@@ -1372,7 +1366,7 @@ export function SystemsExerciseFlow({
           </CardHeader>
           <CardContent className="space-y-4">
             {exercise.intendedConnectionsB && exercise.shockEventB && !exercise.revealedB ? (
-              <div className="space-y-3 border-t border-zinc-200 pt-4" data-testid="predict-b">
+              <div className="space-y-3 border-t border-border pt-4" data-testid="predict-b">
                 <p className="text-sm font-medium">
                   Predict first: from {exercise.perspectiveBName ?? "Actor B"}&apos;s view, which parts does the shock hit
                   directly?
@@ -1393,7 +1387,7 @@ export function SystemsExerciseFlow({
                         }}
                         className={cn(
                           "rounded-md border px-3 py-1.5 text-sm",
-                          on ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
+                          on ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                         )}
                       >
                         {n.label}

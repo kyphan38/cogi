@@ -61,7 +61,7 @@ export function AppTopNav() {
             {current.label}
           </Link>
         </div>
-        <div className="flex shrink-0 items-baseline gap-4 text-[13px]">
+        <div className="flex shrink-0 items-baseline gap-4 text-meta">
           {others.map(({ href, label }) => (
             <Link
               key={href}

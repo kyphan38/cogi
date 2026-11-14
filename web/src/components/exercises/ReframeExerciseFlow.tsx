@@ -115,7 +115,7 @@ function TrapPicker({
             onClick={() => onPick(a)}
             className={cn(
               "rounded-xl border px-3 py-2 text-left text-sm disabled:cursor-default",
-              isPicked ? "border-zinc-900 bg-zinc-50 font-medium" : "border-zinc-200 hover:bg-zinc-50",
+              isPicked ? "border-foreground bg-muted font-medium" : "border-border hover:bg-muted",
               a === "realistic" && !isPicked ? "border-dashed" : null,
             )}
           >
@@ -130,7 +130,7 @@ function TrapPicker({
 
 function TrapGuide({ options }: { options: ReframeAnswer[] }) {
   return (
-    <details className="border-t border-zinc-200 pt-2 text-sm" data-testid="trap-guide">
+    <details className="border-t border-border pt-2 text-sm" data-testid="trap-guide">
       <summary className="cursor-pointer font-medium">Trap guide: the question behind each name</summary>
       <ul className="mt-2 space-y-1">
         {options.map((a) => {
@@ -438,7 +438,7 @@ export function ReframeExerciseFlow({
 
   const scenarioBlock = exercise ? (
     <div className="space-y-2">
-      <div className="whitespace-pre-wrap border-l-2 border-zinc-200 pl-4 text-base leading-[1.75] text-zinc-900">
+      <div className="whitespace-pre-wrap border-l-2 border-border pl-4 text-base leading-[1.75] text-foreground">
         {exercise.scenario}
       </div>
       <button
@@ -454,7 +454,7 @@ export function ReframeExerciseFlow({
 
   const feelingBlock = exercise ? (
     <div className="space-y-3" data-testid="feeling-step">
-      <p className="text-sm font-medium text-zinc-900">First, name the main feeling. Be specific.</p>
+      <p className="text-sm font-medium text-foreground">First, name the main feeling. Be specific.</p>
       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Main feeling">
         {FEELING_WORDS.map((w) => (
           <button
@@ -465,7 +465,7 @@ export function ReframeExerciseFlow({
             onClick={() => save({ feeling: w })}
             className={cn(
               "rounded-md border px-3 py-1.5 text-sm",
-              exercise.feeling === w ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
+              exercise.feeling === w ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
             )}
           >
             {w}
@@ -493,7 +493,7 @@ export function ReframeExerciseFlow({
         <p className="text-muted-foreground text-xs">
           Thought {i + 1} of {ex.thoughts.length}
         </p>
-        <blockquote className="border-l-2 border-zinc-900 pl-3 text-base italic text-zinc-900">{t.text}</blockquote>
+        <blockquote className="border-l-2 border-foreground pl-3 text-base italic text-foreground">{t.text}</blockquote>
         <TrapPicker
           options={options}
           picked={picked}
@@ -533,7 +533,7 @@ export function ReframeExerciseFlow({
       {ex.thoughts.map((t, i) => (
         <div key={t.id} className="space-y-2" data-testid="thought-question">
           <p className="text-muted-foreground text-xs">Thought {i + 1}</p>
-          <blockquote className="border-l-2 border-zinc-900 pl-3 italic text-zinc-900">{t.text}</blockquote>
+          <blockquote className="border-l-2 border-foreground pl-3 italic text-foreground">{t.text}</blockquote>
           <TrapPicker
             options={options}
             picked={answers[t.id]}
@@ -552,7 +552,7 @@ export function ReframeExerciseFlow({
       <div className="space-y-4">
         <TrapGuide options={options} />
         <p className="text-muted-foreground text-xs">Tap a thought to mark it. Leave fair thoughts as they are.</p>
-        <p className="border-l-2 border-zinc-200 pl-4 text-base leading-[1.75] text-zinc-900" data-testid="monologue">
+        <p className="border-l-2 border-border pl-4 text-base leading-[1.75] text-foreground" data-testid="monologue">
           {ex.thoughts.map((t) => {
             const a = answers[t.id];
             const marked = a != null && a !== "realistic";
@@ -564,7 +564,7 @@ export function ReframeExerciseFlow({
                   onClick={() => setSelectedThought(t.id)}
                   className={cn(
                     "rounded px-0.5 text-left",
-                    selectedThought === t.id ? "bg-zinc-200" : marked ? "bg-zinc-100" : "bg-foreground/5 hover:bg-foreground/10",
+                    selectedThought === t.id ? "bg-border" : marked ? "bg-muted" : "bg-foreground/5 hover:bg-foreground/10",
                   )}
                 >
                   {t.text}
@@ -576,7 +576,7 @@ export function ReframeExerciseFlow({
         </p>
         {sel ? (
           <div className="space-y-2" data-testid="thought-question">
-            <p className="text-sm font-medium text-zinc-900">&ldquo;{sel.text}&rdquo;</p>
+            <p className="text-sm font-medium text-foreground">&ldquo;{sel.text}&rdquo;</p>
             <TrapPicker
               options={options}
               picked={answers[sel.id]}
@@ -591,7 +591,7 @@ export function ReframeExerciseFlow({
   };
 
   return (
-    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Think it through")} partLabel={partLabel}>
+    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Think it through")} partLabel={partLabel} title="Reframe" sub="Spot thinking traps, then rewrite one thought.">
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -613,8 +613,6 @@ export function ReframeExerciseFlow({
       {step === 0 ? (
         <ExerciseStepCard
           data-testid="reframe-setup"
-          title="Reframe"
-          description="Spot thinking traps, then rewrite one thought."
         >
           <LevelPicker
             value={level}
@@ -637,7 +635,7 @@ export function ReframeExerciseFlow({
                   onClick={() => setArea(a)}
                   className={cn(
                     "rounded-md border px-3 py-1.5 text-sm",
-                    area === a ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
+                    area === a ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                   )}
                 >
                   {a}
@@ -751,7 +749,7 @@ export function ReframeExerciseFlow({
               {scenarioBlock}
               {feelingBlock}
               <div className="space-y-1">
-                <p className="text-sm font-medium text-zinc-900">Now look at the thoughts that came next.</p>
+                <p className="text-sm font-medium text-foreground">Now look at the thoughts that came next.</p>
                 <p className="text-muted-foreground text-xs" data-testid="count-hint">
                   {countHint}
                 </p>
@@ -773,8 +771,8 @@ export function ReframeExerciseFlow({
           {part === "reframe" && target ? (
             <>
               <div className="space-y-2">
-                <p className="text-sm font-medium text-zinc-900">Rewrite this thought in a fair, balanced way.</p>
-                <blockquote className="border-l-2 border-zinc-900 pl-3 text-base italic text-zinc-900" data-testid="rewrite-target">
+                <p className="text-sm font-medium text-foreground">Rewrite this thought in a fair, balanced way.</p>
+                <blockquote className="border-l-2 border-foreground pl-3 text-base italic text-foreground" data-testid="rewrite-target">
                   {target.text}
                 </blockquote>
                 <p className="text-muted-foreground text-xs">
@@ -783,7 +781,7 @@ export function ReframeExerciseFlow({
               </div>
               {cfg.rewrite === "choose" ? (
                 <div className="grid gap-2" role="radiogroup" aria-label={exercise.rewrite.question}>
-                  <p className="text-sm font-medium text-zinc-900">{exercise.rewrite.question}</p>
+                  <p className="text-sm font-medium text-foreground">{exercise.rewrite.question}</p>
                   {rewriteOrder.map((oi) => (
                     <button
                       key={oi}
@@ -793,7 +791,7 @@ export function ReframeExerciseFlow({
                       onClick={() => save({ rewriteChoice: oi })}
                       className={cn(
                         "rounded-xl border px-3 py-2.5 text-left text-sm",
-                        exercise.rewriteChoice === oi ? "border-zinc-900 bg-zinc-50" : "border-zinc-200 hover:bg-zinc-50",
+                        exercise.rewriteChoice === oi ? "border-foreground bg-muted" : "border-border hover:bg-muted",
                       )}
                     >
                       {exercise.rewrite.options[oi]}

@@ -54,8 +54,8 @@ function SourceLinks({ sources }: { sources: GeoSource[] }) {
 /** A big number with a small label (no tabular figures at this size). */
 function StatTile({ value, label }: { value: string; label: string }) {
   return (
-    <div className="border-t border-zinc-200 pt-2">
-      <p className="text-lg font-semibold text-zinc-900">{value}</p>
+    <div className="border-t border-border pt-2">
+      <p className="text-lg font-semibold text-foreground">{value}</p>
       <p className="text-muted-foreground text-xs">{label}</p>
     </div>
   );
@@ -223,8 +223,8 @@ export function CloseTheStrait({
             ))}
           </div>
           {cp ? (
-            <div className="space-y-2 border-t border-zinc-200 pt-3 text-sm" data-testid="strait-intro">
-              <p className="font-medium text-zinc-900">{cp.name}</p>
+            <div className="space-y-2 border-t border-border pt-3 text-sm" data-testid="strait-intro">
+              <p className="font-medium text-foreground">{cp.name}</p>
               <p>Connects {cp.connects}.</p>
               <p>{cp.why}</p>
               <SourceLinks sources={[cp.facts[0]!.source]} />
@@ -240,7 +240,7 @@ export function CloseTheStrait({
 
       {step === "countries" && cp && game ? (
         <div className="space-y-3">
-          <p className="text-sm font-medium text-zinc-900">
+          <p className="text-sm font-medium text-foreground">
             Guess first: the {cp.name} is closed. Which countries would be hit hardest? Pick every country you think depends
             most on it.
           </p>
@@ -253,7 +253,7 @@ export function CloseTheStrait({
 
       {step === "route" && cp && game ? (
         <div className="space-y-3">
-          <p className="text-sm font-medium text-zinc-900">How would ships or oil get around it?</p>
+          <p className="text-sm font-medium text-foreground">How would ships or oil get around it?</p>
           <div className="grid gap-2" role="radiogroup" aria-label="The way around">
             {game.routeOptions.map((r) => (
               <button
@@ -264,7 +264,7 @@ export function CloseTheStrait({
                 onClick={() => setRoute(r)}
                 className={cn(
                   "rounded-lg border px-3 py-2 text-left text-sm transition-colors",
-                  route === r ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
+                  route === r ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                 )}
                 data-testid={`route-option-${r}`}
               >
@@ -286,7 +286,7 @@ export function CloseTheStrait({
       {step === "reveal" && cp && game && result ? (
         <div className="space-y-4" data-testid="strait-answer">
           <div className="space-y-1 text-sm">
-            <p className="text-base font-medium text-zinc-900" data-testid="strait-score">
+            <p className="text-base font-medium text-foreground" data-testid="strait-score">
               You found {result.found.length} of {game.dependents.length}.
               {result.extra.length > 0 ? ` ${result.extra.length} of your picks ${result.extra.length === 1 ? "was" : "were"} not on the list.` : ""}
             </p>
@@ -299,13 +299,13 @@ export function CloseTheStrait({
           </div>
 
           <div className="space-y-1 text-sm">
-            <p className="font-medium text-zinc-900">Who depends on it most: {names(game.dependents)}</p>
+            <p className="font-medium text-foreground">Who depends on it most: {names(game.dependents)}</p>
             <p>{game.dependentsWhy}</p>
             <SourceLinks sources={game.dependentsSources} />
           </div>
 
           <div className="space-y-2 text-sm">
-            <p className="font-medium text-zinc-900">The way around</p>
+            <p className="font-medium text-foreground">The way around</p>
             {game.detour.nauticalMiles || game.detour.days ? (
               <div className="grid grid-cols-2 gap-2">
                 {game.detour.nauticalMiles ? (
@@ -321,8 +321,8 @@ export function CloseTheStrait({
             <SourceLinks sources={[game.detour.source]} />
           </div>
 
-          <div className="space-y-2 border-t border-zinc-200 pt-3 text-sm" data-testid="strait-note">
-            <p className="font-medium text-zinc-900">Coach&apos;s note</p>
+          <div className="space-y-2 border-t border-border pt-3 text-sm" data-testid="strait-note">
+            <p className="font-medium text-foreground">Coach&apos;s note</p>
             {note.state === "loading" ? (
               <p className="text-muted-foreground inline-flex items-center gap-2">
                 <InlineSpinner /> Writing a short note...
@@ -352,12 +352,12 @@ export function CloseTheStrait({
             ) : null}
           </div>
 
-          <details className="text-xs text-zinc-600" data-testid="strait-data">
+          <details className="text-xs text-muted-foreground" data-testid="strait-data">
             <summary className="cursor-pointer">Show the data</summary>
             <table className="mt-2 w-full text-left">
               <tbody>
                 {cp.facts.map((f) => (
-                  <tr key={f.label} className="border-t border-zinc-100 align-top">
+                  <tr key={f.label} className="border-t border-border/60 align-top">
                     <td className="py-1 pr-2 font-medium">{f.label}</td>
                     <td className="py-1 pr-2">{f.value}</td>
                     <td className="py-1">
@@ -368,7 +368,7 @@ export function CloseTheStrait({
                   </tr>
                 ))}
                 {straitChoices(cp).map((id) => (
-                  <tr key={id} className="border-t border-zinc-100">
+                  <tr key={id} className="border-t border-border/60">
                     <td className="py-1 pr-2 font-medium">{countryName(id)}</td>
                     <td className="py-1 pr-2">
                       {(game.dependents as string[]).includes(id) ? "Depends most" : "Not a top user"}

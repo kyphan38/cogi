@@ -122,7 +122,7 @@ export function AnalyticalAnswerKey({
                   {p.text}
                 </span>
                 {p.markerAfter ? (
-                  <sup className="text-foreground ml-0.5 text-[10px] font-semibold">{p.markerAfter}</sup>
+                  <sup className="text-foreground ml-0.5 text-label font-semibold">{p.markerAfter}</sup>
                 ) : null}
               </span>
             ))}

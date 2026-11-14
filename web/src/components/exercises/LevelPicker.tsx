@@ -30,11 +30,11 @@ export function LevelPicker({
               onClick={() => onChange(level)}
               className={cn(
                 "flex flex-col items-start gap-1 rounded-xl border px-3 py-2.5 text-left transition-[color,background-color,border-color,scale] duration-150 active:scale-[0.99]",
-                active ? "border-zinc-900 bg-zinc-50" : "border-zinc-200 bg-white hover:bg-zinc-50",
+                active ? "border-foreground bg-muted" : "border-border bg-card hover:bg-muted",
               )}
             >
-              <span className="text-sm font-medium text-zinc-900">{LEVEL_LABELS[level]}</span>
-              <span className="text-xs text-zinc-500">{descriptions[level]}</span>
+              <span className="text-sm font-medium text-foreground">{LEVEL_LABELS[level]}</span>
+              <span className="text-xs text-faint">{descriptions[level]}</span>
             </button>
           );
         })}

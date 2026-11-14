@@ -5,7 +5,6 @@ import {
   useState,
   useSyncExternalStore,
   type ChangeEvent,
-  type ReactNode,
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -30,6 +29,8 @@ import { exportAllJsonString, importBackupJson } from "@/lib/db/backup";
 import { themeStore, type Theme } from "@/lib/theme";
 import { getFirebaseAuth } from "@/lib/auth/firebase-client";
 import { awaitRouterReplace } from "@/lib/nav/await-router-replace";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { Section } from "@/components/shared/Section";
 
 const THEMES: readonly Theme[] = ["system", "light", "dark"];
 
@@ -143,7 +144,7 @@ export default function SettingsPage() {
   return (
     <main className="mx-auto w-full min-w-0 max-w-3xl px-4 pt-8 pb-24 sm:px-6">
       <div className="max-w-xl">
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+        <PageHeader title="Settings" />
 
         <section className="mt-8 grid gap-3">
           <Label htmlFor="language-level">
@@ -196,7 +197,7 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <Section title="Theme">
+        <Section className="mt-12" title="Theme">
           {/* The current choice is ink and medium; the others are faint and tappable. */}
           <div
             className="flex gap-4 text-sm"
@@ -213,7 +214,7 @@ export default function SettingsPage() {
                 className={
                   theme === t
                     ? "font-medium text-foreground"
-                    : "text-zinc-500 hover:text-foreground"
+                    : "text-faint hover:text-foreground"
                 }
               >
                 {t}
@@ -222,7 +223,7 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        <Section title="Keyboard">
+        <Section className="mt-12" title="Keyboard">
           <p className="text-sm text-muted-foreground">
             <span className="font-medium text-foreground">Delete dialog:</span>{" "}
             press{" "}
@@ -237,7 +238,7 @@ export default function SettingsPage() {
           </p>
         </Section>
 
-        <Section title="Data backup">
+        <Section className="mt-12" title="Data backup">
           <div className="grid gap-3 text-sm">
             <button
               type="button"
@@ -265,7 +266,7 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        <Section title="Account">
+        <Section className="mt-12" title="Account">
           <button
             type="button"
             onClick={() => void signOutAndLeave()}
@@ -283,14 +284,4 @@ export default function SettingsPage() {
 const WORD =
   "text-sm text-muted-foreground hover:text-foreground active:text-foreground";
 
-/** One settings group: a small heading and space, no card. */
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="mt-12">
-      <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
+

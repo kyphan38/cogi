@@ -17,17 +17,17 @@ export function SystemsLoopList({
   if (loops.length === 0) return null;
   return (
     <div className="space-y-2 border-t pt-3 text-sm" data-testid="loop-list">
-      <p className="font-medium text-zinc-900">{title}</p>
+      <p className="font-medium text-foreground">{title}</p>
       <ul className="space-y-2">
         {loops.map((l) => (
           <li key={l.nodes.join(">")}>
             {l.kind ? (
               <p>
                 <span className="font-medium">{LOOP_KIND_INFO[l.kind].label}</span>
-                <span className="text-zinc-500"> - {LOOP_KIND_INFO[l.kind].meaning}</span>
+                <span className="text-faint"> - {LOOP_KIND_INFO[l.kind].meaning}</span>
               </p>
             ) : null}
-            <p className="text-zinc-600">{[...l.nodes, l.nodes[0]!].map(label).join(" -> ")}</p>
+            <p className="text-muted-foreground">{[...l.nodes, l.nodes[0]!].map(label).join(" -> ")}</p>
           </li>
         ))}
       </ul>

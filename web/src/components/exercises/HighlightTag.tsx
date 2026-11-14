@@ -453,12 +453,12 @@ export function HighlightTag({
       data-testid="tag-picker-region"
       role="dialog"
       aria-label={editing ? "Change the tag" : "Pick a tag for selection"}
-      className="fixed z-[200] flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white"
+      className="fixed z-[200] flex flex-col overflow-hidden rounded-2xl border border-border bg-card"
       style={popoverStyle}
       onMouseDown={(e) => e.preventDefault()}
     >
-      <div className="shrink-0 border-b border-zinc-100 px-3 py-2">
-        <span className="text-sm text-zinc-500" data-testid="pick-tag-prompt">
+      <div className="shrink-0 border-b border-border/60 px-3 py-2">
+        <span className="text-sm text-faint" data-testid="pick-tag-prompt">
           {editing ? "Change the tag:" : "Pick a tag:"}
         </span>
       </div>
@@ -472,7 +472,7 @@ export function HighlightTag({
           className="max-h-none"
         />
       </div>
-      <div className="flex shrink-0 gap-2 border-t border-zinc-100 p-2">
+      <div className="flex shrink-0 gap-2 border-t border-border/60 p-2">
         {editing ? (
           <Button
             type="button"
@@ -504,7 +504,7 @@ export function HighlightTag({
     staged && !pending && hintStyle ? (
       <div
         data-testid="tag-selection-hint"
-        className="pointer-events-none fixed z-[199] rounded-full border border-zinc-200 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white"
+        className="pointer-events-none fixed z-[199] rounded-full border border-border bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
         style={hintStyle}
       >
         Tap selection to tag
@@ -529,7 +529,7 @@ export function HighlightTag({
         ref={ref}
         data-testid="text-passage"
         className={cn(
-          "touch-manipulation whitespace-pre-wrap border-l-2 border-zinc-200 pl-4 text-base leading-[1.75] text-zinc-900",
+          "touch-manipulation whitespace-pre-wrap border-l-2 border-border pl-4 text-base leading-[1.75] text-foreground",
           sentenceMode ? "select-none" : "select-text cursor-text [-webkit-user-select:text]",
         )}
         onPointerUp={onPointerUp}
@@ -554,11 +554,11 @@ export function HighlightTag({
                 data-testid="passage-sentence"
                 data-tagged={p.highlight ? "true" : undefined}
                 className={cn(
-                  "cursor-pointer rounded-sm transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900",
+                  "cursor-pointer rounded-sm transition-colors focus-visible:outline-2 focus-visible:outline-foreground",
                   p.highlight
-                    ? "bg-zinc-900/10"
-                    : "hover:bg-zinc-900/5",
-                  open && "bg-zinc-900/15",
+                    ? "bg-foreground/10"
+                    : "hover:bg-foreground/5",
+                  open && "bg-foreground/15",
                 )}
                 onClick={(e) => onSentence(p, e.currentTarget)}
                 onKeyDown={sentenceKeyDown(p)}
@@ -572,7 +572,7 @@ export function HighlightTag({
               <mark
                 key={p.start}
                 data-highlight-id={p.highlight.id}
-                className="cursor-pointer rounded-sm bg-zinc-900/10 text-inherit"
+                className="cursor-pointer rounded-sm bg-foreground/10 text-inherit"
               >
                 {text}
               </mark>
@@ -596,11 +596,11 @@ export function HighlightTag({
             <li
               key={h.id}
               data-testid="highlight-chip"
-              className="flex flex-wrap items-start justify-between gap-2 border-t border-zinc-200 pt-3"
+              className="flex flex-wrap items-start justify-between gap-2 border-t border-border pt-3"
             >
               <div>
                 <HighlightTagBadge tag={h.tag} geoContext={tagOptions.some(isGeopoliticsSemanticTag)} />
-                <q className="text-zinc-500">{h.text}</q>
+                <q className="text-faint">{h.text}</q>
               </div>
               <Button type="button" variant="ghost" size="sm" onClick={() => remove(h.id)}>
                 Remove

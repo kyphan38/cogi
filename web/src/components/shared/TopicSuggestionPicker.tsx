@@ -88,7 +88,7 @@ export function TopicSuggestionPicker({ area, kind, seedSuggestions, onPick }: T
               onClick={() => void handlePick({ title: s.title, scenarioId: s.scenarioId })}
               className="text-left transition-transform duration-100 enabled:active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Card variant="boxed" className={cn("h-full gap-2 transition-colors hover:border-zinc-300", pickingTitle === s.title && "border-zinc-400")}>
+              <Card variant="boxed" className={cn("h-full gap-2 transition-colors hover:border-input", pickingTitle === s.title && "border-foreground/40")}>
                 <CardContent className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <Badge variant="positive">{s.badge ?? "Verified scenario"}</Badge>
@@ -109,12 +109,12 @@ export function TopicSuggestionPicker({ area, kind, seedSuggestions, onPick }: T
               onClick={() => void handlePick({ title: s.title })}
               className="text-left transition-transform duration-100 enabled:active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Card variant="boxed" className={cn("h-full gap-2 transition-colors hover:border-zinc-300", pickingTitle === s.title && "border-zinc-400")}>
+              <Card variant="boxed" className={cn("h-full gap-2 transition-colors hover:border-input", pickingTitle === s.title && "border-foreground/40")}>
                 <CardContent className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <Badge variant="secondary">AI suggested</Badge>
                     {pickingTitle === s.title ? (
-                      <span className="text-muted-foreground flex items-center gap-1 text-[11px]">
+                      <span className="text-muted-foreground flex items-center gap-1 text-meta">
                         <InlineSpinner /> Starting…
                       </span>
                     ) : null}

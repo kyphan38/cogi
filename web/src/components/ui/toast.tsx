@@ -55,7 +55,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           // A new id is a new toast: its own entry animation.
           key={shown.id}
           className={cn(
-            "toast-cogi pointer-events-auto flex max-w-[min(360px,calc(100vw-2rem))] items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white",
+            "toast-cogi pointer-events-auto flex max-w-[min(360px,calc(100vw-2rem))] items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-primary-foreground",
             shown.type === "success" && "toast-cogi-success",
             shown.type === "error" && "toast-cogi-error",
             shown.type === "info" && "toast-cogi-info",

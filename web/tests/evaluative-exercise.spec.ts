@@ -16,7 +16,7 @@ test.describe("Evaluative exercise - setup phase", () => {
   test("renders setup card with heading and generate button", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/evaluative");
     await expect(
-      page.getByRole("heading", { name: "Evaluative exercise" }),
+      page.getByRole("heading", { name: "Evaluative", level: 1 }),
     ).toBeVisible();
     await expect(page.getByLabel("Domain")).toBeVisible();
     await expect(
@@ -35,7 +35,7 @@ test.describe("Evaluative exercise - setup phase", () => {
     await gotoAuthenticated(page, "/exercise/evaluative");
     const progressNav = page.getByRole("navigation", { name: "Exercise progress" });
     await expect(progressNav).toBeVisible();
-    await expect(progressNav.getByText("1. Setup")).toBeVisible();
+    await expect(progressNav.getByText("Setup", { exact: true })).toBeVisible();
   });
 });
 
@@ -115,7 +115,7 @@ test.describe("Evaluative exercise - 3-step practice loop", () => {
   test("setup -> evaluate with confidence -> AI feedback -> takeaway -> saved", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/evaluative");
     const progress = page.getByRole("navigation", { name: "Exercise progress" });
-    await expect(progress.getByText(/^\d\. /)).toHaveText(["1. Setup", "2. Evaluate", "3. AI feedback"]);
+    await expect(progress.locator("span")).toHaveText(["Setup", "Evaluate", "AI feedback"]);
 
     await selectEvaluativeTaskType(page, "Dealbreaker check");
     await generateExercise(page, "Vendor Selection");
@@ -129,7 +129,7 @@ test.describe("Evaluative exercise - 3-step practice loop", () => {
 
     await page.getByRole("button", { name: "Get AI feedback" }).click();
     await expect(page.getByLabel(/What will you take away/)).toBeVisible({ timeout: 15_000 });
-    await expect(progress.getByText("3. AI feedback")).toHaveAttribute("aria-current", "step");
+    await expect(progress.getByText("AI feedback", { exact: true })).toHaveAttribute("aria-current", "step");
     const key = page.getByTestId("evaluative-answer-key");
     await expect(key).toBeVisible();
     // "Take with you": decision idea cards (fixed guide plus the AI's examples).

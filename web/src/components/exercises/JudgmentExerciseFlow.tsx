@@ -96,7 +96,7 @@ function ChoiceButtons({
             onClick={() => onPick(oi)}
             className={cn(
               "flex items-start gap-2 rounded-xl border px-3 py-2.5 text-left text-sm disabled:cursor-default",
-              showAnswer || (!reveal && isPicked) ? "border-zinc-900 bg-zinc-50" : isPicked ? "border-zinc-400" : "border-zinc-200 hover:bg-zinc-50",
+              showAnswer || (!reveal && isPicked) ? "border-foreground bg-muted" : isPicked ? "border-foreground/40" : "border-border hover:bg-muted",
             )}
           >
             {showAnswer ? <Check className="mt-0.5 size-4 shrink-0" aria-hidden /> : null}
@@ -359,7 +359,7 @@ export function JudgmentExerciseFlow({
 
   const scenarioBlock = exercise ? (
     <div className="space-y-2">
-      <div className="whitespace-pre-wrap border-l-2 border-zinc-200 pl-4 text-base leading-[1.75] text-zinc-900">
+      <div className="whitespace-pre-wrap border-l-2 border-border pl-4 text-base leading-[1.75] text-foreground">
         {exercise.scenario}
       </div>
       <button
@@ -374,7 +374,7 @@ export function JudgmentExerciseFlow({
   ) : null;
 
   return (
-    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Think it through")} partLabel={partLabel}>
+    <ExerciseShell stepIndex={phase} stepLabels={practiceStepLabels("Think it through")} partLabel={partLabel} title="Life situations" sub="Read a real situation, then choose a response.">
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
@@ -385,8 +385,6 @@ export function JudgmentExerciseFlow({
       {step === 0 ? (
         <ExerciseStepCard
           data-testid="judgment-setup"
-          title="Life situations"
-          description="Read a real situation, then choose a response."
         >
           <LevelPicker
             value={level}
@@ -409,7 +407,7 @@ export function JudgmentExerciseFlow({
                   onClick={() => setArea(a)}
                   className={cn(
                     "rounded-md border px-3 py-1.5 text-sm",
-                    area === a ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
+                    area === a ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                   )}
                 >
                   {a}
@@ -521,7 +519,7 @@ export function JudgmentExerciseFlow({
           {part === "lenses" ? (
             <>
               {scenarioBlock}
-              <p className="text-sm font-medium text-zinc-900">Look at it through three lenses.</p>
+              <p className="text-sm font-medium text-foreground">Look at it through three lenses.</p>
               {cfg.lensMode === "one-by-one"
                 ? (() => {
                     const q = exercise.lensQuestions[Math.min(lensIndex, exercise.lensQuestions.length - 1)]!;
@@ -531,7 +529,7 @@ export function JudgmentExerciseFlow({
                         <p className="text-muted-foreground text-xs">
                           Lens {Math.min(lensIndex, 2) + 1} of 3 · {LENS_INFO[q.lens].name}
                         </p>
-                        <p className="text-sm font-medium text-zinc-900">{q.question}</p>
+                        <p className="text-sm font-medium text-foreground">{q.question}</p>
                         <ChoiceButtons
                           options={q.options}
                           order={lensOrders[q.lens] ?? [0, 1, 2]}
@@ -563,7 +561,7 @@ export function JudgmentExerciseFlow({
                     {exercise.lensQuestions.map((q) => (
                       <div key={q.lens} className="space-y-2" data-testid="lens-question">
                         <p className="text-muted-foreground text-xs">{LENS_INFO[q.lens].name}</p>
-                        <p className="text-sm font-medium text-zinc-900">{q.question}</p>
+                        <p className="text-sm font-medium text-foreground">{q.question}</p>
                         {cfg.lensMode === "free" ? (
                           <Textarea
                             aria-label={`${LENS_INFO[q.lens].name}: ${q.question}`}
@@ -596,7 +594,7 @@ export function JudgmentExerciseFlow({
             <>
               {scenarioBlock}
               <div className="space-y-2">
-                <p className="text-sm font-medium text-zinc-900">
+                <p className="text-sm font-medium text-foreground">
                   Put the ways to respond in order: best at the top.
                 </p>
                 <RankList

@@ -90,7 +90,7 @@ export function TimelineGame({ timeline, onFinish }: { timeline: TimelineCase; o
   return (
     <div className="space-y-4" data-testid="timeline-game">
       <div className="space-y-1">
-        <h2 className="text-lg font-medium text-zinc-900">
+        <h2 className="text-lg font-medium text-foreground">
           {timeline.title} <span className="text-muted-foreground font-normal">({timeline.when})</span>
         </h2>
         <p className="text-sm">{timeline.intro}</p>
@@ -101,10 +101,10 @@ export function TimelineGame({ timeline, onFinish }: { timeline: TimelineCase; o
 
       <TimelineAxis events={events} shown={shown} currentId={events[shown - 1]?.id} />
 
-      <ol className="space-y-2 border-l-2 border-zinc-200 pl-4" data-testid="timeline-events">
+      <ol className="space-y-2 border-l-2 border-border pl-4" data-testid="timeline-events">
         {events.slice(0, shown).map((e) => (
           <li key={e.id} className="relative text-sm" data-testid="timeline-event">
-            <span className="absolute top-1.5 -left-[calc(1rem+6px)] size-2.5 rounded-full border-2 border-white bg-zinc-900" aria-hidden />
+            <span className="absolute top-1.5 -left-[calc(1rem+6px)] size-2.5 rounded-full border-2 border-card bg-primary" aria-hidden />
             <p className="text-muted-foreground text-xs">{e.dateLabel}</p>
             <p>
               {e.text} <SourceLink url={e.source.url} label={e.source.label} />
@@ -114,8 +114,8 @@ export function TimelineGame({ timeline, onFinish }: { timeline: TimelineCase; o
       </ol>
 
       {lastDecision && lastAnswer && showingResult ? (
-        <div className="space-y-1 rounded-xl border border-zinc-200 bg-white p-3 text-sm" data-testid="decision-result" data-verdict={lastAnswer.verdict}>
-          <p className="flex items-center gap-1.5 font-medium text-zinc-900">
+        <div className="space-y-1 rounded-xl border border-border bg-card p-3 text-sm" data-testid="decision-result" data-verdict={lastAnswer.verdict}>
+          <p className="flex items-center gap-1.5 font-medium text-foreground">
             {lastAnswer.verdict === "close" ? <Check className="size-4" aria-hidden /> : <X className="size-4" aria-hidden />}
             {lastAnswer.verdict === "close" ? "Close to what really happened." : "Different from what really happened."}
           </p>
@@ -132,10 +132,10 @@ export function TimelineGame({ timeline, onFinish }: { timeline: TimelineCase; o
       ) : null}
 
       {showingResult ? null : pending ? (
-        <div className="space-y-3 rounded-xl border border-zinc-900 bg-white p-3" data-testid="decision-point">
+        <div className="space-y-3 rounded-xl border border-foreground bg-card p-3" data-testid="decision-point">
           <p className="text-muted-foreground text-xs uppercase">Your decision</p>
           <p className="text-sm">{pending.role}</p>
-          <p className="text-sm font-medium text-zinc-900">{pending.question}</p>
+          <p className="text-sm font-medium text-foreground">{pending.question}</p>
           <div className="grid gap-2" role="radiogroup" aria-label={pending.question}>
             {pending.options.map((o) => (
               <button
@@ -146,7 +146,7 @@ export function TimelineGame({ timeline, onFinish }: { timeline: TimelineCase; o
                 onClick={() => setChoice(o.id)}
                 className={cn(
                   "rounded-lg border px-3 py-2 text-left text-sm transition-colors",
-                  choice === o.id ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 hover:bg-zinc-50",
+                  choice === o.id ? "border-foreground bg-primary text-primary-foreground" : "border-border hover:bg-muted",
                 )}
               >
                 {o.text}
@@ -165,8 +165,8 @@ export function TimelineGame({ timeline, onFinish }: { timeline: TimelineCase; o
       ) : null}
 
       {allShown && !showingResult ? (
-        <div className="space-y-3 rounded-xl border border-zinc-200 bg-white p-3" data-testid="order-question">
-          <p className="text-sm font-medium text-zinc-900">Put these events in order, earliest at the top.</p>
+        <div className="space-y-3 rounded-xl border border-border bg-card p-3" data-testid="order-question">
+          <p className="text-sm font-medium text-foreground">Put these events in order, earliest at the top.</p>
           <RankList
             items={quizEvents.map((e) => ({ id: e.id, text: orderChecked ? `${e.text} (${e.dateLabel})` : e.text }))}
             order={order}
@@ -186,8 +186,8 @@ export function TimelineGame({ timeline, onFinish }: { timeline: TimelineCase; o
       ) : null}
 
       {allShown && orderChecked && offRampEvents.length ? (
-        <div className="space-y-3 rounded-xl border border-zinc-200 bg-white p-3" data-testid="offramp-question">
-          <p className="text-sm font-medium text-zinc-900">Which step calmed the crisis? (an &quot;off-ramp&quot;: a way down from the danger)</p>
+        <div className="space-y-3 rounded-xl border border-border bg-card p-3" data-testid="offramp-question">
+          <p className="text-sm font-medium text-foreground">Which step calmed the crisis? (an &quot;off-ramp&quot;: a way down from the danger)</p>
           <div className="grid gap-2" role="radiogroup" aria-label="Which step calmed the crisis?">
             {events.map((e) => {
               const isAnswer = offRamp != null && e.offRamp;
@@ -205,7 +205,7 @@ export function TimelineGame({ timeline, onFinish }: { timeline: TimelineCase; o
                   }}
                   className={cn(
                     "flex items-start gap-2 rounded-lg border px-3 py-2 text-left text-sm disabled:cursor-default",
-                    isAnswer ? "border-zinc-900 bg-zinc-50" : picked ? "border-zinc-400" : "border-zinc-200 hover:bg-zinc-50",
+                    isAnswer ? "border-foreground bg-muted" : picked ? "border-foreground/40" : "border-border hover:bg-muted",
                   )}
                 >
                   {isAnswer ? <Check className="mt-0.5 size-4 shrink-0" aria-hidden /> : null}
@@ -228,8 +228,8 @@ export function TimelineGame({ timeline, onFinish }: { timeline: TimelineCase; o
       ) : null}
 
       {done && isFinished && summary ? (
-        <div className="space-y-2 rounded-xl border border-zinc-200 bg-white p-3 text-sm" data-testid="timeline-summary">
-          <p className="font-medium text-zinc-900">Your summary</p>
+        <div className="space-y-2 rounded-xl border border-border bg-card p-3 text-sm" data-testid="timeline-summary">
+          <p className="font-medium text-foreground">Your summary</p>
           <p>
             Your choices were close to history {answers.filter((a) => a.verdict === "close").length} of {answers.length} times.
           </p>
@@ -243,7 +243,7 @@ export function TimelineGame({ timeline, onFinish }: { timeline: TimelineCase; o
           </p>
           {timeline.actorIds.length ? (
             <details className="space-y-2">
-              <summary className="cursor-pointer font-medium text-zinc-900">Use the cards: the players today</summary>
+              <summary className="cursor-pointer font-medium text-foreground">Use the cards: the players today</summary>
               <div className="mt-2">
                 <ActorCards ids={timeline.actorIds} />
               </div>
