@@ -1424,9 +1424,6 @@ export function EvaluativeExerciseFlow({
                             }}
                             className="mt-2 w-full"
                           />
-                          <span className="text-muted-foreground text-meta">
-                            AI suggested: {c.suggestedWeight}
-                          </span>
                         </th>
                       ))}
                       <th className="border p-2 text-right sticky top-0 z-10 bg-card">
@@ -1457,9 +1454,6 @@ export function EvaluativeExerciseFlow({
                               }}
                               className="mt-2 w-full"
                             />
-                            <span className="text-muted-foreground text-meta">
-                              AI: {o.suggestedScores[c.id]}
-                            </span>
                           </td>
                         ))}
                         <td className="border p-2 text-right font-medium">

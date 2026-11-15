@@ -24,9 +24,6 @@ export function EvaluativeOutcomeInputRow({
         <p className="text-body font-medium">{outcome.label}</p>
         <p className="text-muted-foreground text-meta">{outcome.explanation}</p>
       </div>
-      <p className="text-muted-foreground text-meta">
-        AI: {Math.round(outcome.probability * 100)}% / ${outcome.payoff}
-      </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <div className="text-meta">Your probability ({probabilityPct}%)</div>
