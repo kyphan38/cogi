@@ -7,7 +7,7 @@ function significantTokens(text: string): Set<string> {
   );
 }
 
-/** Light local score (0–100) for perspective + missing-actor guesses. */
+/** Light local score (0-100) for perspective + missing-actor guesses. */
 export function computeMetaGuessScore(
   hiddenPerspective: string,
   missingActors: string[],

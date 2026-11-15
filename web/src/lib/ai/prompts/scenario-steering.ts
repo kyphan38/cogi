@@ -5,7 +5,7 @@ export const CUSTOM_DOMAIN_PLACEHOLDER = "(custom)";
 export const CUSTOM_SCENARIO_MAX_LEN = 3000;
 
 /**
- * Validates domain vs custom scenario for exercise setup (non–real_data analytical flows share this).
+ * Validates domain vs custom scenario for exercise setup (non-real_data analytical flows share this).
  */
 export function resolveDomainAndScenario(input: {
   mode: "generated" | "custom_scenario";

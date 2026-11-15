@@ -1098,7 +1098,7 @@ export function EvaluativeExerciseFlow({
             ) : criteriaPhase === "input" ? (
               <div className="space-y-3">
                 <p className="text-muted-foreground text-body">
-                  Name 2–4 criteria and why each matters.
+                  Name 2-4 criteria and why each matters.
                 </p>
                 {exLevel.criteriaCandidates &&
                 exercise.criteriaCandidates &&
@@ -1410,7 +1410,7 @@ export function EvaluativeExerciseFlow({
                           <p className="text-muted-foreground mt-1 text-meta font-normal">
                             {c.description}
                           </p>
-                          <div className="mt-2 text-meta">Weight (1–5)</div>
+                          <div className="mt-2 text-meta">Weight (1-5)</div>
                           <Slider
                             min={1}
                             max={5}
@@ -1443,7 +1443,7 @@ export function EvaluativeExerciseFlow({
                         </td>
                         {exercise.criteria.map((c) => (
                           <td key={c.id} className="border p-2 align-top">
-                            <div className="text-meta">Score (1–5)</div>
+                            <div className="text-meta">Score (1-5)</div>
                             <Slider
                               min={1}
                               max={5}

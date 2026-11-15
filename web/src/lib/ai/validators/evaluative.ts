@@ -129,7 +129,7 @@ export const GEOPOLITICS_EVALUATIVE_RETRY_SUFFIX = `
 
 IMPORTANT: Your previous JSON failed geopolitics evaluative validation. Return ONLY scoring variant JSON:
 - variant must be "scoring" (not matrix)
-- stakeholderNote required (primary decision-maker + 2–3 other stakeholders)
+- stakeholderNote required (primary decision-maker + 2-3 other stakeholders)
 - at least 4 criteria with unique ids; descriptions name whose interest each serves
 - at least 3 options with unique ids
 - at least 2 hiddenCriteria

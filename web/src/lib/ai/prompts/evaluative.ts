@@ -128,7 +128,7 @@ ${topicLine}
 
 ${GEO_FACT_RULE}
 
-Generate a policy decision scenario where a country or organization must choose between 3–4 strategic options.
+Generate a policy decision scenario where a country or organization must choose between 3-4 strategic options.
 
 Use the SCORING variant ONLY (variant must be "scoring" - do not return matrix).
 
@@ -137,7 +137,7 @@ Requirements:
   Examples: "Domestic political support", "Alliance credibility", "Economic cost", "Rival's likely response", "Regional stability impact", "Precedent setting"
 - Each criterion's description must name whose interest it primarily serves
 - suggestedWeight reflects the GENERATING ACTOR's priorities (name that actor in scenario and stakeholderNote)
-- hiddenCriteria: include 2–3 stakeholder perspectives the user likely will not weight (e.g. domestic opposition in Country X, precedent for smaller states watching)
+- hiddenCriteria: include 2-3 stakeholder perspectives the user likely will not weight (e.g. domestic opposition in Country X, precedent for smaller states watching)
 
 Criterion and score ID rule (critical):
 - Assign criterion id values first (e.g. crit_domestic, crit_alliance). Use stable snake_case ids.
@@ -148,7 +148,7 @@ Return scoring variant JSON:
   "variant": "scoring",
   "title": string,
   "scenario": string (include the deciding actor explicitly: "You are advising [Country/Org]..."),
-  "stakeholderNote": string (primary decision-maker and 2–3 other affected stakeholders),
+  "stakeholderNote": string (primary decision-maker and 2-3 other affected stakeholders),
   "criteria": [ { "id", "label", "description", "suggestedWeight": 1-5 } ],
   "options": [ { "id", "title", "description", "suggestedScores": { "<criterion id>": 1-5, ... }, "explanation" } ],
   "hiddenCriteria": [ { "label", "description" } ],
@@ -157,7 +157,7 @@ Return scoring variant JSON:
 }
 
 Minimums: at least 4 criteria, at least 3 options, at least 2 hiddenCriteria.
-Every option.suggestedScores must include every criterion id with integer 1–5.
+Every option.suggestedScores must include every criterion id with integer 1-5.
 One option must be clearly best under the suggested weights and scores: no tie at the top.
 criteriaCandidates: 6-10 short (<=40 char) unique candidate criterion-name strings the user could pick from before proposing their own criteria. Include your real criteria's labels (verbatim) plus 3-6 plausible-but-wrong distractor labels of similar tone and length, no giveaway markers. Shuffle the order.
 ${DISTRACTOR_RULE}

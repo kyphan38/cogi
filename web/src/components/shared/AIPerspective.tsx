@@ -61,7 +61,7 @@ function CriterionBreakdownTable({ breakdown }: { breakdown: EvaluativeScoringCr
               <td className="py-1 pr-2">{o.optionTitle}</td>
               <td className="py-1 text-right font-medium">{o.userScore}</td>
               <td className="py-1 text-muted-foreground text-right">
-                {o.aiSuggestedScore ?? "–"}
+                {o.aiSuggestedScore ?? "-"}
               </td>
             </tr>
           ))}
