@@ -81,6 +81,9 @@ export async function proxy(req: NextRequest) {
   return NextResponse.next();
 }
 
+// Skip static files: with "/:path*" every JS/CSS chunk and image went through the
+// proxy first, which added up to seconds on a cold load. isExcludedPath stays as
+// the second guard.
 export const config = {
-  matcher: ["/:path*"],
+  matcher: ["/((?!_next/static|_next/image|__/|favicon\\.ico|.*\\.[a-zA-Z0-9]+$).*)"],
 };
