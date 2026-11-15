@@ -23,14 +23,8 @@ import { LevelPicker } from "@/components/exercises/LevelPicker";
 import { LevelSuggestionCard } from "@/components/shared/LevelSuggestionCard";
 import { useToast } from "@/components/ui/toast";
 import { EVALUATIVE_LEVELS } from "@/lib/exercise/evaluative-levels";
-import {
-  DEFAULT_PRACTICE_LEVEL,
-  LEVEL_LABELS,
-  type LevelSuggestion,
-  type PracticeLevel,
-} from "@/lib/exercise/levels";
-import { levelSuggestionFor } from "@/lib/exercise/level-suggestion";
-import { dismissLevelSuggestion, getPracticeLevel, setPracticeLevel } from "@/lib/db/settings";
+import { LEVEL_LABELS, type PracticeLevel } from "@/lib/exercise/levels";
+import { dismissLevelSuggestion } from "@/lib/db/settings";
 import { evaluativeResultOf, scoreEvaluative } from "@/lib/exercise/evaluative-score";
 import { isCoachingStructured } from "@/lib/types/perspective";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
@@ -78,18 +72,14 @@ import {
 } from "@/lib/analytics/calibration-evaluative";
 import { computeDisqualifiedOptions } from "@/lib/analytics/evaluative-dealbreaker";
 import { getLanguageLevelForRequest } from "@/lib/db/settings";
-import { putExercise, getExercise } from "@/lib/db/exercises";
+import { putExercise } from "@/lib/db/exercises";
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
 import { getUserContext } from "@/lib/db/settings";
-import { completePracticeExercise } from "@/lib/db/complete-exercise";
-import { useSaveOnLeave } from "@/lib/hooks/useSaveOnLeave";
+import { useDebouncedSave, useExerciseFlow } from "@/components/exercises/flow/useExerciseFlow";
 import { takeScenarioHandoff } from "@/lib/topics/scenario-handoff";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
-import type {
-  AIPerspectiveStructured,
-  EvaluativeScoringCriterionBreakdown,
-} from "@/lib/types/perspective";
+import type { EvaluativeScoringCriterionBreakdown } from "@/lib/types/perspective";
 import { DomainInput } from "@/components/shared/DomainInput";
 import { TopicSuggestionPicker } from "@/components/shared/TopicSuggestionPicker";
 import { listRecentDomains } from "@/lib/db/exercises";
@@ -212,81 +202,17 @@ export function EvaluativeExerciseFlow({
   initialSource,
   autoGenerate,
 }: { resumeId?: string; initialDomain?: string; initialSource?: "generated" | "real_data" | "custom_scenario"; autoGenerate?: boolean } = {}) {
-  const [step, setStep] = useState<FlowStep>(0);
   const [domain, setDomain] = useState(initialDomain?.trim() ?? "");
   const [setupMode, setSetupMode] = useState<"generated" | "custom_scenario">(
     initialSource === "custom_scenario" ? "custom_scenario" : "generated",
   );
   const [evaluativeTaskType, setEvaluativeTaskType] = useState<EvaluativeTaskType>("auto");
-  const [level, setLevel] = useState<PracticeLevel>(DEFAULT_PRACTICE_LEVEL);
-  const [levelSuggestion, setLevelSuggestion] = useState<LevelSuggestion>(null);
   const { show: showToast } = useToast();
-
-  useEffect(() => {
-    void getPracticeLevel("evaluative").then(setLevel);
-  }, []);
-
-  const chooseLevel = (next: PracticeLevel) => {
-    setLevel(next);
-    void setPracticeLevel("evaluative", next);
-    // Task types the new level does not offer fall back to auto.
-    if (!EVALUATIVE_LEVELS[next].taskTypes.includes(evaluativeTaskType)) setEvaluativeTaskType("auto");
-  };
-  const [entryMode, setEntryMode] = useState<"suggested" | "manual">(initialDomain ? "manual" : "suggested");
-  const [customScenarioText, setCustomScenarioText] = useState("");
-  const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const [exercise, setExercise] = useState<EvaluativeExerciseRow | null>(null);
-  const [placements, setPlacements] = useState<Partial<Record<string, EvaluativeQuadrant>>>({});
-  const [criterionWeights, setCriterionWeights] = useState<Record<string, number>>({});
-  const [scores, setScores] = useState<Record<string, Record<string, number>>>({});
-  const [userProposedCriteria, setUserProposedCriteria] = useState<
-    { name: string; rationale: string }[]
-  >(() => Array.from({ length: 4 }, () => ({ name: "", rationale: "" })));
-  const [criteriaPhase, setCriteriaPhase] = useState<"input" | "compare">("input");
-  const [criteriaFeedback, setCriteriaFeedback] = useState<EvaluativeCriteriaFeedback | null>(null);
-  const [criteriaFeedbackLoading, setCriteriaFeedbackLoading] = useState(false);
-  const [userStakeholderMapping, setUserStakeholderMapping] = useState<
-    { name: string; wants: string }[]
-  >(() => Array.from({ length: 4 }, () => ({ name: "", wants: "" })));
-  const [stakeholderMappingRevealed, setStakeholderMappingRevealed] = useState(false);
-
-  const [outcomeIntuitionText, setOutcomeIntuitionText] = useState("");
-  const [userProbabilities, setUserProbabilities] = useState<Record<string, Record<string, number>>>(
-    {},
-  );
-  const [userPayoffs, setUserPayoffs] = useState<Record<string, Record<string, number>>>({});
-
-  const [confidence, setConfidence] = useState(50);
-  const [perspectiveText, setPerspectiveText] = useState<string | null>(null);
-  const [perspectiveStructured, setPerspectiveStructured] =
-    useState<AIPerspectiveStructured | null>(null);
-
-  const [takeaway, setTakeaway] = useState("");
-  const [finishing, setFinishing] = useState(false);
-  const pendingSave = useSaveOnLeave();
-
-  useEffect(() => {
-    void listRecentDomains(20).then(setDomainSuggestions);
-  }, []);
-
-  const advance = useCallback(
-    (next: FlowStep, updatedRow?: EvaluativeExerciseRow) => {
-      const row = updatedRow ?? exercise;
-      if (row) void putExercise({ ...row, currentStep: next });
-      setStep(next);
-    },
-    [exercise],
-  );
-
-  useEffect(() => {
-    if (!resumeId) return;
-    void (async () => {
-      const row = await getExercise(resumeId);
-      if (!row || row.completedAt || !isEvaluativeExercise(row)) return;
-      setExercise(row);
+  const flow = useExerciseFlow<EvaluativeExerciseRow, FlowStep>({
+    type: "evaluative",
+    resumeId,
+    isRow: isEvaluativeExercise,
+    onResume: (row) => {
       if (row.variant === "matrix") {
         setPlacements(row.placements ?? {});
       } else if (row.variant === "uncertainty") {
@@ -314,13 +240,68 @@ export function EvaluativeExerciseFlow({
         }
         setStakeholderMappingRevealed(row.stakeholderMappingRevealed === true);
       }
-      setConfidence(row.confidenceBefore ?? 50);
       if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
-      if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
-      setTakeaway(row.takeaway ?? "");
       setStep(resumeStep(row.currentStep));
-    })();
-  }, [resumeId]);
+    },
+  });
+  const {
+    step,
+    setStep,
+    level,
+    exercise,
+    setExercise,
+    error,
+    setError,
+    loading,
+    setLoading,
+    confidence,
+    setConfidence,
+    perspectiveStructured,
+    setPerspectiveStructured,
+    takeaway,
+    setTakeaway,
+    finishing,
+    levelSuggestion,
+    setLevelSuggestion,
+    pendingSave,
+    advance,
+    finish,
+  } = flow;
+
+  const chooseLevel = (next: PracticeLevel) => {
+    flow.chooseLevel(next);
+    // Task types the new level does not offer fall back to auto.
+    if (!EVALUATIVE_LEVELS[next].taskTypes.includes(evaluativeTaskType)) setEvaluativeTaskType("auto");
+  };
+  const [entryMode, setEntryMode] = useState<"suggested" | "manual">(initialDomain ? "manual" : "suggested");
+  const [customScenarioText, setCustomScenarioText] = useState("");
+  const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
+
+  const [placements, setPlacements] = useState<Partial<Record<string, EvaluativeQuadrant>>>({});
+  const [criterionWeights, setCriterionWeights] = useState<Record<string, number>>({});
+  const [scores, setScores] = useState<Record<string, Record<string, number>>>({});
+  const [userProposedCriteria, setUserProposedCriteria] = useState<
+    { name: string; rationale: string }[]
+  >(() => Array.from({ length: 4 }, () => ({ name: "", rationale: "" })));
+  const [criteriaPhase, setCriteriaPhase] = useState<"input" | "compare">("input");
+  const [criteriaFeedback, setCriteriaFeedback] = useState<EvaluativeCriteriaFeedback | null>(null);
+  const [criteriaFeedbackLoading, setCriteriaFeedbackLoading] = useState(false);
+  const [userStakeholderMapping, setUserStakeholderMapping] = useState<
+    { name: string; wants: string }[]
+  >(() => Array.from({ length: 4 }, () => ({ name: "", wants: "" })));
+  const [stakeholderMappingRevealed, setStakeholderMappingRevealed] = useState(false);
+
+  const [outcomeIntuitionText, setOutcomeIntuitionText] = useState("");
+  const [userProbabilities, setUserProbabilities] = useState<Record<string, Record<string, number>>>(
+    {},
+  );
+  const [userPayoffs, setUserPayoffs] = useState<Record<string, Record<string, number>>>({});
+
+  const [perspectiveText, setPerspectiveText] = useState<string | null>(null);
+
+  useEffect(() => {
+    void listRecentDomains(20).then(setDomainSuggestions);
+  }, []);
 
   useEffect(() => {
     if (resumeId) return;
@@ -328,51 +309,41 @@ export function EvaluativeExerciseFlow({
     if (d) setDomain(d);
   }, [initialDomain, resumeId]);
 
-  useEffect(() => {
-    if (!exercise || step === 0 || step === 7) {
-      pendingSave.clear();
-      return;
-    }
-    const save = () => {
-      const scoringEx = exercise.variant === "scoring" ? exercise : null;
-      const updated: EvaluativeExerciseRow =
-        exercise.variant === "matrix"
-          ? { ...exercise, placements, currentStep: step }
-          : exercise.variant === "uncertainty"
-            ? {
-                ...exercise,
-                userProbabilities,
-                userPayoffs,
-                outcomeIntuitionText,
-                currentStep: step,
-              }
-            : {
-                ...exercise,
-                criterionWeights,
-                scores,
-                userStakeholderMapping:
-                  scoringEx && isGeopoliticsEvaluativeExercise(scoringEx)
-                    ? userStakeholderMapping
-                        .map((e) => ({ name: e.name.trim(), wants: e.wants.trim() }))
-                        .filter((e) => e.name || e.wants)
-                    : scoringEx?.userStakeholderMapping,
-                stakeholderMappingRevealed:
-                  scoringEx && isGeopoliticsEvaluativeExercise(scoringEx)
-                    ? stakeholderMappingRevealed
-                    : scoringEx?.stakeholderMappingRevealed,
-                currentStep: step,
-              };
-      void putExercise(updated);
-    };
-    pendingSave.set(save);
-    const timer = setTimeout(() => {
-      pendingSave.clear();
-      save();
-    }, 2000);
-    return () => clearTimeout(timer);
-    // Saves on edits only; `exercise` and `pendingSave` are read fresh inside.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
+  const autosave =
+    !exercise || step === 0 || step === 7
+      ? null
+      : () => {
+          const scoringEx = exercise.variant === "scoring" ? exercise : null;
+          const updated: EvaluativeExerciseRow =
+            exercise.variant === "matrix"
+              ? { ...exercise, placements, currentStep: step }
+              : exercise.variant === "uncertainty"
+                ? {
+                    ...exercise,
+                    userProbabilities,
+                    userPayoffs,
+                    outcomeIntuitionText,
+                    currentStep: step,
+                  }
+                : {
+                    ...exercise,
+                    criterionWeights,
+                    scores,
+                    userStakeholderMapping:
+                      scoringEx && isGeopoliticsEvaluativeExercise(scoringEx)
+                        ? userStakeholderMapping
+                            .map((e) => ({ name: e.name.trim(), wants: e.wants.trim() }))
+                            .filter((e) => e.name || e.wants)
+                        : scoringEx?.userStakeholderMapping,
+                    stakeholderMappingRevealed:
+                      scoringEx && isGeopoliticsEvaluativeExercise(scoringEx)
+                        ? stakeholderMappingRevealed
+                        : scoringEx?.stakeholderMappingRevealed,
+                    currentStep: step,
+                  };
+          void putExercise(updated);
+        };
+  useDebouncedSave(pendingSave, autosave, 2000, [
     placements,
     scores,
     criterionWeights,
@@ -473,7 +444,8 @@ export function EvaluativeExerciseFlow({
     } finally {
       setLoading(false);
     }
-  }, [domain, setupMode, customScenarioText, evaluativeTaskType, level]);
+    // The setters come from useExerciseFlow and never change.
+  }, [domain, setupMode, customScenarioText, evaluativeTaskType, level, setError, setExercise, setLoading, setPerspectiveStructured, setStep, setTakeaway]);
 
   const autoGenerateTriggered = useRef(false);
   const [autoGenerateReady, setAutoGenerateReady] = useState(false);
@@ -760,9 +732,7 @@ export function EvaluativeExerciseFlow({
   /** Finish the 3-step loop: save the exercise with the optional takeaway (P2.2). */
   const finishExercise = async () => {
     if (!exercise || !perspectiveText || finishing) return;
-    pendingSave.clear();
     setError(null);
-    setFinishing(true);
     const struct = perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null;
     const finalEx: EvaluativeExerciseRow =
       exercise.variant === "matrix"
@@ -788,20 +758,7 @@ export function EvaluativeExerciseFlow({
               aiPerspective: perspectiveText,
               aiPerspectiveStructured: struct,
             };
-    try {
-      const saved = await completePracticeExercise({ exercise: finalEx, takeaway });
-      setExercise(saved as EvaluativeExerciseRow);
-      setStep(7);
-      if (finalEx.level) {
-        void levelSuggestionFor("evaluative", finalEx.level)
-          .then(setLevelSuggestion)
-          .catch(() => setLevelSuggestion(null));
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed");
-    } finally {
-      setFinishing(false);
-    }
+    await finish(finalEx);
   };
 
   const scoringBreakdown = useMemo<EvaluativeScoringCriterionBreakdown[] | undefined>(() => {

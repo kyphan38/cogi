@@ -24,14 +24,8 @@ import { CONNECTION_TYPE_INFO, linkTypesFor } from "@/lib/exercise/systems-label
 import { LevelSuggestionCard } from "@/components/shared/LevelSuggestionCard";
 import { useToast } from "@/components/ui/toast";
 import { SYSTEMS_LEVELS } from "@/lib/exercise/systems-levels";
-import {
-  DEFAULT_PRACTICE_LEVEL,
-  LEVEL_LABELS,
-  type LevelSuggestion,
-  type PracticeLevel,
-} from "@/lib/exercise/levels";
-import { levelSuggestionFor } from "@/lib/exercise/level-suggestion";
-import { dismissLevelSuggestion, getPracticeLevel, setPracticeLevel } from "@/lib/db/settings";
+import { LEVEL_LABELS, type PracticeLevel } from "@/lib/exercise/levels";
+import { dismissLevelSuggestion } from "@/lib/db/settings";
 import { scoreSystems, systemsResultOf, withFairExtras } from "@/lib/exercise/systems-score";
 import { isCoachingStructured } from "@/lib/types/perspective";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
@@ -77,15 +71,13 @@ import {
 import { isGeopoliticsAnalyticalDomain } from "@/lib/exercise/geopolitics-domains";
 import { getLanguageLevelForRequest } from "@/lib/db/settings";
 import { getUserContext } from "@/lib/db/settings";
-import { completePracticeExercise } from "@/lib/db/complete-exercise";
-import { useSaveOnLeave } from "@/lib/hooks/useSaveOnLeave";
+import { useDebouncedSave, useExerciseFlow } from "@/components/exercises/flow/useExerciseFlow";
 import { takeScenarioHandoff } from "@/lib/topics/scenario-handoff";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
-import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { DomainInput } from "@/components/shared/DomainInput";
 import { TopicSuggestionPicker } from "@/components/shared/TopicSuggestionPicker";
-import { listRecentDomains, putExercise, getExercise } from "@/lib/db/exercises";
+import { listRecentDomains, putExercise } from "@/lib/db/exercises";
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
 import { isSystemsExercise } from "@/lib/types/exercise";
 import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
@@ -171,7 +163,6 @@ export function SystemsExerciseFlow({
   initialSource,
   autoGenerate,
 }: { resumeId?: string; initialDomain?: string; initialSource?: "generated" | "real_data" | "custom_scenario"; autoGenerate?: boolean } = {}) {
-  const [step, setStep] = useState<FlowStep>(0);
   const [domain, setDomain] = useState(initialDomain?.trim() ?? "");
   const [setupMode, setSetupMode] = useState<"generated" | "custom_scenario">(
     initialSource === "custom_scenario" ? "custom_scenario" : "generated",
@@ -179,15 +170,54 @@ export function SystemsExerciseFlow({
   const [entryMode, setEntryMode] = useState<"suggested" | "manual">(initialDomain ? "manual" : "suggested");
   const [customScenarioText, setCustomScenarioText] = useState("");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const [systemsTaskType, setSystemsTaskType] = useState<SystemsTaskType>("auto");
-  const [level, setLevel] = useState<PracticeLevel>(DEFAULT_PRACTICE_LEVEL);
   const { show: showToast } = useToast();
-  const [levelSuggestion, setLevelSuggestion] = useState<LevelSuggestion>(null);
+  const flow = useExerciseFlow<SystemsExerciseRow, FlowStep>({
+    type: "systems",
+    resumeId,
+    isRow: isSystemsExercise,
+    onResume: (row) => {
+      setUserEdges(row.userEdges ?? []);
+      setNodeImpact(row.nodeImpact ?? {});
+      setImpactVia(row.impactVia ?? {});
+      setUserCriticalityRanking(row.userCriticalityRanking ?? {});
+      setSecondNodeImpact(row.secondNodeImpact ?? {});
+      if (row.userProposedComponents && row.userProposedComponents.length > 0) {
+        setUserProposedComponents(row.userProposedComponents);
+        setDecomposePhase("compare");
+      }
+      if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
+      setUserPerspectiveBNotes(row.userPerspectiveBNotes ?? "");
+      setLookAhead(row.lookAhead ?? EMPTY_LOOK_AHEAD);
+      setLifeExample(row.lifeExample ?? "");
+      setStep(systemsResumeStep(row));
+    },
+  });
+  const {
+    step,
+    setStep,
+    level,
+    exercise,
+    setExercise,
+    error,
+    setError,
+    loading,
+    setLoading,
+    confidence,
+    setConfidence,
+    perspectiveStructured,
+    setPerspectiveStructured,
+    takeaway,
+    setTakeaway,
+    finishing,
+    levelSuggestion,
+    setLevelSuggestion,
+    pendingSave,
+    advance,
+    finish,
+  } = flow;
 
-  const [exercise, setExercise] = useState<SystemsExerciseRow | null>(null);
   const [userEdges, setUserEdges] = useState<SystemsUserEdge[]>([]);
   const [nodeImpact, setNodeImpact] = useState<Record<string, SystemsNodeImpact>>({});
   /** Indirect node -> the node the shock comes through (PLAN-learning.md L4). */
@@ -201,64 +231,21 @@ export function SystemsExerciseFlow({
   const [userProposedComponents, setUserProposedComponents] = useState<string[]>([]);
   const [decomposePhase, setDecomposePhase] = useState<"input" | "compare">("input");
 
-  const [confidence, setConfidence] = useState(50);
   const [perspectiveText, setPerspectiveText] = useState<string | null>(null);
-  const [perspectiveStructured, setPerspectiveStructured] =
-    useState<AIPerspectiveStructured | null>(null);
 
-  const [takeaway, setTakeaway] = useState("");
   const [lookAhead, setLookAhead] = useState<SystemsLookAhead>(EMPTY_LOOK_AHEAD);
   const [lifeExample, setLifeExample] = useState("");
-  const [finishing, setFinishing] = useState(false);
-  const pendingSave = useSaveOnLeave();
   const [userPerspectiveBNotes, setUserPerspectiveBNotes] = useState("");
 
   useEffect(() => {
     void listRecentDomains(20).then(setDomainSuggestions);
-    void getPracticeLevel("systems").then(setLevel);
   }, []);
 
   const chooseLevel = (next: PracticeLevel) => {
-    setLevel(next);
-    void setPracticeLevel("systems", next);
+    flow.chooseLevel(next);
     // Task types the new level does not offer fall back to auto.
     if (!SYSTEMS_LEVELS[next].taskTypes.includes(systemsTaskType)) setSystemsTaskType("auto");
   };
-
-  const advance = useCallback(
-    (next: FlowStep, updatedRow?: SystemsExerciseRow) => {
-      const row = updatedRow ?? exercise;
-      if (row) void putExercise({ ...row, currentStep: next });
-      setStep(next);
-    },
-    [exercise],
-  );
-
-  useEffect(() => {
-    if (!resumeId) return;
-    void (async () => {
-      const row = await getExercise(resumeId);
-      if (!row || row.completedAt || !isSystemsExercise(row)) return;
-      setExercise(row);
-      setUserEdges(row.userEdges ?? []);
-      setNodeImpact(row.nodeImpact ?? {});
-      setImpactVia(row.impactVia ?? {});
-      setUserCriticalityRanking(row.userCriticalityRanking ?? {});
-      setSecondNodeImpact(row.secondNodeImpact ?? {});
-      if (row.userProposedComponents && row.userProposedComponents.length > 0) {
-        setUserProposedComponents(row.userProposedComponents);
-        setDecomposePhase("compare");
-      }
-      setConfidence(row.confidenceBefore ?? 50);
-      if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
-      if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
-      setUserPerspectiveBNotes(row.userPerspectiveBNotes ?? "");
-      setTakeaway(row.takeaway ?? "");
-      setLookAhead(row.lookAhead ?? EMPTY_LOOK_AHEAD);
-      setLifeExample(row.lifeExample ?? "");
-      setStep(systemsResumeStep(row));
-    })();
-  }, [resumeId]);
 
   useEffect(() => {
     if (resumeId) return;
@@ -266,30 +253,28 @@ export function SystemsExerciseFlow({
     if (d) setDomain(d);
   }, [initialDomain, resumeId]);
 
-  useEffect(() => {
-    const { doneStep } = systemsVariantSteps(exercise);
-    if (!exercise || step === 0 || step === doneStep) {
-      pendingSave.clear();
-      return;
-    }
-    const save = () => {
-      void putExercise({
-        ...exercise,
-        userEdges,
-        nodeImpact,
-        impactVia,
-        secondNodeImpact,
-        userCriticalityRanking,
-        currentStep: step,
-      });
-    };
-    pendingSave.set(save);
-    const timer = setTimeout(() => {
-      pendingSave.clear();
-      save();
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [userEdges, nodeImpact, impactVia, secondNodeImpact, userCriticalityRanking, step]); // eslint-disable-line react-hooks/exhaustive-deps
+  const autosave =
+    !exercise || step === 0 || step === systemsVariantSteps(exercise).doneStep
+      ? null
+      : () => {
+          void putExercise({
+            ...exercise,
+            userEdges,
+            nodeImpact,
+            impactVia,
+            secondNodeImpact,
+            userCriticalityRanking,
+            currentStep: step,
+          });
+        };
+  useDebouncedSave(pendingSave, autosave, 2000, [
+    userEdges,
+    nodeImpact,
+    impactVia,
+    secondNodeImpact,
+    userCriticalityRanking,
+    step,
+  ]);
 
   const startGenerate = useCallback(async (
     domainOverride?: string,
@@ -403,7 +388,8 @@ export function SystemsExerciseFlow({
     } finally {
       setLoading(false);
     }
-  }, [domain, setupMode, customScenarioText, systemsTaskType, level]);
+    // The setters come from useExerciseFlow and never change.
+  }, [domain, setupMode, customScenarioText, systemsTaskType, level, setError, setExercise, setLoading, setPerspectiveStructured, setStep, setTakeaway]);
 
   const autoGenerateTriggered = useRef(false);
   const [autoGenerateReady, setAutoGenerateReady] = useState(false);
@@ -624,9 +610,7 @@ export function SystemsExerciseFlow({
   /** Finish the 3-step loop: save the exercise with the optional takeaway (P2.2). */
   const finishExercise = async () => {
     if (!exercise || !perspectiveText || finishing) return;
-    pendingSave.clear();
     setError(null);
-    setFinishing(true);
     const isResilience = isResilienceSystemsExercise(exercise);
     const finalEx: SystemsExerciseRow = {
       ...exercise,
@@ -641,20 +625,7 @@ export function SystemsExerciseFlow({
       aiPerspectiveStructured: perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null,
       ...(isResilience ? { secondNodeImpact, userCriticalityRanking } : {}),
     };
-    try {
-      const saved = await completePracticeExercise({ exercise: finalEx, takeaway });
-      setExercise(saved as SystemsExerciseRow);
-      setStep(systemsVariantSteps(exercise).doneStep);
-      if (finalEx.level) {
-        void levelSuggestionFor("systems", finalEx.level)
-          .then(setLevelSuggestion)
-          .catch(() => setLevelSuggestion(null));
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed");
-    } finally {
-      setFinishing(false);
-    }
+    await finish(finalEx, systemsVariantSteps(exercise).doneStep);
   };
 
   const isGeoExercise = exercise ? isGeopoliticsSystemsExercise(exercise) : false;
