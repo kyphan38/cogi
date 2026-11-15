@@ -2,6 +2,7 @@ import "server-only";
 
 import { App, cert, getApps, initializeApp } from "firebase-admin/app";
 import { Auth, getAuth } from "firebase-admin/auth";
+import { Firestore, getFirestore } from "firebase-admin/firestore";
 
 function readFirebaseAdminEnv() {
   const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
@@ -37,4 +38,12 @@ export function getFirebaseAdminAuth(): Auth {
   if (authSingleton) return authSingleton;
   authSingleton = getAuth(getFirebaseAdminApp());
   return authSingleton;
+}
+
+let dbSingleton: Firestore | null = null;
+
+export function getFirebaseAdminDb(): Firestore {
+  if (dbSingleton) return dbSingleton;
+  dbSingleton = getFirestore(getFirebaseAdminApp());
+  return dbSingleton;
 }

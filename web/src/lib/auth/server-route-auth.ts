@@ -2,6 +2,7 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 import { getFirebaseAdminAuth } from "@/lib/firebaseAdmin";
+import { takeAiCall } from "@/lib/ai/daily-limit";
 import {
   AUTH_SESSION_COOKIE_NAME,
   hasServerAllowlist,
@@ -61,6 +62,23 @@ export async function requireAuthenticatedRouteUser(req: Request): Promise<Route
       return {
         ok: false,
         response: NextResponse.json({ ok: false, error: "Unauthorized user" }, { status: 403 }),
+      };
+    }
+    // Every caller of this helper is an AI route, so each call counts toward the daily cap.
+    let allowed: boolean;
+    try {
+      allowed = await takeAiCall(decoded.uid);
+    } catch (err) {
+      console.error("[route-auth] daily AI limit check failed", err);
+      return {
+        ok: false,
+        response: NextResponse.json({ ok: false, error: "Could not check the daily AI limit" }, { status: 503 }),
+      };
+    }
+    if (!allowed) {
+      return {
+        ok: false,
+        response: NextResponse.json({ ok: false, error: "Daily AI limit reached. Try again tomorrow." }, { status: 429 }),
       };
     }
     return {
