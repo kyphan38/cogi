@@ -518,7 +518,7 @@ export function ReframeExerciseFlow({
               disabled={!ex.feeling}
               onClick={() => {
                 if (i < ex.thoughts.length - 1) setThoughtIndex(i + 1);
-                else save({ part: "reframe" });
+                else save({ part: "reframe", spotLocked: true });
               }}
             >
               {i < ex.thoughts.length - 1 ? "Next thought" : "Reframe a thought"}
@@ -540,6 +540,7 @@ export function ReframeExerciseFlow({
             options={options}
             picked={answers[t.id]}
             onPick={(a) => setAnswer(t.id, a)}
+            disabled={ex.spotLocked === true}
             label={`Which trap is in: ${t.text}`}
             showQuestions={false}
           />
@@ -583,6 +584,7 @@ export function ReframeExerciseFlow({
               options={options}
               picked={answers[sel.id]}
               onPick={(a) => setAnswer(sel.id, a)}
+              disabled={ex.spotLocked === true}
               label={`Which trap is in: ${sel.text}`}
               showQuestions={false}
             />
@@ -757,11 +759,16 @@ export function ReframeExerciseFlow({
                 </p>
               </div>
               {cfg.layout === "one-by-one" ? oneByOne(exercise) : cfg.layout === "list" ? listLayout(exercise) : monologue(exercise)}
+              {exercise.spotLocked && cfg.layout !== "one-by-one" ? (
+                <p className="text-muted-foreground text-meta" data-testid="spot-locked">
+                  Answers are locked once you see the thought to rewrite.
+                </p>
+              ) : null}
               {cfg.layout !== "one-by-one" ? (
                 <Button
                   type="button"
                   disabled={!thoughtsDone || !exercise.feeling}
-                  onClick={() => save({ part: "reframe" })}
+                  onClick={() => save({ part: "reframe", spotLocked: true })}
                 >
                   Reframe a thought
                 </Button>

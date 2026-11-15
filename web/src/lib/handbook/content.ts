@@ -344,6 +344,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "\"Everything will be fine\" is not a reframe. It has no evidence either.",
       "Finding a trap matters more than its exact name. Traps often overlap.",
       "When a friend falls into a trap, ask about the facts. Do not tell them the name of the trap.",
+      "The thought you rewrite is always a trap. So once you see it, your trap answers are locked.",
       "This is thinking practice, not therapy. If you are in crisis, talk to a person you trust or a professional.",
     ],
   },

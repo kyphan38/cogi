@@ -92,6 +92,12 @@ test.describe("Reframe", () => {
       await q.getByRole("radio", { name: "Realistic" }).click();
     }
     await next.click();
+    // The rewrite shows a thought that is a trap, so going back must not let answers change.
+    await expect(page.getByTestId("rewrite-target")).toBeVisible();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
+    await expect(page.getByTestId("spot-locked")).toBeVisible();
+    await expect(page.getByTestId("thought-question").first().getByRole("radio", { name: "Realistic" })).toBeDisabled();
+    await page.getByRole("button", { name: "Reframe a thought" }).click();
     await page.getByLabel("Your balanced thought").fill("I made one mistake, and I can fix it today.");
     await page.getByRole("button", { name: "Get AI feedback" }).click();
     const key = page.getByTestId("reframe-answer-key");

@@ -533,6 +533,8 @@ export interface ReframeExerciseRow {
   level: PracticeLevel;
   /** Where the user is inside the work step, for resuming. */
   part?: "learn" | "spot" | "reframe";
+  /** Set on reaching the rewrite, which shows a thought that is a trap: trap answers can no longer change. */
+  spotLocked?: boolean;
   conceptAnswers?: number[];
   /** The feeling the user names first (one word from the list), and how strong, 0-100. */
   feeling?: string;
