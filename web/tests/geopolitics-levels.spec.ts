@@ -6,6 +6,7 @@ const GEO = "US-China strategic competition";
 
 async function learnFirst(page: Page) {
   await expect(page.getByText("Part 1 of 3 · Learn first")).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: "Check yourself" }).click();
   await page.getByRole("radio", { name: "Keeping ties with both rivals" }).click();
   await page.getByRole("button", { name: "Start the exercise" }).click();
   await expect(page.getByText("Part 2 of 3 · Highlight & tag")).toBeVisible();

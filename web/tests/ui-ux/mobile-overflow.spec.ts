@@ -205,6 +205,7 @@ for (const width of [360, 390]) {
       await page.getByRole("button", { name: "Generate exercise" }).click();
       await expect(page.getByTestId("learn-first")).toBeVisible({ timeout: 15_000 });
       expect(await layoutProblems(page)).toEqual([]);
+      await page.getByRole("button", { name: "Check yourself" }).click();
       await page.getByRole("radio", { name: "To keep respect on both sides" }).click();
       await page.getByRole("button", { name: "Start the exercise" }).click();
       for (const answer of ["The wrong number", "Stressed about the report", "Your next step"]) {
@@ -223,7 +224,8 @@ for (const width of [360, 390]) {
       await gotoAuthenticated(page, "/exercise/strategy");
       await page.getByTestId("level-picker").getByRole("button", { name: /^Expert/ }).click();
       await page.getByRole("button", { name: "Generate exercise" }).click();
-      await page.getByRole("radio", { name: "Your best choice given the other's choice" }).click({ timeout: 15_000 });
+      await page.getByRole("button", { name: "Check yourself" }).click({ timeout: 15_000 });
+      await page.getByRole("radio", { name: "Your best choice given the other's choice" }).click();
       await page.getByRole("button", { name: "Start the exercise" }).click();
       expect(await layoutProblems(page)).toEqual([]);
       await page.getByRole("button", { name: "Next: Burrito Bar" }).click();
@@ -241,7 +243,8 @@ for (const width of [360, 390]) {
         await gotoAuthenticated(page, "/exercise/reframe");
         await page.getByTestId("level-picker").getByRole("button", { name: new RegExp(`^${level}`) }).click();
         await page.getByRole("button", { name: "Generate exercise" }).click();
-        await page.getByRole("radio", { name: "I missed the deadline by a day" }).click({ timeout: 15_000 });
+        await page.getByRole("button", { name: "Check yourself" }).click({ timeout: 15_000 });
+        await page.getByRole("radio", { name: "I missed the deadline by a day" }).click();
         await page.getByRole("button", { name: "Start the exercise" }).click();
         await page.getByRole("radiogroup", { name: "Main feeling" }).getByRole("radio", { name: "Overwhelmed" }).click();
         if (level === "Standard") {
@@ -263,6 +266,7 @@ for (const width of [360, 390]) {
       await gotoAuthenticated(page, "/exercise/calibration");
       await page.getByTestId("level-picker").getByRole("button", { name: /^Standard/ }).click();
       await page.getByRole("button", { name: "Start exercise" }).click();
+      await page.getByRole("button", { name: "Check yourself" }).click();
       await page.getByRole("radio", { name: "About 9" }).click();
       await page.getByRole("button", { name: "Start the exercise" }).click();
       await page.getByRole("button", { name: "Show the table for 10,000" }).first().click();

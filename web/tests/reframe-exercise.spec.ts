@@ -10,6 +10,7 @@ async function start(page: Page, level: "Guided" | "Standard" | "Expert") {
   await page.getByRole("button", { name: "Generate exercise" }).click();
   await expect(page.getByText("A comment in the meeting")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("Part 1 of 3 · Learn first")).toBeVisible();
+  await page.getByRole("button", { name: "Check yourself" }).click();
   await page.getByRole("radio", { name: "I missed the deadline by a day" }).click();
   await page.getByRole("button", { name: "Start the exercise" }).click();
   await expect(page.getByText("Part 2 of 3 · Spot the traps")).toBeVisible();

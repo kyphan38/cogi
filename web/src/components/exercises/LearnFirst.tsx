@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -36,7 +36,8 @@ export function ConceptList({ concepts }: { concepts: LearnConcept[] }) {
 
 /**
  * "Learn first" (PLAN-learning.md): read the few terms this exercise uses, answer a
- * quick check, then start. Answers are option indexes in the original order; the
+ * quick check, then start. The terms hide during the check, so it asks you to recall
+ * them, not copy from the list above; one tap shows them again. Answers are option indexes in the original order; the
  * options are shown in an order shuffled by `seed`.
  */
 export function LearnFirst({
@@ -59,6 +60,8 @@ export function LearnFirst({
     [checks, seed],
   );
   const allAnswered = checks.every((_, i) => answers[i] != null);
+  const [checking, setChecking] = useState(() => answers.some((a) => a != null));
+  const [peek, setPeek] = useState(false);
 
   return (
     <div className="space-y-5" data-testid="learn-first">
@@ -66,8 +69,26 @@ export function LearnFirst({
         <p className="font-medium text-foreground">First, a few ideas you will use in this exercise.</p>
         <p className="text-muted-foreground text-body">Read them, then answer the quick check.</p>
       </div>
-      <ConceptList concepts={concepts} />
-      {checks.map((check, ci) => {
+      {!checking ? (
+        <>
+          <ConceptList concepts={concepts} />
+          <Button type="button" onClick={() => setChecking(true)}>
+            Check yourself
+          </Button>
+        </>
+      ) : (
+        <div className="space-y-3">
+          <button
+            type="button"
+            className="text-muted-foreground text-meta hover:text-foreground active:text-foreground"
+            onClick={() => setPeek((v) => !v)}
+          >
+            {peek ? "Hide the ideas" : "Show the ideas again"}
+          </button>
+          {peek ? <ConceptList concepts={concepts} /> : null}
+        </div>
+      )}
+      {checking ? checks.map((check, ci) => {
         const picked = answers[ci];
         return (
           <div key={ci} className="space-y-2" data-testid="concept-check">
@@ -104,10 +125,12 @@ export function LearnFirst({
             ) : null}
           </div>
         );
-      })}
-      <Button type="button" disabled={!allAnswered} onClick={onDone}>
-        Start the exercise
-      </Button>
+      }) : null}
+      {checking ? (
+        <Button type="button" disabled={!allAnswered} onClick={onDone}>
+          Start the exercise
+        </Button>
+      ) : null}
     </div>
   );
 }

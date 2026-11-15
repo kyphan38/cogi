@@ -10,6 +10,7 @@ async function start(page: Page, level: "Guided" | "Standard" | "Expert", topic 
   await page.getByRole("button", { name: "Start exercise" }).click();
   await expect(page.getByText("Part 1 of 2 · Learn first")).toBeVisible();
   await expect(page.getByTestId("concept-list")).toContainText("Base rate");
+  await page.getByRole("button", { name: "Check yourself" }).click();
   await page.getByRole("radio", { name: "About 9" }).click();
   await page.getByRole("button", { name: "Start the exercise" }).click();
   await expect(page.getByText("Part 2 of 2 · Answer and say how sure")).toBeVisible();

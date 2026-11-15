@@ -14,6 +14,10 @@ async function start(page: Page, level: "Guided" | "Standard" | "Expert") {
 async function learnFirst(page: Page) {
   await expect(page.getByText("Part 1 of 3 · Learn first")).toBeVisible();
   await expect(page.getByTestId("concept-list")).toContainText("Saving face");
+  await expect(page.getByRole("button", { name: "Start the exercise" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Check yourself" }).click();
+  // The terms hide during the check.
+  await expect(page.getByTestId("concept-list")).toHaveCount(0);
   const start = page.getByRole("button", { name: "Start the exercise" });
   await expect(start).toBeDisabled();
   await page.getByRole("radio", { name: "To keep respect on both sides" }).click();

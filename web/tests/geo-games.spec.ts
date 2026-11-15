@@ -18,6 +18,7 @@ test.describe("Geopolitical games and country cards (G3)", () => {
     await choosePracticeLevel(page, "Guided");
     await page.getByRole("button", { name: "Generate exercise" }).click();
     await expect(page.getByText("Rockets on the island")).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Check yourself" }).click();
     await page.getByRole("radio", { name: "Your best choice given the other's choice" }).click();
     await page.getByRole("button", { name: "Start the exercise" }).click();
     await expect(page.getByTestId("geo-scenario-label")).toContainText("made-up story shaped like a real case");

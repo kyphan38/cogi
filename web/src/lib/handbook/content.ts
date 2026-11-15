@@ -61,6 +61,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     ],
     howToPractice: [
       "Setup: choose a level and a topic, then press Generate.",
+      "Learn first: read the ideas, then press \"Check yourself\". The ideas hide while you answer, so you practise remembering them. Stuck? Tap \"Show the ideas again\".",
       "Do the work. Your answers save by themselves, so you can stop and come back from Today > In progress.",
       "Do not want to finish one? Tap the small bin icon next to it in Continue (on a computer, it shows when you point at the row).",
       "Before feedback, set how sure you are. Later, compare it with your result.",

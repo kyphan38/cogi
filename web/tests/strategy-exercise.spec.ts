@@ -8,6 +8,7 @@ async function start(page: Page, level: "Guided" | "Standard" | "Expert") {
   await choosePracticeLevel(page, level);
   await page.getByRole("button", { name: "Generate exercise" }).click();
   await expect(page.getByText("Food truck price war")).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: "Check yourself" }).click();
   await page.getByRole("radio", { name: "Your best choice given the other's choice" }).click();
   await page.getByRole("button", { name: "Start the exercise" }).click();
   await expect(page.getByText("Part 2 of 3 · Read the game")).toBeVisible();
