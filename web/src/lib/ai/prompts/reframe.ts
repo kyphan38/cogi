@@ -1,6 +1,7 @@
 import type { JudgmentContext } from "@/lib/exercise/judgment-levels";
 import { REFRAME_TAG_INFO, type ReframeLevelConfig } from "@/lib/exercise/reframe-levels";
 import { safetyFirstRule } from "@/lib/exercise/crisis-safety";
+import { learnerFor } from "@/lib/ai/prompts/learner";
 
 const CONTEXT_LINES: Record<JudgmentContext, string> = {
   vietnam:
@@ -40,7 +41,7 @@ ${safetyFirstRule('rewrite: thoughtId "", options ["", "", ""], answerIndex 0, e
       ? "The thoughts run together as one inner monologue, so each must read naturally after the one before (one or two sentences each, first person)."
       : "Each thought is one or two sentences, in the first person, as the person would say it to themselves.";
 
-  return `You are writing a practice exercise in spotting thinking traps (cognitive distortions, as in CBT) for a learner who is still a beginner. This is thinking practice, not therapy.${ctx}
+  return `You are writing a practice exercise in spotting thinking traps (cognitive distortions, as in CBT) for ${learnerFor(input.level.id)}. This is thinking practice, not therapy.${ctx}
 
 ${CONTEXT_LINES[input.context]}
 

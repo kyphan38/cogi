@@ -3,6 +3,7 @@ import type { JudgmentResult } from "@/lib/exercise/judgment-score";
 import { LENS_INFO } from "@/lib/exercise/judgment-levels";
 import { JUDGMENT_LENS_GUIDE } from "@/lib/exercise/judgment-lens-guide";
 import type { JudgmentLens } from "@/lib/ai/validators/judgment";
+import { learnerFor } from "@/lib/ai/prompts/learner";
 
 /**
  * Coaching for a life situation: the comparison with the expert comes from code
@@ -49,7 +50,7 @@ export function buildJudgmentPerspectivePrompt(input: {
     .map((l) => `- ${l} (${LENS_INFO[l].name}): ${JUDGMENT_LENS_GUIDE[l].spot} How to help others: ${JUDGMENT_LENS_GUIDE[l].othersTip}`)
     .join("\n");
 
-  return `You are a warm, practical coach helping a beginner get better at real-life judgment.${ctx}
+  return `You are a warm, practical coach helping ${learnerFor(input.exercise.level)} get better at real-life judgment.${ctx}
 Setting: ${ex.context === "vietnam" ? "Vietnam - respect Vietnamese norms (seniority, saving face, family duty)." : "general."}
 
 Situation (${ex.domain}): ${ex.scenario}

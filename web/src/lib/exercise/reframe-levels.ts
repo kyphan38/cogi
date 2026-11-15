@@ -3,6 +3,8 @@ import type { ReframeAnswer, ReframeTag } from "@/lib/ai/validators/reframe";
 
 /** What each level changes for Reframe exercises (PLAN-psychology.md P1). */
 export interface ReframeLevelConfig {
+  /** The level this config is for (prompts say who the learner is). */
+  id: PracticeLevel;
   description: string;
   /** How many thoughts the character (or you) has. */
   thoughtCount: number;
@@ -38,6 +40,7 @@ const EXPERT_TAGS: readonly ReframeTag[] = [...STANDARD_TAGS, "emotional_reasoni
 
 export const REFRAME_LEVELS: Record<PracticeLevel, ReframeLevelConfig> = {
   guided: {
+    id: "guided",
     description: "An everyday situation. 4 thoughts, one at a time, 4 traps to pick from. Then choose the balanced thought.",
     thoughtCount: 4,
     realistic: [1, 1],
@@ -51,6 +54,7 @@ export const REFRAME_LEVELS: Record<PracticeLevel, ReframeLevelConfig> = {
     minutes: "about 10 minutes",
   },
   standard: {
+    id: "standard",
     description: "Work, family or money. 6 thoughts, 8 traps. Write a balanced thought yourself. You can use a situation of your own.",
     thoughtCount: 6,
     realistic: [1, 2],
@@ -64,6 +68,7 @@ export const REFRAME_LEVELS: Record<PracticeLevel, ReframeLevelConfig> = {
     minutes: "about 15 minutes",
   },
   expert: {
+    id: "expert",
     description: "One inner monologue, all 10 traps, no hints. Some thoughts are fair. Write the evidence, then a balanced thought.",
     thoughtCount: 6,
     realistic: [0, 3],

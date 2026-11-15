@@ -2,6 +2,8 @@ import type { PracticeLevel } from "@/lib/exercise/levels";
 
 /** What each level changes for strategic situations (PLAN-learning.md L2). */
 export interface StrategyLevelConfig {
+  /** The level this config is for (prompts say who the learner is). */
+  id: PracticeLevel;
   description: string;
   /** How many choices player A has (B always has 2). */
   aOptionCount: number;
@@ -17,6 +19,7 @@ export interface StrategyLevelConfig {
 
 export const STRATEGY_LEVELS: Record<PracticeLevel, StrategyLevelConfig> = {
   guided: {
+    id: "guided",
     description: "2 players, 2 choices each, numbers shown. Find each side's best reply, then where they end up.",
     aOptionCount: 2,
     showPayoffs: true,
@@ -26,6 +29,7 @@ export const STRATEGY_LEVELS: Record<PracticeLevel, StrategyLevelConfig> = {
     minutes: "about 10 minutes",
   },
   standard: {
+    id: "standard",
     description: "No numbers: rank what each side prefers from the story, then predict the outcome.",
     aOptionCount: 2,
     showPayoffs: false,
@@ -35,6 +39,7 @@ export const STRATEGY_LEVELS: Record<PracticeLevel, StrategyLevelConfig> = {
     minutes: "about 15 minutes",
   },
   expert: {
+    id: "expert",
     description: "One side has 3 choices, no numbers. Also find dominant choices and outcomes better for both.",
     aOptionCount: 3,
     showPayoffs: false,

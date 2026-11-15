@@ -3,6 +3,7 @@ import type { ReframeResult } from "@/lib/exercise/reframe-score";
 import { answerName, REFRAME_TAG_INFO } from "@/lib/exercise/reframe-levels";
 import { REFRAME_TRAP_GUIDE } from "@/lib/exercise/reframe-trap-guide";
 import type { ReframeTag } from "@/lib/ai/validators/reframe";
+import { learnerFor } from "@/lib/ai/prompts/learner";
 
 /**
  * Coaching for Reframe: which thoughts were traps is decided in code (`scoreReframe`);
@@ -63,7 +64,7 @@ ${ex.evidenceFor?.trim() ? `  Evidence for the thought: "${ex.evidenceFor.trim()
     .map((t) => `- ${t} (${REFRAME_TAG_INFO[t].name}): ${REFRAME_TRAP_GUIDE[t].spot} How to respond to others: ${REFRAME_TRAP_GUIDE[t].othersTip}`)
     .join("\n");
 
-  return `You are a warm, practical coach helping a beginner notice thinking traps (cognitive distortions) and think in a more balanced way. This is thinking practice, not therapy.${ctx}
+  return `You are a warm, practical coach helping ${learnerFor(input.exercise.level)} notice thinking traps (cognitive distortions) and think in a more balanced way. This is thinking practice, not therapy.${ctx}
 
 Situation (${ex.domain}): ${ex.scenario}
 

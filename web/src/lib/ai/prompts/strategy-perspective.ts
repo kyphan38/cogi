@@ -2,6 +2,7 @@ import type { StrategyExerciseRow } from "@/lib/types/exercise";
 import type { StrategyResult } from "@/lib/exercise/strategy-score";
 import { cellKey } from "@/lib/exercise/game";
 import { STRATEGY_IDEA_GUIDE, STRATEGY_IDEA_NAMES, type StrategyIdea } from "@/lib/exercise/strategy-idea-guide";
+import { learnerFor } from "@/lib/ai/prompts/learner";
 
 /**
  * Coaching for a strategic situation. The game facts (best replies, equilibria,
@@ -76,7 +77,7 @@ export function buildStrategyPerspectivePrompt(input: {
   }
 
   const ctx = input.userContext?.trim() ? `\nUser context: ${input.userContext.trim()}` : "";
-  return `You are a warm, practical coach teaching a beginner game theory through real stories.${ctx}
+  return `You are a warm, practical coach teaching ${learnerFor(input.exercise.level)} game theory through real stories.${ctx}
 
 Story: ${ex.scenario}${
     ex.geoCaseId

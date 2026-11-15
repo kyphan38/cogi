@@ -2,6 +2,7 @@ import type { CalibrationExerciseRow } from "@/lib/types/exercise";
 import type { CalibrationResult } from "@/lib/exercise/calibration-score";
 import { baseRateTolerance } from "@/lib/exercise/calibration-levels";
 import { CALIBRATION_IDEA_GUIDE, CALIBRATION_IDEA_NAMES, type CalibrationIdea } from "@/lib/exercise/calibration-idea-guide";
+import { learnerFor } from "@/lib/ai/prompts/learner";
 
 /** A repeat from an earlier exercise: the answer may be memory, not judgment. */
 const seenNote = (seen?: boolean) => (seen ? " (ASKED BEFORE in an earlier exercise: the user may remember the answer)" : "");
@@ -66,7 +67,7 @@ export function buildCalibrationPerspectivePrompt(input: {
     .join("\n");
   const ctx = input.userContext?.trim() ? `\nUser context: ${input.userContext.trim()}` : "";
 
-  return `You are a warm, practical coach helping a beginner become well calibrated: to be as sure as the evidence allows, no more and no less.${ctx}
+  return `You are a warm, practical coach helping ${learnerFor(input.exercise.level)} become well calibrated: to be as sure as the evidence allows, no more and no less.${ctx}
 
 RESULT (decided by code - final, do not change any answer or number):
 ${summary}

@@ -2,6 +2,7 @@ import type { JudgmentContext, JudgmentLevelConfig } from "@/lib/exercise/judgme
 import { LENS_INFO } from "@/lib/exercise/judgment-levels";
 import { JUDGMENT_LENSES } from "@/lib/ai/validators/judgment";
 import { safetyFirstRule } from "@/lib/exercise/crisis-safety";
+import { learnerFor } from "@/lib/ai/prompts/learner";
 
 const CONTEXT_LINES: Record<JudgmentContext, string> = {
   vietnam:
@@ -33,7 +34,7 @@ ${input.ownSituation}
 ${safetyFirstRule("title, scenario, concepts, conceptChecks, lensQuestions and responses")}`
     : `Write ${input.level.stakes} in this area of life: ${input.area}. Use the second person ("you"), ${input.level.scenarioWords} words. End at the moment the reader must decide what to do. Set "safety": "ok".`;
 
-  return `You are writing a practice exercise in real-life judgment for a learner who is still a beginner.${ctx}
+  return `You are writing a practice exercise in real-life judgment for ${learnerFor(input.level.id)}.${ctx}
 
 ${CONTEXT_LINES[input.context]}
 

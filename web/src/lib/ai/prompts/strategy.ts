@@ -1,6 +1,7 @@
 import type { ClassicGameType, StrategyLevelConfig } from "@/lib/exercise/strategy-levels";
 import { GEO_GAME_LABELS, type GeoGameCase, type GeoGameType } from "@/lib/geo/game-cases";
 import { GEO_FACT_RULE } from "@/lib/ai/prompts/geo-rules";
+import { learnerFor } from "@/lib/ai/prompts/learner";
 
 /** A strategic situation: a real story that is a 2-player game, with terms to learn first. */
 export function buildStrategyGenerationPrompt(input: {
@@ -20,7 +21,7 @@ export function buildStrategyGenerationPrompt(input: {
     : `- If gameType is a classic (prisoners_dilemma, coordination, chicken, stag_hunt), the payoffs must really have that shape: a prisoner's dilemma has a dominant choice for each side and an outcome better for both; chicken, stag hunt and coordination have two equilibria and no dominant choice. Otherwise use "other".`;
   const aIds = Array.from({ length: n }, (_, i) => `a${i + 1}`).join(", ");
   const ctx = input.userContext?.trim() ? `\nUser context (optional): ${input.userContext.trim()}` : "";
-  return `You are writing a beginner-friendly game theory exercise.${ctx}
+  return `You are writing a game theory exercise for ${learnerFor(input.level.id)}.${ctx}
 
 Write ${what}, set in this area: ${input.area}. Tell it as a short real-life story (${input.level.scenarioWords} words) with two players who decide at the same time without talking. Player A has ${n} choices, player B has 2.
 
@@ -73,7 +74,7 @@ export function buildGeoStrategyPrompt(input: {
   adaptationAppendix?: string;
 }): string {
   const c = input.gameCase;
-  return `You are writing a beginner-friendly game theory exercise about geopolitics.
+  return `You are writing a game theory exercise about geopolitics for ${learnerFor(input.level.id)}.
 
 REAL CASE (background only - do not retell it, do not name it):
 ${c.title} (${c.when}). ${c.summary}

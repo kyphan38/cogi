@@ -3,6 +3,8 @@ import type { JudgmentLens } from "@/lib/ai/validators/judgment";
 
 /** What each level changes for life-situation exercises (PLAN-learning.md L1). */
 export interface JudgmentLevelConfig {
+  /** The level this config is for (prompts say who the learner is). */
+  id: PracticeLevel;
   description: string;
   /** How many ways to respond the user ranks. */
   responseCount: number;
@@ -22,6 +24,7 @@ export interface JudgmentLevelConfig {
 
 export const JUDGMENT_LEVELS: Record<PracticeLevel, JudgmentLevelConfig> = {
   guided: {
+    id: "guided",
     description: "Short everyday situation. One question at a time, then rank 3 ways to respond.",
     responseCount: 3,
     scenarioWords: "90-140",
@@ -32,6 +35,7 @@ export const JUDGMENT_LEVELS: Record<PracticeLevel, JudgmentLevelConfig> = {
     minutes: "about 10 minutes",
   },
   standard: {
+    id: "standard",
     description: "Work, money or family. Rank 4 ways to respond. You can use a situation of your own.",
     responseCount: 4,
     scenarioWords: "140-200",
@@ -42,6 +46,7 @@ export const JUDGMENT_LEVELS: Record<PracticeLevel, JudgmentLevelConfig> = {
     minutes: "about 15 minutes",
   },
   expert: {
+    id: "expert",
     description: "High stakes, several people. Answer the lens questions in your own words and write your own response.",
     responseCount: 4,
     scenarioWords: "180-250",
