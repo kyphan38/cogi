@@ -254,6 +254,27 @@ describe("validateAnalyticalSemantics", () => {
     expect(validateAnalyticalSemantics(shared, { userText: true })).toEqual([]);
   });
 
+  it("lets at most one generated issue use a signal word, and never the subtle one", () => {
+    const words = {
+      ...validAnalytical,
+      passage: validAnalytical.passage
+        .replace("strong evidence of growth", "growth that clearly proves success")
+        .replace("strategic partnerships", "partnerships that always work")
+        .replace("emerging markets", "only emerging markets"),
+    };
+    const issues = words.embeddedIssues.map((i, n) =>
+      n === 0 ? { ...i, textSegment: "growth that clearly proves success" }
+      : n === 1 ? { ...i, textSegment: "partnerships that always work" }
+      : n === 3 ? { ...i, textSegment: "only emerging markets" }
+      : i,
+    );
+    const errors = validateAnalyticalSemantics({ ...words, embeddedIssues: issues }).join("\n");
+    expect(errors).toMatch(/at most 1 issue may use a signal word.*3 do/);
+    expect(errors).toMatch(/the subtle issue must not use a signal word/);
+    // The user's own text keeps its own words.
+    expect(validateAnalyticalSemantics({ ...words, embeddedIssues: issues }, { userText: true })).toEqual([]);
+  });
+
   it("lets the user's own text have 0-4 real issues and any severities", () => {
     const none = { ...validAnalytical, embeddedIssues: [] };
     expect(validateAnalyticalSemantics(none, { userText: true })).toEqual([]);

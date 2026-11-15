@@ -171,7 +171,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       expert: "A longer passage, free text selection, no hints. Some passages have no issues at all.",
     },
     tips: [
-      "Words like never, always, only and proves are often warning signs.",
+      "Words like never, always and only can be a warning sign, but check the reasoning. Sound sentences use them too, and many problems use none.",
       "Finding the problem matters more than the exact tag name.",
       "Tagging every sentence does not help. A fine sentence tagged as a problem counts against you.",
       "When someone argues this way, ask about the facts. Do not call it a fallacy.",

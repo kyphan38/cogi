@@ -1,5 +1,6 @@
 import { buildDomainHint, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
 import { GEO_FACT_RULE } from "@/lib/ai/prompts/geo-rules";
+import { SIGNAL_WORDS } from "@/lib/text/signal-words";
 import { GEO_LENSES, GEO_LENS_INFO, type GeoAnalyticalLevelConfig } from "@/lib/exercise/analytical-levels";
 
 const ANALYTICAL_ISSUE_SHAPE_BLOCK = `Return a single JSON object with this exact shape:
@@ -37,6 +38,16 @@ export const MAIN_CLAIM_QUIZ_BLOCK = `Also add a top-level "mainClaimQuiz" objec
   "explanation": string (1-2 simple sentences on why that is the main claim)
 }
 One option is the passage's main claim. The other two are plausible but wrong: a supporting detail, or a claim the passage does not make.`;
+
+/** Problems must come from the reasoning, not from extreme wording (see signal-words.ts). */
+const SIGNAL_WORD_RULE = `Do not let single words give the answer away. Signal words: ${SIGNAL_WORDS.join(", ")}.
+- At most 1 embeddedIssue textSegment may contain a signal word. The subtle issue contains none.
+- At least 1 validPoint textSegment contains a signal word and is still sound (for example "Every loan has a cost: the interest." or "This was the only bank that replied.").
+- Build each problem from the reasoning itself: what the claim quietly assumes, what the evidence can really show, a step that does not follow. Not from extreme wording.
+- Set severity honestly. obvious: most readers see it on a first read. moderate: you see it when you look again at the evidence or the step. subtle: it sounds reasonable, and you only see it when you ask what it assumes.`;
+
+/** A sound passage should also tempt word hunters: one decoy uses an extreme word and holds up. */
+const SOUND_SIGNAL_RULE = `At least 1 validPoint textSegment contains an extreme word (always, never, all, every, only, must) and is still sound, so the reader must check the reasoning, not hunt for words.`;
 
 const ANALYTICAL_ISSUE_COUNT_FOOTER = `embeddedIssues must have exactly 4 items (1 obvious, 2 moderate, 1 subtle severities).
 validPoints must have exactly 2 items (the decoys).`;
@@ -114,6 +125,7 @@ Write an analysis passage (${words} words) clearly grounded in the scenario abov
 The passage should read naturally as part of that situation (memo, internal brief, stakeholder letter, etc., as fits).
 Do NOT make issues cartoonishly obvious.
 ${PARAGRAPH_RULE}
+${SIGNAL_WORD_RULE}
 
 ${ANALYTICAL_ISSUE_SHAPE_BLOCK}${quiz}
 
@@ -133,6 +145,7 @@ Generate a ${input.domain} analysis passage (${words} words) that contains exact
 The passage should read naturally, like a real ${input.domain} analysis or plan.
 Do NOT make issues cartoonishly obvious.
 ${PARAGRAPH_RULE}
+${SIGNAL_WORD_RULE}
 
 ${ANALYTICAL_ISSUE_SHAPE_BLOCK}${quiz}
 
@@ -168,6 +181,7 @@ The passage should:
 
 The exercise tests whether the user can distinguish good reasoning from bad - the correct answer here is "this reasoning is mostly sound."
 ${PARAGRAPH_RULE}
+${SOUND_SIGNAL_RULE}
 
 ${SOUND_REASONING_SHAPE_BLOCK}
 
@@ -188,6 +202,7 @@ The passage should:
 
 The exercise tests whether the user can distinguish good reasoning from bad - the correct answer here is "this reasoning is mostly sound."
 ${PARAGRAPH_RULE}
+${SOUND_SIGNAL_RULE}
 
 ${SOUND_REASONING_SHAPE_BLOCK}
 

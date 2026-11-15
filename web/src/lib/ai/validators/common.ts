@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasSignalWord, SIGNAL_WORDS } from "@/lib/text/signal-words";
 import { findSegmentRange } from "@/lib/text/segment-match";
 import { sentenceRangeAt } from "@/lib/text/sentences";
 import { GEO_LENSES, type GeoAnalyticalLevelConfig } from "@/lib/exercise/analytical-levels";
@@ -255,8 +256,25 @@ export function validateAnalyticalSemantics(
     }
   }
   errors.push(...severityErrors(data));
+  errors.push(...signalWordErrors(data));
 
   return [...errors, ...segmentErrors(data, !opts.userText)];
+}
+
+/**
+ * Generated passages: extreme words must not give the problems away (signal-words.ts).
+ * The decoy side of the rule stays in the prompt only, so it never forces a retry.
+ */
+function signalWordErrors(data: AnalyticalExercise): string[] {
+  const flagged = data.embeddedIssues.filter((i) => hasSignalWord(i.textSegment));
+  const errors: string[] = [];
+  if (flagged.length > 1) {
+    errors.push(
+      `at most 1 issue may use a signal word (${SIGNAL_WORDS.slice(0, 8).join(", ")}...); ${flagged.length} do. Rewrite the others so the problem is in the reasoning, not the wording`,
+    );
+  }
+  if (flagged.some((i) => i.severity === "subtle")) errors.push("the subtle issue must not use a signal word");
+  return errors;
 }
 
 function mainClaimQuizErrors(data: AnalyticalExercise): string[] {
