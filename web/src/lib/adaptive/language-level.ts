@@ -28,18 +28,23 @@ export function isLanguageLevel(value: unknown): value is LanguageLevel {
   return typeof value === "string" && (LANGUAGE_LEVELS as readonly string[]).includes(value);
 }
 
+/** Same task, simpler English: added to every level below Advanced. */
+const KEEP_TASK = "This applies to every text the learner reads: scenario, passage, options, explanations and feedback. Do not simplify the reasoning task itself, its required counts, or its JSON shape - only the surface English.";
+
 /**
  * Prose guidance injected into generation prompts. "Native" = no adjustment at all
  * (must return "" so the appendix contributes zero bytes to the prompt).
+ * Below Advanced it gives numbers and examples: a vague "moderate sentence length"
+ * still produced 40-word sentences and words like "discrepancy" at Intermediate.
  */
 export function languageLevelGuidance(level: LanguageLevel): string {
   switch (level) {
     case "Foundation":
-      return "Language level: Foundation. Use very short, simple sentences (one idea each). Use only high-frequency everyday vocabulary; avoid idioms, phrasal verbs, and rare or academic words. If a technical or domain term is unavoidable, briefly clarify it inline. Do not simplify the reasoning task itself, its required counts, or its JSON shape - only the surface English.";
+      return `Language level: Foundation (about IELTS 4-4.5). Keep every sentence under 12 words, one idea each. Use only very common everyday words. No idioms, no phrasal verbs, no rare or academic words. If a technical or domain term is unavoidable, explain it in a few plain words in brackets the first time. ${KEEP_TASK}`;
     case "Developing":
-      return "Language level: Developing. Use short-to-medium sentences with simple clause structure (avoid stacking multiple subordinate clauses). Prefer common, everyday vocabulary over rare or academic words; use idioms and phrasal verbs sparingly and only very common ones. Do not simplify the reasoning task itself, its required counts, or its JSON shape - only the surface English.";
+      return `Language level: Developing (about IELTS 5-5.5). Keep every sentence under 16 words, one main idea each, with at most one "because", "which" or "while" clause. Use common everyday words. No idioms; only very common phrasal verbs. If a less common word or domain term is needed, explain it in a few plain words in brackets the first time. ${KEEP_TASK}`;
     case "Intermediate":
-      return "Language level: Intermediate. Use moderate sentence length and everyday abstract vocabulary; occasional common idioms are fine. Avoid dense academic phrasing, heavy nominalizations, and rare/low-frequency vocabulary. Do not simplify the reasoning task itself, its required counts, or its JSON shape - only the surface English.";
+      return `Language level: Intermediate (about IELTS 6-6.5, CEFR B2). Keep most sentences under 20 words and never over 25; split a long sentence into two. One main idea per sentence. Use common everyday words: "mistake", not "discrepancy"; "risky", not "speculative"; "keep", not "preserve". If a less common word or domain term is needed, explain it in a few plain words in brackets the first time. No idioms or figures of speech (not "windfall", "razor-thin margins", "a slap in the face"). Prefer plain verbs to heavy nouns: "decide", not "make a decision about". ${KEEP_TASK}`;
     case "Advanced":
       return "Language level: Advanced. Richer vocabulary and more complex sentence structures are fine, but still favor clarity over ornamentation - avoid needlessly obscure words when a clear one works just as well.";
     case "Native":
