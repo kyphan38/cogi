@@ -1,5 +1,15 @@
 # Agent instructions (cogi)
 
+## Scope: which app keeps which terms
+
+Owner decision (2026-11-15), shared with navi:
+
+- cogi: terms about thinking and reasoning (from "Learn first" in exercises).
+- navi: terms about work and tech (career, engineering, AI).
+- English vocabulary: Anki, not an app.
+
+Do not add work/tech terms or English vocabulary review to cogi.
+
 ## Git commits
 
 Follow `.cursor/rules/git-commits.mdc` - loaded automatically in this workspace.
