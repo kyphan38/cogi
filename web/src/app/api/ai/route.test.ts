@@ -533,3 +533,39 @@ describe("POST /api/ai - error handling", () => {
     expect((await res.json()).error).toBe("Network error");
   });
 });
+
+describe("POST /api/ai - own situation safety", () => {
+  const CRISIS = "Toi truot ky thi lan thu hai. Bo me khong noi chuyen voi toi. Toi khong muon song nua.";
+
+  for (const exerciseType of ["judgment", "reframe"] as const) {
+    it(`${exerciseType}: crisis words return a support message without calling the model`, async () => {
+      authOk();
+      const res = await POST(
+        makeRequest({ exerciseType, domain: "Family", level: "standard", mode: "custom_scenario", customScenario: CRISIS }),
+      );
+      const json = await res.json();
+      expect(json.ok).toBe(false);
+      expect(json.safety).toBe("concern");
+      expect(mockGenerateRaw).not.toHaveBeenCalled();
+    });
+  }
+
+  it("judgment: a concern reply from the model returns a support message", async () => {
+    authOk();
+    mockGenerateRaw.mockResolvedValue(
+      JSON.stringify({ safety: "concern", title: "", scenario: "", concepts: [], conceptChecks: [], lensQuestions: [], responses: [] }),
+    );
+    const res = await POST(
+      makeRequest({
+        exerciseType: "judgment",
+        domain: "Family",
+        level: "standard",
+        mode: "custom_scenario",
+        customScenario: "My father hits me when he drinks, and I am scared to go home tonight.",
+      }),
+    );
+    const json = await res.json();
+    expect(json.safety).toBe("concern");
+    expect(mockGenerateRaw).toHaveBeenCalledTimes(1);
+  });
+});

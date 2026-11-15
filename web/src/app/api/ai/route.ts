@@ -97,7 +97,7 @@ import {
   parseReframeExerciseJson,
   validateReframeSemantics,
 } from "@/lib/ai/validators/reframe";
-import { hasCrisisLanguage, REFRAME_SUPPORT_MESSAGE } from "@/lib/exercise/reframe-safety";
+import { hasCrisisLanguage, SUPPORT_MESSAGE } from "@/lib/exercise/crisis-safety";
 import {
   CUSTOM_DOMAIN_PLACEHOLDER,
   CUSTOM_SCENARIO_MAX_LEN,
@@ -124,6 +124,11 @@ function parseSetupMode(
     raw === "real_data" || raw === "generated" || raw === "custom_scenario" ? raw : "generated";
   if (exerciseType !== "analytical" && m === "real_data") return "generated";
   return m;
+}
+
+/** A situation that needs real support gets a support message, never an exercise. */
+function safetyConcernResponse() {
+  return NextResponse.json({ ok: false, safety: "concern", error: SUPPORT_MESSAGE.title });
 }
 
 export async function POST(req: Request) {
@@ -257,10 +262,7 @@ export async function POST(req: Request) {
       // Reframe: thinking traps (PLAN-psychology.md P1).
       const cfg = REFRAME_LEVELS[practiceLevel];
       const ownSituation = cfg.ownSituation ? scenarioForPrompt : undefined;
-      // A situation that needs real support gets a support message, never an exercise.
-      const concern = () =>
-        NextResponse.json({ ok: false, safety: "concern", error: REFRAME_SUPPORT_MESSAGE.title });
-      if (ownSituation && hasCrisisLanguage(ownSituation)) return concern();
+      if (ownSituation && hasCrisisLanguage(ownSituation)) return safetyConcernResponse();
       const rawReframeContext = (body as { context?: unknown }).context;
       const r = await generateValidatedJson({
         prompt: buildReframeGenerationPrompt({
@@ -285,13 +287,15 @@ export async function POST(req: Request) {
         model: ownSituation ? "thinking" : "fast",
       });
       if (!r.ok) return validatedJsonFailureResponse(r);
-      if (r.data.safety === "concern") return concern();
+      if (r.data.safety === "concern") return safetyConcernResponse();
       return NextResponse.json({ ok: true, data: r.data });
     }
 
     if (rawType === "judgment") {
       // Life situations (PLAN-learning.md L1).
       const cfg = JUDGMENT_LEVELS[practiceLevel];
+      const ownSituation = cfg.ownSituation ? scenarioForPrompt : undefined;
+      if (ownSituation && hasCrisisLanguage(ownSituation)) return safetyConcernResponse();
       const rawJudgmentContext = (body as { context?: unknown }).context;
       const r = await generateValidatedJson({
         prompt: buildJudgmentGenerationPrompt({
@@ -299,16 +303,19 @@ export async function POST(req: Request) {
           context: rawJudgmentContext === "vietnam" ? "vietnam" : "general",
           level: cfg,
           userContext,
-          ownSituation: cfg.ownSituation ? scenarioForPrompt : undefined,
+          ownSituation,
           adaptationAppendix,
         }),
         parse: parseJudgmentExerciseJson,
-        validate: (data) => validateJudgmentSemantics(data, { responseCount: cfg.responseCount }),
+        validate: (data) =>
+          validateJudgmentSemantics(data, { responseCount: cfg.responseCount, ownSituation: Boolean(ownSituation) }),
         retrySuffix: JUDGMENT_RETRY_SUFFIX,
         responseJsonSchema: judgmentResponseSchema(),
-        model: "fast",
+        // The user's own situation includes a safety check: use the stronger model.
+        model: ownSituation ? "thinking" : "fast",
       });
       if (!r.ok) return validatedJsonFailureResponse(r);
+      if (r.data.safety === "concern") return safetyConcernResponse();
       return NextResponse.json({ ok: true, data: r.data });
     }
 

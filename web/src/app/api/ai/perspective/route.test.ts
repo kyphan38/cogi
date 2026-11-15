@@ -303,3 +303,27 @@ describe("POST /api/ai/perspective - evaluative-matrix", () => {
   });
 });
 
+
+describe("POST /api/ai/perspective - safety of what the user wrote", () => {
+  it("reframe: crisis words in the balanced thought return a support message, no coaching", async () => {
+    authOk();
+    const exercise = {
+      type: "reframe",
+      level: "standard",
+      thoughts: [],
+      rewrite: { thoughtId: "t1", question: "q", options: ["a", "b", "c"], answerIndex: 0, explanation: "e", balancedExample: "b" },
+      balancedThought: "Toi khong muon song nua.",
+    };
+    const json = await (await POST(makeRequest({ kind: "reframe", exercise }))).json();
+    expect(json.safety).toBe("concern");
+    expect(mockGenerateRaw).not.toHaveBeenCalled();
+  });
+
+  it("judgment: crisis words in the user's own response return a support message, no coaching", async () => {
+    authOk();
+    const exercise = { type: "judgment", level: "expert", responses: [], ownResponse: "I want to die, nothing helps." };
+    const json = await (await POST(makeRequest({ kind: "judgment", exercise }))).json();
+    expect(json.safety).toBe("concern");
+    expect(mockGenerateRaw).not.toHaveBeenCalled();
+  });
+});

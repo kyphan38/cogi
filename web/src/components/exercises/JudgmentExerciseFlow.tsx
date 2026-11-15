@@ -13,6 +13,7 @@ import { ConceptList, LearnFirst } from "@/components/exercises/LearnFirst";
 import { RankList } from "@/components/exercises/RankList";
 import { JudgmentAnswerKey } from "@/components/exercises/JudgmentAnswerKey";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { SUPPORT_MESSAGE } from "@/lib/exercise/crisis-safety";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -128,6 +129,7 @@ export function JudgmentExerciseFlow({
   const [ownSituation, setOwnSituation] = useState("");
   const [exercise, setExercise] = useState<JudgmentExerciseRow | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [needsSupport, setNeedsSupport] = useState(false);
   const [loading, setLoading] = useState(false);
   const [confidence, setConfidence] = useState(50);
   const [lensIndex, setLensIndex] = useState(0);
@@ -199,6 +201,7 @@ export function JudgmentExerciseFlow({
 
   const generate = async () => {
     setError(null);
+    setNeedsSupport(false);
     if (source === "custom_scenario" && ownSituation.trim().length < 40) {
       setError("Describe your situation in a few sentences (at least 40 characters).");
       return;
@@ -224,9 +227,12 @@ export function JudgmentExerciseFlow({
           languageLevel,
         }),
       });
-      const json = await safeAiJson<{ ok: true; data: JudgmentExercisePayload } | { ok: false; error: string }>(res);
+      const json = await safeAiJson<
+        { ok: true; data: JudgmentExercisePayload } | { ok: false; error: string; safety?: "concern" }
+      >(res);
       if (!json.ok) {
-        setError(json.error);
+        if (json.safety === "concern") setNeedsSupport(true);
+        else setError(json.error);
         return;
       }
       const id = crypto.randomUUID();
@@ -274,6 +280,7 @@ export function JudgmentExerciseFlow({
   const getFeedback = async () => {
     if (!exercise) return;
     setError(null);
+    setNeedsSupport(false);
     if (exercise.userWhy?.trim().length === 0 && cfg.lensMode !== "one-by-one") {
       setError("Write one sentence on why you picked your first choice.");
       return;
@@ -290,7 +297,8 @@ export function JudgmentExerciseFlow({
       });
       const parsed = parsePerspectiveFetchJson(await safeAiJson<unknown>(res), "analytical");
       if (!parsed.ok) {
-        setError(parsed.error);
+        if (parsed.safety === "concern") setNeedsSupport(true);
+        else setError(parsed.error);
         return;
       }
       const result = scoreJudgment({
@@ -379,6 +387,17 @@ export function JudgmentExerciseFlow({
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {needsSupport ? (
+        <Alert data-testid="judgment-support">
+          <AlertTitle>{SUPPORT_MESSAGE.title}</AlertTitle>
+          <AlertDescription>
+            {SUPPORT_MESSAGE.lines.map((l) => (
+              <p key={l}>{l}</p>
+            ))}
+          </AlertDescription>
         </Alert>
       ) : null}
 

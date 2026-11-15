@@ -1,6 +1,7 @@
 import type { JudgmentContext, JudgmentLevelConfig } from "@/lib/exercise/judgment-levels";
 import { LENS_INFO } from "@/lib/exercise/judgment-levels";
 import { JUDGMENT_LENSES } from "@/lib/ai/validators/judgment";
+import { safetyFirstRule } from "@/lib/exercise/crisis-safety";
 
 const CONTEXT_LINES: Record<JudgmentContext, string> = {
   vietnam:
@@ -27,8 +28,10 @@ export function buildJudgmentGenerationPrompt(input: {
     ? `Build the exercise from this situation the user really faced. Keep its facts; rewrite it in the second person ("you"), ${input.level.scenarioWords} words, and leave out names or details that identify real people:
 """
 ${input.ownSituation}
-"""`
-    : `Write ${input.level.stakes} in this area of life: ${input.area}. Use the second person ("you"), ${input.level.scenarioWords} words. End at the moment the reader must decide what to do.`;
+"""
+
+${safetyFirstRule("title, scenario, concepts, conceptChecks, lensQuestions and responses")}`
+    : `Write ${input.level.stakes} in this area of life: ${input.area}. Use the second person ("you"), ${input.level.scenarioWords} words. End at the moment the reader must decide what to do. Set "safety": "ok".`;
 
   return `You are writing a practice exercise in real-life judgment for a learner who is still a beginner.${ctx}
 
@@ -41,6 +44,7 @@ ${JUDGMENT_LENSES.map((l) => `- ${l} = ${LENS_INFO[l].name}: ${LENS_INFO[l].ques
 
 Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
 {
+  "safety": "ok" | "concern",
   "title": string (short, plain),
   "scenario": string,
   "concepts": [ { "term": string, "plain": string (one simple sentence), "example": string (one everyday example) } ] (exactly 3 ideas that help in THIS situation, e.g. "naming emotions", "what is in my control", "the cost of waiting"),

@@ -3,6 +3,7 @@ import { validateJudgmentSemantics, type JudgmentExercisePayload } from "./judgm
 
 function payload(): JudgmentExercisePayload {
   return {
+    safety: "ok",
     title: "Criticized in a meeting",
     scenario: "Your manager points out a mistake in your report in front of the team.",
     concepts: [
@@ -25,6 +26,27 @@ function payload(): JudgmentExercisePayload {
 }
 
 describe("validateJudgmentSemantics", () => {
+  it("accepts an empty concern reply only for the user's own situation", () => {
+    const concern: JudgmentExercisePayload = {
+      safety: "concern",
+      title: "",
+      scenario: "",
+      concepts: [],
+      conceptChecks: [],
+      lensQuestions: [],
+      responses: [],
+    };
+    expect(validateJudgmentSemantics(concern, { responseCount: 3, ownSituation: true })).toEqual([]);
+    expect(validateJudgmentSemantics(concern, { responseCount: 3 })).toEqual(['safety must be "ok" for a made-up situation']);
+  });
+
+  it("needs a title and scenario when safety is ok", () => {
+    const p = { ...payload(), title: " ", scenario: "" };
+    const errors = validateJudgmentSemantics(p, { responseCount: 3 }).join("\n");
+    expect(errors).toMatch(/title must not be empty/);
+    expect(errors).toMatch(/scenario must not be empty/);
+  });
+
   it("accepts a well-formed guided exercise", () => {
     expect(validateJudgmentSemantics(payload(), { responseCount: 3 })).toEqual([]);
   });

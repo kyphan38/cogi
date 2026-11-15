@@ -47,7 +47,7 @@ import {
   REFRAME_TAG_INFO,
   type ReframeLevelConfig,
 } from "@/lib/exercise/reframe-levels";
-import { REFRAME_SUPPORT_MESSAGE } from "@/lib/exercise/reframe-safety";
+import { SUPPORT_MESSAGE } from "@/lib/exercise/crisis-safety";
 import { scoreReframe } from "@/lib/exercise/reframe-score";
 import { shuffledOrder } from "@/lib/exercise/guided-candidates";
 import {
@@ -351,6 +351,7 @@ export function ReframeExerciseFlow({
   const getFeedback = async () => {
     if (!exercise) return;
     setError(null);
+    setNeedsSupport(false);
     const missing = rewriteMissing(exercise);
     if (missing) {
       setError(missing);
@@ -368,7 +369,8 @@ export function ReframeExerciseFlow({
       });
       const parsed = parsePerspectiveFetchJson(await safeAiJson<unknown>(res), "analytical");
       if (!parsed.ok) {
-        setError(parsed.error);
+        if (parsed.safety === "concern") setNeedsSupport(true);
+        else setError(parsed.error);
         return;
       }
       const result = scoreReframe({
@@ -601,9 +603,9 @@ export function ReframeExerciseFlow({
 
       {needsSupport ? (
         <Alert data-testid="reframe-support">
-          <AlertTitle>{REFRAME_SUPPORT_MESSAGE.title}</AlertTitle>
+          <AlertTitle>{SUPPORT_MESSAGE.title}</AlertTitle>
           <AlertDescription>
-            {REFRAME_SUPPORT_MESSAGE.lines.map((l) => (
+            {SUPPORT_MESSAGE.lines.map((l) => (
               <p key={l}>{l}</p>
             ))}
           </AlertDescription>

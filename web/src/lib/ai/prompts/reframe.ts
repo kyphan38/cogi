@@ -1,5 +1,6 @@
 import type { JudgmentContext } from "@/lib/exercise/judgment-levels";
 import { REFRAME_TAG_INFO, type ReframeLevelConfig } from "@/lib/exercise/reframe-levels";
+import { safetyFirstRule } from "@/lib/exercise/crisis-safety";
 
 const CONTEXT_LINES: Record<JudgmentContext, string> = {
   vietnam:
@@ -32,7 +33,7 @@ export function buildReframeGenerationPrompt(input: {
 ${input.ownSituation}
 """
 
-SAFETY FIRST: if the situation mentions self-harm, suicide, abuse, violence, danger, or a crisis that needs real help, set "safety": "concern" and return empty strings and empty arrays for everything else (rewrite: thoughtId "", options ["", "", ""], answerIndex 0, explanation "", balancedExample ""). Otherwise set "safety": "ok".`
+${safetyFirstRule('rewrite: thoughtId "", options ["", "", ""], answerIndex 0, explanation "", balancedExample ""')}`
     : `Write ${lv.stakes} in this area of life: ${input.area}. Tell it in the third person about one named character, ${lv.scenarioWords} words. End right after the setback, when the thoughts start. Set "safety": "ok".`;
   const thoughtForm =
     lv.layout === "monologue"

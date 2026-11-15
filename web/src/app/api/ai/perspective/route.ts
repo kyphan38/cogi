@@ -45,6 +45,7 @@ import { pickStrategyCards } from "@/lib/exercise/strategy-idea-cards";
 import { pickCalibrationCards } from "@/lib/exercise/calibration-idea-cards";
 import { sanitizeTrapCards } from "@/lib/exercise/take-with-you";
 import { REFRAME_LEVELS } from "@/lib/exercise/reframe-levels";
+import { anyCrisisLanguage, SUPPORT_MESSAGE } from "@/lib/exercise/crisis-safety";
 import { buildReframePerspectivePrompt } from "@/lib/ai/prompts/reframe-perspective";
 import { scoreStrategy, strategyCoachingRefs } from "@/lib/exercise/strategy-score";
 import { buildStrategyPerspectivePrompt } from "@/lib/ai/prompts/strategy-perspective";
@@ -153,6 +154,11 @@ function evaluativeRefHeading(ex: EvaluativeExerciseRow, ref: string): string {
     return c ? `Criterion: ${c.label}` : ref;
   }
   return ref;
+}
+
+/** What the user wrote needs real support: no coaching, the app shows a support message. */
+function safetyConcernResponse() {
+  return NextResponse.json({ ok: false, safety: "concern", error: SUPPORT_MESSAGE.title });
 }
 
 /** POST JSON: perspective narrative after user work + confidence (Phase 1.4 / Phase 2.2 / Phase 3). */
@@ -282,6 +288,9 @@ export async function POST(req: Request) {
     if (!exercise || exercise.type !== "reframe" || !Array.isArray(exercise.thoughts) || !exercise.rewrite) {
       return NextResponse.json({ ok: false, error: "reframe requires the exercise row" }, { status: 400 });
     }
+    if (anyCrisisLanguage([exercise.evidenceFor, exercise.evidenceAgainst, exercise.balancedThought])) {
+      return safetyConcernResponse();
+    }
     const cfg = REFRAME_LEVELS[exercise.level] ?? REFRAME_LEVELS.guided;
     const result = scoreReframe({
       thoughts: exercise.thoughts,
@@ -331,6 +340,9 @@ export async function POST(req: Request) {
     const exercise = b.exercise as JudgmentExerciseRow | undefined;
     if (!exercise || exercise.type !== "judgment" || !Array.isArray(exercise.responses)) {
       return NextResponse.json({ ok: false, error: "judgment requires the exercise row" }, { status: 400 });
+    }
+    if (anyCrisisLanguage([exercise.ownResponse, exercise.userWhy, ...Object.values(exercise.lensText ?? {})])) {
+      return safetyConcernResponse();
     }
     const cfg = JUDGMENT_LEVELS[exercise.level] ?? JUDGMENT_LEVELS.guided;
     const result = scoreJudgment({

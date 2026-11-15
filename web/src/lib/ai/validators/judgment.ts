@@ -32,10 +32,15 @@ const responseSchema = z.object({
   lens: z.enum(JUDGMENT_LENSES).optional(),
 });
 
-/** A generated life-situation exercise. */
+/**
+ * A generated life-situation exercise. Title and scenario may be empty only when
+ * `safety` is "concern" (the user's own situation needs real support, not an
+ * exercise); the semantic checks enforce the rest.
+ */
 export const judgmentExerciseSchema = z.object({
-  title: z.string().min(1),
-  scenario: z.string().min(1),
+  safety: z.enum(["ok", "concern"]),
+  title: z.string(),
+  scenario: z.string(),
   concepts: z.array(conceptSchema),
   conceptChecks: z.array(choiceQuestionSchema),
   lensQuestions: z.array(lensQuestionSchema),
@@ -85,12 +90,18 @@ export function choiceErrors(q: JudgmentChoiceQuestion, where: string): string[]
 /**
  * Counts and consistency the exercise relies on: concepts and checks for "Learn
  * first", one question per lens, and responses ranked 1..n with ids r1..rn.
+ * "concern" is only allowed for the user's own situation.
  */
 export function validateJudgmentSemantics(
   data: JudgmentExercisePayload,
-  opts: { responseCount: number },
+  opts: { responseCount: number; ownSituation?: boolean },
 ): string[] {
+  if (data.safety === "concern") {
+    return opts.ownSituation ? [] : ['safety must be "ok" for a made-up situation'];
+  }
   const errors: string[] = [];
+  if (!data.title.trim()) errors.push("title must not be empty");
+  if (!data.scenario.trim()) errors.push("scenario must not be empty");
   if (data.concepts.length < 2 || data.concepts.length > 4) errors.push("concepts must have 2-4 items");
   if (data.conceptChecks.length < 1 || data.conceptChecks.length > 2) {
     errors.push("conceptChecks must have 1-2 items");

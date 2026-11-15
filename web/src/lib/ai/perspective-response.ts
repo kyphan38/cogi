@@ -7,7 +7,8 @@ import type { PerspectiveKind } from "@/lib/types/perspective";
 
 export type PerspectiveFetchResult =
   | { ok: true; text: string; structured: AIPerspectiveStructured }
-  | { ok: false; error: string };
+  /** `safety: "concern"`: what the user wrote needs real support; show the support message. */
+  | { ok: false; error: string; safety?: "concern" };
 
 /** Parse JSON body from `POST /api/ai/perspective`. */
 export function parsePerspectiveFetchJson(
@@ -19,7 +20,7 @@ export function parsePerspectiveFetchJson(
   }
   const o = data as Record<string, unknown>;
   if (o.ok === false && typeof o.error === "string") {
-    return { ok: false, error: o.error };
+    return o.safety === "concern" ? { ok: false, error: o.error, safety: "concern" } : { ok: false, error: o.error };
   }
   if (o.ok !== true) {
     return { ok: false, error: "Invalid response" };

@@ -269,6 +269,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Choose the Vietnam setting for situations that fit Vietnamese work and family life.",
       "My situation is saved with your exercises. Leave out real names.",
       "A lens shows how to see the situation, not what to do. The choice is still yours.",
+      "This is thinking practice, not therapy. If you are in crisis, talk to a person you trust or a professional.",
     ],
   },
   {
