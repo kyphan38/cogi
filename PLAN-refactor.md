@@ -1,6 +1,6 @@
 # PLAN-refactor (cogi)
 
-Trạng thái: Phase 0 xong (2026-11-15). Unit 889/889, Playwright 215/215 (208 cũ + 7 mới trong `web/tests/resume-autosave.spec.ts`). Đã thử làm hỏng resume của Judgment: test mới fail đúng như mong đợi. Phase 1 chưa làm.
+Trạng thái: Phase 0 và Phase 1 xong (2026-11-15). Unit 897/897, Playwright 215/215 (1 test 404 không liên quan bị flaky khi chạy song song, chạy lại thì pass). Phase 2 chưa làm.
 
 Mục tiêu: tách 7 file `*ExerciseFlow.tsx` (570 - 1600 dòng) thành các phần nhỏ.
 Sau refactor, thêm một loại bài tập mới chỉ cần viết phần riêng của nó, không phải copy 1000 dòng.
@@ -113,6 +113,13 @@ Mỗi loại một commit. Sau mỗi loại chạy spec của loại đó.
 Thêm unit test cho hook (vitest + fake `putExercise`/`getExercise`): advance lưu `currentStep`, resume bỏ qua bài đã xong, autosave không chạy ở bước 0 và bước xong.
 
 Xong khi: không flow nào còn tự viết resume / autosave / finish.
+
+Kết quả:
+- `components/exercises/flow/useExerciseFlow.ts`: hook `useExerciseFlow` (state chung, level, resume, `advance`, `finish`) và `useDebouncedSave` (autosave).
+- `lib/exercise/flow.ts` (+ 7 unit test): `resumableRow`, `commonResumeState`, `scheduleSave`. Không có testing-library nên phần React được kiểm tra bằng Playwright.
+- Judgment và Reframe tự load level (vì có scenario handoff), nên truyền `loadLevel: false`.
+- Tổng số dòng 7 flow: 7 118 -> 6 887 (thêm khoảng 200 dòng ở hook và lib). Phần lớn số dòng nằm ở JSX, sẽ giảm ở Phase 2 và 3.
+- Khi chạy Playwright song song, vài test thỉnh thoảng fail vì session khác đang sửa file (dev server biên dịch lại). Chạy lại test đó với `--workers=1` để chắc.
 
 ## Phase 2: UI chung `SetupStep` và `FeedbackStep`
 
