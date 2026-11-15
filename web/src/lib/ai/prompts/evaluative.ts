@@ -1,6 +1,16 @@
 import { GEO_FACT_RULE } from "@/lib/ai/prompts/geo-rules";
 import { buildDomainHint, formatUserScenarioBlock } from "@/lib/ai/prompts/scenario-steering";
 
+/**
+ * Working out what matters is the skill: the story gives facts, never the criteria.
+ * Before this rule, half the real criteria were named in the story ("tight budget",
+ * "safe, quiet home").
+ */
+const SCENARIO_FACTS_RULE = `The scenario gives concrete facts to reason from: who decides, the situation, numbers and limits. It never names a criterion or a close synonym: not "tight budget" for Price, not "safe" for Security, not "short trip to work" for Commute time. Give a fact that makes it matter instead ("After bills you have 9 million dong a month for rent"). Do not list the factors to compare.`;
+
+/** Silly distractors ("Keyboard color") are ruled out without thinking. */
+const DISTRACTOR_RULE = `Distractors are criteria a sensible person might really weigh for this kind of decision, but that matter less in THIS situation, or that overlap with a real one (for a student laptop: "Screen size", "Resale value", "Brand reputation"). Never trivial or unrelated ones (not "Keyboard color", "Juice bar menu"). Each one should be worth a short argument.`;
+
 export function buildEvaluativeGenerationPrompt(input: {
   domain: string;
   userContext?: string;
@@ -60,6 +70,7 @@ Matrix shape:
 Use 4 to 6 options with unique ids, spread over at least 3 of the 4 quadrants.
 Option titles and descriptions are shown on the board: never use the axis words (the lowLabel or highLabel words) in them. Describe what the option is and does, and let the reader place it.
 Matrix criteriaCandidates: 6-10 short (<=40 char) unique criterion names the user picks from before seeing the axes. Include both axis labels (verbatim) plus 4-8 plausible-but-wrong distractors of similar tone and length, shuffled.
+${DISTRACTOR_RULE}
 
 Scoring shape:
 {
@@ -89,6 +100,9 @@ Rules for scoring:
 - At least one hiddenCriteria entry.
 - One option must be clearly best under your suggested weights and scores: no tie at the top.
 - criteriaCandidates: 6-10 short (<=40 char) unique candidate criterion-name strings the user could pick from before proposing their own criteria. Include your real criteria's labels (verbatim) plus 3-6 plausible-but-wrong distractor labels of similar tone and length, no giveaway markers. Shuffle the order so the correct ones are NOT grouped together or first.
+- ${DISTRACTOR_RULE}
+
+For both variants: ${SCENARIO_FACTS_RULE}
 ${adapt ? `\n${adapt}` : ""}`;
 }
 
@@ -146,6 +160,8 @@ Minimums: at least 4 criteria, at least 3 options, at least 2 hiddenCriteria.
 Every option.suggestedScores must include every criterion id with integer 1–5.
 One option must be clearly best under the suggested weights and scores: no tie at the top.
 criteriaCandidates: 6-10 short (<=40 char) unique candidate criterion-name strings the user could pick from before proposing their own criteria. Include your real criteria's labels (verbatim) plus 3-6 plausible-but-wrong distractor labels of similar tone and length, no giveaway markers. Shuffle the order.
+${DISTRACTOR_RULE}
+${SCENARIO_FACTS_RULE}
 stakeholderCandidates: 6-10 short (<=40 char) unique candidate actor/stakeholder-name strings the user could pick from before mapping stakeholders. Include the real stakeholders named in stakeholderNote (verbatim) plus 3-6 plausible-but-uninvolved distractor actors, shuffled.${adapt ? `\n\n${adapt}` : ""}`;
 }
 
@@ -201,6 +217,9 @@ Rules:
 - At least one hiddenCriteria entry.
 - At least one option must pass every dealbreaker, and one passing option must be clearly best: no tie at the top.
 - criteriaCandidates: 6-10 short (<=40 char) unique candidate criterion-name strings the user could pick from before proposing their own criteria. Include your real criteria's labels (verbatim, including the dealbreaker ones) plus 3-6 plausible-but-wrong distractor labels of similar tone and length, no giveaway markers. Shuffle the order.
+- ${DISTRACTOR_RULE}
+
+${SCENARIO_FACTS_RULE} A hard limit behind a dealbreaker is stated as a fact (a law, a ceiling, a safety rule), not as a criterion name.
 ${adapt ? `\n${adapt}` : ""}`;
 }
 
