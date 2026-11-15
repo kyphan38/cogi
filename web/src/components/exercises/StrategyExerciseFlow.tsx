@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Check, X } from "lucide-react";
 import { ExerciseShell, practicePhase, practiceStepLabels } from "@/components/shared/ExerciseShell";
 import { ExerciseStepCard, EXERCISE_STEP_META_BADGE } from "@/components/shared/ExerciseStepCard";
@@ -23,26 +23,18 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
-import { getExercise, putExercise } from "@/lib/db/exercises";
+import { putExercise } from "@/lib/db/exercises";
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
-import { completePracticeExercise } from "@/lib/db/complete-exercise";
-import {
-  dismissLevelSuggestion,
-  getLanguageLevelForRequest,
-  getPracticeLevel,
-  getUserContext,
-  setPracticeLevel,
-} from "@/lib/db/settings";
+import { dismissLevelSuggestion, getLanguageLevelForRequest, getUserContext } from "@/lib/db/settings";
 import { isStrategyExercise, type StrategyExerciseRow } from "@/lib/types/exercise";
-import { isCoachingStructured, type AIPerspectiveStructured } from "@/lib/types/perspective";
+import { isCoachingStructured } from "@/lib/types/perspective";
 import type { StrategyExercisePayload } from "@/lib/ai/validators/strategy";
 import { STRATEGY_AREAS, STRATEGY_LEVELS } from "@/lib/exercise/strategy-levels";
 import { analyzeGame, cellKey } from "@/lib/exercise/game";
 import { scoreStrategy, type StrategyAnswers } from "@/lib/exercise/strategy-score";
 import { seededHash } from "@/lib/exercise/guided-candidates";
-import { DEFAULT_PRACTICE_LEVEL, LEVEL_LABELS, type LevelSuggestion, type PracticeLevel } from "@/lib/exercise/levels";
-import { levelSuggestionFor } from "@/lib/exercise/level-suggestion";
-import { useSaveOnLeave } from "@/lib/hooks/useSaveOnLeave";
+import { LEVEL_LABELS, type PracticeLevel } from "@/lib/exercise/levels";
+import { useDebouncedSave, useExerciseFlow } from "@/components/exercises/flow/useExerciseFlow";
 import { GEO_GAME_CASES, geoGameCaseById } from "@/lib/geo/game-cases";
 
 type FlowStep = 0 | 1 | 4 | 7;
@@ -77,45 +69,46 @@ export function StrategyExerciseFlow({
   autoGenerate?: boolean;
 } = {}) {
   const { show: showToast } = useToast();
-  const [step, setStep] = useState<FlowStep>(0);
-  const [level, setLevel] = useState<PracticeLevel>(DEFAULT_PRACTICE_LEVEL);
+  const flow = useExerciseFlow<StrategyExerciseRow, FlowStep>({
+    type: "strategy",
+    resumeId,
+    isRow: isStrategyExercise,
+    onResume: (row) => {
+      setStep(row.aiPerspective ? FEEDBACK_STEP : 1);
+    },
+  });
+  const {
+    step,
+    setStep,
+    level,
+    exercise,
+    setExercise,
+    error,
+    setError,
+    loading,
+    setLoading,
+    confidence,
+    setConfidence,
+    perspectiveStructured,
+    setPerspectiveStructured,
+    takeaway,
+    setTakeaway,
+    finishing,
+    levelSuggestion,
+    setLevelSuggestion,
+    pendingSave,
+  } = flow;
   const initialCase = geoGameCaseById(initialDomain?.trim());
   const [area, setArea] = useState(initialCase ? "" : initialDomain?.trim() || "Business & prices");
   /** Geopolitical games (PLAN-geopolitics.md G3): a real case to base the story on. */
   const [geoCaseId, setGeoCaseId] = useState<string | null>(initialCase?.id ?? null);
   const pickedCase = geoGameCaseById(geoCaseId);
-  const [exercise, setExercise] = useState<StrategyExerciseRow | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [confidence, setConfidence] = useState(50);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [rankPlayer, setRankPlayer] = useState<"A" | "B">("A");
   const [showTerms, setShowTerms] = useState(false);
-  const [perspectiveStructured, setPerspectiveStructured] = useState<AIPerspectiveStructured | null>(null);
-  const [takeaway, setTakeaway] = useState("");
-  const [finishing, setFinishing] = useState(false);
-  const [levelSuggestion, setLevelSuggestion] = useState<LevelSuggestion>(null);
-  const pendingSave = useSaveOnLeave();
 
   const setupLevel = STRATEGY_LEVELS[level];
   const cfg = exercise ? STRATEGY_LEVELS[exercise.level] : setupLevel;
-
-  useEffect(() => {
-    void getPracticeLevel("strategy").then(setLevel);
-  }, []);
-
-  useEffect(() => {
-    if (!resumeId) return;
-    void (async () => {
-      const row = await getExercise(resumeId);
-      if (!row || row.completedAt || !isStrategyExercise(row)) return;
-      setExercise(row);
-      setConfidence(row.confidenceBefore ?? 50);
-      setTakeaway(row.takeaway ?? "");
-      if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured);
-      setStep(row.aiPerspective ? FEEDBACK_STEP : 1);
-    })();
-  }, [resumeId]);
 
   /** Update the row; the effect below saves it a second after the last change. */
   const save = (patch: Partial<StrategyExerciseRow>) => setExercise((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -124,24 +117,11 @@ export function StrategyExerciseFlow({
       prev ? { ...prev, answers: { prediction: [], ...prev.answers, ...patch } as StrategyAnswers } : prev,
     );
 
-  useEffect(() => {
-    if (!exercise || step !== 1) {
-      pendingSave.clear();
-      return;
-    }
-    const row = exercise;
-    const run = () => void putExercise(row);
-    pendingSave.set(run);
-    const timer = setTimeout(() => {
-      pendingSave.clear();
-      run();
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [exercise, step]); // eslint-disable-line react-hooks/exhaustive-deps
+  const autosaveRow = step === 1 ? exercise : null;
+  useDebouncedSave(pendingSave, autosaveRow ? () => void putExercise(autosaveRow) : null, 1000, [exercise, step]);
 
   const chooseLevel = (next: PracticeLevel) => {
-    setLevel(next);
-    void setPracticeLevel("strategy", next);
+    flow.chooseLevel(next);
   };
 
   const generate = async () => {
@@ -273,21 +253,7 @@ export function StrategyExerciseFlow({
   };
 
   const finish = async () => {
-    if (!exercise || finishing) return;
-    pendingSave.clear();
-    setFinishing(true);
-    try {
-      const saved = (await completePracticeExercise({ exercise, takeaway })) as StrategyExerciseRow;
-      setExercise(saved);
-      setStep(7);
-      void levelSuggestionFor("strategy", saved.level)
-        .then(setLevelSuggestion)
-        .catch(() => setLevelSuggestion(null));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed");
-    } finally {
-      setFinishing(false);
-    }
+    if (exercise) await flow.finish(exercise);
   };
 
   const facts = useMemo(

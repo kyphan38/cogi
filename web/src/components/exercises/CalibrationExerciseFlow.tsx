@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ExerciseShell, practicePhase, practiceStepLabels } from "@/components/shared/ExerciseShell";
 import { ExerciseStepCard, EXERCISE_STEP_META_BADGE } from "@/components/shared/ExerciseStepCard";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
@@ -18,13 +18,12 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
-import { getExercise, listCompletedExercises, putExercise } from "@/lib/db/exercises";
+import { listCompletedExercises, putExercise } from "@/lib/db/exercises";
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
-import { completePracticeExercise } from "@/lib/db/complete-exercise";
-import { dismissLevelSuggestion, getPracticeLevel, getUserContext, setPracticeLevel } from "@/lib/db/settings";
+import { dismissLevelSuggestion, getUserContext } from "@/lib/db/settings";
 import { isCalibrationExercise, type CalibrationExerciseRow } from "@/lib/types/exercise";
-import { isCoachingStructured, type AIPerspectiveStructured } from "@/lib/types/perspective";
-import { useSaveOnLeave } from "@/lib/hooks/useSaveOnLeave";
+import { isCoachingStructured } from "@/lib/types/perspective";
+import { useDebouncedSave, useExerciseFlow } from "@/components/exercises/flow/useExerciseFlow";
 import { CALIBRATION_CATEGORIES } from "@/lib/exercise/calibration-bank";
 import { catalogGroupOf } from "@/lib/exercise/exercise-domain-catalog";
 import { GEOPOLITICS_DOMAIN_GROUPS } from "@/lib/exercise/geopolitics-domains";
@@ -43,13 +42,7 @@ import {
   type CalibrationTopic,
 } from "@/lib/exercise/calibration-math";
 import { scoreCalibration, type CalibrationAnswer } from "@/lib/exercise/calibration-score";
-import {
-  DEFAULT_PRACTICE_LEVEL,
-  LEVEL_LABELS,
-  type LevelSuggestion,
-  type PracticeLevel,
-} from "@/lib/exercise/levels";
-import { levelSuggestionFor } from "@/lib/exercise/level-suggestion";
+import { LEVEL_LABELS, type PracticeLevel } from "@/lib/exercise/levels";
 
 type FlowStep = 0 | 1 | 4 | 7;
 /** Internal step that shows AI feedback (the 3rd practice phase); 7 is "saved". */
@@ -120,66 +113,54 @@ export function CalibrationExerciseFlow({
   autoGenerate?: boolean;
 } = {}) {
   const { show: showToast } = useToast();
-  const [step, setStep] = useState<FlowStep>(0);
-  const [level, setLevel] = useState<PracticeLevel>(DEFAULT_PRACTICE_LEVEL);
+  const flow = useExerciseFlow<CalibrationExerciseRow, FlowStep>({
+    type: "calibration",
+    resumeId,
+    isRow: isCalibrationExercise,
+    onResume: (row) => {
+      setStep(row.aiPerspective ? FEEDBACK_STEP : 1);
+    },
+  });
+  const {
+    step,
+    setStep,
+    level,
+    exercise,
+    setExercise,
+    error,
+    setError,
+    loading,
+    setLoading,
+    confidence,
+    setConfidence,
+    perspectiveStructured,
+    setPerspectiveStructured,
+    takeaway,
+    setTakeaway,
+    finishing,
+    levelSuggestion,
+    setLevelSuggestion,
+    pendingSave,
+  } = flow;
   const [topic, setTopic] = useState<CalibrationTopic>(() =>
     calibrationTopicFor(initialDomain, initialDomain ? groupIdOf(initialDomain) : undefined),
   );
-  const [exercise, setExercise] = useState<CalibrationExerciseRow | null>(null);
   /** What is typed in number boxes, so "1." or "1,2" stays while typing. */
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [openTips, setOpenTips] = useState<Record<string, boolean>>({});
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [confidence, setConfidence] = useState(50);
-  const [perspectiveStructured, setPerspectiveStructured] = useState<AIPerspectiveStructured | null>(null);
-  const [takeaway, setTakeaway] = useState("");
-  const [finishing, setFinishing] = useState(false);
-  const [levelSuggestion, setLevelSuggestion] = useState<LevelSuggestion>(null);
 
   const setupLevel = CALIBRATION_LEVELS[level];
   const cfg = exercise ? CALIBRATION_LEVELS[exercise.level] : setupLevel;
 
-  useEffect(() => {
-    void getPracticeLevel("calibration").then(setLevel);
-  }, []);
-
-  useEffect(() => {
-    if (!resumeId) return;
-    void (async () => {
-      const row = await getExercise(resumeId);
-      if (!row || row.completedAt || !isCalibrationExercise(row)) return;
-      setExercise(row);
-      setConfidence(row.confidenceBefore ?? 50);
-      setTakeaway(row.takeaway ?? "");
-      if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured);
-      setStep(row.aiPerspective ? FEEDBACK_STEP : 1);
-    })();
-  }, [resumeId]);
-
-  const pendingSave = useSaveOnLeave();
   const save = (patch: Partial<CalibrationExerciseRow>) => {
     setExercise((prev) => (prev ? { ...prev, ...patch } : prev));
   };
 
-  useEffect(() => {
-    if (!exercise || step !== 1) {
-      pendingSave.clear();
-      return;
-    }
-    const row = exercise;
-    const run = () => void putExercise(row);
-    pendingSave.set(run);
-    const timer = setTimeout(() => {
-      pendingSave.clear();
-      run();
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [exercise, step]); // eslint-disable-line react-hooks/exhaustive-deps
+  const autosaveRow = step === 1 ? exercise : null;
+  useDebouncedSave(pendingSave, autosaveRow ? () => void putExercise(autosaveRow) : null, 1000, [exercise, step]);
 
   const chooseLevel = (next: PracticeLevel) => {
-    setLevel(next);
-    void setPracticeLevel("calibration", next);
+    flow.chooseLevel(next);
   };
 
   const generate = async () => {
@@ -303,21 +284,7 @@ export function CalibrationExerciseFlow({
   };
 
   const finish = async () => {
-    if (!exercise || finishing) return;
-    pendingSave.clear();
-    setFinishing(true);
-    try {
-      const saved = (await completePracticeExercise({ exercise, takeaway })) as CalibrationExerciseRow;
-      setExercise(saved);
-      setStep(7);
-      void levelSuggestionFor("calibration", saved.level)
-        .then(setLevelSuggestion)
-        .catch(() => setLevelSuggestion(null));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed");
-    } finally {
-      setFinishing(false);
-    }
+    if (exercise) await flow.finish(exercise);
   };
 
   const phase = practicePhase(step, FEEDBACK_STEP);

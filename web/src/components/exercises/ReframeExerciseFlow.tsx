@@ -22,20 +22,18 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
-import { getExercise, putExercise } from "@/lib/db/exercises";
+import { putExercise } from "@/lib/db/exercises";
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
-import { completePracticeExercise } from "@/lib/db/complete-exercise";
 import {
   dismissLevelSuggestion,
   getLanguageLevelForRequest,
   getPracticeLevel,
   getUserContext,
-  setPracticeLevel,
 } from "@/lib/db/settings";
 import { isReframeExercise, type ReframeExerciseRow } from "@/lib/types/exercise";
-import { useSaveOnLeave } from "@/lib/hooks/useSaveOnLeave";
+import { useDebouncedSave, useExerciseFlow } from "@/components/exercises/flow/useExerciseFlow";
 import { takeScenarioText } from "@/lib/topics/scenario-handoff";
-import { isCoachingStructured, type AIPerspectiveStructured } from "@/lib/types/perspective";
+import { isCoachingStructured } from "@/lib/types/perspective";
 import type { ReframeAnswer, ReframeExercisePayload, ReframeThought } from "@/lib/ai/validators/reframe";
 import type { JudgmentContext } from "@/lib/exercise/judgment-levels";
 import {
@@ -50,13 +48,7 @@ import {
 import { SUPPORT_MESSAGE } from "@/lib/exercise/crisis-safety";
 import { scoreReframe } from "@/lib/exercise/reframe-score";
 import { shuffledOrder } from "@/lib/exercise/guided-candidates";
-import {
-  DEFAULT_PRACTICE_LEVEL,
-  LEVEL_LABELS,
-  type LevelSuggestion,
-  type PracticeLevel,
-} from "@/lib/exercise/levels";
-import { levelSuggestionFor } from "@/lib/exercise/level-suggestion";
+import { LEVEL_LABELS, type PracticeLevel } from "@/lib/exercise/levels";
 
 type FlowStep = 0 | 1 | 4 | 7;
 /** Internal step that shows AI feedback (the 3rd practice phase); 7 is "saved". */
@@ -180,24 +172,49 @@ export function ReframeExerciseFlow({
   autoGenerate?: boolean;
 } = {}) {
   const { show: showToast } = useToast();
-  const [step, setStep] = useState<FlowStep>(0);
-  const [level, setLevel] = useState<PracticeLevel>(DEFAULT_PRACTICE_LEVEL);
+  const flow = useExerciseFlow<ReframeExerciseRow, FlowStep>({
+    type: "reframe",
+    resumeId,
+    isRow: isReframeExercise,
+    onResume: (row) => {
+      // Guided: resume at the first thought not answered yet.
+      const next = row.thoughts.findIndex((t) => row.answers?.[t.id] == null);
+      setThoughtIndex(next >= 0 ? next : Math.max(0, row.thoughts.length - 1));
+      setStep(row.aiPerspective ? FEEDBACK_STEP : 1);
+    },
+    // Loaded below: a handed-over scenario can change the level.
+    loadLevel: false,
+  });
+  const {
+    step,
+    setStep,
+    level,
+    setLevel,
+    exercise,
+    setExercise,
+    error,
+    setError,
+    loading,
+    setLoading,
+    confidence,
+    setConfidence,
+    perspectiveStructured,
+    setPerspectiveStructured,
+    takeaway,
+    setTakeaway,
+    finishing,
+    levelSuggestion,
+    setLevelSuggestion,
+    pendingSave,
+  } = flow;
   const [area, setArea] = useState(initialDomain?.trim() || "Work");
   const [context, setContext] = useState<JudgmentContext>("vietnam");
   const [source, setSource] = useState<"generated" | "custom_scenario">("generated");
   const [ownSituation, setOwnSituation] = useState("");
-  const [exercise, setExercise] = useState<ReframeExerciseRow | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [needsSupport, setNeedsSupport] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [confidence, setConfidence] = useState(50);
   const [thoughtIndex, setThoughtIndex] = useState(0);
   const [selectedThought, setSelectedThought] = useState<string | null>(null);
   const [showTerms, setShowTerms] = useState(false);
-  const [perspectiveStructured, setPerspectiveStructured] = useState<AIPerspectiveStructured | null>(null);
-  const [takeaway, setTakeaway] = useState("");
-  const [finishing, setFinishing] = useState(false);
-  const [levelSuggestion, setLevelSuggestion] = useState<LevelSuggestion>(null);
 
   const handedScenario = useRef<string | null | undefined>(undefined);
   const setupLevel = REFRAME_LEVELS[level];
@@ -220,46 +237,16 @@ export function ReframeExerciseFlow({
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (!resumeId) return;
-    void (async () => {
-      const row = await getExercise(resumeId);
-      if (!row || row.completedAt || !isReframeExercise(row)) return;
-      setExercise(row);
-      setConfidence(row.confidenceBefore ?? 50);
-      setTakeaway(row.takeaway ?? "");
-      if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured);
-      // Guided: resume at the first thought not answered yet.
-      const next = row.thoughts.findIndex((t) => row.answers?.[t.id] == null);
-      setThoughtIndex(next >= 0 ? next : Math.max(0, row.thoughts.length - 1));
-      setStep(row.aiPerspective ? FEEDBACK_STEP : 1);
-    })();
-  }, [resumeId]);
-
-  const pendingSave = useSaveOnLeave();
   /** Update the row; the effect below saves it a second after the last change. */
   const save = (patch: Partial<ReframeExerciseRow>) => {
     setExercise((prev) => (prev ? { ...prev, ...patch } : prev));
   };
 
-  useEffect(() => {
-    if (!exercise || step !== 1) {
-      pendingSave.clear();
-      return;
-    }
-    const row = exercise;
-    const run = () => void putExercise(row);
-    pendingSave.set(run);
-    const timer = setTimeout(() => {
-      pendingSave.clear();
-      run();
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [exercise, step]); // eslint-disable-line react-hooks/exhaustive-deps
+  const autosaveRow = step === 1 ? exercise : null;
+  useDebouncedSave(pendingSave, autosaveRow ? () => void putExercise(autosaveRow) : null, 1000, [exercise, step]);
 
   const chooseLevel = (next: PracticeLevel) => {
-    setLevel(next);
-    void setPracticeLevel("reframe", next);
+    flow.chooseLevel(next);
     if (!REFRAME_LEVELS[next].ownSituation) setSource("generated");
   };
 
@@ -399,21 +386,7 @@ export function ReframeExerciseFlow({
   };
 
   const finish = async () => {
-    if (!exercise || finishing) return;
-    pendingSave.clear();
-    setFinishing(true);
-    try {
-      const saved = (await completePracticeExercise({ exercise, takeaway })) as ReframeExerciseRow;
-      setExercise(saved);
-      setStep(7);
-      void levelSuggestionFor("reframe", saved.level)
-        .then(setLevelSuggestion)
-        .catch(() => setLevelSuggestion(null));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed");
-    } finally {
-      setFinishing(false);
-    }
+    if (exercise) await flow.finish(exercise);
   };
 
   const rewriteOrder = useMemo(
