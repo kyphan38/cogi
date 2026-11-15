@@ -159,7 +159,7 @@ test.describe("Analytical exercise - generate and highlight phase", () => {
 
     await expect(page.getByText("Part 2 of 2 · Check each sentence")).toBeVisible();
     const walk = page.getByTestId("guided-walkthrough");
-    await expect(walk).toContainText("This passage has 1 issues");
+    await expect(walk).toContainText("This passage has 1 issue and");
     await expect(walk.getByTestId("check-questions")).toBeVisible();
     // Confidence and feedback wait until every suggested sentence is answered.
     await expect(page.getByRole("button", { name: "Get AI feedback" })).toHaveCount(0);
@@ -186,7 +186,7 @@ test.describe("Analytical exercise - generate and highlight phase", () => {
   test("standard level hides the walkthrough and shows the issue count", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/analytical");
     await generateExercise(page, "DevOps", { level: "Standard" });
-    await expect(page.getByTestId("issue-count-hint")).toContainText("This passage has 1 issues");
+    await expect(page.getByTestId("issue-count-hint")).toContainText("This passage has 1 issue to find");
     await expect(page.getByTestId("guided-walkthrough")).toHaveCount(0);
     await expect(page.getByTestId("check-questions")).toBeVisible();
   });

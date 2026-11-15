@@ -182,8 +182,14 @@ export function GuidedWalkthrough({
   return (
     <div className="space-y-4" data-testid="guided-walkthrough">
       <p className="text-body text-foreground">
-        This passage has <span className="font-medium">{ex.embeddedIssues.length} issues</span> and{" "}
-        <span className="font-medium">{ex.validPoints.length} traps</span> (sound statements that only
+        This passage has{" "}
+        <span className="font-medium">
+          {ex.embeddedIssues.length} issue{ex.embeddedIssues.length === 1 ? "" : "s"}
+        </span>{" "}
+        and{" "}
+        <span className="font-medium">
+          {ex.validPoints.length} trap{ex.validPoints.length === 1 ? "" : "s"}
+        </span> (sound statements that only
         look suspicious). Check the {candidates.length} shaded sentences one by one.
       </p>
       <CheckQuestions mode="shown" />

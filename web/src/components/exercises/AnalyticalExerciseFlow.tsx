@@ -888,7 +888,7 @@ export function AnalyticalExerciseFlow({
                 ) : null}
                 {levelConfig?.countHint === "issues-and-traps" && !exercise.isSoundReasoning ? (
                   <p className="text-body text-foreground" data-testid="issue-count-hint">
-                    This passage has <span className="font-medium">{exercise.embeddedIssues.length} issues</span> and{" "}
+                    This passage has <span className="font-medium">{exercise.embeddedIssues.length} issue{exercise.embeddedIssues.length === 1 ? "" : "s"}</span> and{" "}
                     <span className="font-medium">
                       {exercise.validPoints.length} trap{exercise.validPoints.length === 1 ? "" : "s"}
                     </span>{" "}
@@ -897,7 +897,7 @@ export function AnalyticalExerciseFlow({
                 ) : null}
                 {levelConfig?.countHint === "issues" && !exercise.isSoundReasoning ? (
                   <p className="text-body text-foreground" data-testid="issue-count-hint">
-                    This passage has <span className="font-medium">{exercise.embeddedIssues.length} issues</span>{" "}
+                    This passage has <span className="font-medium">{exercise.embeddedIssues.length} issue{exercise.embeddedIssues.length === 1 ? "" : "s"}</span>{" "}
                     to find.
                   </p>
                 ) : null}
