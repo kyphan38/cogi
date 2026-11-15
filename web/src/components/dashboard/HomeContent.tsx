@@ -10,6 +10,10 @@ import {
   listIncompleteExercises,
 } from "@/lib/db/exercises";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
+import { getTermReviewStates } from "@/lib/db/term-review";
+import { collectTerms } from "@/lib/exercise/terms";
+import { dueTerms } from "@/lib/exercise/term-review";
+import { localDay } from "@/lib/review/schedule";
 import type { Exercise } from "@/lib/types/exercise";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
 import { computeStreak } from "@/lib/exercise/streak";
@@ -39,6 +43,7 @@ const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "nu
 export function HomeContent() {
   const [completed, setCompleted] = useState<Exercise[] | null>(null);
   const [incomplete, setIncomplete] = useState<Exercise[]>([]);
+  const [termsDue, setTermsDue] = useState(0);
   // The device's date, not the server's: nothing on the server, the date in the browser.
   const today = useSyncExternalStore(noSubscribe, () => DATE_FORMAT.format(new Date()), () => null);
 
@@ -50,6 +55,9 @@ export function HomeContent() {
         if (cancelled) return;
         setIncomplete(inc);
         setCompleted(done);
+        // A failed read only hides the review row.
+        const states = await getTermReviewStates().catch(() => null);
+        if (!cancelled && states) setTermsDue(dueTerms(collectTerms([...done, ...inc]), states, localDay(new Date())).length);
       } catch (e) {
         if (!cancelled) logFirestoreQueryError("HomeContent", "listExercises", e);
       }
@@ -141,7 +149,7 @@ export function HomeContent() {
         </Section>
       ) : null}
 
-      <HomeExplore completed={completed} />
+      <HomeExplore completed={completed} termsDue={termsDue} />
     </main>
   );
 }

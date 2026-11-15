@@ -25,11 +25,22 @@ const ROW =
 const GO = "shrink-0 text-body text-muted-foreground transition-colors after:ml-1 after:content-['›'] group-hover/row:text-foreground";
 
 /** Today page: the tools under Explore, one row each (PLAN-refine R5). */
-export function HomeExplore({ completed }: { completed: Exercise[] | null }) {
+export function HomeExplore({ completed, termsDue = 0 }: { completed: Exercise[] | null; termsDue?: number }) {
   const quiz = completed ? quizStatus(completed) : null;
   return (
     <Section title="Explore">
       <div className="border-b border-border">
+        {termsDue > 0 ? (
+          <Link href="/terms/review" className={ROW} data-testid="term-review-row">
+            <div className="min-w-0">
+              <p className="text-body">Review terms</p>
+              <p className="text-meta text-muted-foreground">
+                {termsDue} {termsDue === 1 ? "idea" : "ideas"} from Learn first to recall.
+              </p>
+            </div>
+            <span className={`${GO} font-medium text-foreground`}>ready</span>
+          </Link>
+        ) : null}
         <Link href="/geo" className={ROW} data-testid="geo-lab-link">
           <div className="min-w-0" data-testid="geo-lab-card">
             <p className="text-body">Daily map quiz</p>

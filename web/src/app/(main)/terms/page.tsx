@@ -7,17 +7,31 @@ import { Input } from "@/components/ui/input";
 import { listCompletedExercises, listIncompleteExercises } from "@/lib/db/exercises";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
 import { collectTerms, type LearnedTerm } from "@/lib/exercise/terms";
+import { getTermReviewStates } from "@/lib/db/term-review";
+import { dueTerms, termStatus, type TermReviewStates } from "@/lib/exercise/term-review";
+import { localDay, type ReviewStatus } from "@/lib/review/schedule";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/PageHeader";
+
+const STATUS_LABEL: Record<ReviewStatus, string> = { due: "Due", learning: "Learning", known: "Known" };
 
 /** "My terms": every idea met in "Learn first", to look back over (PLAN-learning.md). */
 export default function TermsPage() {
   const [terms, setTerms] = useState<LearnedTerm[] | null>(null);
   const [query, setQuery] = useState("");
+  const [states, setStates] = useState<TermReviewStates>({});
+  const [today] = useState(() => localDay(new Date()));
 
   useEffect(() => {
     void (async () => {
       try {
-        const [done, open] = await Promise.all([listCompletedExercises(), listIncompleteExercises()]);
+        const [done, open, saved] = await Promise.all([
+          listCompletedExercises(),
+          listIncompleteExercises(),
+          getTermReviewStates(),
+        ]);
+        setStates(saved);
         setTerms(collectTerms([...done, ...open]));
       } catch (e) {
         logFirestoreQueryError("TermsPage", "listExercises", e);
@@ -31,12 +45,19 @@ export default function TermsPage() {
     (t) => !q || t.term.toLowerCase().includes(q) || t.plain.toLowerCase().includes(q),
   );
 
+  const due = terms ? dueTerms(terms, states, today).length : 0;
+
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
       <PageHeader
         title="My terms"
         sub={<>From &ldquo;Learn first&rdquo;. Review before your next exercise.</>}
       />
+      {due > 0 ? (
+        <Link href="/terms/review" className={cn(buttonVariants(), "self-start")} data-testid="terms-review-link">
+          Review {Math.min(due, 5)} {due === 1 ? "term" : "terms"}
+        </Link>
+      ) : null}
       {terms && terms.length > 0 ? (
         <Input aria-label="Search terms" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
       ) : null}
@@ -52,7 +73,12 @@ export default function TermsPage() {
             <li key={t.term}>
               <Card>
                 <CardContent className="space-y-1 pt-5 text-body">
-                  <p className="text-foreground font-medium">{t.term}</p>
+                  <p className="flex items-baseline justify-between gap-3">
+                    <span className="text-foreground font-medium">{t.term}</span>
+                    <span className="text-muted-foreground shrink-0 text-meta" data-testid="term-status">
+                      {STATUS_LABEL[termStatus(t, states, today)]}
+                    </span>
+                  </p>
                   <p>{t.plain}</p>
                   <p className="text-muted-foreground">Example: {t.example}</p>
                   <p className="text-muted-foreground text-meta">

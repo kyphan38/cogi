@@ -1,11 +1,15 @@
 import type { Exercise } from "@/lib/types/exercise";
 
 export interface LearnedTerm {
+  /** Lowercase, trimmed name: the merge key and the review key. */
+  key: string;
   term: string;
   plain: string;
   example: string;
   /** Exercises the term came up in, newest first. */
   seenIn: { id: string; title: string; type: Exercise["type"] }[];
+  /** When the oldest exercise with this term was made (ISO time). */
+  firstSeen: string;
 }
 
 /**
@@ -23,8 +27,12 @@ export function collectTerms(rows: Exercise[]): LearnedTerm[] {
       if (!key) continue;
       const seen = { id: row.id, title: row.title, type: row.type };
       const prev = byKey.get(key);
-      if (prev) prev.seenIn.push(seen);
-      else byKey.set(key, { term: c.term.trim(), plain: c.plain, example: c.example, seenIn: [seen] });
+      if (prev) {
+        prev.seenIn.push(seen);
+        prev.firstSeen = row.createdAt;
+      } else {
+        byKey.set(key, { key, term: c.term.trim(), plain: c.plain, example: c.example, seenIn: [seen], firstSeen: row.createdAt });
+      }
     }
   }
   return [...byKey.values()].sort((a, b) => a.term.localeCompare(b.term));

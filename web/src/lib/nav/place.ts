@@ -37,6 +37,7 @@ export function navPlace(pathname: string | null): NavPlace {
 
   if (path === "/exercise/history" || path.startsWith("/exercise/history/")) return { section: history };
   if (path === "/terms") return { section: history, page: "My terms" };
+  if (path === "/terms/review") return { section: history, page: "Review terms" };
   if (path === "/handbook") return { section: handbook };
   if (path === "/settings") return { section: settings };
   if (path === "/reasoning") return { section: today, page: "New exercise" };

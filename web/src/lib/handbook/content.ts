@@ -495,13 +495,24 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     title: "My terms",
     href: "/terms",
     group: "tool",
-    trains: "Every idea from \"Learn first\" in your exercises, in one place.",
-    benefits: ["A quick review list before your next exercise."],
+    trains: "Every idea from \"Learn first\" in your exercises, in one place, and a short review so you keep them.",
+    benefits: [
+      "A quick review list before your next exercise.",
+      "You remember ideas for months, not days, because you recall them just before you forget.",
+    ],
     howToPractice: [
       "Open it from History > My terms.",
-      "Read a few terms before you start an exercise of the same type.",
+      "When terms are due, a \"Review terms\" row shows on Today. It also shows as a button on My terms.",
+      "A review has up to 5 terms, about 2 minutes. You see the meaning and an example with the term hidden. Pick the right term.",
+      "With fewer than 4 terms, you see the term instead. Say its meaning in your head, press \"Show the meaning\", then say if you knew it.",
+      "A new term comes back 1 day after you meet it. Each right answer waits longer: 3 days, 7 days, then 21 days. After that it is \"Known\".",
+      "A wrong answer starts the term again at 1 day. That is normal: it is how memory works.",
+      "Each card shows \"Due\", \"Learning\" or \"Known\".",
     ],
-    tips: ["Try to explain a term in your own words before you read its meaning."],
+    tips: [
+      "Try to remember the term before you look at the choices.",
+      "Try to explain a term in your own words before you read its meaning.",
+    ],
   },
 ];
 

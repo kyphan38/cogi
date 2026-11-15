@@ -19,6 +19,7 @@ describe("navPlace", () => {
     expect(show("/simulators/")).toBe("Explore / Simulators");
     expect(show("/exercise/history")).toBe("History");
     expect(show("/terms")).toBe("History / My terms");
+    expect(show("/terms/review")).toBe("History / Review terms");
     expect(show("/handbook")).toBe("Handbook");
     expect(show("/settings")).toBe("Settings");
   });
