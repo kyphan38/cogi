@@ -66,8 +66,12 @@ export function parseStrategyExerciseJson(
  * pair, payoffs 0-10, no ties when a player compares their own choices (so each best
  * reply is clear), and at least one pure equilibrium.
  */
-export function validateStrategySemantics(data: StrategyExercisePayload, opts: { aOptionCount: number }): string[] {
+export function validateStrategySemantics(
+  data: StrategyExercisePayload,
+  opts: { aOptionCount: number; gameType?: string },
+): string[] {
   const errors: string[] = [];
+  if (opts.gameType && data.gameType !== opts.gameType) errors.push(`gameType must be "${opts.gameType}"`);
   if (data.concepts.length < 3 || data.concepts.length > 4) errors.push("concepts must have 3-4 items");
   if (data.conceptChecks.length < 1 || data.conceptChecks.length > 2) errors.push("conceptChecks must have 1-2 items");
   data.conceptChecks.forEach((q, i) => {

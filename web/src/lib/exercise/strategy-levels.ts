@@ -10,7 +10,7 @@ export interface StrategyLevelConfig {
   /** Extra questions: dominant choices and an outcome better for both. */
   extraQuestions: boolean;
   scenarioWords: string;
-  /** Which kinds of game to write. */
+  /** Which kinds of game to write when code does not pick one (Expert). */
   gameTypes: string;
   minutes: string;
 }
@@ -44,6 +44,20 @@ export const STRATEGY_LEVELS: Record<PracticeLevel, StrategyLevelConfig> = {
     minutes: "15-20 minutes",
   },
 };
+
+/** The 2x2 games code can check by shape (see classicGameShapeErrors). */
+export const CLASSIC_GAME_TYPES = ["prisoners_dilemma", "coordination", "chicken", "stag_hunt"] as const;
+export type ClassicGameType = (typeof CLASSIC_GAME_TYPES)[number];
+
+/**
+ * Code picks the game for 2x2 levels, so users meet every classic shape and not
+ * mostly the prisoner's dilemma the model prefers. Expert (3 choices for A) is left
+ * to the model, since those shapes are not checked.
+ */
+export function pickStrategyGameType(level: StrategyLevelConfig, random: () => number = Math.random): ClassicGameType | undefined {
+  if (level.aOptionCount !== 2) return undefined;
+  return CLASSIC_GAME_TYPES[Math.min(CLASSIC_GAME_TYPES.length - 1, Math.floor(random() * CLASSIC_GAME_TYPES.length))];
+}
 
 /** Topic areas offered as quick picks at setup. */
 export const STRATEGY_AREAS = ["Business & prices", "Work & teams", "Daily life", "Negotiation", "Countries & trade"] as const;

@@ -307,6 +307,8 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Do not pick the fairest or the best outcome for both. Pick the one where nobody wants to change alone.",
       "Some games have two equilibria. Pick both. Finding one of the two counts as partly right.",
       "A game is a simple model of a real case. Use it to see the pressure on each side, not to explain everything.",
+      "With 2 choices each, the game changes each time: prisoner's dilemma, coordination, chicken or stag hunt.",
+      "The story gives facts, such as prices, costs and rules, not what happens. Work out each outcome yourself.",
     ],
   },
   {

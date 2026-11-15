@@ -75,7 +75,7 @@ import { isPracticeLevel } from "@/lib/exercise/levels";
 import { ANALYTICAL_LEVELS, GEO_ANALYTICAL_LEVELS } from "@/lib/exercise/analytical-levels";
 import { EVALUATIVE_LEVELS } from "@/lib/exercise/evaluative-levels";
 import { JUDGMENT_LEVELS } from "@/lib/exercise/judgment-levels";
-import { STRATEGY_LEVELS } from "@/lib/exercise/strategy-levels";
+import { pickStrategyGameType, STRATEGY_LEVELS } from "@/lib/exercise/strategy-levels";
 import { buildGeoStrategyPrompt, buildStrategyGenerationPrompt } from "@/lib/ai/prompts/strategy";
 import { geoGameCaseById } from "@/lib/geo/game-cases";
 import {
@@ -246,10 +246,11 @@ export async function POST(req: Request) {
         if (!r.ok) return validatedJsonFailureResponse(r);
         return NextResponse.json({ ok: true, data: r.data });
       }
+      const gameType = pickStrategyGameType(cfg);
       const r = await generateValidatedJson({
-        prompt: buildStrategyGenerationPrompt({ area: effectiveDomain, level: cfg, userContext, adaptationAppendix }),
+        prompt: buildStrategyGenerationPrompt({ area: effectiveDomain, level: cfg, userContext, adaptationAppendix, gameType }),
         parse: parseStrategyExerciseJson,
-        validate: (data) => validateStrategySemantics(data, { aOptionCount: cfg.aOptionCount }),
+        validate: (data) => validateStrategySemantics(data, { aOptionCount: cfg.aOptionCount, gameType }),
         retrySuffix: STRATEGY_RETRY_SUFFIX,
         responseJsonSchema: strategyResponseSchema(),
         model: "fast",

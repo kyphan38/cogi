@@ -1,4 +1,4 @@
-import type { StrategyLevelConfig } from "@/lib/exercise/strategy-levels";
+import type { ClassicGameType, StrategyLevelConfig } from "@/lib/exercise/strategy-levels";
 import { GEO_GAME_LABELS, type GeoGameCase, type GeoGameType } from "@/lib/geo/game-cases";
 import { GEO_FACT_RULE } from "@/lib/ai/prompts/geo-rules";
 
@@ -8,13 +8,21 @@ export function buildStrategyGenerationPrompt(input: {
   level: StrategyLevelConfig;
   userContext?: string;
   adaptationAppendix?: string;
+  /** Picked in code for 2x2 levels (pickStrategyGameType); the model must write this game. */
+  gameType?: ClassicGameType;
 }): string {
   const n = input.level.aOptionCount;
+  const g = input.gameType;
+  const what = g ? `a real-life game with the shape of ${CLASSIC_LABELS[g]}` : input.level.gameTypes;
+  const gameTypeField = g ? `"${g}"` : "string (prisoners_dilemma, coordination, chicken, stag_hunt or other)";
+  const shapeRule = g
+    ? `- The payoffs must have this shape: ${CLASSIC_SHAPE_HINTS[g]}`
+    : `- If gameType is a classic (prisoners_dilemma, coordination, chicken, stag_hunt), the payoffs must really have that shape: a prisoner's dilemma has a dominant choice for each side and an outcome better for both; chicken, stag hunt and coordination have two equilibria and no dominant choice. Otherwise use "other".`;
   const aIds = Array.from({ length: n }, (_, i) => `a${i + 1}`).join(", ");
   const ctx = input.userContext?.trim() ? `\nUser context (optional): ${input.userContext.trim()}` : "";
   return `You are writing a beginner-friendly game theory exercise.${ctx}
 
-Write ${input.level.gameTypes}, set in this area: ${input.area}. Tell it as a short real-life story (${input.level.scenarioWords} words) with two players who decide at the same time without talking. Player A has ${n} choices, player B has 2.
+Write ${what}, set in this area: ${input.area}. Tell it as a short real-life story (${input.level.scenarioWords} words) with two players who decide at the same time without talking. Player A has ${n} choices, player B has 2.
 
 Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
 {
@@ -26,17 +34,33 @@ Return ONLY valid JSON (no markdown fences, no prose) with this exact shape:
   "optionsA": [ { "id": "a1", "label": string (2-5 words) } ] (ids ${aIds}),
   "optionsB": [ { "id": "b1", "label": string }, { "id": "b2", "label": string } ],
   "cells": [ { "a": string, "b": string, "payoffA": integer 0-10, "payoffB": integer 0-10, "story": string (one sentence: what happens to both) } ] (one per pair of choices),
-  "gameType": string (prisoners_dilemma, coordination, chicken, stag_hunt or other),
+  "gameType": ${gameTypeField},
   "insight": string (the lesson of this game in 1-2 plain sentences)
 }
 
 Rules:
-- Payoffs are how good the outcome is for that player (10 = best). They must match the story: someone reading only the cell stories should be able to tell what each player prefers.
+${STORY_FACTS_RULE}
+- Payoffs are how good the outcome is for that player (10 = best). They must match the cell stories: a careful reader who uses the facts in the scenario and the cell stories can rank the outcomes for each player.
 - No ties: for each choice of B, A's payoffs must all differ; for each choice of A, B's payoffs must differ.
 - There must be at least one cell where both players are making their best reply.
-- If gameType is a classic (prisoners_dilemma, coordination, chicken, stag_hunt), the payoffs must really have that shape: a prisoner's dilemma has a dominant choice for each side and an outcome better for both; chicken, stag hunt and coordination have two equilibria and no dominant choice. Otherwise use "other".
-- Keep it concrete and plain. Do not name the game type in the scenario.${input.adaptationAppendix ? `\n\n${input.adaptationAppendix}` : ""}`;
+${shapeRule}
+- Keep it concrete and plain. Do not name the game type in the scenario. Pick fresh names that fit the area (not Maya, Leo, Liam or Ben).${input.adaptationAppendix ? `\n\n${input.adaptationAppendix}` : ""}`;
 }
+
+/**
+ * The learner works out each outcome, so the scenario gives facts (goals, costs,
+ * limits) and never walks through the outcomes; cell stories state facts, and words
+ * like "disaster" or "great" would give the ranking away.
+ */
+const STORY_FACTS_RULE = `- The scenario gives the facts each player weighs: what each wants, prices, costs, time, rules and limits. It must NOT say what happens in any outcome (no "if both ..., then ...", no "if one ... while the other ..."). Working out the outcomes is the learner's job.
+- Each cell story states concrete facts only: money, time, customers, grades, who gets what. No feeling or judgment words (great, disaster, happy, furious, lucky, worst, best, wasted). The ranking must come from the facts, not from the tone.`;
+
+const CLASSIC_LABELS: Record<ClassicGameType, string> = {
+  prisoners_dilemma: "a prisoner's dilemma",
+  coordination: "a coordination game",
+  chicken: "a game of chicken",
+  stag_hunt: "a stag hunt",
+};
 
 /**
  * Geopolitical games (PLAN-geopolitics.md G3): a made-up story with the same game as a
@@ -79,6 +103,17 @@ Rules:
 - Do not name the game type in the scenario.
 ${GEO_FACT_RULE}${input.adaptationAppendix ? `\n\n${input.adaptationAppendix}` : ""}`;
 }
+
+const CLASSIC_SHAPE_HINTS: Record<ClassicGameType, string> = {
+  prisoners_dilemma:
+    "each side has a dominant choice (the selfish one), so they end up in one equilibrium where both are selfish, yet both holding back would be better for BOTH.",
+  coordination:
+    "both sides gain most when their choices match; there are two matching equilibria (the two sides may prefer different ones), mismatched choices are worse for both, and no side has a dominant choice.",
+  chicken:
+    "both standing firm is the worst for both; if one backs down, the one who stands firm does best; there are two equilibria (one side firm, the other backs down) and no side has a dominant choice.",
+  stag_hunt:
+    "both cooperating is best for both; cooperating alone is worst for the one who does it; both playing safe is a stable but poorer outcome; there are two equilibria and no side has a dominant choice.",
+};
 
 const GEO_SHAPE_HINTS: Record<GeoGameType, string> = {
   chicken:
