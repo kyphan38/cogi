@@ -8,7 +8,10 @@
  * A timeout rejects with an AbortError, or with a "timed out" Error when Gemini's own
  * deadline (sent as X-Server-Timeout) fires first.
  */
+
 import { ApiError, GoogleGenAI, ThinkingLevel } from "@google/genai";
+
+export const AI_QUOTA_MESSAGE = "AI credit is used up. Top it up in AI Studio, then try again.";
 
 /**
  * fast: lists, labels and the simpler exercises (strategy, judgment, reframe).
@@ -75,6 +78,9 @@ async function generateText(
   } catch (e) {
     // Gemini returns 504 DEADLINE_EXCEEDED with a raw JSON message; routes look for "timed out".
     if (e instanceof ApiError && e.status === 504) throw new Error("Gemini request timed out");
+    // Out of credit (402) or rate limited (429): the routes pass e.message to the screen,
+    // so replace Gemini's raw JSON with one plain line.
+    if (e instanceof ApiError && (e.status === 402 || e.status === 429)) throw new Error(AI_QUOTA_MESSAGE);
     throw e;
   }
   const text = response.text;

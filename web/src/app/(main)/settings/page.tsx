@@ -100,7 +100,7 @@ export default function SettingsPage() {
     try {
       const json = await exportAllJsonString();
       downloadText(
-        `cogi-backup-${new Date().toISOString().slice(0, 10)}.json`,
+        `cogi-backup-${new Date().toLocaleDateString("en-CA")}.json`,
         json,
         "application/json",
       );
