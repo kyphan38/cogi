@@ -85,10 +85,11 @@ export function isGeopoliticsAnalyticalPayload(data: AnalyticalExercise): boolea
 }
 
 /**
- * Geopolitics passages. Without `level` (pasted text) the passage has all four issue
- * types and 2 decoys; with `level` (generated) the counts follow the level and the
- * G1 extras (concepts, perspective options, actor candidates, lens questions) are
- * required, since the exercise shows them.
+ * Geopolitics passages. Pasted text (`userText`) has 1-4 real issues, at most one per
+ * type, and up to 3 decoys. Generated passages follow the level (all four types and
+ * 2 decoys without one), and the G1 extras (concepts, perspective options, actor
+ * candidates, lens questions) are required when `level` is set, since the exercise
+ * shows them.
  */
 export function validateGeopoliticsAnalyticalSemantics(
   data: AnalyticalExercise,
@@ -107,6 +108,24 @@ export function validateGeopoliticsAnalyticalSemantics(
   if (actors.length < 1 || actors.length > 2) {
     errors.push("missingActors must have 1-2 entries");
   }
+  if (opts.userText) {
+    // Pasted text has the problems it has (see USER_TEXT_HONESTY_RULE in the prompt).
+    if (data.embeddedIssues.length < 1 || data.embeddedIssues.length > 4) {
+      errors.push("embeddedIssues must have 1-4 items, only problems that are really in the text");
+    }
+    if (data.validPoints.length > 3) errors.push("validPoints must have at most 3 items");
+    for (const t of GEO_ISSUE_TYPES) {
+      const count = data.embeddedIssues.filter((i) => i.type === t).length;
+      if (count > 1) errors.push(`at most 1 embedded issue of type ${t}, got ${count}`);
+    }
+    for (const issue of data.embeddedIssues) {
+      if (!(GEO_ISSUE_TYPES as readonly string[]).includes(issue.type)) {
+        errors.push(`issue type ${issue.type} is not allowed; use ${GEO_ISSUE_TYPES.join(", ")}`);
+      }
+    }
+    return [...errors, ...segmentErrors(data, false)];
+  }
+
   if (data.embeddedIssues.length !== types.length) {
     errors.push(`embeddedIssues must have exactly ${types.length} items`);
   }
@@ -187,6 +206,7 @@ const PLAIN_ISSUE_TYPES = [
  * Plain (non-geopolitics) passages. The answer key is built from these fields, so a
  * missing issue or a segment that is not in the passage would show the user a wrong
  * answer. `expectSound` is the sound-reasoning variant: no issues, only decoys.
+ * `userText` (pasted text) allows 0-4 real issues and up to 3 decoys, any severities.
  */
 export function validateAnalyticalSemantics(
   data: AnalyticalExercise,
@@ -203,6 +223,21 @@ export function validateAnalyticalSemantics(
       errors.push("validPoints must have 2-3 items for a sound-reasoning passage");
     }
     return [...errors, ...segmentErrors(data, !opts.userText)];
+  }
+
+  if (opts.userText) {
+    // Pasted text has the problems it has, even none (see USER_TEXT_HONESTY_RULE in the prompt).
+    if (data.embeddedIssues.length > 4) errors.push("embeddedIssues must have at most 4 items, only real problems");
+    if (data.validPoints.length > 3) errors.push("validPoints must have at most 3 items");
+    if (data.embeddedIssues.length === 0 && data.validPoints.length === 0) {
+      errors.push("a sound text needs 1-3 validPoints: statements that look suspicious but are sound");
+    }
+    for (const issue of data.embeddedIssues) {
+      if (!(PLAIN_ISSUE_TYPES as readonly string[]).includes(issue.type)) {
+        errors.push(`issue type ${issue.type} is not allowed; use ${PLAIN_ISSUE_TYPES.join(", ")}`);
+      }
+    }
+    return [...errors, ...segmentErrors(data, false)];
   }
 
   if (data.isSoundReasoning === true) {

@@ -75,7 +75,7 @@ export function SystemsAnswerKey({
           <Stat label="Affected nodes right" value={`${result.impactsCorrect}/${result.impactsTotal}`} />
         </div>
         <p className="text-muted-foreground">
-          Sound links: the model&apos;s links you found, plus your own links that hold up.
+          Sound links: the model&apos;s links you found, plus your own links that hold up, out of all links in both maps.
         </p>
         {exercise.confidenceBefore != null ? (
           <p className="text-muted-foreground">

@@ -557,7 +557,9 @@ export async function POST(req: Request) {
           "AI could not analyze the pasted text. Please try again.",
         );
       }
-      return NextResponse.json({ ok: true, data: rReal.data });
+      // Pasted text may be sound: the flag follows the answer key, not the model's echo.
+      const realData = isGeoReal ? rReal.data : { ...rReal.data, isSoundReasoning: rReal.data.embeddedIssues.length === 0 };
+      return NextResponse.json({ ok: true, data: realData });
     }
 
     const r = await generateValidatedJson({

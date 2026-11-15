@@ -50,18 +50,23 @@ export const ANALYTICAL_LEVELS: Record<PracticeLevel, AnalyticalLevelConfig> = {
 };
 
 /**
- * Rate one finished exercise for level suggestions. Good: at least 3 of 4 issues
- * found and at most 1 trap hit. Poor: at most 1 of 4 found. A sound-reasoning passage
- * (no planned issues) rates on traps alone.
+ * Rate one finished exercise for level suggestions. Wrong flags are traps hit plus
+ * extra highlights tagged as a problem: flagging everything must not pay.
+ * Good: at least 3 of 4 issues found, at most 1 trap hit, and at least 3 in 4 of the
+ * user's problem flags right. Poor: at most 1 of 4 found, or fewer than 2 in 5 flags
+ * right. A passage with no planned issues (sound reasoning) rates on wrong flags alone.
  */
 export function rateAnalytical(result: AnalyticalResult): ResultRating {
+  const wrong = result.trapsHit + (result.extraFlags ?? 0);
   if (result.total === 0) {
-    if (result.trapsHit === 0) return "good";
-    return result.trapsHit >= 2 ? "poor" : "ok";
+    if (wrong === 0) return "good";
+    return wrong >= 2 ? "poor" : "ok";
   }
   const share = result.found / result.total;
-  if (share >= 0.75 && result.trapsHit <= 1) return "good";
-  if (share <= 0.25) return "poor";
+  const flags = result.found + wrong;
+  const precision = flags > 0 ? result.found / flags : 1;
+  if (share >= 0.75 && result.trapsHit <= 1 && precision >= 0.75) return "good";
+  if (share <= 0.25 || precision < 0.4) return "poor";
   return "ok";
 }
 

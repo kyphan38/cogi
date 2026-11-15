@@ -285,6 +285,12 @@ validPoints must have exactly ${decoys} item${decoys === 1 ? "" : "s"}.
 ${severities}${adapt ? `\n\n${adapt}` : ""}`;
 }
 
+/**
+ * The user's own text has as many problems as it has: a fixed count would make the
+ * model invent problems in sound writing, and the user would learn the wrong lesson.
+ */
+const USER_TEXT_HONESTY_RULE = `Never invent a problem to reach a number. A statement that admits a limit or uncertainty ("we cannot be sure", "more testing is needed") is good reasoning, not a problem. If the text is sound, say so with fewer or no issues.`;
+
 export function buildAnalyticalFromUserTextPrompt(input: {
   domain: string;
   userContext?: string;
@@ -309,14 +315,18 @@ ${input.userText}
 
 Your task:
 - Treat the provided text as the passage.
-- Identify embedded issues and decoy valid points exactly as in the analytical exercise spec.
+- Find the reasoning problems that are REALLY in it, and the statements that look suspicious but are sound.
 
 ${ANALYTICAL_ISSUE_SHAPE_BLOCK}${quiz}
 
 Requirements:
 - Use the USER TEXT above directly as the passage. You may lightly trim whitespace but must NOT paraphrase or expand it.
-- embeddedIssues must have exactly 4 items (1 obvious, 2 moderate, 1 subtle severities).
-- validPoints must have exactly 2 items (decoy statements that look suspicious but are actually valid).${adapt ? `\n\n${adapt}` : ""}`;
+- ${USER_TEXT_HONESTY_RULE}
+- embeddedIssues: 0 to 4 items, only real problems. Set each severity honestly (obvious, moderate or subtle); no fixed mix.
+- validPoints: 1 to 3 statements that look suspicious but are actually sound (fewer only if the text has none).
+- Add a top-level "isSoundReasoning": true when embeddedIssues is empty, otherwise false.
+
+${TEXT_SEGMENT_RULE}${adapt ? `\n\n${adapt}` : ""}`;
 }
 
 export function buildGeopoliticsFromUserTextPrompt(input: {
@@ -355,7 +365,7 @@ ${GEOPOLITICS_ISSUE_SHAPE_PREFIX}
 
 Requirements:
 - Use the USER TEXT above directly as the passage. You may lightly trim whitespace but must NOT paraphrase or expand it.
-- embeddedIssues: exactly 4 items (one of each geo type above).
-- validPoints: exactly 2 decoy statements that look biased but are well-supported.
-- Set one issue severity to obvious, two to moderate, one to subtle.${adapt ? `\n\n${adapt}` : ""}`;
+- ${USER_TEXT_HONESTY_RULE}
+- embeddedIssues: 1 to 4 items, at most one of each geo type above, only problems that are really there. Set each severity honestly (obvious, moderate or subtle); no fixed mix.
+- validPoints: 1 to 3 statements that look biased but are well-supported (fewer only if the text has none).${adapt ? `\n\n${adapt}` : ""}`;
 }

@@ -115,6 +115,8 @@ export interface AnalyticalResult {
   tagsCorrect: number;
   trapsHit: number;
   decoyTotal: number;
+  /** Extra highlights tagged as a problem (false flags). Absent on older results. */
+  extraFlags?: number;
 }
 
 export interface MainClaimQuiz {

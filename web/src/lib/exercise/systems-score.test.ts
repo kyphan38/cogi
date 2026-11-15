@@ -81,6 +81,29 @@ describe("rateSystems", () => {
     // No connections, no affected node marked: 0.
     expect(rateSystems(score([], {}))).toBe("poor");
   });
+
+  it("does not pay for drawing every possible link", () => {
+    const ids = ["node_1", "node_2", "node_3", "node_4", "node_5", "node_6"];
+    const every = ids.flatMap((a, i) => ids.slice(i + 1).map((b) => edge(`${a}-${b}`, a, b, "risks")));
+    const r = score(every, { node_1: "direct", node_2: "indirect", node_3: "indirect" });
+    expect(r.connectionsFound).toBe(3);
+    // 3 found (2 with another meaning) out of 3 + 12 extra links, impact all right: about 0.57.
+    expect(rateSystems(r)).toBe("ok");
+    expect(soundLinks(r)).toEqual({ sound: 3, total: 15 });
+  });
+
+  it("counts a link with the wrong meaning as half", () => {
+    const right = [edge("a", "node_1", "node_2", "depends_on"), edge("b", "node_2", "node_3", "enables"), edge("c", "node_4", "node_5", "risks")];
+    const wrong = [edge("a", "node_1", "node_2", "risks"), edge("b", "node_2", "node_3", "risks"), edge("c", "node_5", "node_4", "risks")];
+    // 1 of 3 affected nodes right. Right links: (3/3 + 1/3) / 2 = 0.67 (ok).
+    expect(rateSystems(score(right, { node_1: "direct" }))).toBe("ok");
+    // Same pairs, none with the model's meaning: (1.5/3 + 1/3) / 2 = 0.42 (ok, lower).
+    expect(rateSystems(score(wrong, { node_1: "direct" }))).toBe("ok");
+    // All affected nodes right: right links are good, wrong-meaning links are not.
+    const impact = { node_1: "direct", node_2: "indirect", node_3: "indirect" } as const;
+    expect(rateSystems(score(right, impact))).toBe("good");
+    expect(rateSystems(score([wrong[0]!, wrong[1]!], impact))).toBe("ok");
+  });
 });
 
 describe("scoreSystems - how the shock spreads", () => {
@@ -126,7 +149,8 @@ describe("fair extra links", () => {
       { ref: "conn_1", fair: true },
     ]);
     expect(r.extraFairIds).toEqual(["e1"]);
-    expect(soundLinks(r)).toEqual({ sound: 2, total: 5 });
+    // 4 model links plus both extra links drawn; only the fair one counts as sound.
+    expect(soundLinks(r)).toEqual({ sound: 2, total: 6 });
   });
 
   it("a fair extra link raises the rating", () => {
@@ -134,7 +158,7 @@ describe("fair extra links", () => {
       { ref: "extra_1", fair: true },
       { ref: "extra_2", fair: true },
     ]);
-    // Without: (1/4 + 1) / 2 = 0.625 (ok). With 2 fair: (3/6 + 1) / 2 = 0.75 (good).
+    // Without: (1/6 + 1) / 2 = 0.58 (ok). With 2 fair: (3/6 + 1) / 2 = 0.75 (good).
     expect(rateSystems(base)).toBe("ok");
     expect(rateSystems(fair)).toBe("good");
   });

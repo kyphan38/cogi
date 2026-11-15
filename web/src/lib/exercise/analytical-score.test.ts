@@ -114,6 +114,16 @@ describe("scoreAnalytical", () => {
     // Shift the range onto the paragraph break, which belongs to no target sentence.
     const h: UserHighlight = { id: "gap", startOffset: start - 2, endOffset: start - 1, text: "\n", tag: "bias" };
     expect(score([h]).extraHighlightIds).toEqual(["gap"]);
+    expect(score([h]).extraFlags).toBe(1);
+  });
+
+  it("counts only problem-tagged extras as false flags", () => {
+    const r = score([
+      hl("If you do not run at dawn", "valid_point", "fine"),
+      hl("you will never gain the discipline", "logical_fallacy", "issue"),
+    ]);
+    expect(r.extraHighlightIds).toEqual(["fine"]);
+    expect(r.extraFlags).toBe(0);
   });
 
   it("prefers a problem-tagged highlight when two cover the same issue", () => {

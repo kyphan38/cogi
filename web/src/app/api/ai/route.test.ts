@@ -503,6 +503,19 @@ describe("POST /api/ai - analytical real_data", () => {
     expect(data.data.passage).toBe(ANALYTICAL_PASSAGE);
   });
 
+  it("marks a pasted text with no real issues as sound reasoning", async () => {
+    authOk();
+    const json = JSON.parse(validAnalyticalJson());
+    mockGenerateRaw.mockResolvedValue(JSON.stringify({ ...json, embeddedIssues: [], isSoundReasoning: false }));
+    const res = await POST(
+      makeRequest({ domain: "tech", mode: "real_data", exerciseType: "analytical", userText: ANALYTICAL_PASSAGE }),
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.data.embeddedIssues).toEqual([]);
+    expect(data.data.isSoundReasoning).toBe(true);
+  });
+
   it("checks segments against the pasted text, not the model's copy of it", async () => {
     authOk();
     // The model paraphrased one sentence, so that segment is not in the user's text.

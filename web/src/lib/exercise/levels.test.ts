@@ -56,4 +56,20 @@ describe("rateAnalytical", () => {
     expect(rateAnalytical({ ...sound, trapsHit: 1 })).toBe("ok");
     expect(rateAnalytical({ ...sound, trapsHit: 2 })).toBe("poor");
   });
+
+  it("counts extra problem flags as wrong", () => {
+    // Flagging every sentence: all 4 found, both traps, 9 more sentences flagged.
+    expect(rateAnalytical({ ...base, found: 4, trapsHit: 2, extraFlags: 9 })).toBe("poor");
+    // One extra flag is fine; two keep it from good.
+    expect(rateAnalytical({ ...base, found: 4, extraFlags: 1 })).toBe("good");
+    expect(rateAnalytical({ ...base, found: 3, extraFlags: 2 })).toBe("ok");
+    // A sound passage with plain sentences flagged as problems is not good.
+    const sound = { ...base, total: 0 };
+    expect(rateAnalytical({ ...sound, extraFlags: 1 })).toBe("ok");
+    expect(rateAnalytical({ ...sound, extraFlags: 5 })).toBe("poor");
+  });
+
+  it("treats older results without extraFlags as before", () => {
+    expect(rateAnalytical({ ...base, found: 4 })).toBe("good");
+  });
 });

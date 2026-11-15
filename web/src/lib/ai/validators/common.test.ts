@@ -254,6 +254,19 @@ describe("validateAnalyticalSemantics", () => {
     expect(validateAnalyticalSemantics(shared, { userText: true })).toEqual([]);
   });
 
+  it("lets the user's own text have 0-4 real issues and any severities", () => {
+    const none = { ...validAnalytical, embeddedIssues: [] };
+    expect(validateAnalyticalSemantics(none, { userText: true })).toEqual([]);
+    const one = { ...validAnalytical, embeddedIssues: [{ ...validAnalytical.embeddedIssues[0]!, severity: "subtle" as const }] };
+    expect(validateAnalyticalSemantics(one, { userText: true })).toEqual([]);
+    expect(validateAnalyticalSemantics(one).join("\n")).toMatch(/exactly 4 items/);
+  });
+
+  it("asks a sound user text for at least one decoy", () => {
+    const bare = { ...validAnalytical, embeddedIssues: [], validPoints: [] };
+    expect(validateAnalyticalSemantics(bare, { userText: true }).join("\n")).toMatch(/needs 1-3 validPoints/);
+  });
+
   it("rejects a sound-reasoning passage that still has issues", () => {
     const errors = validateAnalyticalSemantics(validAnalytical, { expectSound: true });
     expect(errors).toContain("embeddedIssues must be empty for a sound-reasoning passage");

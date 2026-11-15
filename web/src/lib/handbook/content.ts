@@ -162,6 +162,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Weak Evidence: is there real evidence, or only a claim? Hidden Assumption: does it quietly assume something? Logical Fallacy: does the logic jump? Bias: does the writer see only one side?",
       "Some sentences are traps: they look suspicious but are fine. Mark them Valid Point.",
       "Each sentence holds at most one issue or trap, so one tag per sentence is enough.",
+      "Your own text can have fewer than 4 issues, or none. The AI only lists problems that are really there.",
       "At the end, \"Take with you\" has a card for 1 or 2 issue types. An issue you missed comes first. Each card shows how to spot it, what to ask, what to say to someone else, the same issue in another part of life, and one thing to try this week. A passage with no issues gets a \"Sound reasoning\" card.",
     ],
     levels: {
@@ -172,6 +173,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     tips: [
       "Words like never, always, only and proves are often warning signs.",
       "Finding the problem matters more than the exact tag name.",
+      "Tagging every sentence does not help. A fine sentence tagged as a problem counts against you.",
       "When someone argues this way, ask about the facts. Do not call it a fallacy.",
     ],
   },
@@ -195,6 +197,8 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "For each indirect part, say which part the shock comes through. If you cannot name the path, check again.",
       "Look ahead: pick the loop that drives the situation, say what happens in 5 years, and suggest a better fix.",
       "Your map does not need to match the model. A link the model left out still counts if the AI finds it fair.",
+      "Every extra link you draw counts in \"Sound links\". Only the fair ones count as sound, so draw the links you believe.",
+      "A link with the wrong sign or the wrong direction counts half.",
       "At the end, you see the pattern behind the scenario. Write one place where you meet it in your own life.",
       "At the end, \"Take with you\" has a card for 1 or 2 systems ideas. What you missed comes first. Each card shows how to spot it, what to ask, how to help someone else, the same idea in another part of life, and one thing to try this week.",
     ],

@@ -102,10 +102,12 @@ export function scoreAnalytical(input: {
     };
   });
 
+  const extras = highlights.filter((h) => !used.has(h.id));
   return {
     issues,
     decoys,
-    extraHighlightIds: highlights.filter((h) => !used.has(h.id)).map((h) => h.id),
+    extraHighlightIds: extras.map((h) => h.id),
+    extraFlags: extras.filter((h) => isIssueTag(h.tag)).length,
     found: issues.filter((i) => i.found).length,
     total: issues.length,
     tagsCorrect: issues.filter((i) => i.tagCorrect).length,

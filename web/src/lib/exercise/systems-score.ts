@@ -136,10 +136,14 @@ export function scoreSystems(input: {
   };
 }
 
-/** Links that hold up: the model's links the user found plus their extra links judged fair. */
+/**
+ * Links that hold up: the model's links the user found plus their extra links judged
+ * fair, out of the model's links plus every extra link drawn. An extra link not judged
+ * fair counts against, so drawing every possible link does not pay.
+ */
 export function soundLinks(r: SystemsResult): { sound: number; total: number } {
   const fair = r.extraFairIds?.length ?? 0;
-  return { sound: r.connectionsFound + fair, total: r.connectionsTotal + fair };
+  return { sound: r.connectionsFound + fair, total: r.connectionsTotal + r.extraEdgeIds.length };
 }
 
 /** Add the AI's verdicts on extra links (`extra_<n>` coaching items with `fair: true`). */
@@ -152,10 +156,12 @@ export function withFairExtras(r: SystemsResult, items: { ref: string; fair?: bo
 }
 
 /** Good: on average at least 75% of links sound and affected nodes marked right. Poor: 35% or less.
- * A fair link the model left out counts like a found one, so a different but valid map is not punished. */
+ * A fair link the model left out counts like a found one, so a different but valid map is not punished.
+ * A model link found with the wrong sign or drawn the wrong way counts half: it says something else. */
 export function rateSystems(r: SystemsResult): ResultRating {
   const { sound, total } = soundLinks(r);
-  const conn = total > 0 ? sound / total : 1;
+  const half = r.connectionsFound - r.connectionsExact;
+  const conn = total > 0 ? (sound - 0.5 * half) / total : 1;
   const impact = r.impactsTotal > 0 ? r.impactsCorrect / r.impactsTotal : 1;
   const share = (conn + impact) / 2;
   if (share >= 0.75) return "good";
@@ -163,10 +169,13 @@ export function rateSystems(r: SystemsResult): ResultRating {
   return "ok";
 }
 
+/** Most extra edges the AI must judge; any beyond this count as not fair (see soundLinks). */
+const MAX_REQUIRED_EXTRAS = 4;
+
 /**
  * Refs for the coaching feedback: `node_<id>`, `conn_<n>` (1-based, model order),
  * `extra_<n>` (1-based, order of `extraEdgeIds`). Required: wrongly marked nodes, up to
- * 4 missed or reversed connections, up to 2 extra edges.
+ * 4 missed or reversed connections, up to 4 extra edges.
  */
 export function systemsCoachingRefs(r: SystemsResult): { required: string[]; allowed: string[] } {
   const nodeRefs = r.impacts.map((i) => `node_${i.nodeId}`);
@@ -179,7 +188,7 @@ export function systemsCoachingRefs(r: SystemsResult): { required: string[]; all
         .filter((c) => !c.found || c.direction === "reversed")
         .slice(0, 4)
         .map((c) => `conn_${c.index + 1}`),
-      ...extraRefs.slice(0, 2),
+      ...extraRefs.slice(0, MAX_REQUIRED_EXTRAS),
       ...(r.spread ?? []).filter((s) => !s.correct).map((s) => `via_${s.nodeId}`),
     ],
     allowed: [...nodeRefs, ...connRefs, ...extraRefs, ...(r.spread ?? []).map((s) => `via_${s.nodeId}`)],
