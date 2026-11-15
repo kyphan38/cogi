@@ -99,6 +99,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     tips: [
       "Not sure where to start? Leave the mode on \"Picked for you\" and the area on \"Any\".",
       "Saved topics are kept with your account, so they are on every device.",
+      "Stories are made up. If your topic names a real person or company, the AI keeps to well-known facts about them and gives made-up details to made-up people.",
     ],
   },
   {

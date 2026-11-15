@@ -1,5 +1,4 @@
-import { REAL_WORLD_FACT_RULE } from "@/lib/ai/prompts/geo-rules";
-import { isRealWorldTopic } from "@/lib/exercise/real-world-topics";
+import { factRuleFor } from "@/lib/exercise/real-world-topics";
 import { NextResponse } from "next/server";
 import {
   buildAnalyticalGenerationPrompt,
@@ -210,12 +209,9 @@ export async function POST(req: Request) {
   const languageLevel = isLanguageLevel(rawLanguageLevel) ? rawLanguageLevel : DEFAULT_LANGUAGE_LEVEL;
   const languageAppendix = buildLanguageLevelAppendix(languageLevel);
 
-  // Passed to every prompt builder as its `adaptationAppendix`. Topics about real
-  // institutions and events also get the fact-safety rule (geo prompts have their own).
-  const appendixParts = [
-    languageAppendix?.trim(),
-    isRealWorldTopic(effectiveDomain) ? REAL_WORLD_FACT_RULE : undefined,
-  ].filter(Boolean);
+  // Passed to every prompt builder as its `adaptationAppendix`, with a fact-safety
+  // rule: strict for real institutions and events, general for everything else.
+  const appendixParts = [languageAppendix?.trim(), factRuleFor(effectiveDomain)].filter(Boolean);
   const adaptationAppendix = appendixParts.length > 0 ? appendixParts.join("\n\n") : undefined;
 
   // Practice level. Requests without one keep the original (expert) behavior.

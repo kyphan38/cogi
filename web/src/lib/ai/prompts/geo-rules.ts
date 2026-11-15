@@ -17,3 +17,14 @@ export const REAL_WORLD_FACT_RULE = `FACT SAFETY (important): this topic is abou
 - Never invent statistics, dates, quotes, court findings or poll results, and never attribute words to a real, named person.
 - Never say a real, named person or company did something unless it is widely reported and settled. For the story itself, prefer made-up people and companies.
 - If you need a number to illustrate a point, round it and call it an illustration ("roughly", "for example").`;
+
+/**
+ * For every other generated exercise. Stories are made up, but a topic the user types
+ * can name a real person or company, and the model then invents claims about them.
+ */
+export const STORY_FACT_RULE = `FACT SAFETY (important): readers may take what you write as fact.
+- People, companies, places and sources you add are made up or generic ("a local gym", "one survey of 200 workers"). Never name a real study, university, journal, survey firm or news outlet as a source.
+- If the topic names a real person, company, product or event, say only what is widely known and settled about it. Every invented detail (a number, quote, claim, complaint or event) must belong to a made-up person or company, or read as hypothetical ("Suppose ...").
+- Never invent words, actions or wrongdoing for a real, named person or company.
+- Use numbers about the real world (rankings, market share, national statistics) only when widely known. Other numbers stay inside the made-up story.
+- Keep what the user wrote (their own situation or pasted text) as they wrote it.`;
