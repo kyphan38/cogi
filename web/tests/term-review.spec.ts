@@ -113,6 +113,25 @@ test.describe("Review terms", () => {
     await expect(page.getByTestId("term-review-done")).toContainText("1 of 2 right.");
   });
 
+  test("Export for Anki downloads one card per term, in the /anki-import format", async ({ page }, testInfo) => {
+    await seedTerms(page, TERMS);
+    await gotoAuthenticated(page, "/terms");
+    await expect(page.getByTestId("term-status")).toHaveCount(5, { timeout: 15_000 });
+    const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("terms-anki-export").click()]);
+    expect(download.suggestedFilename()).toMatch(/^cogi-terms-\d{4}-\d{2}-\d{2}\.txt$/);
+    const file = testInfo.outputPath(download.suggestedFilename());
+    await download.saveAs(file);
+    const text = (await import("node:fs")).readFileSync(file, "utf8");
+    const cards = text.trim().split(/\n\s*\n/);
+    expect(cards).toHaveLength(5);
+    expect(cards[0]!.split("\n")).toEqual([
+      "1. Anchoring",
+      "The first price became an **anchoring** point.",
+      "[Concept] Leaning too much on the first number you hear.",
+      "Seen in: Seeded s2",
+    ]);
+  });
+
   test("nothing due shows a short note", async ({ page }) => {
     await gotoAuthenticated(page, "/terms/review");
     await expect(page.getByTestId("term-review-empty")).toBeVisible({ timeout: 15_000 });

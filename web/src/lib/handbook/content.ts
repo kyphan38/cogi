@@ -508,6 +508,8 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "A new term comes back 1 day after you meet it. Each right answer waits longer: 3 days, 7 days, then 21 days. After that it is \"Known\".",
       "A wrong answer starts the term again at 1 day. That is normal: it is how memory works.",
       "Each card shows \"Due\", \"Learning\" or \"Known\".",
+      "Use Anki too? Press \"Export for Anki\" to save all your terms as a file. In Claude Code, run /anki-import with that file and the deck \"cogi::terms\".",
+      "Export again any time. Cards already in the deck are skipped.",
     ],
     tips: [
       "Try to remember the term before you look at the choices.",

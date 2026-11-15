@@ -10,11 +10,22 @@ import { collectTerms, type LearnedTerm } from "@/lib/exercise/terms";
 import { getTermReviewStates } from "@/lib/db/term-review";
 import { dueTerms, termStatus, type TermReviewStates } from "@/lib/exercise/term-review";
 import { localDay, type ReviewStatus } from "@/lib/review/schedule";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { ankiFileName, termsToAnkiText } from "@/lib/exercise/terms-export";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/PageHeader";
 
 const STATUS_LABEL: Record<ReviewStatus, string> = { due: "Due", learning: "Learning", known: "Known" };
+
+/** Save every term as a cards file for the /anki-import skill (PLAN-retention.md R3). */
+function downloadForAnki(terms: LearnedTerm[], day: string) {
+  const url = URL.createObjectURL(new Blob([termsToAnkiText(terms)], { type: "text/plain;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = ankiFileName(day);
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 /** "My terms": every idea met in "Learn first", to look back over (PLAN-learning.md). */
 export default function TermsPage() {
@@ -53,10 +64,17 @@ export default function TermsPage() {
         title="My terms"
         sub={<>From &ldquo;Learn first&rdquo;. Review before your next exercise.</>}
       />
-      {due > 0 ? (
-        <Link href="/terms/review" className={cn(buttonVariants(), "self-start")} data-testid="terms-review-link">
-          Review {Math.min(due, 5)} {due === 1 ? "term" : "terms"}
-        </Link>
+      {terms && terms.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {due > 0 ? (
+            <Link href="/terms/review" className={cn(buttonVariants())} data-testid="terms-review-link">
+              Review {Math.min(due, 5)} {due === 1 ? "term" : "terms"}
+            </Link>
+          ) : null}
+          <Button type="button" variant="secondary" onClick={() => downloadForAnki(terms, today)} data-testid="terms-anki-export">
+            Export for Anki
+          </Button>
+        </div>
       ) : null}
       {terms && terms.length > 0 ? (
         <Input aria-label="Search terms" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
