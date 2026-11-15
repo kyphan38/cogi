@@ -1,5 +1,12 @@
 import type { CalibrationItem } from "@/lib/exercise/calibration-math";
-import type { ResultRating } from "@/lib/exercise/levels";
+import {
+  LEVEL_DOWN_STREAK,
+  LEVEL_UP_STREAK,
+  PRACTICE_LEVELS,
+  type LevelSuggestion,
+  type PracticeLevel,
+  type ResultRating,
+} from "@/lib/exercise/levels";
 import { baseRateTolerance, BINARY_CONFIDENCE_STEPS, VERY_WIDE_RATIO } from "@/lib/exercise/calibration-levels";
 
 /** The user's answer to one item; which fields are set depends on the item kind. */
@@ -78,7 +85,11 @@ export function scoreCalibration(input: {
     const error = answered ? Math.abs(a.estimate! - item.answer) : undefined;
     return { id: item.id, kind: item.kind, answered, correct: error != null && error <= baseRateTolerance(item.answer), error };
   });
+  return summarizeOutcomes(items, input.intervalTarget);
+}
 
+/** Counts, Brier score and buckets for a list of outcomes (one exercise or several). */
+function summarizeOutcomes(items: CalibrationItemOutcome[], intervalTarget: number): CalibrationResult {
   const binary = items.filter((o) => o.kind === "binary");
   const answeredBinary = binary.filter((o) => o.answered);
   const brier =
@@ -101,7 +112,7 @@ export function scoreCalibration(input: {
     interval: {
       count: intervals.length,
       hits: intervals.filter((o) => o.correct).length,
-      target: input.intervalTarget,
+      target: intervalTarget,
       veryWide: intervals.filter((o) => o.veryWide).length,
     },
     baseRate: { count: baseRates.length, right: baseRates.filter((o) => o.correct).length },
@@ -128,6 +139,37 @@ export function rateCalibration(r: CalibrationResult): ResultRating {
     (r.binary.brier == null || r.binary.brier < 0.2) &&
     (hitRate == null || (hitRate >= r.interval.target - 15 && r.interval.veryWide < r.interval.count / 2));
   return good ? "good" : "ok";
+}
+
+/** Fewest answered questions a level suggestion may rest on. */
+export const CALIBRATION_SUGGEST_MIN_ANSWERS = 15;
+
+/** Several results at one level as one, so the Brier score rests on more answers. */
+export function poolCalibration(results: CalibrationResult[]): CalibrationResult {
+  return summarizeOutcomes(
+    results.flatMap((r) => r.items),
+    results[0]?.interval.target ?? 0,
+  );
+}
+
+/**
+ * Level suggestion for Calibration. One exercise has only 4-8 binary questions, so
+ * rating each one alone swings a lot. Instead the streak (3 up, 2 down) is pooled
+ * and rated once, and only when it holds enough answers.
+ */
+export function suggestCalibrationLevel(level: PracticeLevel, resultsNewestFirst: CalibrationResult[]): LevelSuggestion {
+  const i = PRACTICE_LEVELS.indexOf(level);
+  const up = PRACTICE_LEVELS[i + 1];
+  const down = PRACTICE_LEVELS[i - 1];
+  const pooledRating = (n: number): ResultRating | null => {
+    if (resultsNewestFirst.length < n) return null;
+    const pooled = poolCalibration(resultsNewestFirst.slice(0, n));
+    const answered = pooled.items.filter((o) => o.answered).length;
+    return answered >= CALIBRATION_SUGGEST_MIN_ANSWERS ? rateCalibration(pooled) : null;
+  };
+  if (up && pooledRating(LEVEL_UP_STREAK) === "good") return { direction: "up", to: up };
+  if (down && pooledRating(LEVEL_DOWN_STREAK) === "poor") return { direction: "down", to: down };
+  return null;
 }
 
 /**

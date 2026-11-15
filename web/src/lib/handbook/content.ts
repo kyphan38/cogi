@@ -378,6 +378,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Most people's ranges are too narrow. Start from a number that is surely too low, then one that is surely too high.",
       "A positive test for something rare is often still a false alarm.",
       "The answers come from checked sources and exact math, not from the AI.",
+      "One exercise has only a few questions. So a level tip looks at your last 3 exercises together (2 for a lower level).",
     ],
   },
   {

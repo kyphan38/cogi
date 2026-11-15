@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { CalibrationItem } from "./calibration-math";
-import { aggregateCalibration, calibrationCoachingRefs, rateCalibration, scoreCalibration } from "./calibration-score";
+import {
+  aggregateCalibration,
+  CALIBRATION_SUGGEST_MIN_ANSWERS,
+  calibrationCoachingRefs,
+  poolCalibration,
+  rateCalibration,
+  scoreCalibration,
+  suggestCalibrationLevel,
+  type CalibrationResult,
+} from "./calibration-score";
 
 const items: CalibrationItem[] = [
   { id: "b1", kind: "binary", category: "Science", question: "A or B?", options: ["A", "B"], answerIndex: 0, explanation: "A.", source: "S" },
@@ -146,5 +155,65 @@ describe("base-rate tolerance and repeats", () => {
     expect(h.ranges).toEqual([{ target: 80, count: 1, hits: 0 }]);
     // b2 and n2; the base-rate item was not answered.
     expect(h.answered).toBe(2);
+  });
+});
+
+describe("suggestCalibrationLevel (pooled streak)", () => {
+  /** `n` binary questions (4 like Standard by default) at `conf`% confidence, `right` of them right. */
+  const result = (conf: number, right: number, n = 4, answered = n): CalibrationResult =>
+    poolCalibration([
+      {
+        items: Array.from({ length: n }, (_, i) => ({
+          id: `b${conf}-${right}-${i}-${Math.random()}`,
+          kind: "binary" as const,
+          answered: i < answered,
+          correct: i < answered && i < right,
+          confidence: i < answered ? conf : undefined,
+        })),
+        binary: { count: 0, right: 0, brier: null, buckets: [] },
+        interval: { count: 0, hits: 0, target: 90, veryWide: 0 },
+        baseRate: { count: 0, right: 0 },
+      },
+    ]);
+
+  it("pooling recomputes Brier over all answers", () => {
+    const pooled = poolCalibration([result(90, 4), result(90, 3)]);
+    expect(pooled.binary.count).toBe(8);
+    expect(pooled.binary.right).toBe(7);
+    // 7 x 0.01 + 1 x 0.81, over 8
+    expect(pooled.binary.brier).toBeCloseTo(0.11, 3);
+    expect(pooled.interval.target).toBe(90);
+  });
+
+  it("one shaky exercise in a good streak still moves up when the pool is good", () => {
+    // Alone, 90% sure with 4 of 8 right is poor (Brier 0.41).
+    const shaky = result(90, 4, 8);
+    expect(rateCalibration(shaky)).toBe("poor");
+    // Pooled with two perfect ones: Brier (20 x 0.01 + 4 x 0.81) / 24 = 0.143, good.
+    const streak = [result(90, 8, 8), shaky, result(90, 8, 8)];
+    expect(suggestCalibrationLevel("guided", streak)).toEqual({ direction: "up", to: "standard" });
+  });
+
+  it("skipped questions do not count toward the minimum", () => {
+    const skipped = [result(90, 4, 8, 4), result(90, 4, 8, 4), result(90, 4, 8, 4)];
+    expect(suggestCalibrationLevel("guided", skipped)).toBeNull();
+  });
+
+  it("does not suggest a change with too few answers", () => {
+    const thin = [result(90, 4), result(90, 4), result(90, 4)];
+    expect(thin[0]!.items.length * 3).toBeLessThan(CALIBRATION_SUGGEST_MIN_ANSWERS);
+    expect(suggestCalibrationLevel("standard", thin)).toBeNull();
+  });
+
+  it("suggests the level below when the pooled streak is poor", () => {
+    const big = (conf: number, right: number) => poolCalibration([result(conf, right), result(conf, right)]);
+    expect(suggestCalibrationLevel("standard", [big(100, 1), big(100, 1)])).toEqual({ direction: "down", to: "guided" });
+    expect(suggestCalibrationLevel("guided", [big(100, 1), big(100, 1)])).toBeNull();
+  });
+
+  it("needs the full streak", () => {
+    const big = poolCalibration([result(90, 4), result(90, 4), result(90, 4), result(90, 4)]);
+    expect(suggestCalibrationLevel("guided", [big, big])).toBeNull();
+    expect(suggestCalibrationLevel("guided", [big, big, big])).toEqual({ direction: "up", to: "standard" });
   });
 });

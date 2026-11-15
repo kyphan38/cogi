@@ -17,7 +17,7 @@ import { evaluativeResultOf, rateEvaluative } from "@/lib/exercise/evaluative-sc
 import { rateJudgment } from "@/lib/exercise/judgment-score";
 import { rateStrategy } from "@/lib/exercise/strategy-score";
 import { rateReframe } from "@/lib/exercise/reframe-score";
-import { rateCalibration } from "@/lib/exercise/calibration-score";
+import { suggestCalibrationLevel } from "@/lib/exercise/calibration-score";
 import {
   suggestLevelChange,
   type LevelledExerciseType,
@@ -46,9 +46,6 @@ function rateRow(type: LevelledExerciseType, row: Exercise): ResultRating | null
   if (type === "strategy" && isStrategyExercise(row)) {
     return row.result ? rateStrategy(row.result) : null;
   }
-  if (type === "calibration" && isCalibrationExercise(row)) {
-    return row.result ? rateCalibration(row.result) : null;
-  }
   if (type === "reframe" && isReframeExercise(row)) {
     return row.result ? rateReframe(row.result) : null;
   }
@@ -71,9 +68,14 @@ export async function levelSuggestionFor(
     getAppSettings(),
   ]);
   const dismissedAt = settings.levelSuggestionDismissedAt?.[type];
-  const ratings = rows
+  const atLevel = rows
     .filter((r) => (r as { level?: PracticeLevel }).level === level)
-    .filter((r) => !dismissedAt || (r.completedAt ?? "") > dismissedAt)
+    .filter((r) => !dismissedAt || (r.completedAt ?? "") > dismissedAt);
+  if (type === "calibration") {
+    const results = atLevel.flatMap((r) => (isCalibrationExercise(r) && r.result ? [r.result] : []));
+    return suggestCalibrationLevel(level, results);
+  }
+  const ratings = atLevel
     .map((r) => rateRow(type, r))
     .filter((r): r is ResultRating => r != null);
   return suggestLevelChange(level, ratings);
