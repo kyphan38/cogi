@@ -36,15 +36,13 @@ import type {
 } from "@/lib/types/exercise";
 import type { AnalyticalExercise } from "@/lib/ai/validators/common";
 import { getLanguageLevelForRequest } from "@/lib/db/settings";
-import { putExercise, getExercise } from "@/lib/db/exercises";
+import { putExercise } from "@/lib/db/exercises";
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
 import { getUserContext } from "@/lib/db/settings";
-import { completePracticeExercise } from "@/lib/db/complete-exercise";
-import { useSaveOnLeave } from "@/lib/hooks/useSaveOnLeave";
+import { useDebouncedSave, useExerciseFlow } from "@/components/exercises/flow/useExerciseFlow";
 import { takeScenarioHandoff } from "@/lib/topics/scenario-handoff";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
-import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { sanitizeRealDataText } from "@/lib/text/sanitizeRealData";
 import { sanitizeUserPasteOrClipboard } from "@/lib/text/sanitizeRealDataBrowser";
 import { DomainInput } from "@/components/shared/DomainInput";
@@ -77,14 +75,8 @@ import { ANALYTICAL_LEVELS, GEO_ANALYTICAL_LEVELS } from "@/lib/exercise/analyti
 import { LearnFirst } from "@/components/exercises/LearnFirst";
 import { GeoGuessStep, GeoReveal, geoGuessMissing, geoLensLines } from "@/components/exercises/GeoGuessStep";
 import { scoreGeoGuess } from "@/lib/exercise/geo-guess";
-import {
-  DEFAULT_PRACTICE_LEVEL,
-  LEVEL_LABELS,
-  type LevelSuggestion,
-  type PracticeLevel,
-} from "@/lib/exercise/levels";
-import { levelSuggestionFor } from "@/lib/exercise/level-suggestion";
-import { dismissLevelSuggestion, getPracticeLevel, setPracticeLevel } from "@/lib/db/settings";
+import { LEVEL_LABELS, type PracticeLevel } from "@/lib/exercise/levels";
+import { dismissLevelSuggestion } from "@/lib/db/settings";
 import { isAnalyticalCoachingStructured } from "@/lib/types/perspective";
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -112,24 +104,57 @@ export function AnalyticalExerciseFlow({
   autoGenerate,
 }: { resumeId?: string; initialDomain?: string; initialSource?: "generated" | "real_data" | "custom_scenario"; autoGenerate?: boolean } = {}) {
   const { show: showToast } = useToast();
-  const [step, setStep] = useState<FlowStep>(0);
+  const flow = useExerciseFlow<AnalyticalExerciseRow, FlowStep>({
+    type: "analytical",
+    resumeId,
+    isRow: isAnalyticalExercise,
+    onResume: (row) => {
+      setHighlights(row.userHighlights ?? []);
+      if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
+      setUserPerspectiveGuess(row.userPerspectiveGuess ?? "");
+      const actors = row.userMissingActorsGuess ?? [];
+      setMissingActorGuess1(actors[0] ?? "");
+      setMissingActorGuess2(actors[1] ?? "");
+      if (row.domain) setDomain(row.domain);
+      if (row.source === "real_data") {
+        setMode("real_data");
+        if (row.originalUserText) setRealText(row.originalUserText);
+      } else if (row.customScenario) {
+        setMode("custom_scenario");
+        setCustomScenarioText(row.customScenario);
+      }
+      setStep(analyticalResumeStep(row.currentStep, row.isGeopolitics === true));
+    },
+  });
+  const {
+    step,
+    setStep,
+    level,
+    exercise,
+    setExercise,
+    error,
+    setError,
+    loading,
+    setLoading,
+    confidence,
+    setConfidence,
+    perspectiveStructured,
+    setPerspectiveStructured,
+    takeaway,
+    setTakeaway,
+    finishing,
+    levelSuggestion,
+    setLevelSuggestion,
+    pendingSave,
+    advance,
+    finish,
+  } = flow;
   const [domain, setDomain] = useState(initialDomain?.trim() ?? "");
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  const [exercise, setExercise] = useState<AnalyticalExerciseRow | null>(null);
   const [highlights, setHighlights] = useState<UserHighlight[]>([]);
-  const [confidence, setConfidence] = useState(50);
   const [perspectiveText, setPerspectiveText] = useState<string | null>(null);
-  const [perspectiveStructured, setPerspectiveStructured] =
-    useState<AIPerspectiveStructured | null>(null);
 
-  const [takeaway, setTakeaway] = useState("");
-  const [level, setLevel] = useState<PracticeLevel>(DEFAULT_PRACTICE_LEVEL);
-  const [levelSuggestion, setLevelSuggestion] = useState<LevelSuggestion>(null);
-  const [finishing, setFinishing] = useState(false);
-  const pendingSave = useSaveOnLeave();
   const [userPerspectiveGuess, setUserPerspectiveGuess] = useState("");
   const [missingActorGuess1, setMissingActorGuess1] = useState("");
   const [missingActorGuess2, setMissingActorGuess2] = useState("");
@@ -146,49 +171,11 @@ export function AnalyticalExerciseFlow({
 
   useEffect(() => {
     void listRecentDomains(20).then(setDomainSuggestions);
-    void getPracticeLevel("analytical").then(setLevel);
   }, []);
 
   const chooseLevel = (next: PracticeLevel) => {
-    setLevel(next);
-    void setPracticeLevel("analytical", next);
+    flow.chooseLevel(next);
   };
-
-  const advance = useCallback(
-    (next: FlowStep, updatedRow?: AnalyticalExerciseRow) => {
-      const row = updatedRow ?? exercise;
-      if (row) void putExercise({ ...row, currentStep: next });
-      setStep(next);
-    },
-    [exercise],
-  );
-
-  useEffect(() => {
-    if (!resumeId) return;
-    void (async () => {
-      const row = await getExercise(resumeId);
-      if (!row || row.completedAt || !isAnalyticalExercise(row)) return;
-      setExercise(row);
-      setHighlights(row.userHighlights ?? []);
-      setConfidence(row.confidenceBefore ?? 50);
-      if (row.aiPerspective) setPerspectiveText(row.aiPerspective);
-      if (row.aiPerspectiveStructured) setPerspectiveStructured(row.aiPerspectiveStructured ?? null);
-      setUserPerspectiveGuess(row.userPerspectiveGuess ?? "");
-      const actors = row.userMissingActorsGuess ?? [];
-      setMissingActorGuess1(actors[0] ?? "");
-      setMissingActorGuess2(actors[1] ?? "");
-      if (row.domain) setDomain(row.domain);
-      if (row.source === "real_data") {
-        setMode("real_data");
-        if (row.originalUserText) setRealText(row.originalUserText);
-      } else if (row.customScenario) {
-        setMode("custom_scenario");
-        setCustomScenarioText(row.customScenario);
-      }
-      setTakeaway(row.takeaway ?? "");
-      setStep(analyticalResumeStep(row.currentStep, row.isGeopolitics === true));
-    })();
-  }, [resumeId]);
 
   useEffect(() => {
     if (resumeId) return;
@@ -196,21 +183,12 @@ export function AnalyticalExerciseFlow({
     if (d) setDomain(d);
   }, [initialDomain, resumeId]);
 
-  useEffect(() => {
-    if (!exercise || step === 0 || step === 7) {
-      pendingSave.clear();
-      return;
-    }
-    const save = () => {
-      void putExercise({ ...exercise, userHighlights: highlights, currentStep: step });
-    };
-    pendingSave.set(save);
-    const timer = setTimeout(() => {
-      pendingSave.clear();
-      save();
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [highlights, step]); // eslint-disable-line react-hooks/exhaustive-deps
+  useDebouncedSave(
+    pendingSave,
+    exercise && step !== 0 && step !== 7 ? () => void putExercise({ ...exercise, userHighlights: highlights, currentStep: step }) : null,
+    2000,
+    [highlights, step],
+  );
 
   const startGenerate = useCallback(async (
     domainOverride?: string,
@@ -354,7 +332,8 @@ export function AnalyticalExerciseFlow({
     } finally {
       setLoading(false);
     }
-  }, [domain, mode, realText, customScenarioText, level]);
+    // The setters come from useExerciseFlow and never change.
+  }, [domain, mode, realText, customScenarioText, level, setError, setExercise, setLoading, setPerspectiveStructured, setStep, setTakeaway]);
 
   const autoGenerateTriggered = useRef(false);
   const [autoGenerateReady, setAutoGenerateReady] = useState(false);
@@ -465,9 +444,7 @@ export function AnalyticalExerciseFlow({
   /** Finish the 3-step loop: save the exercise with the optional takeaway (P2.2). */
   const finishExercise = async () => {
     if (!exercise || !perspectiveText || finishing) return;
-    pendingSave.clear();
     setError(null);
-    setFinishing(true);
     const finalEx: AnalyticalExerciseRow = {
       ...exercise,
       userHighlights: highlights,
@@ -475,20 +452,7 @@ export function AnalyticalExerciseFlow({
       aiPerspective: perspectiveText,
       aiPerspectiveStructured: perspectiveStructured ?? exercise.aiPerspectiveStructured ?? null,
     };
-    try {
-      const saved = await completePracticeExercise({ exercise: finalEx, takeaway });
-      setExercise(saved as AnalyticalExerciseRow);
-      setStep(7);
-      if (finalEx.level) {
-        void levelSuggestionFor("analytical", finalEx.level)
-          .then(setLevelSuggestion)
-          .catch(() => setLevelSuggestion(null));
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed");
-    } finally {
-      setFinishing(false);
-    }
+    await finish(finalEx);
   };
 
   const submitMetaGuess = async () => {
