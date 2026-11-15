@@ -10,7 +10,7 @@ export interface SystemsLevelConfig {
   componentCandidates: boolean;
   /** Tell the user how many links the model drew. */
   linkCountHint: boolean;
-  /** Meanings of the four link types: always shown, behind a toggle, or hidden. */
+  /** Meanings of the two link types (increases, decreases): always shown, behind a toggle, or hidden. */
   linkTypeGuide: "shown" | "toggle" | "hidden";
   /** Under the shock, tell how many nodes the model marks direct and indirect. */
   impactCountHint: boolean;

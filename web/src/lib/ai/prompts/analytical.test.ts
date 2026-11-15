@@ -116,3 +116,14 @@ describe("buildGeopoliticsFromUserTextPrompt", () => {
   });
 });
 
+
+describe("textSegment rule in every passage prompt", () => {
+  it.each([
+    ["generated", buildAnalyticalGenerationPrompt({ domain: "tech" })],
+    ["generated, custom scenario", buildAnalyticalGenerationPrompt({ domain: "tech", customScenario: "My company merger" })],
+    ["sound", buildAnalyticalSoundReasoningPrompt({ domain: "policy" })],
+    ["sound, custom scenario", buildAnalyticalSoundReasoningPrompt({ domain: "finance", customScenario: "Budget review" })],
+  ])("%s", (_name, prompt) => {
+    expect(prompt).toContain("CRITICAL textSegment rule");
+  });
+});

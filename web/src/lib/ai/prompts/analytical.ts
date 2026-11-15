@@ -89,6 +89,8 @@ const GEOPOLITICS_ISSUE_SHAPE_PREFIX = `Return a single JSON object with this ex
     }
   ],`;
 
+const TEXT_SEGMENT_RULE = `CRITICAL textSegment rule: Each textSegment MUST be copied verbatim from passage (case-sensitive, character-for-character). Before returning JSON, verify every textSegment appears in passage; if not, fix the segment or passage.`;
+
 export function buildAnalyticalGenerationPrompt(input: {
   domain: string;
   userContext?: string;
@@ -129,7 +131,8 @@ ${SIGNAL_WORD_RULE}
 
 ${ANALYTICAL_ISSUE_SHAPE_BLOCK}${quiz}
 
-${ANALYTICAL_ISSUE_COUNT_FOOTER}${adapt ? `\n\n${adapt}` : ""}`;
+${ANALYTICAL_ISSUE_COUNT_FOOTER}
+${TEXT_SEGMENT_RULE}${adapt ? `\n\n${adapt}` : ""}`;
   }
 
   return `You are generating a thinking exercise. Return ONLY valid JSON (no markdown, no prose).
@@ -149,7 +152,8 @@ ${SIGNAL_WORD_RULE}
 
 ${ANALYTICAL_ISSUE_SHAPE_BLOCK}${quiz}
 
-${ANALYTICAL_ISSUE_COUNT_FOOTER}${adapt ? `\n\n${adapt}` : ""}`;
+${ANALYTICAL_ISSUE_COUNT_FOOTER}
+${TEXT_SEGMENT_RULE}${adapt ? `\n\n${adapt}` : ""}`;
 }
 
 export function buildAnalyticalSoundReasoningPrompt(input: {
@@ -185,7 +189,8 @@ ${SOUND_SIGNAL_RULE}
 
 ${SOUND_REASONING_SHAPE_BLOCK}
 
-${SOUND_REASONING_COUNT_FOOTER}${adapt ? `\n\n${adapt}` : ""}`;
+${SOUND_REASONING_COUNT_FOOTER}
+${TEXT_SEGMENT_RULE}${adapt ? `\n\n${adapt}` : ""}`;
   }
 
   return `You are generating a thinking exercise. Return ONLY valid JSON (no markdown, no prose).
@@ -206,7 +211,8 @@ ${SOUND_SIGNAL_RULE}
 
 ${SOUND_REASONING_SHAPE_BLOCK}
 
-${SOUND_REASONING_COUNT_FOOTER}${adapt ? `\n\n${adapt}` : ""}`;
+${SOUND_REASONING_COUNT_FOOTER}
+${TEXT_SEGMENT_RULE}${adapt ? `\n\n${adapt}` : ""}`;
 }
 
 const GEOPOLITICS_PERSPECTIVE_POOL = [
@@ -221,8 +227,6 @@ const GEOPOLITICS_PERSPECTIVE_POOL = [
   "Turkish regional power projection view",
   "Indian Ocean maritime security framing",
 ] as const;
-
-const TEXT_SEGMENT_RULE = `CRITICAL textSegment rule: Each textSegment MUST be copied verbatim from passage (case-sensitive, character-for-character). Before returning JSON, verify every textSegment appears in passage; if not, fix the segment or passage.`;
 
 const GEO_ISSUE_LINES: Record<string, string> = {
   framing_bias: "1 framing bias (the analysis takes one actor's interests as the default \"reasonable\" position)",
