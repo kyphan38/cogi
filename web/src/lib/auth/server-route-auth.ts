@@ -57,7 +57,7 @@ export async function requireAuthenticatedRouteUser(req: Request): Promise<Route
 
   try {
     const decoded = await getFirebaseAdminAuth().verifyIdToken(token);
-    if (hasServerAllowlist() && !isDecodedTokenAllowedUser(decoded)) {
+    if (!hasServerAllowlist() || !isDecodedTokenAllowedUser(decoded)) {
       return {
         ok: false,
         response: NextResponse.json({ ok: false, error: "Unauthorized user" }, { status: 403 }),

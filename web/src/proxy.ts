@@ -52,8 +52,11 @@ export async function proxy(req: NextRequest) {
   if (isE2eBypassRequest(req)) {
     return NextResponse.next();
   }
+  // Fail closed: a deploy that lost its allowlist env must not open the app to every Google account.
   if (!hasEdgeAllowlistConfig()) {
-    return NextResponse.next();
+    return pathname.startsWith("/api/")
+      ? NextResponse.json({ ok: false, error: "Server not configured" }, { status: 503 })
+      : new NextResponse("Server not configured", { status: 503 });
   }
 
   const isApiRequest = pathname.startsWith("/api/");

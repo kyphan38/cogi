@@ -1,12 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSignedIn() {
-      return request.auth != null;
-    }
 
+    // Single-user app: only this verified Google account may use the database.
+    function allowed() {
+      return request.auth != null
+        && request.auth.token.email == 'kyphan.work@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
     function isOwner(uid) {
-      return isSignedIn() && request.auth.uid == uid;
+      return allowed() && request.auth.uid == uid;
     }
 
     function isAllowedCollection(collectionName) {

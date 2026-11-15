@@ -60,9 +60,18 @@ describe("POST /api/auth/session", () => {
     expect(res.status).toBe(403);
   });
 
-  it("sets session cookie on success", async () => {
+  it("returns 403 when no allowlist is configured", async () => {
     mockVerifyIdToken.mockResolvedValue({ uid: "uid1", email: "a@b.com" });
     mockHasAllowlist.mockReturnValue(false);
+    mockIsAllowed.mockReturnValue(true);
+    const res = await POST(makeRequest({ idToken: "valid" }));
+    expect(res.status).toBe(403);
+  });
+
+  it("sets session cookie on success", async () => {
+    mockVerifyIdToken.mockResolvedValue({ uid: "uid1", email: "a@b.com" });
+    mockHasAllowlist.mockReturnValue(true);
+    mockIsAllowed.mockReturnValue(true);
     const res = await POST(makeRequest({ idToken: "valid" }));
     expect(res.status).toBe(200);
     expect((await res.json()).ok).toBe(true);

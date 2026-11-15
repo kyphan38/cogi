@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
   try {
     const decoded = await getFirebaseAdminAuth().verifyIdToken(idToken);
-    if (hasServerAllowlist() && !isDecodedTokenAllowedUser(decoded)) {
+    if (!hasServerAllowlist() || !isDecodedTokenAllowedUser(decoded)) {
       return NextResponse.json({ ok: false, error: "Unauthorized user" }, { status: 403 });
     }
 
