@@ -35,6 +35,13 @@ page), update its Handbook entry **in the same change**:
 - Removed or renamed feature: remove or rename its entry, and fix any steps that mention it.
 - Check the levels text against the level config (`*-levels.ts`) so the two never disagree.
 
+## Code layout: keep files small
+
+- Each exercise type lives in `web/src/components/exercises/<type>/` (flow, state hook, steps,
+  shared). To add a type, follow `web/docs/add-exercise-type.md`.
+- A file over about 500 lines is split before a feature is added to it: a step to `steps/`, a
+  pure function to `lib/` (with a test), or a block of state to its own hook.
+
 ## Git: no co-author
 
 Never add `Co-Authored-By:` (or any other author line) to a commit message

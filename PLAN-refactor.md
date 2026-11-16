@@ -1,6 +1,6 @@
 # PLAN-refactor (cogi)
 
-Trạng thái: Phase 0-3 xong (Phase 3: 2026-11-16). Phase 4, 5 chưa làm.
+Trạng thái: tất cả phase xong (Phase 4, 5: 2026-11-16). HighlightTag để nguyên (không có chỗ tách rõ).
 
 Mục tiêu: tách 7 file `*ExerciseFlow.tsx` (570 - 1600 dòng) thành các phần nhỏ.
 Sau refactor, thêm một loại bài tập mới chỉ cần viết phần riêng của nó, không phải copy 1000 dòng.
@@ -169,11 +169,15 @@ Hàm thuần trong `shared.tsx` chưa chuyển sang `lib/` và chưa có unit te
 1. `history/page.tsx` (985 dòng): chuyển `HistoryActivityHeatmap`, `HistoryPerspectiveBody`, các hàm ngày (`startOfWeekMonday`, `formatDate`) sang `components/history/` và `lib/history/`. Thêm unit test cho hàm ngày.
 2. `HighlightTag.tsx` (614 dòng): tách phần chọn chữ (logic thuần) khỏi phần vẽ. Chỉ làm nếu thấy rõ chỗ tách; nếu không thì để lại.
 
+Kết quả: `history/page.tsx` 985 -> 576 dòng. `components/history/useHistoryPage.tsx` (state, tải dữ liệu, lọc, xoá), `HistoryActivityHeatmap`, `HistoryPerspectiveBody`; hàm thuần ở `lib/history.ts` (có test). HighlightTag để nguyên.
+
 ## Phase 5: hướng dẫn thêm loại bài mới
 
 1. Viết `web/docs/add-exercise-type.md`: các bước tạo thư mục, hook state, các step, đăng ký vào `FLOW_BY_TYPE`, thêm spec.
 2. Thêm dòng vào `AGENTS.md` của cogi: file trên 500 dòng thì tách trước khi thêm tính năng.
 3. Handbook không cần đổi (không có tính năng mới).
+
+Kết quả: `web/docs/add-exercise-type.md` (tiếng Anh, cho cả người và AI) và mục "Code layout" trong `AGENTS.md`.
 
 ## Rủi ro
 
