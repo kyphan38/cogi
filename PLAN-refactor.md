@@ -1,6 +1,6 @@
 # PLAN-refactor (cogi)
 
-Trạng thái: Phase 0, 1, 2 xong (Phase 2: 2026-11-16, branch `refactor/flow-phase2`). Playwright 215/215. Phase 3 chưa làm.
+Trạng thái: Phase 0-3 xong (Phase 3: 2026-11-16). Phase 4, 5 chưa làm.
 
 Mục tiêu: tách 7 file `*ExerciseFlow.tsx` (570 - 1600 dòng) thành các phần nhỏ.
 Sau refactor, thêm một loại bài tập mới chỉ cần viết phần riêng của nó, không phải copy 1000 dòng.
@@ -155,6 +155,14 @@ Các hàm thuần đang nằm đầu file (ví dụ `payloadToRow`, `systemsVari
 Thứ tự: Evaluative và Systems trước (to nhất, lợi nhiều nhất), rồi Analytical, Reframe, các loại còn lại.
 
 Mục tiêu: file flow chính dưới 200 dòng, mỗi file bước dưới 400 dòng.
+
+Kết quả: mỗi loại bài là một thư mục `components/exercises/<type>/`:
+- `<Type>ExerciseFlow.tsx` (47-94 dòng): chỉ chọn bước nào hiện.
+- `use<Type>Flow.tsx`: toàn bộ state, effect và action (giữ nguyên thứ tự hook). Kiểu `<Type>FlowState`.
+- `steps/*.tsx` (52-320 dòng): mỗi bước nhận `s` (state) và các giá trị đã được điều kiện thu hẹp (ví dụ `exercise` khác null, `variant` của Evaluative), truyền từ file chính.
+- `shared.tsx`: hằng số, hàm thuần và component nhỏ ở cấp file cũ.
+Hook state vẫn dài (324-743 dòng, Evaluative dài nhất). Muốn gọn hơn nữa thì tách tiếp theo phần (ví dụ hook generate riêng); chỉ làm khi sắp sửa loại bài đó.
+Hàm thuần trong `shared.tsx` chưa chuyển sang `lib/` và chưa có unit test riêng.
 
 ## Phase 4: trang History và HighlightTag
 

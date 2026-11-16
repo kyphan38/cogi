@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getExercise } from "@/lib/db/exercises";
-import { AnalyticalExerciseFlow } from "@/components/exercises/AnalyticalExerciseFlow";
-import { EvaluativeExerciseFlow } from "@/components/exercises/EvaluativeExerciseFlow";
-import { SystemsExerciseFlow } from "@/components/exercises/SystemsExerciseFlow";
-import { JudgmentExerciseFlow } from "@/components/exercises/JudgmentExerciseFlow";
-import { StrategyExerciseFlow } from "@/components/exercises/StrategyExerciseFlow";
-import { ReframeExerciseFlow } from "@/components/exercises/ReframeExerciseFlow";
-import { CalibrationExerciseFlow } from "@/components/exercises/CalibrationExerciseFlow";
+import { AnalyticalExerciseFlow } from "@/components/exercises/analytical/AnalyticalExerciseFlow";
+import { EvaluativeExerciseFlow } from "@/components/exercises/evaluative/EvaluativeExerciseFlow";
+import { SystemsExerciseFlow } from "@/components/exercises/systems/SystemsExerciseFlow";
+import { JudgmentExerciseFlow } from "@/components/exercises/judgment/JudgmentExerciseFlow";
+import { StrategyExerciseFlow } from "@/components/exercises/strategy/StrategyExerciseFlow";
+import { ReframeExerciseFlow } from "@/components/exercises/reframe/ReframeExerciseFlow";
+import { CalibrationExerciseFlow } from "@/components/exercises/calibration/CalibrationExerciseFlow";
 import { UnfinishedTopicNotice } from "@/components/exercises/UnfinishedTopicNotice";
 
 type Source = "generated" | "real_data" | "custom_scenario";
