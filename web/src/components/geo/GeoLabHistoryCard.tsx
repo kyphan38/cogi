@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Check, X } from "lucide-react";
 import { ALT_ROUTES, chokepointById } from "@/lib/geo/chokepoints";
 import { countryName } from "@/lib/geo/countries";
-import { placeById } from "@/lib/geo/places";
+import { placeName } from "@/lib/geo/places";
 import { timelineById } from "@/lib/geo/timelines";
 import type { GeoLabExerciseRow } from "@/lib/types/exercise";
 
@@ -23,7 +23,7 @@ export function GeoLabHistoryCard({ row }: { row: GeoLabExerciseRow }) {
           {answers.map((a) => (
             <li key={a.placeId} className="flex items-center gap-2">
               {a.correct ? <Check className="size-3.5 shrink-0" aria-label="Right" /> : <X className="size-3.5 shrink-0" aria-label="Missed" />}
-              <span className="min-w-0 flex-1">{placeById(a.placeId)?.name ?? a.placeId}</span>
+              <span className="min-w-0 flex-1">{placeName(a.placeId)}</span>
               <span className="text-muted-foreground tabular-nums">{a.distanceKm == null ? "skipped" : `${a.distanceKm.toLocaleString("en-US")} km`}</span>
             </li>
           ))}

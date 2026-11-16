@@ -21,12 +21,15 @@ export interface GeoQuizAnswer {
   distanceKm: number | null;
   /** A sea question tapped on land. */
   onLand?: boolean;
+  /** Asked by its "why" note instead of its name. */
+  byClue?: boolean;
   correct: boolean;
 }
 
 /** Score one tap. Sea questions never count a tap on land. */
-export function scoreTap(place: Place, tap: LonLat | null, onLand = false): GeoQuizAnswer {
-  if (!tap) return { placeId: place.id, tap: null, distanceKm: null, correct: false };
+export function scoreTap(place: Place, tap: LonLat | null, onLand = false, byClue = false): GeoQuizAnswer {
+  const clue = byClue ? { byClue: true } : {};
+  if (!tap) return { placeId: place.id, tap: null, distanceKm: null, ...clue, correct: false };
   const d = distanceToTargetKm(tap, place.target);
   const landMiss = place.kind === "sea" && onLand;
   return {
@@ -34,6 +37,7 @@ export function scoreTap(place: Place, tap: LonLat | null, onLand = false): GeoQ
     tap,
     distanceKm: Math.round(d),
     ...(landMiss ? { onLand: true } : {}),
+    ...clue,
     correct: d <= place.toleranceKm && !landMiss,
   };
 }
@@ -54,6 +58,7 @@ export interface QuizAttempt {
   placeId: string;
   correct: boolean;
   day: string;
+  byClue?: boolean;
 }
 
 /** Where a missed place stands in its review; `due` is the day it comes back. */
@@ -105,6 +110,8 @@ export function pickQuizPlaces(input: {
   today: string;
   count?: number;
   exclude?: Set<string>;
+  /** New places to ask before other new places (e.g. named in the user's exercises). */
+  prefer?: Set<string>;
   places?: Place[];
 }): Place[] {
   const { attempts, today } = input;
@@ -127,13 +134,15 @@ export function pickQuizPlaces(input: {
     .sort((a, b) => schedule.get(a.id)!.due.localeCompare(schedule.get(b.id)!.due) || a.id.localeCompare(b.id));
   due.slice(0, Math.min(MAX_REVIEWS_PER_QUIZ, count)).forEach(take);
 
+  const preferred = (p: Place) => (input.prefer?.has(p.id) ? 0 : 1);
   const fresh = places
     .filter((p) => !lastSeen.has(p.id))
-    .sort((a, b) => a.level - b.level || hash(today + a.id) - hash(today + b.id));
+    .sort((a, b) => preferred(a) - preferred(b) || a.level - b.level || hash(today + a.id) - hash(today + b.id));
   while (picked.length < count && fresh.some((p) => !picked.includes(p))) {
     const kinds = new Set(picked.map((p) => p.kind));
     const left = fresh.filter((p) => !picked.includes(p));
-    const easiest = left.filter((p) => p.level === left[0]!.level);
+    const first = left[0]!;
+    const easiest = left.filter((p) => preferred(p) === preferred(first) && p.level === first.level);
     take(easiest.find((p) => !kinds.has(p.kind)) ?? easiest[0]!);
   }
 
@@ -148,10 +157,42 @@ export function pickQuizPlaces(input: {
   return picked;
 }
 
-/** How many places are in review, and how many of them are due by `today`. */
-export function reviewCounts(attempts: QuizAttempt[], today: string): { inReview: number; due: number } {
+/** Where the user stands with one place. */
+export type PlaceProgress = "known" | "review" | "new";
+
+/**
+ * "new": never asked. "review": missed and not yet fixed by the review steps.
+ * "known": asked, and not in review.
+ */
+export function placeProgress(attempts: QuizAttempt[], places: Place[] = PLACES): Map<string, PlaceProgress> {
   const schedule = reviewSchedule(attempts);
+  const seen = new Set(attempts.map((a) => a.placeId));
+  return new Map(places.map((p) => [p.id, schedule.has(p.id) ? "review" : seen.has(p.id) ? "known" : "new"]));
+}
+
+/**
+ * Places to ask by their "why" note instead of their name: the user already found
+ * them by name and they are not in review. Knowing where a place is comes first;
+ * knowing why it matters comes next.
+ */
+export function clueModeIds(attempts: QuizAttempt[], places: Place[]): Set<string> {
+  const progress = placeProgress(attempts, places);
+  const rightByName = new Set(attempts.filter((a) => a.correct && !a.byClue).map((a) => a.placeId));
+  return new Set(places.filter((p) => progress.get(p.id) === "known" && rightByName.has(p.id)).map((p) => p.id));
+}
+
+/**
+ * How many places are in review, and how many of them are due by `today`. Places no
+ * longer in the quiz are not counted: they can never be asked again.
+ */
+export function reviewCounts(attempts: QuizAttempt[], today: string, places: Place[] = PLACES): { inReview: number; due: number } {
+  const live = new Set(places.map((p) => p.id));
+  let inReview = 0;
   let due = 0;
-  for (const s of schedule.values()) if (s.due <= today) due += 1;
-  return { inReview: schedule.size, due };
+  for (const [id, s] of reviewSchedule(attempts)) {
+    if (!live.has(id)) continue;
+    inReview += 1;
+    if (s.due <= today) due += 1;
+  }
+  return { inReview, due };
 }

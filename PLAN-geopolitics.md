@@ -353,3 +353,17 @@ desktop + mobile. Không dùng AI. Chủ app giao cho tự quyết 5 ca đầu.
 - Không dự đoán hay chấm điểm quan điểm chính trị của người dùng; chỉ chấm cách lập luận
   và độ khớp với dữ kiện.
 - Không dùng bản đồ có tên hay ranh giới thể hiện lập trường về vùng tranh chấp.
+
+---
+
+## Cập nhật quiz bản đồ (2026-11-15)
+
+Sau review với chủ app: quiz bản đồ cần cho biết *vì sao* một nơi quan trọng, và chỉ hỏi những nơi quan trọng hôm nay.
+
+- **Danh sách:** 98 -> 50 nơi. Bỏ những nơi ít gắn với tin tức (Andes, Alps, Nairobi, Kiel...). Thêm Đài Loan (đảo). Tên các nơi đã bỏ vẫn hiện trong History (`RETIRED_PLACE_NAMES`).
+- **Ghi chú "why it matters":** 1-2 câu, có nguồn, đối chiếu Wikipedia ngày 2026-11-15. Eo biển dùng lại ghi chú EIA của "Close the strait". Ghi chú không chứa tên nơi đó (có test), nên dùng được làm câu đố.
+- **Hỏi theo vai trò:** nơi đã tìm đúng theo tên và không cần ôn sẽ được hỏi lại bằng ghi chú ("Tap this strait or canal: ...").
+- **Nơi liên quan:** mỗi nơi có 1-4 nơi liên quan (`RELATED_PLACES`), vẽ màu xám trên bản đồ đáp án.
+- **Từ bài tập của bạn:** nơi được nhắc trong 60 bài gần nhất (không tính Geo Lab) được hỏi trước, gắn nhãn "In your exercises".
+- **Bản đồ tiến độ "Your map":** chấm đậm = đã biết, vòng = cần ôn, chấm xám = chưa hỏi; có bảng dữ liệu.
+- **Ngày kiểm tra:** mỗi ghi chú hiện "checked Nov 2026" (`NOTES_CHECKED_ON`). Việc cần làm: kiểm tra lại các ghi chú ít nhất mỗi năm một lần (lần tới: trước 2027-11).

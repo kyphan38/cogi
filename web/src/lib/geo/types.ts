@@ -16,11 +16,15 @@ const WIKI_TITLES: Record<string, string> = {
   "Ngoc Linh": "Ngọc Linh",
 };
 
+const wikiUrl = (page: string) =>
+  `https://en.wikipedia.org/wiki/${encodeURIComponent((WIKI_TITLES[page] ?? page).replace(/ /g, "_"))}`;
+
 /** Wikipedia page used as the source of a coordinate. */
 export function wikiSource(page: string): GeoSource {
-  const title = WIKI_TITLES[page] ?? page;
-  return {
-    label: `Wikipedia: ${page} (coordinates)`,
-    url: `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`,
-  };
+  return { label: `Wikipedia: ${page} (coordinates)`, url: wikiUrl(page) };
+}
+
+/** Wikipedia page used as the source of a fact. */
+export function wikiFact(page: string): GeoSource {
+  return { label: `Wikipedia: ${page}`, url: wikiUrl(page) };
 }

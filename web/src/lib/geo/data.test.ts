@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ALT_ROUTES, CHOKEPOINTS, STRAIT_GAME_IDS } from "./chokepoints";
 import { COUNTRY_NAMES } from "./countries";
-import { PLACES } from "./places";
+import { PLACES, placeById, placeName, RELATED_PLACES } from "./places";
 import { REGIONS, bboxContains } from "./regions";
 import { countryFeatures, isOnLand } from "./world";
 import type { GeoSource, LonLat } from "./types";
@@ -71,8 +71,8 @@ describe("chokepoints data", () => {
 });
 
 describe("places data", () => {
-  it("has about 80 or more places with unique ids and names", () => {
-    expect(PLACES.length).toBeGreaterThanOrEqual(80);
+  it("has a focused list of places with unique ids and names", () => {
+    expect(PLACES.length).toBeGreaterThanOrEqual(40);
     expect(new Set(PLACES.map((p) => p.id)).size).toBe(PLACES.length);
     expect(new Set(PLACES.map((p) => p.name)).size).toBe(PLACES.length);
   });
@@ -87,6 +87,49 @@ describe("places data", () => {
       expect(p.toleranceKm, p.id).toBeLessThanOrEqual(800);
       if (p.kind === "capital") expect(p.country, p.id).toBeTruthy();
     }
+  });
+
+  it("says why each place matters, in short plain text with a source", () => {
+    for (const p of PLACES) {
+      expect(p.why.trim().length, p.id).toBeGreaterThan(20);
+      expect(p.why.length, p.id).toBeLessThanOrEqual(180);
+      expect(p.why.split(/(?<=\.)\s+/).length, `${p.id}: at most two sentences`).toBeLessThanOrEqual(2);
+      expect(p.whySources.length, p.id).toBeGreaterThan(0);
+      p.whySources.forEach((s) => expect(validSource(s), p.id).toBe(true));
+    }
+  });
+
+  it("never names the place in its own note, so the note can be a clue", () => {
+    for (const p of PLACES) {
+      for (const n of [p.name.replace(/, D\.C\.$/, ""), p.alsoCalled].filter(Boolean) as string[]) {
+        expect(p.why.toLowerCase().includes(n.toLowerCase()), `${p.id} names "${n}"`).toBe(false);
+      }
+    }
+  });
+
+  it("dates every note, never in the future", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    for (const p of PLACES) {
+      expect(p.checkedOn, p.id).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(p.checkedOn <= today, p.id).toBe(true);
+    }
+  });
+
+  it("links only real places, never the place itself", () => {
+    for (const [id, related] of Object.entries(RELATED_PLACES)) {
+      expect(placeById(id), id).toBeTruthy();
+      for (const r of related) {
+        expect(placeById(r), `${id} -> ${r}`).toBeTruthy();
+        expect(r, id).not.toBe(id);
+      }
+    }
+    for (const p of PLACES) expect(RELATED_PLACES[p.id]?.length ?? 0, p.id).toBeGreaterThan(0);
+  });
+
+  it("keeps old place ids readable in History", () => {
+    expect(placeName("nairobi")).toBe("Nairobi");
+    expect(placeName("hanoi")).toBe("Hanoi");
+    expect(placeName("no-such-place")).toBe("no-such-place");
   });
 
   it("asks each place on a map view that shows it", () => {
@@ -111,7 +154,7 @@ describe("places data", () => {
 
   it("is written in English only", () => {
     for (const p of PLACES) {
-      expect(VIETNAMESE.test(`${p.name} ${p.alsoCalled ?? ""} ${p.sources.map((s) => s.label).join(" ")}`), p.id).toBe(false);
+      expect(VIETNAMESE.test(`${p.name} ${p.alsoCalled ?? ""} ${p.why} ${[...p.sources, ...p.whySources].map((s) => s.label).join(" ")}`), p.id).toBe(false);
     }
     for (const c of CHOKEPOINTS) {
       expect(VIETNAMESE.test(JSON.stringify(c)), c.id).toBe(false);

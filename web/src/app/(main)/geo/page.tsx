@@ -15,9 +15,10 @@ import { logFirestoreQueryError } from "@/lib/db/firestore";
 import type { ChokepointId, RouteId } from "@/lib/geo/chokepoints";
 import { GEO_GAME_CASES } from "@/lib/geo/game-cases";
 import { TIMELINE_CASES, timelineById } from "@/lib/geo/timelines";
-import { listGeoLabRows, requestStraitExplanation, saveGeoLabRow } from "@/lib/geo/client";
-import type { Place } from "@/lib/geo/places";
-import { localDay, pickQuizPlaces, QUIZ_LENGTH, reviewCounts, type GeoQuizAnswer } from "@/lib/geo/quiz";
+import { listRecentExercises, requestStraitExplanation, saveGeoLabRow } from "@/lib/geo/client";
+import { PlaceProgressMap } from "@/components/geo/PlaceProgressMap";
+import { placesMentionedIn, type Place } from "@/lib/geo/places";
+import { clueModeIds, localDay, pickQuizPlaces, placeProgress, QUIZ_LENGTH, reviewCounts, type GeoQuizAnswer } from "@/lib/geo/quiz";
 import { makeQuizRow, makeStraitRow, makeTimelineRow, placesAskedOn, quizAttempts, quizDoneOn, quizRows } from "@/lib/geo/rows";
 import type { StraitResult } from "@/lib/geo/strait";
 import type { Exercise, GeoLabExerciseRow } from "@/lib/types/exercise";
@@ -26,7 +27,7 @@ import { ExploreTabs } from "@/components/shell/ExploreTabs";
 
 type View =
   | { kind: "home" }
-  | { kind: "quiz"; places: Place[]; startedAt: string }
+  | { kind: "quiz"; places: Place[]; startedAt: string; clueIds: Set<string>; fromExercises: Set<string> }
   | { kind: "results"; places: Place[]; answers: GeoQuizAnswer[] }
   | { kind: "strait"; startedAt: string }
   | { kind: "cards" }
@@ -37,20 +38,32 @@ type View =
  * Geo Lab (PLAN-geopolitics.md G2): a daily map quiz with spaced review, and "Close
  * the strait". Every fact comes from a fixed, sourced data set in lib/geo.
  */
+/** How many recent exercises are searched for place names. */
+const MENTION_ROWS = 60;
+
 export default function GeoLabPage() {
   const { show: showToast } = useToast();
   const [rows, setRows] = useState<Exercise[] | null>(null);
+  /** Places named in the user's recent exercises (not Geo Lab rows). */
+  const [mentioned, setMentioned] = useState<Set<string>>(new Set());
   const [view, setView] = useState<View>({ kind: "home" });
   const straitRow = useRef<GeoLabExerciseRow | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    listGeoLabRows()
-      .then((r) => {
-        if (!cancelled) setRows(r);
+    listRecentExercises()
+      .then((all) => {
+        if (cancelled) return;
+        setRows(all.filter((r) => r.type === "geo"));
+        const texts = all
+          .filter((r) => r.type !== "geo")
+          .sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? ""))
+          .slice(0, MENTION_ROWS)
+          .map((r) => JSON.stringify(r));
+        setMentioned(placesMentionedIn(texts));
       })
       .catch((e) => {
-        logFirestoreQueryError("GeoLabPage", "listGeoLabRows", e);
+        logFirestoreQueryError("GeoLabPage", "listRecentExercises", e);
         if (!cancelled) setRows([]);
       });
     return () => {
@@ -79,8 +92,15 @@ export default function GeoLabPage() {
       attempts,
       today,
       exclude: doneToday ? placesAskedOn(rows ?? [], today) : undefined,
+      prefer: mentioned,
     });
-    setView({ kind: "quiz", places, startedAt: new Date().toISOString() });
+    setView({
+      kind: "quiz",
+      places,
+      startedAt: new Date().toISOString(),
+      clueIds: clueModeIds(attempts, places),
+      fromExercises: mentioned,
+    });
     window.scrollTo({ top: 0 });
   };
 
@@ -168,6 +188,17 @@ export default function GeoLabPage() {
             </CardContent>
           </Card>
 
+          {rows != null && attempts.length > 0 ? (
+            <Card data-testid="geo-progress-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-body">Your map</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PlaceProgressMap progress={placeProgress(attempts)} />
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card data-testid="geo-strait-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-body">Close the strait</CardTitle>
@@ -247,7 +278,11 @@ export default function GeoLabPage() {
       ) : null}
 
       {view.kind === "quiz" ? (
-        <MapQuiz places={view.places} onFinish={(answers) => finishQuiz(view.places, view.startedAt, answers)} />
+        <MapQuiz
+          places={view.places}
+          clueIds={view.clueIds}
+          fromExercises={view.fromExercises}
+          onFinish={(answers) => finishQuiz(view.places, view.startedAt, answers)} />
       ) : null}
 
       {view.kind === "results" ? (

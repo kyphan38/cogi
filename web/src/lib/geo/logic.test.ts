@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { chokepointById, nauticalMilesToKm } from "./chokepoints";
 import { distanceKm, distanceToTargetKm, fitProjection } from "./geometry";
-import { placeById, placeQuestion, type Place } from "./places";
-import { addDays, pickQuizPlaces, reviewCounts, reviewSchedule, scoreTap, type QuizAttempt } from "./quiz";
+import { placeById, placeQuestion, placesMentionedIn, type Place } from "./places";
+import { addDays, clueModeIds, pickQuizPlaces, placeProgress, reviewCounts, reviewSchedule, scoreTap, type QuizAttempt } from "./quiz";
 import { REGIONS } from "./regions";
 import { scoreStrait, straitChoices } from "./strait";
 import type { LonLat } from "./types";
@@ -116,6 +116,11 @@ describe("spaced review", () => {
     const attempts = [miss("hanoi", "2026-10-01"), miss("tokyo", "2026-10-03")];
     expect(reviewCounts(attempts, "2026-10-02")).toEqual({ inReview: 2, due: 1 });
   });
+
+  it("does not count places taken out of the quiz", () => {
+    const attempts = [miss("hanoi", "2026-10-01"), miss("nairobi", "2026-10-01")];
+    expect(reviewCounts(attempts, "2026-10-05")).toEqual({ inReview: 1, due: 1 });
+  });
 });
 
 describe("picking quiz places", () => {
@@ -189,5 +194,46 @@ describe("close the strait scoring", () => {
     const choices = straitChoices(hormuz);
     expect(choices).toHaveLength(8);
     expect(choices[0]).toBe("036"); // Australia
+  });
+});
+
+describe("map quiz: clues, linked places and mentions", () => {
+  const at = (placeId: string, correct: boolean, byClue = false): QuizAttempt => ({ placeId, correct, day: "2026-10-01", ...(byClue ? { byClue } : {}) });
+
+  it("asks a place by its clue only after the user found it by name and is not in review", () => {
+    const places = ["hanoi", "tokyo", "cairo", "paris"].map((id) => placeById(id)!);
+    const attempts = [at("hanoi", true), at("tokyo", false), at("cairo", true, true)];
+    expect([...clueModeIds(attempts, places)]).toEqual(["hanoi"]);
+  });
+
+  it("shows where the user stands with each place", () => {
+    const progress = placeProgress([at("hanoi", true), at("tokyo", false)]);
+    expect(progress.get("hanoi")).toBe("known");
+    expect(progress.get("tokyo")).toBe("review");
+    expect(progress.get("paris")).toBe("new");
+  });
+
+  it("puts places from the user's exercises first among new places", () => {
+    const picked = pickQuizPlaces({ attempts: [], today: "2026-10-04", prefer: new Set(["kuril", "lombok"]) }).map((p) => p.id);
+    expect(picked.slice(0, 2).sort()).toEqual(["kuril", "lombok"]);
+  });
+
+  it("finds place names as whole words, and does not read the Taiwan Strait as Taiwan", () => {
+    const found = placesMentionedIn(["Ships avoid the Red Sea. Talks in Washington and Kyiv.", "A drill in the Taiwan Strait."]);
+    expect(found.has("red-sea")).toBe(true);
+    expect(found.has("washington")).toBe(true);
+    expect(found.has("kyiv")).toBe(true);
+    expect(found.has("taiwan-strait")).toBe(true);
+    expect(found.has("taiwan")).toBe(false);
+    expect(placesMentionedIn(["Parisian cafes"]).has("paris")).toBe(false);
+  });
+
+  it("asks a clue question with the note instead of the name", () => {
+    const hormuz = placeById("hormuz")!;
+    const q = placeQuestion(hormuz, "clue");
+    expect(q.startsWith("Tap this strait or canal: ")).toBe(true);
+    expect(q).toContain(hormuz.why);
+    expect(scoreTap(hormuz, null, false, true).byClue).toBe(true);
+    expect("byClue" in scoreTap(hormuz, null)).toBe(false);
   });
 });

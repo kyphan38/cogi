@@ -4,15 +4,23 @@ import { useMemo, useRef, useState } from "react";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GeoMap, LineKey, type MapLine, type MapMarker } from "@/components/geo/GeoMap";
-import { PLACE_KIND_LABELS, placeQuestion, type Place } from "@/lib/geo/places";
-import { REGIONS } from "@/lib/geo/regions";
+import { PLACE_KIND_LABELS, placeMidpoint, placeQuestion, relatedPlaces, type Place } from "@/lib/geo/places";
+import { bboxContains, REGIONS } from "@/lib/geo/regions";
 import { REVIEW_INTERVALS, scoreTap, type GeoQuizAnswer } from "@/lib/geo/quiz";
 import type { LonLat } from "@/lib/geo/types";
 import { isOnLand } from "@/lib/geo/world";
 
 const fmtKm = (km: number) => `${km.toLocaleString("en-US")} km`;
 
+const fmtChecked = (day: string) =>
+  new Date(`${day}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+
 function feedback(place: Place, a: GeoQuizAnswer): string {
+  if (a.byClue) return `${place.name}. ${feedbackBody(place, a)}`;
+  return feedbackBody(place, a);
+}
+
+function feedbackBody(place: Place, a: GeoQuizAnswer): string {
   if (a.tap == null) return "Here it is on the map.";
   if (a.onLand) return `That point is on land, ${fmtKm(a.distanceKm!)} from the right place. A sea answer must be at sea.`;
   if (a.correct) return `Right. Your tap was ${fmtKm(a.distanceKm!)} away.`;
@@ -38,9 +46,15 @@ function placeMarks(place: Place): { markers: MapMarker[]; lines: MapLine[] } {
  */
 export function MapQuiz({
   places,
+  clueIds,
+  fromExercises,
   onFinish,
 }: {
   places: Place[];
+  /** Places asked by their "why" note instead of their name. */
+  clueIds?: Set<string>;
+  /** Places named in the user's recent exercises. */
+  fromExercises?: Set<string>;
   /** Called once with every answer, in order; the caller saves the row. */
   onFinish: (answers: GeoQuizAnswer[]) => void;
 }) {
@@ -51,11 +65,12 @@ export function MapQuiz({
   const finished = useRef(false);
   const place = places[index];
   const answer = answers[index];
+  const byClue = !!place && !!clueIds?.has(place.id);
 
   const answerWith = (tap: LonLat | null) => {
     if (!place || answer) return;
     const onLand = tap != null && place.kind === "sea" && isOnLand(tap);
-    setAnswers((prev) => [...prev, scoreTap(place, tap, onLand)]);
+    setAnswers((prev) => [...prev, scoreTap(place, tap, onLand, byClue)]);
     setPending(null);
   };
 
@@ -77,6 +92,12 @@ export function MapQuiz({
       return { markers: pending ? [{ id: "pending", coords: pending, label: "Your tap", shape: "tap" as const }] : [], lines: [] };
     }
     const m = placeMarks(place);
+    // Related places in this view, faint, so places are learned in groups.
+    const bbox = REGIONS[place.region].bbox;
+    for (const r of relatedPlaces(place)) {
+      const at = placeMidpoint(r);
+      if (bboxContains(bbox, at)) m.markers.unshift({ id: `related-${r.id}`, coords: at, label: r.name, detail: r.why, shape: "faint", showLabel: true });
+    }
     if (answer.tap) {
       m.markers.push({ id: "tap", coords: answer.tap, label: "Your tap", shape: "tap" });
       if (place.target.length === 1) m.lines.push({ id: "gap", coords: [answer.tap, place.target[0]!], faint: true });
@@ -98,11 +119,17 @@ export function MapQuiz({
           <span>{PLACE_KIND_LABELS[place.kind]}</span>
           <span aria-hidden>·</span>
           <span>{region.label}</span>
+          {fromExercises?.has(place.id) ? (
+            <>
+              <span aria-hidden>·</span>
+              <span data-testid="quiz-from-exercises">In your exercises</span>
+            </>
+          ) : null}
         </p>
         <p className="text-body font-medium text-foreground" data-testid="quiz-question">
-          {placeQuestion(place)}
+          {placeQuestion(place, byClue ? "clue" : "name")}
         </p>
-        {place.alsoCalled ? <p className="text-muted-foreground text-body">Also called {place.alsoCalled}.</p> : null}
+        {place.alsoCalled && !byClue ? <p className="text-muted-foreground text-body">Also called {place.alsoCalled}.</p> : null}
       </div>
 
       <GeoMap
@@ -123,6 +150,14 @@ export function MapQuiz({
               {place.name}
             </span>
             {place.target.length > 1 ? <LineKey label="Where it runs" /> : null}
+            {marks.markers.some((mk) => mk.shape === "faint") ? (
+              <span className="inline-flex items-center gap-1.5">
+                <svg width="12" height="12" aria-hidden>
+                  <circle cx="6" cy="6" r="3.5" fill="var(--z-500)" stroke="var(--z-white)" strokeWidth="1.5" />
+                </svg>
+                Linked places
+              </span>
+            ) : null}
             {answer.tap ? (
               <span className="inline-flex items-center gap-1.5">
                 <svg width="12" height="12" aria-hidden>
@@ -146,6 +181,26 @@ export function MapQuiz({
             {answer.correct ? <Check className="mt-0.5 size-4 shrink-0" aria-hidden /> : <X className="mt-0.5 size-4 shrink-0" aria-hidden />}
             <span>{feedback(place, answer)}</span>
           </p>
+          <div className="space-y-1 border-l-2 border-border pl-3" data-testid="quiz-why">
+            {byClue ? null : <p className="text-body text-foreground">{place.why}</p>}
+            {relatedPlaces(place).length ? (
+              <p className="text-body text-muted-foreground" data-testid="quiz-related">
+                Linked: {relatedPlaces(place).map((r) => r.name).join(", ")}
+              </p>
+            ) : null}
+            <p className="text-muted-foreground text-meta">
+              Source:{" "}
+              {place.whySources.map((s, i) => (
+                <span key={s.url}>
+                  {i > 0 ? "; " : null}
+                  <a href={s.url} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground">
+                    {s.label}
+                  </a>
+                </span>
+              ))}
+              {" "}· checked {fmtChecked(place.checkedOn)}
+            </p>
+          </div>
           <Button type="button" onClick={next} data-testid="quiz-next">
             {index + 1 < places.length ? "Next" : "See results"}
           </Button>

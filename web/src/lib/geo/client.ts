@@ -3,9 +3,13 @@ import { listCompletedExercises, putExercise } from "@/lib/db/exercises";
 import type { ChokepointId, RouteId } from "@/lib/geo/chokepoints";
 import type { Exercise, GeoLabExerciseRow, GeoStraitExplanation } from "@/lib/types/exercise";
 
-/** Finished Geo Lab rows (map quizzes and straits). */
-export function listGeoLabRows(): Promise<Exercise[]> {
-  return listCompletedExercises({ type: "geo" });
+/**
+ * Every finished exercise. The Geo Lab uses its own rows (type "geo") for the quiz and
+ * searches the others for place names. The type filter always ran in code, so this
+ * reads no more rows than asking for geo rows only.
+ */
+export function listRecentExercises(): Promise<Exercise[]> {
+  return listCompletedExercises();
 }
 
 export function saveGeoLabRow(row: GeoLabExerciseRow): Promise<void> {

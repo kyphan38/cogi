@@ -79,7 +79,7 @@ export function quizRows(rows: Exercise[]): GeoLabExerciseRow[] {
 export function quizAttempts(rows: Exercise[]): QuizAttempt[] {
   return quizRows(rows).flatMap((r) => {
     const day = localDay(new Date(r.completedAt!));
-    return (r.quiz ?? []).map((a) => ({ placeId: a.placeId, correct: a.correct, day }));
+    return (r.quiz ?? []).map((a) => ({ placeId: a.placeId, correct: a.correct, day, ...(a.byClue ? { byClue: true } : {}) }));
   });
 }
 

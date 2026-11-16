@@ -62,6 +62,12 @@ test.describe("Geo Lab", () => {
     await tapRightPlace(page, map);
     await expect(page.getByTestId("quiz-feedback")).toHaveAttribute("data-correct", "true");
     await expect(page.getByTestId("quiz-feedback")).toContainText("Right. Your tap was");
+    // Every answer says why the place matters, with a source link.
+    const firstPlace = PLACES.find((p) => placeQuestion(p) === asked[0]?.trim())!;
+    await expect(page.getByTestId("quiz-why")).toContainText(firstPlace.why);
+    await expect(page.getByTestId("quiz-why").getByRole("link").first()).toHaveAttribute("href", firstPlace.whySources[0]!.url);
+    await expect(page.getByTestId("quiz-why")).toContainText("checked");
+    await expect(page.getByTestId("quiz-related")).toContainText("Linked: ");
     await expect(map.locator('[data-marker="answer"]')).toBeVisible();
     await page.getByTestId("quiz-next").click();
 
@@ -89,6 +95,9 @@ test.describe("Geo Lab", () => {
 
     await expect(page.getByTestId("geo-quiz-status")).toContainText("Done for today: 3 of 5");
     await expect(page.getByTestId("geo-quiz-start")).toHaveText("Another round");
+    // The progress map counts the 3 right answers as known.
+    await expect(page.getByTestId("geo-progress-count")).toHaveText(`You know 3 of ${PLACES.length} places.`);
+    await expect(page.getByTestId("geo-progress-map").locator("[data-marker^='progress-']")).toHaveCount(PLACES.length);
 
     // An extra round asks other places.
     await page.getByTestId("geo-quiz-start").click();

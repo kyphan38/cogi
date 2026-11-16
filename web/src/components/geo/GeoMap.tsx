@@ -32,8 +32,11 @@ export interface MapMarker {
   label: string;
   /** Extra line in the tooltip. */
   detail?: string;
-  /** "point": a place. "tap": where the user tapped. "ring": a chokepoint to pick. */
-  shape?: "point" | "tap" | "ring";
+  /**
+   * "point": a place. "tap": where the user tapped. "ring": a chokepoint to pick, or
+   * an open mark. "faint": a small grey dot for context (related or unseen places).
+   */
+  shape?: "point" | "tap" | "ring" | "faint";
   /** Draw the label on the map (keep this for the one or two marks that matter). */
   showLabel?: boolean;
   selected?: boolean;
@@ -369,6 +372,8 @@ export function GeoMap({
                       stroke="var(--z-900)"
                       strokeWidth={2}
                     />
+                  ) : shape === "faint" ? (
+                    <circle r={3.5} fill="var(--z-500)" stroke="var(--z-white)" strokeWidth={1.5} />
                   ) : (
                     <circle r={5} fill="var(--z-900)" stroke="var(--z-white)" strokeWidth={2} />
                   )}
@@ -377,9 +382,9 @@ export function GeoMap({
                       x={x > MAP_WIDTH - 140 ? -10 : 10}
                       y={-9}
                       textAnchor={x > MAP_WIDTH - 140 ? "end" : "start"}
-                      fontSize={15}
-                      fontWeight={600}
-                      fill="var(--z-900)"
+                      fontSize={shape === "faint" ? 13 : 15}
+                      fontWeight={shape === "faint" ? 500 : 600}
+                      fill={shape === "faint" ? "var(--z-600)" : "var(--z-900)"}
                       stroke="var(--z-white)"
                       strokeWidth={3}
                       paintOrder="stroke"
