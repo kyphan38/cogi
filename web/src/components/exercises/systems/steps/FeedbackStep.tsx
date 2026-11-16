@@ -29,6 +29,8 @@ export function FeedbackStep({
     confidence,
     takeaway,
     setTakeaway,
+    usePlan,
+    setUsePlan,
     finishing,
     levelSuggestion,
     setLevelSuggestion,
@@ -81,6 +83,8 @@ export function FeedbackStep({
         <PracticeFinishCard
           takeaway={takeaway}
           onTakeawayChange={setTakeaway}
+          usePlan={usePlan}
+          onUsePlanChange={setUsePlan}
           onFinish={finishExercise}
           saving={finishing}
           finished={step === doneStep}

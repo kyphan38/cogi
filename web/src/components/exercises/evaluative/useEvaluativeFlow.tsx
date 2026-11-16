@@ -24,6 +24,7 @@ import {
 } from "@/lib/ai/validators/evaluative";
 import { EVALUATIVE_UNCERTAINTY_PROBABILITY_EPSILON } from "@/lib/analytics/calibration-evaluative";
 import { getLanguageLevelForRequest } from "@/lib/db/settings";
+import { getGenerationContext } from "@/lib/db/generation-context";
 import { putExercise } from "@/lib/db/exercises";
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
 import { getUserContext } from "@/lib/db/settings";
@@ -119,6 +120,8 @@ export function useEvaluativeFlow({
     setPerspectiveStructured,
     takeaway,
     setTakeaway,
+    usePlan,
+    setUsePlan,
     finishing,
     levelSuggestion,
     setLevelSuggestion,
@@ -251,7 +254,7 @@ export function useEvaluativeFlow({
       const { effectiveDomain: d, customScenarioOut } = resolved;
       setLoading(true);
       try {
-        const userContext = await getUserContext();
+        const userContext = await getGenerationContext();
         const languageLevel = await getLanguageLevelForRequest();
         const res = await aiFetch("/api/ai", {
           method: "POST",
@@ -310,6 +313,7 @@ export function useEvaluativeFlow({
         setPerspectiveText(null);
         setPerspectiveStructured(null);
         setTakeaway("");
+        setUsePlan("");
         setUserProposedCriteria(
           Array.from({ length: 4 }, () => ({ name: "", rationale: "" })),
         );
@@ -340,6 +344,8 @@ export function useEvaluativeFlow({
       setPerspectiveStructured,
       setStep,
       setTakeaway,
+      usePlan,
+      setUsePlan,
     ],
   );
 
@@ -791,6 +797,8 @@ export function useEvaluativeFlow({
     setPerspectiveStructured,
     takeaway,
     setTakeaway,
+    usePlan,
+    setUsePlan,
     finishing,
     levelSuggestion,
     setLevelSuggestion,

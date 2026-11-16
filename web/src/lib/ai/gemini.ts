@@ -57,18 +57,34 @@ function getClient(): GoogleGenAI {
   return client;
 }
 
+/** Gemini's raw JSON errors as one plain line: the routes pass e.message to the screen. */
+function plainGeminiError(e: unknown): unknown {
+  // 504 DEADLINE_EXCEEDED: routes look for "timed out".
+  if (e instanceof ApiError && e.status === 504) return new Error("Gemini request timed out");
+  // Out of credit (402) or rate limited (429).
+  if (e instanceof ApiError && (e.status === 402 || e.status === 429)) return new Error(AI_QUOTA_MESSAGE);
+  return e;
+}
+
+/** Audio sent with a prompt, as base64. `mimeType` has no `;codecs=` part. */
+export interface InlineAudio {
+  data: string;
+  mimeType: string;
+}
+
 async function generateText(
   fullPrompt: string,
   modelName: GeminiModel,
   timeoutMs: number,
   config: { temperature: number; responseMimeType?: string; responseJsonSchema?: unknown },
+  audio?: InlineAudio,
 ): Promise<string> {
   let response;
   try {
     const { model, thinkingConfig } = tier(modelName);
     response = await getClient().models.generateContent({
       model,
-      contents: fullPrompt,
+      contents: audio ? [{ role: "user", parts: [{ inlineData: audio }, { text: fullPrompt }] }] : fullPrompt,
       config: {
         ...config,
         ...(thinkingConfig ? { thinkingConfig } : {}),
@@ -76,12 +92,7 @@ async function generateText(
       },
     });
   } catch (e) {
-    // Gemini returns 504 DEADLINE_EXCEEDED with a raw JSON message; routes look for "timed out".
-    if (e instanceof ApiError && e.status === 504) throw new Error("Gemini request timed out");
-    // Out of credit (402) or rate limited (429): the routes pass e.message to the screen,
-    // so replace Gemini's raw JSON with one plain line.
-    if (e instanceof ApiError && (e.status === 402 || e.status === 429)) throw new Error(AI_QUOTA_MESSAGE);
-    throw e;
+    throw plainGeminiError(e);
   }
   const text = response.text;
   if (!text) {
@@ -114,4 +125,64 @@ export async function generatePlainTextRaw(
   timeoutMs: number = 25_000,
 ): Promise<string> {
   return generateText(fullPrompt, modelName, timeoutMs, { temperature: 0.45 });
+}
+
+/** JSON mode with one audio clip, e.g. a spoken answer to transcribe and judge. */
+export async function generateJsonFromAudio(
+  fullPrompt: string,
+  audio: InlineAudio,
+  modelName: GeminiModel = "fast",
+  timeoutMs: number = 40_000,
+  responseJsonSchema?: unknown,
+): Promise<string> {
+  return generateText(
+    fullPrompt,
+    modelName,
+    timeoutMs,
+    { temperature: 0.2, responseMimeType: "application/json", ...(responseJsonSchema ? { responseJsonSchema } : {}) },
+    audio,
+  );
+}
+
+export interface WebSource {
+  title: string;
+  uri: string;
+}
+
+/**
+ * Plain text written with Google Search. Returns the text and the pages the search
+ * used. No JSON mode here: a second, plain call shapes the text.
+ */
+export async function generateWithSearch(
+  fullPrompt: string,
+  modelName: GeminiModel = "fast",
+  timeoutMs: number = 35_000,
+): Promise<{ text: string; sources: WebSource[] }> {
+  let response;
+  try {
+    const { model, thinkingConfig } = tier(modelName);
+    response = await getClient().models.generateContent({
+      model,
+      contents: fullPrompt,
+      config: {
+        temperature: 0.3,
+        tools: [{ googleSearch: {} }],
+        ...(thinkingConfig ? { thinkingConfig } : {}),
+        httpOptions: { timeout: timeoutMs },
+      },
+    });
+  } catch (e) {
+    throw plainGeminiError(e);
+  }
+  const text = response.text;
+  if (!text) throw new Error("Empty response from Gemini");
+  const seen = new Set<string>();
+  const sources: WebSource[] = [];
+  for (const chunk of response.candidates?.[0]?.groundingMetadata?.groundingChunks ?? []) {
+    const uri = chunk.web?.uri;
+    if (!uri || seen.has(uri)) continue;
+    seen.add(uri);
+    sources.push({ title: chunk.web?.title?.trim() || "Source", uri });
+  }
+  return { text, sources };
 }

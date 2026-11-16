@@ -20,10 +20,11 @@ describe("resumableRow", () => {
 
 describe("commonResumeState", () => {
   it("falls back to the defaults for an old or empty row", () => {
-    expect(commonResumeState({})).toEqual({ confidence: 50, takeaway: "", perspectiveStructured: undefined });
+    expect(commonResumeState({})).toEqual({ confidence: 50, takeaway: "", usePlan: "", perspectiveStructured: undefined });
     expect(commonResumeState({ confidenceBefore: null, takeaway: null, aiPerspectiveStructured: null })).toEqual({
       confidence: 50,
       takeaway: "",
+      usePlan: "",
       perspectiveStructured: undefined,
     });
   });

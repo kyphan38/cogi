@@ -79,6 +79,8 @@ export function useCalibrationFlow({
     setPerspectiveStructured,
     takeaway,
     setTakeaway,
+    usePlan,
+    setUsePlan,
     finishing,
     levelSuggestion,
     setLevelSuggestion,
@@ -156,6 +158,7 @@ export function useCalibrationFlow({
       setOpenTips({});
       setPerspectiveStructured(null);
       setTakeaway("");
+      setUsePlan("");
       setStep(1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not start the exercise");
@@ -433,6 +436,8 @@ export function useCalibrationFlow({
     setPerspectiveStructured,
     takeaway,
     setTakeaway,
+    usePlan,
+    setUsePlan,
     finishing,
     levelSuggestion,
     setLevelSuggestion,

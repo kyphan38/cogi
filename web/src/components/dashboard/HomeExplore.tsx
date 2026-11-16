@@ -59,6 +59,20 @@ export function HomeExplore({ completed, termsDue = 0 }: { completed: Exercise[]
           </div>
           <span className={GO}>Open</span>
         </Link>
+        <Link href="/forecasts" className={ROW} data-testid="forecasts-link">
+          <div className="min-w-0">
+            <p className="text-body">Forecasts</p>
+            <p className="text-meta text-muted-foreground">Guess a real event, then check it.</p>
+          </div>
+          <span className={GO}>Open</span>
+        </Link>
+        <Link href="/briefs" className={ROW} data-testid="briefs-link">
+          <div className="min-w-0">
+            <p className="text-body">Briefs</p>
+            <p className="text-meta text-muted-foreground">One big story of the last month.</p>
+          </div>
+          <span className={GO}>Open</span>
+        </Link>
         <Link href="/tracks" className={ROW}>
           <div className="min-w-0">
             <p className="text-body">All tracks</p>

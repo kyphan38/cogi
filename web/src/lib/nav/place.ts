@@ -19,6 +19,8 @@ export const EXPLORE_PAGES = [
   { href: "/tracks", label: "Tracks" },
   { href: "/geo", label: "Geo Lab" },
   { href: "/simulators", label: "Simulators" },
+  { href: "/forecasts", label: "Forecasts" },
+  { href: "/briefs", label: "Briefs" },
 ] as const satisfies readonly NavSection[];
 
 export interface NavPlace {
@@ -41,6 +43,7 @@ export function navPlace(pathname: string | null): NavPlace {
   if (path === "/handbook") return { section: handbook };
   if (path === "/settings") return { section: settings };
   if (path === "/reasoning") return { section: today, page: "New exercise" };
+  if (path === "/quick") return { section: today, page: "5-minute question" };
 
   const exercise = /^\/exercise\/([^/]+)/.exec(path);
   if (exercise) return { section: today, page: TYPE_LABEL[exercise[1]!] ?? "Exercise" };

@@ -29,6 +29,7 @@ import {
 } from "@/lib/ai/validators/systems";
 import { isGeopoliticsAnalyticalDomain } from "@/lib/exercise/geopolitics-domains";
 import { getLanguageLevelForRequest } from "@/lib/db/settings";
+import { getGenerationContext } from "@/lib/db/generation-context";
 import { getUserContext } from "@/lib/db/settings";
 import {
   useDebouncedSave,
@@ -112,6 +113,8 @@ export function useSystemsFlow({
     setPerspectiveStructured,
     takeaway,
     setTakeaway,
+    usePlan,
+    setUsePlan,
     finishing,
     levelSuggestion,
     setLevelSuggestion,
@@ -205,7 +208,7 @@ export function useSystemsFlow({
       const { effectiveDomain: d, customScenarioOut } = resolved;
       setLoading(true);
       try {
-        const userContext = await getUserContext();
+        const userContext = await getGenerationContext();
         const languageLevel = await getLanguageLevelForRequest();
         const res = await aiFetch("/api/ai", {
           method: "POST",
@@ -291,6 +294,7 @@ export function useSystemsFlow({
         setPerspectiveText(null);
         setPerspectiveStructured(null);
         setTakeaway("");
+        setUsePlan("");
         setLookAhead(EMPTY_LOOK_AHEAD);
         setLifeExample("");
         setUserPerspectiveBNotes("");
@@ -314,6 +318,8 @@ export function useSystemsFlow({
       setPerspectiveStructured,
       setStep,
       setTakeaway,
+      usePlan,
+      setUsePlan,
     ],
   );
 
@@ -659,6 +665,8 @@ export function useSystemsFlow({
     setPerspectiveStructured,
     takeaway,
     setTakeaway,
+    usePlan,
+    setUsePlan,
     finishing,
     levelSuggestion,
     setLevelSuggestion,

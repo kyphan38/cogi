@@ -22,6 +22,10 @@ import { Section } from "@/components/shared/Section";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { NextUp, exerciseForStep } from "@/components/dashboard/NextUp";
 import { HomeExplore } from "@/components/dashboard/HomeExplore";
+import { UseCheckRow } from "@/components/dashboard/UseCheckRow";
+import { ForecastsDue } from "@/components/dashboard/ForecastsDue";
+import { RedoRow } from "@/components/dashboard/RedoRow";
+import { WeakSpots } from "@/components/dashboard/WeakSpots";
 import { DISCARD_BUTTON_CLASS } from "@/components/dashboard/discard-button";
 
 /** How many unfinished exercises the page lists. */
@@ -108,6 +112,10 @@ export function HomeContent() {
 
       {completed ? <NextUp completed={completed} incomplete={incomplete} onDiscard={discardIncomplete} /> : null}
 
+      {completed ? <UseCheckRow completed={completed} /> : null}
+
+      <ForecastsDue />
+
       <Section title="Start your own">
         <Link
           href="/reasoning"
@@ -116,6 +124,16 @@ export function HomeContent() {
           <span className="min-w-0 truncate text-body text-muted-foreground">A decision, a claim, a news story…</span>
           <span className="shrink-0 text-body text-muted-foreground transition-colors after:ml-1 after:content-['›'] group-hover/new:text-foreground">
             New exercise
+          </span>
+        </Link>
+        <Link
+          href="/quick"
+          className="group/quick mt-2 flex h-12 items-center justify-between gap-4 rounded-lg border border-input bg-card px-4 transition-colors hover:border-foreground/40"
+          data-testid="quick-link"
+        >
+          <span className="min-w-0 truncate text-body text-muted-foreground">Busy day? One question, typed or spoken.</span>
+          <span className="shrink-0 text-body text-muted-foreground transition-colors after:ml-1 after:content-['›'] group-hover/quick:text-foreground">
+            5-minute question
           </span>
         </Link>
       </Section>
@@ -148,6 +166,10 @@ export function HomeContent() {
           </div>
         </Section>
       ) : null}
+
+      {completed ? <WeakSpots completed={completed} /> : null}
+
+      {completed ? <RedoRow completed={completed} incomplete={incomplete} /> : null}
 
       <HomeExplore completed={completed} termsDue={termsDue} />
     </main>

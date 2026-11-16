@@ -18,6 +18,8 @@ export function FeedbackStep({
     perspectiveStructured,
     takeaway,
     setTakeaway,
+    usePlan,
+    setUsePlan,
     finishing,
     levelSuggestion,
     setLevelSuggestion,
@@ -48,6 +50,8 @@ export function FeedbackStep({
         <PracticeFinishCard
           takeaway={takeaway}
           onTakeawayChange={setTakeaway}
+          usePlan={usePlan}
+          onUsePlanChange={setUsePlan}
           onFinish={finish}
           saving={finishing}
           finished={step === 7}

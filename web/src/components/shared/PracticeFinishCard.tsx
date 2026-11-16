@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,9 @@ import { cn } from "@/lib/utils";
 export interface PracticeFinishCardProps {
   takeaway: string;
   onTakeawayChange: (value: string) => void;
+  /** Where the user will use this in the next week. Today asks about it 7 days later. */
+  usePlan: string;
+  onUsePlanChange: (value: string) => void;
   onFinish: () => void | Promise<void>;
   saving: boolean;
   finished: boolean;
@@ -19,12 +23,14 @@ export interface PracticeFinishCardProps {
 }
 
 /**
- * End of the 3-step practice loop, under the AI feedback: one optional takeaway and
- * Finish. Replaces the old Journal, Action and Done steps.
+ * End of the 3-step practice loop, under the AI feedback: one optional takeaway, one
+ * optional "where will you use this" plan, and Finish.
  */
 export function PracticeFinishCard({
   takeaway,
   onTakeawayChange,
+  usePlan,
+  onUsePlanChange,
   onFinish,
   saving,
   finished,
@@ -32,6 +38,9 @@ export function PracticeFinishCard({
 }: PracticeFinishCardProps) {
   // "Saved" fades in only when Finish was pressed in this visit. A finished
   // exercise that opens saved shows it at once.
+  // A redo opens with `?resumeId=<id>&redo=1` (lib/db/redo.ts): link to the two tries in History.
+  const sp = useSearchParams();
+  const redoId = sp.get("redo") === "1" ? sp.get("resumeId") : null;
   const [prevFinished, setPrevFinished] = useState(finished);
   const [justSaved, setJustSaved] = useState(false);
   if (finished !== prevFinished) {
@@ -52,8 +61,23 @@ export function PracticeFinishCard({
               {takeaway.trim()}
             </p>
           ) : null}
+          {usePlan.trim() ? (
+            <p className="text-body" data-testid="use-plan-saved">
+              <span className="text-muted-foreground">This week: </span>
+              {usePlan.trim()}
+            </p>
+          ) : null}
           <div className="flex flex-wrap gap-2">
-            <Link href="/reasoning" className={cn(buttonVariants(), "inline-flex items-center")}>
+            {redoId ? (
+              <Link
+                href={`/exercise/history?openExercise=${encodeURIComponent(redoId)}`}
+                className={cn(buttonVariants(), "inline-flex items-center")}
+                data-testid="redo-compare-link"
+              >
+                Compare with first try
+              </Link>
+            ) : null}
+            <Link href="/reasoning" className={cn(buttonVariants(redoId ? { variant: "secondary" } : undefined), "inline-flex items-center")}>
               New exercise
             </Link>
             <Link href="/" className={cn(buttonVariants({ variant: "secondary" }), "inline-flex items-center")}>
@@ -76,6 +100,17 @@ export function PracticeFinishCard({
           value={takeaway}
           onChange={(e) => onTakeawayChange(e.target.value)}
           placeholder={takeawayPlaceholder ?? "One line is enough."}
+          rows={2}
+          disabled={saving}
+        />
+        <Label htmlFor="practice-use-plan" className="text-body font-medium">
+          Where will you use this this week? <span className="text-muted-foreground font-normal">(optional)</span>
+        </Label>
+        <Textarea
+          id="practice-use-plan"
+          value={usePlan}
+          onChange={(e) => onUsePlanChange(e.target.value)}
+          placeholder="A meeting, a decision, a talk. Today asks again in 7 days."
           rows={2}
           disabled={saving}
         />

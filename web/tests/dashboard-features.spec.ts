@@ -139,7 +139,7 @@ test.describe("AppTopNav navigation", () => {
     await expect(nav.getByRole("link", { name: "Handbook" })).toHaveClass(/font-medium/);
     await expect(page.getByTestId("handbook-start")).toContainText("Start here");
     // Every exercise type and tool has an entry, reachable from the contents.
-    await expect(page.getByTestId("handbook-entry")).toHaveCount(16);
+    await expect(page.getByTestId("handbook-entry")).toHaveCount(23);
     await page.getByTestId("handbook-contents").getByRole("link", { name: "Strategic situations" }).click();
     await expect(page).toHaveURL(/#strategy$/);
   });
@@ -166,7 +166,7 @@ test.describe("AppTopNav navigation", () => {
     await gotoAuthenticated(page, "/");
     await clickMainNavLink(page, "Explore", "/tracks");
     const tabs = page.getByTestId("explore-tabs");
-    await expect(tabs.getByRole("link")).toHaveText(["Tracks", "Geo Lab", "Simulators"]);
+    await expect(tabs.getByRole("link")).toHaveText(["Tracks", "Geo Lab", "Simulators", "Forecasts", "Briefs"]);
     await expect(tabs.getByRole("link", { name: "Tracks" })).toHaveAttribute("aria-current", "page");
     await tabs.getByRole("link", { name: "Simulators" }).click();
     await expect(page).toHaveURL(/\/simulators$/);

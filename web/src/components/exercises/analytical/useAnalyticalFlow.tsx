@@ -9,6 +9,7 @@ import type {
 } from "@/lib/types/exercise";
 import type { AnalyticalExercise } from "@/lib/ai/validators/common";
 import { getLanguageLevelForRequest } from "@/lib/db/settings";
+import { getGenerationContext } from "@/lib/db/generation-context";
 import { putExercise } from "@/lib/db/exercises";
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
 import { getUserContext } from "@/lib/db/settings";
@@ -103,6 +104,8 @@ export function useAnalyticalFlow({
     setPerspectiveStructured,
     takeaway,
     setTakeaway,
+    usePlan,
+    setUsePlan,
     finishing,
     levelSuggestion,
     setLevelSuggestion,
@@ -225,7 +228,7 @@ export function useAnalyticalFlow({
       }
       setLoading(true);
       try {
-        const userContext = await getUserContext();
+        const userContext = await getGenerationContext();
         const userTextForReal =
           effectiveMode === "real_data" ? sanitizedUserText : undefined;
         const languageLevel = await getLanguageLevelForRequest();
@@ -301,6 +304,7 @@ export function useAnalyticalFlow({
         setPerspectiveText(null);
         setPerspectiveStructured(null);
         setTakeaway("");
+        setUsePlan("");
         setUserPerspectiveGuess("");
         setMissingActorGuess1("");
         setMissingActorGuess2("");
@@ -324,6 +328,8 @@ export function useAnalyticalFlow({
       setPerspectiveStructured,
       setStep,
       setTakeaway,
+      usePlan,
+      setUsePlan,
     ],
   );
 
@@ -647,6 +653,8 @@ export function useAnalyticalFlow({
     setPerspectiveStructured,
     takeaway,
     setTakeaway,
+    usePlan,
+    setUsePlan,
     finishing,
     levelSuggestion,
     setLevelSuggestion,

@@ -76,4 +76,5 @@ export const TYPE_LABEL: Record<string, string> = {
   reframe: "Reframe",
   calibration: "Calibration",
   geo: "Geo Lab",
+  quick: "5-minute question",
 };

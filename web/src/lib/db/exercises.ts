@@ -6,7 +6,7 @@ import {
   userDocRef,
   type RowQuery,
 } from "@/lib/db/firestore";
-import type { Exercise } from "@/lib/types/exercise";
+import { isSideExercise, type Exercise, type UseCheck } from "@/lib/types/exercise";
 import type { AnalyticalDeepDive } from "@/lib/types/perspective";
 import { PRACTICE_EXERCISE_TYPES } from "@/lib/exercise/exercise-mode-cards";
 import { e2eDeleteDoc, e2eGetDoc, e2eSetDoc, isE2EAuthBypass } from "@/lib/db/e2e-firestore-memory";
@@ -40,6 +40,17 @@ export async function saveDeepDive(exerciseId: string, ref: string, deepDive: An
     return;
   }
   await setDoc(userDocRef(COGI_COLLECTIONS.exercises, exerciseId), patch, { merge: true });
+}
+
+/** Save the answer to "Did you use it?" without touching the rest of the row. */
+export async function saveUseCheck(exerciseId: string, useCheck: UseCheck): Promise<void> {
+  if (isE2EAuthBypass()) {
+    const row = await e2eGetDoc<Exercise>(COGI_COLLECTIONS.exercises, exerciseId);
+    if (!row) return;
+    await e2eSetDoc(COGI_COLLECTIONS.exercises, exerciseId, { ...row, useCheck } as unknown as Record<string, unknown>);
+    return;
+  }
+  await setDoc(userDocRef(COGI_COLLECTIONS.exercises, exerciseId), { useCheck }, { merge: true });
 }
 
 export async function getExercise(id: string): Promise<Exercise | undefined> {
@@ -142,8 +153,8 @@ export async function listRecentDomains(limit: number = 20): Promise<string[]> {
   });
   const freq = new Map<string, { count: number; latest: string }>();
   for (const ex of rows) {
-    // Geo Lab rows have a fixed domain, not a topic the user picked.
-    if (ex.type === "geo") continue;
+    // Geo Lab and 5-minute rows have a fixed domain, not a topic the user picked.
+    if (isSideExercise(ex)) continue;
     const d = ex.domain.trim();
     if (!d) continue;
     const prev = freq.get(d);

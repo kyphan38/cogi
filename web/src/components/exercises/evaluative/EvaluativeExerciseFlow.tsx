@@ -40,6 +40,8 @@ export function EvaluativeExerciseFlow({
     setError,
     takeaway,
     setTakeaway,
+    usePlan,
+    setUsePlan,
     finishing,
     levelSuggestion,
     setLevelSuggestion,
@@ -114,6 +116,8 @@ export function EvaluativeExerciseFlow({
         <PracticeFinishCard
           takeaway={takeaway}
           onTakeawayChange={setTakeaway}
+          usePlan={usePlan}
+          onUsePlanChange={setUsePlan}
           onFinish={finishExercise}
           saving={finishing}
           finished={step === 7}

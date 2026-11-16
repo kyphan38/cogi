@@ -64,6 +64,14 @@ export type TagType =
 
 export type IssueSeverity = "obvious" | "moderate" | "subtle";
 
+/** The user's answer to "Did you use it?", asked a week after the exercise. */
+export interface UseCheck {
+  result: "yes" | "partly" | "no";
+  /** One line: what happened. */
+  note: string;
+  at: string;
+}
+
 export interface EmbeddedIssue {
   description: string;
   type: Exclude<TagType, "valid_point" | "unclear">;
@@ -187,6 +195,11 @@ export interface AnalyticalExerciseRow {
   currentStep?: number;
   /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
+  /** Where the user plans to use this in the next week (optional), and the check 7 days later. */
+  usePlan?: string | null;
+  useCheck?: UseCheck | null;
+  /** Set on a redo: the id of the finished exercise this one repeats. */
+  redoOf?: string;
 }
 
 export interface SystemsUserEdge {
@@ -253,6 +266,11 @@ export interface SystemsExerciseRow {
   currentStep?: number;
   /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
+  /** Where the user plans to use this in the next week (optional), and the check 7 days later. */
+  usePlan?: string | null;
+  useCheck?: UseCheck | null;
+  /** Set on a redo: the id of the finished exercise this one repeats. */
+  redoOf?: string;
   /** The loop pattern behind the scenario. Older rows lack it. */
   archetype?: SystemsExercisePayload["archetype"];
   /** The user's look ahead, written with the shock: key loop, 5-year forecast, better fix. */
@@ -316,6 +334,11 @@ export interface EvaluativeMatrixRow {
   currentStep?: number;
   /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
+  /** Where the user plans to use this in the next week (optional), and the check 7 days later. */
+  usePlan?: string | null;
+  useCheck?: UseCheck | null;
+  /** Set on a redo: the id of the finished exercise this one repeats. */
+  redoOf?: string;
   /** Work compared with the model when feedback was requested. */
   result?: EvaluativeResult | null;
   /** Practice level the exercise was made for. Older rows lack it. */
@@ -386,6 +409,11 @@ export interface EvaluativeScoringRow {
   currentStep?: number;
   /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
+  /** Where the user plans to use this in the next week (optional), and the check 7 days later. */
+  usePlan?: string | null;
+  useCheck?: UseCheck | null;
+  /** Set on a redo: the id of the finished exercise this one repeats. */
+  redoOf?: string;
   /** Work compared with the model when feedback was requested. */
   result?: EvaluativeResult | null;
   /** Practice level the exercise was made for. Older rows lack it. */
@@ -430,6 +458,11 @@ export interface EvaluativeUncertaintyRow {
   currentStep?: number;
   /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
+  /** Where the user plans to use this in the next week (optional), and the check 7 days later. */
+  usePlan?: string | null;
+  useCheck?: UseCheck | null;
+  /** Set on a redo: the id of the finished exercise this one repeats. */
+  redoOf?: string;
   /** Work compared with the model when feedback was requested. */
   result?: EvaluativeResult | null;
   /** Practice level the exercise was made for. Older rows lack it. */
@@ -477,6 +510,11 @@ export interface JudgmentExerciseRow {
   currentStep?: number;
   /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
+  /** Where the user plans to use this in the next week (optional), and the check 7 days later. */
+  usePlan?: string | null;
+  useCheck?: UseCheck | null;
+  /** Set on a redo: the id of the finished exercise this one repeats. */
+  redoOf?: string;
 }
 
 /** Strategic situation: a 2-player game in a real story (PLAN-learning.md L2). */
@@ -513,6 +551,11 @@ export interface StrategyExerciseRow {
   currentStep?: number;
   /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
+  /** Where the user plans to use this in the next week (optional), and the check 7 days later. */
+  usePlan?: string | null;
+  useCheck?: UseCheck | null;
+  /** Set on a redo: the id of the finished exercise this one repeats. */
+  redoOf?: string;
 }
 
 /** Reframe: spot thinking traps, then rewrite a thought (PLAN-psychology.md P1). */
@@ -559,6 +602,11 @@ export interface ReframeExerciseRow {
   currentStep?: number;
   /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
+  /** Where the user plans to use this in the next week (optional), and the check 7 days later. */
+  usePlan?: string | null;
+  useCheck?: UseCheck | null;
+  /** Set on a redo: the id of the finished exercise this one repeats. */
+  redoOf?: string;
 }
 
 /** Calibration: how sure vs how right (PLAN-psychology.md P2). Built in code, not by the AI. */
@@ -585,6 +633,11 @@ export interface CalibrationExerciseRow {
   currentStep?: number;
   /** Optional one-line "what I take away", written at the end. */
   takeaway?: string | null;
+  /** Where the user plans to use this in the next week (optional), and the check 7 days later. */
+  usePlan?: string | null;
+  useCheck?: UseCheck | null;
+  /** Set on a redo: the id of the finished exercise this one repeats. */
+  redoOf?: string;
 }
 
 /** The AI's short note after "Close the strait"; it may only use the fixed facts. */
@@ -626,8 +679,39 @@ export interface GeoLabExerciseRow {
   completedAt: string | null;
 }
 
+/**
+ * The 5-minute question: one short situation, one open question, a typed or spoken
+ * answer, one short feedback. Saved only when finished. Not a practice type: it has
+ * no level and no page under /exercise.
+ */
+export interface QuickExerciseRow {
+  id: string;
+  type: "quick";
+  /** Always "5-minute question"; kept out of topic suggestions. */
+  domain: string;
+  title: string;
+  scenario: string;
+  question: string;
+  /** The thinking skill the question tests. */
+  skill: string;
+  /** What the user typed, or the words heard in a spoken answer. */
+  answer: string;
+  spoken?: boolean;
+  feedback: { strong: string; missing: string; nextTime: string };
+  /** Spoken answers only: how the reasoning was said. */
+  delivery?: { clear: string; tip: string } | null;
+  confidenceBefore: null;
+  aiPerspective: null;
+  /** Shared row fields; quick rows never use them. */
+  aiPerspectiveStructured?: null;
+  currentStep?: number;
+  createdAt: string;
+  completedAt: string | null;
+}
+
 export type Exercise =
   | GeoLabExerciseRow
+  | QuickExerciseRow
   | AnalyticalExerciseRow
   | SystemsExerciseRow
   | EvaluativeExerciseRow
@@ -638,6 +722,15 @@ export type Exercise =
 
 export function isGeoLabExercise(ex: Exercise): ex is GeoLabExerciseRow {
   return ex.type === "geo";
+}
+
+export function isQuickExercise(ex: Exercise): ex is QuickExerciseRow {
+  return ex.type === "quick";
+}
+
+/** Geo Lab and 5-minute rows: finished in one go, with no level, takeaway or redo. */
+export function isSideExercise(ex: Exercise): ex is GeoLabExerciseRow | QuickExerciseRow {
+  return ex.type === "geo" || ex.type === "quick";
 }
 
 export function isCalibrationExercise(ex: Exercise): ex is CalibrationExerciseRow {

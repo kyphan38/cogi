@@ -23,6 +23,7 @@ export function resumableRow<Row extends Exercise>(
 type CommonFields = {
   confidenceBefore?: number | null;
   takeaway?: string | null;
+  usePlan?: string | null;
   aiPerspectiveStructured?: AIPerspectiveStructured | null;
 };
 
@@ -30,11 +31,13 @@ type CommonFields = {
 export function commonResumeState(row: CommonFields): {
   confidence: number;
   takeaway: string;
+  usePlan: string;
   perspectiveStructured: AIPerspectiveStructured | undefined;
 } {
   return {
     confidence: row.confidenceBefore ?? DEFAULT_CONFIDENCE,
     takeaway: row.takeaway ?? "",
+    usePlan: row.usePlan ?? "",
     perspectiveStructured: row.aiPerspectiveStructured ?? undefined,
   };
 }

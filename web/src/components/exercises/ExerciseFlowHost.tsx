@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getExercise } from "@/lib/db/exercises";
+import { weakSpotInfo } from "@/lib/exercise/weak-spots";
 import { AnalyticalExerciseFlow } from "@/components/exercises/analytical/AnalyticalExerciseFlow";
 import { EvaluativeExerciseFlow } from "@/components/exercises/evaluative/EvaluativeExerciseFlow";
 import { SystemsExerciseFlow } from "@/components/exercises/systems/SystemsExerciseFlow";
@@ -44,7 +45,9 @@ export function ExerciseFlowHost({ type }: { type: string }) {
     const resumeId = sp.get("resumeId") || undefined;
     const domain = sp.get("domain")?.trim() || undefined;
     const rawSource = sp.get("source") ?? "";
+    const focus = resumeId ? null : weakSpotInfo(sp.get("focus") ?? "");
     return {
+      focusLabel: focus?.type === type ? focus.label : undefined,
       resumeId,
       initialDomain: resumeId ? undefined : domain,
       initialSource: !resumeId && VALID_SOURCES.has(rawSource) ? (rawSource as Source) : undefined,
@@ -66,10 +69,17 @@ export function ExerciseFlowHost({ type }: { type: string }) {
 
   const Flow = FLOW_BY_TYPE[type];
   if (!Flow) return null;
+  const { focusLabel, ...flowParams } = params;
   return (
     <>
+      {focusLabel ? (
+        <p className="mx-auto max-w-3xl px-4 pt-6 text-body sm:px-6" data-testid="practice-focus">
+          <span className="text-muted-foreground">Focus: </span>
+          {focusLabel}
+        </p>
+      ) : null}
       {params.initialDomain ? <UnfinishedTopicNotice type={type} domain={params.initialDomain} /> : null}
-      <Flow {...params} />
+      <Flow {...flowParams} />
     </>
   );
 }

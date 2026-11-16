@@ -12,6 +12,7 @@ import {
   getPracticeLevel,
   getUserContext,
 } from "@/lib/db/settings";
+import { getGenerationContext } from "@/lib/db/generation-context";
 import {
   isJudgmentExercise,
   type JudgmentExerciseRow,
@@ -70,6 +71,8 @@ export function useJudgmentFlow({
     setPerspectiveStructured,
     takeaway,
     setTakeaway,
+    usePlan,
+    setUsePlan,
     finishing,
     levelSuggestion,
     setLevelSuggestion,
@@ -140,7 +143,7 @@ export function useJudgmentFlow({
     setLoading(true);
     try {
       const [userContext, languageLevel] = await Promise.all([
-        getUserContext(),
+        getGenerationContext(),
         getLanguageLevelForRequest(),
       ]);
       const res = await aiFetch("/api/ai", {
@@ -204,6 +207,7 @@ export function useJudgmentFlow({
       setLensIndex(0);
       setPerspectiveStructured(null);
       setTakeaway("");
+      setUsePlan("");
       setStep(1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generate failed");
@@ -351,6 +355,8 @@ export function useJudgmentFlow({
     setPerspectiveStructured,
     takeaway,
     setTakeaway,
+    usePlan,
+    setUsePlan,
     finishing,
     levelSuggestion,
     setLevelSuggestion,

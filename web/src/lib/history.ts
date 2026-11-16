@@ -27,6 +27,11 @@ export function formatDate(iso: string) {
   }
 }
 
+/** The day only, e.g. "8 Oct 2026". */
+export function formatDay(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export const HEATMAP_WEEKS = 14;
 
 export function startOfWeekMonday(d: Date): Date {

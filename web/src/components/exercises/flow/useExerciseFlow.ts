@@ -38,6 +38,7 @@ export function useExerciseFlow<Row extends Exercise, Step extends number>(opts:
   const [confidence, setConfidence] = useState(DEFAULT_CONFIDENCE);
   const [perspectiveStructured, setPerspectiveStructured] = useState<AIPerspectiveStructured | null>(null);
   const [takeaway, setTakeaway] = useState("");
+  const [usePlan, setUsePlan] = useState("");
   const [finishing, setFinishing] = useState(false);
   const [levelSuggestion, setLevelSuggestion] = useState<LevelSuggestion>(null);
   const pendingSave = useSaveOnLeave();
@@ -55,6 +56,7 @@ export function useExerciseFlow<Row extends Exercise, Step extends number>(opts:
       setExercise(row);
       setConfidence(common.confidence);
       setTakeaway(common.takeaway);
+      setUsePlan(common.usePlan);
       if (common.perspectiveStructured) setPerspectiveStructured(common.perspectiveStructured);
       opts.onResume(row);
     })();
@@ -85,7 +87,7 @@ export function useExerciseFlow<Row extends Exercise, Step extends number>(opts:
     pendingSave.clear();
     setFinishing(true);
     try {
-      const saved = (await completePracticeExercise({ exercise: row, takeaway })) as Row;
+      const saved = (await completePracticeExercise({ exercise: row, takeaway, usePlan })) as Row;
       setExercise(saved);
       setStep(doneStep);
       const rowLevel = (row as { level?: PracticeLevel }).level;
@@ -119,6 +121,8 @@ export function useExerciseFlow<Row extends Exercise, Step extends number>(opts:
     setPerspectiveStructured,
     takeaway,
     setTakeaway,
+    usePlan,
+    setUsePlan,
     finishing,
     levelSuggestion,
     setLevelSuggestion,

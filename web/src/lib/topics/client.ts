@@ -17,7 +17,7 @@ export async function practisedTopicTitles(): Promise<string[]> {
     listCollectionRows<PracticedTopicEntry>(COGI_COLLECTIONS.practicedTopics).catch(() => []),
   ]);
   const rows = [
-    ...done.filter((e) => e.type !== "geo").map((e) => ({ title: e.domain, at: e.completedAt ?? "" })),
+    ...done.filter((e) => e.type !== "geo" && e.type !== "quick").map((e) => ({ title: e.domain, at: e.completedAt ?? "" })),
     ...practised.map((p) => ({ title: p.title, at: p.completedAt })),
   ].sort((a, b) => b.at.localeCompare(a.at));
   const seen = new Set<string>();

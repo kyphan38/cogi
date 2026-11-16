@@ -15,7 +15,7 @@ import type { Exercise, ThinkingType } from "@/lib/types/exercise";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
 import { computeStreak } from "@/lib/exercise/streak";
 
-export type ThinkingTypeFilter = "all" | ThinkingType | "geo";
+export type ThinkingTypeFilter = "all" | ThinkingType | "geo" | "quick";
 
 /** State, data loading, filters and delete of the History page. */
 export function useHistoryPage() {

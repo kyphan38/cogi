@@ -17,6 +17,9 @@ describe("navPlace", () => {
     expect(show("/tracks")).toBe("Explore / Tracks");
     expect(show("/geo")).toBe("Explore / Geo Lab");
     expect(show("/simulators/")).toBe("Explore / Simulators");
+    expect(show("/forecasts")).toBe("Explore / Forecasts");
+    expect(show("/briefs")).toBe("Explore / Briefs");
+    expect(show("/quick")).toBe("Today / 5-minute question");
     expect(show("/exercise/history")).toBe("History");
     expect(show("/terms")).toBe("History / My terms");
     expect(show("/terms/review")).toBe("History / Review terms");

@@ -9,6 +9,7 @@ import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import { putExercise } from "@/lib/db/exercises";
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
 import { getLanguageLevelForRequest, getUserContext } from "@/lib/db/settings";
+import { getGenerationContext } from "@/lib/db/generation-context";
 import {
   isStrategyExercise,
   type StrategyExerciseRow,
@@ -67,6 +68,8 @@ export function useStrategyFlow({
     setPerspectiveStructured,
     takeaway,
     setTakeaway,
+    usePlan,
+    setUsePlan,
     finishing,
     levelSuggestion,
     setLevelSuggestion,
@@ -127,7 +130,7 @@ export function useStrategyFlow({
     setLoading(true);
     try {
       const [userContext, languageLevel] = await Promise.all([
-        getUserContext(),
+        getGenerationContext(),
         getLanguageLevelForRequest(),
       ]);
       const res = await aiFetch("/api/ai", {
@@ -200,6 +203,7 @@ export function useStrategyFlow({
       setRankPlayer("A");
       setPerspectiveStructured(null);
       setTakeaway("");
+      setUsePlan("");
       setStep(1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generate failed");
@@ -372,6 +376,8 @@ export function useStrategyFlow({
     setPerspectiveStructured,
     takeaway,
     setTakeaway,
+    usePlan,
+    setUsePlan,
     finishing,
     levelSuggestion,
     setLevelSuggestion,
