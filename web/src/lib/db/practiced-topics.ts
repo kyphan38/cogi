@@ -1,5 +1,6 @@
 import { setDoc } from "firebase/firestore";
 import { COGI_COLLECTIONS, listCollectionRows, userDocRef } from "@/lib/db/firestore";
+import { e2eSetDoc, isE2EAuthBypass } from "@/lib/db/e2e-firestore-memory";
 import type { PracticedTopicArea, PracticedTopicEntry } from "@/lib/types/practiced-topic";
 
 export function normalizeTitleKey(title: string): string {
@@ -32,6 +33,11 @@ export async function recordPracticedTopic(input: {
     origin: input.origin,
     completedAt: new Date().toISOString(),
   };
+  // E2E runs keep data in memory; listCollectionRows already reads from there.
+  if (isE2EAuthBypass()) {
+    await e2eSetDoc(COGI_COLLECTIONS.practicedTopics, row.id, row as unknown as Record<string, unknown>);
+    return;
+  }
   await setDoc(userDocRef<PracticedTopicEntry>(COGI_COLLECTIONS.practicedTopics, row.id), row);
 }
 
