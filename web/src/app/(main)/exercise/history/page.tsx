@@ -2,9 +2,7 @@
 
 import Link from "next/link";
 
-import type { ReactNode } from "react";
-import { startTransition, Suspense, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Section, WORD_LINK } from "@/components/shared/Section";
@@ -18,17 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { ModalShell } from "@/components/ui/modal-shell";
-import { useFlip } from "@/lib/hooks/useFlip";
-import { useRowMotion } from "@/lib/hooks/useRowMotion";
-import { useToast } from "@/components/ui/toast";
 import { HistoryExerciseListSkeleton } from "@/components/ui/history-exercise-list-skeleton";
-import {
-  getExercise,
-  deleteExercise,
-  subscribeCompletedExercises,
-  type CompletedExerciseFilter,
-} from "@/lib/db/exercises";
-import type { Exercise, ThinkingType } from "@/lib/types/exercise";
 import {
   isAnalyticalExercise,
   isEvaluativeExercise,
@@ -40,13 +28,8 @@ import {
   isSystemsExercise,
 } from "@/lib/types/exercise";
 import {
-  getPerspectiveViewModel,
-  getStructuredPerspectiveSections,
-} from "@/lib/perspective/format-structured";
-import {
   isAnalyticalCoachingStructured,
   isCoachingStructured,
-  isLegacyPerspectiveStructured,
 } from "@/lib/types/perspective";
 import { SystemsAnswerKey } from "@/components/exercises/SystemsAnswerKey";
 import { EvaluativeAnswerKey } from "@/components/exercises/EvaluativeAnswerKey";
@@ -65,430 +48,55 @@ import {
 } from "@/lib/exercise/deep-dive";
 import { analyticalResultOf } from "@/lib/exercise/analytical-score";
 import { LEVEL_LABELS } from "@/lib/exercise/levels";
-import type { ClarityPerspectiveKind } from "@/lib/types/perspective";
-import type { AIPerspectiveStructured } from "@/lib/types/perspective";
 import { Trash2 } from "lucide-react";
-import { logFirestoreQueryError } from "@/lib/db/firestore";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { computeStreak } from "@/lib/exercise/streak";
 import { PageHeader } from "@/components/shared/PageHeader";
+import {
+  useHistoryPage,
+  type ThinkingTypeFilter,
+} from "@/components/history/useHistoryPage";
+import { formatDate, perspectiveKindForExercise } from "@/lib/history";
+import HistoryPerspectiveBody from "@/components/history/HistoryPerspectiveBody";
+import HistoryActivityHeatmap from "@/components/history/HistoryActivityHeatmap";
 
-type ThinkingTypeFilter = "all" | ThinkingType | "geo";
-
-function perspectiveKindForExercise(
-  ex: Exercise,
-): ClarityPerspectiveKind | null {
-  if (isAnalyticalExercise(ex)) return "analytical";
-  if (isSystemsExercise(ex)) return "systems";
-  if (isEvaluativeExercise(ex)) {
-    return ex.variant === "matrix" ? "evaluative-matrix" : "evaluative-scoring";
-  }
-  return null;
-}
-
-function HistoryPerspectiveBody({
-  structured,
-  kind,
-}: {
-  structured: AIPerspectiveStructured;
-  kind: ClarityPerspectiveKind | null;
-}) {
-  if (kind && !isLegacyPerspectiveStructured(structured)) {
-    const vm = getPerspectiveViewModel(structured, kind);
-    if (vm.format === "clarity_v2") {
-      return (
-        <div className="text-muted-foreground space-y-4 text-body leading-relaxed">
-          <p className="text-foreground text-body font-medium">
-            {vm.suitableFor}
-          </p>
-          <ul className="list-none space-y-4 pl-0">
-            {vm.blocks.map((b) => (
-              <li key={b.id} className="space-y-2">
-                {b.title ? (
-                  <p className="text-foreground font-medium">{b.title}</p>
-                ) : null}
-                {b.userSnippet ? (
-                  <p className="border-l-2 pl-3 text-meta">
-                    <span className="font-medium">You wrote / selected: </span>
-                    {b.userSnippet}
-                  </p>
-                ) : null}
-                <p className="whitespace-pre-wrap">{b.body}</p>
-                {b.remediation ? (
-                  <p className="whitespace-pre-wrap text-meta">
-                    <span className="font-medium">Stronger alternative: </span>
-                    {b.remediation}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-          {vm.openQuestions.length > 0 ? (
-            <div>
-              <h4 className="text-foreground mb-2 font-medium">
-                Open questions
-              </h4>
-              <ul className="list-disc space-y-1 pl-5">
-                {vm.openQuestions.map((q, i) => (
-                  <li key={i} className="whitespace-pre-wrap">
-                    {q}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </div>
-      );
-    }
-  }
-  if (isLegacyPerspectiveStructured(structured)) {
-    return (
-      <div className="text-muted-foreground space-y-4 text-body leading-relaxed">
-        {getStructuredPerspectiveSections(structured).map((sec) => (
-          <div key={sec.key}>
-            <h4 className="text-foreground mb-2 font-medium">{sec.title}</h4>
-            <ul className="list-disc space-y-2 pl-5">
-              {sec.points.map((p) => (
-                <li key={p.id} className="whitespace-pre-wrap">
-                  {p.title ? (
-                    <>
-                      <span className="text-foreground font-medium">
-                        {p.title}
-                      </span>
-                      {" - "}
-                    </>
-                  ) : null}
-                  {p.body}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return null;
-}
-
-function formatDate(iso: string) {
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
-}
-
-const HEATMAP_WEEKS = 14;
-
-function startOfWeekMonday(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  const day = (x.getDay() + 6) % 7;
-  x.setDate(x.getDate() - day);
-  return x;
-}
-
-// Four gray steps far enough apart to tell at a glance (DESIGN.md: gray only,
-// the name always next to it). Opacity on ink works in light and dark.
-function typeSwatchClass(t: Exercise["type"]): string {
-  switch (t) {
-    case "evaluative":
-      return "bg-foreground";
-    case "systems":
-      return "bg-foreground/55";
-    case "analytical":
-      return "bg-foreground/30";
-    default:
-      return "bg-foreground/15";
-  }
-}
-
-const EXERCISE_META_BADGE =
-  "ml-2 text-label uppercase text-muted-foreground";
-
-function HistoryActivityHeatmap({ rows }: { rows: Exercise[] }) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const startMonday = startOfWeekMonday(today);
-  startMonday.setDate(startMonday.getDate() - (HEATMAP_WEEKS - 1) * 7);
-
-  const latestByDay = new Map<string, { type: Exercise["type"]; at: string }>();
-  for (const ex of rows) {
-    if (!ex.completedAt) continue;
-    const key = new Date(ex.completedAt).toLocaleDateString("en-CA");
-    const prev = latestByDay.get(key);
-    if (!prev || ex.completedAt > prev.at) {
-      latestByDay.set(key, { type: ex.type, at: ex.completedAt });
-    }
-  }
-
-  const cells: ReactNode[] = [];
-  for (let w = 0; w < HEATMAP_WEEKS; w++) {
-    for (let d = 0; d < 7; d++) {
-      const cellDate = new Date(startMonday);
-      cellDate.setDate(cellDate.getDate() + w * 7 + d);
-      const key = cellDate.toLocaleDateString("en-CA");
-      const afterToday = cellDate.getTime() > today.getTime();
-      const entry = latestByDay.get(key);
-      const title = afterToday
-        ? ""
-        : cellDate.toLocaleDateString(undefined, {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-          });
-      cells.push(
-        <div
-          key={`${w}-${d}`}
-          title={title}
-          className={cn(
-            "rounded-sm",
-            afterToday
-              ? "bg-muted/25"
-              : entry
-                ? typeSwatchClass(entry.type)
-                : "bg-muted/50",
-          )}
-        />,
-      );
-    }
-  }
-
-  const legend: { type: Exercise["type"] | "other"; label: string }[] = [
-    { type: "evaluative", label: "Evaluative" },
-    { type: "systems", label: "Systems" },
-    { type: "analytical", label: "Analytical" },
-    { type: "other", label: "Other" },
-  ];
-
-  return (
-    <div className="space-y-3">
-      <div className="overflow-x-auto">
-        <div
-          className="grid gap-1"
-          style={{
-            gridTemplateRows: "repeat(7, 11px)",
-            gridAutoFlow: "column",
-            gridAutoColumns: "minmax(0, 11px)",
-          }}
-          role="img"
-          aria-label="Completed exercises by day, oldest columns on the left"
-        >
-          {cells}
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-x-3 gap-y-1.5">
-        {legend.map(({ type, label }) => (
-          <div
-            key={type}
-            className="flex items-center gap-1.5 text-meta text-muted-foreground"
-          >
-            <span
-              className={cn(
-                "size-2.5 shrink-0 rounded-sm",
-                typeSwatchClass(type as Exercise["type"]),
-              )}
-            />
-            <span>{label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+const EXERCISE_META_BADGE = "ml-2 text-label uppercase text-muted-foreground";
 
 function HistoryPageInner() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const { show: showToast } = useToast();
-  const [rows, setRows] = useState<Exercise[]>([]);
-  const [streakDays, setStreakDays] = useState(0);
-
-  const [typeFilter, setTypeFilter] = useState<ThinkingTypeFilter>("all");
-  const [domainQ, setDomainQ] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  // Filters are rarely used: closed behind a word, open while any is set.
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const filtersActive =
-    typeFilter !== "all" || domainQ !== "" || fromDate !== "" || toDate !== "";
-  const showFilters = filtersOpen || filtersActive;
-
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detailEx, setDetailEx] = useState<Exercise | null>(null);
-
-  const [pendingDelete, setPendingDelete] = useState<{
-    id: string;
-    title: string;
-  } | null>(null);
-  const [deletePhrase, setDeletePhrase] = useState("");
-  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
-  const [deleteErr, setDeleteErr] = useState<string | null>(null);
-
-  /** First Firestore snapshot for the filtered list (avoid flashing "no matches" while subscribing). */
-  const [filteredListReady, setFilteredListReady] = useState(false);
-
-  const [allCompletedRows, setAllCompletedRows] = useState<Exercise[]>([]);
-
-  // A row a live update removes (a delete) slides out; a new filter or a big swap
-  // of the list plays nothing.
-  const { shown, goingIds } = useRowMotion(
+  const {
     rows,
-    `${typeFilter}|${domainQ}|${fromDate}|${toDate}`,
+    streakDays,
+    typeFilter,
+    setTypeFilter,
+    domainQ,
+    setDomainQ,
+    fromDate,
+    setFromDate,
+    toDate,
+    setToDate,
+    setFiltersOpen,
+    selectedId,
+    setSelectedId,
+    detailEx,
+    setDetailEx,
+    pendingDelete,
+    deletePhrase,
+    setDeletePhrase,
+    deleteSubmitting,
+    deleteErr,
     filteredListReady,
-    // Same order the list query uses: newest first.
-    (a, b) => b.createdAt.localeCompare(a.createdAt),
-  );
-  // The rows below one that leaves slide up to its place.
-  const flip = useFlip(shown.map((ex) => ex.id));
-
-  const openExerciseId = searchParams.get("openExercise")?.trim() || null;
-
-  useEffect(() => {
-    if (!openExerciseId) return;
-    setSelectedId(openExerciseId);
-  }, [openExerciseId]);
-
-  const clearHistoryFilters = () => {
-    setTypeFilter("all");
-    setDomainQ("");
-    setFromDate("");
-    setToDate("");
-    router.replace("/exercise/history");
-  };
-
-  const openExerciseMissing = useMemo(
-    () =>
-      !!openExerciseId &&
-      allCompletedRows.length > 0 &&
-      !allCompletedRows.some((r) => r.id === openExerciseId),
-    [openExerciseId, allCompletedRows],
-  );
-
-  const openExerciseHiddenByFilters = useMemo(
-    () =>
-      !!openExerciseId &&
-      !openExerciseMissing &&
-      filteredListReady &&
-      !rows.some((r) => r.id === openExerciseId),
-    [openExerciseId, openExerciseMissing, filteredListReady, rows],
-  );
-
-  useEffect(() => {
-    const filter: CompletedExerciseFilter = {
-      type: typeFilter,
-      domainContains: domainQ.trim() || undefined,
-      completedAfter: fromDate ? `${fromDate}T00:00:00.000Z` : undefined,
-      completedBefore: toDate ? `${toDate}T23:59:59.999Z` : undefined,
-    };
-    const unsubscribe = subscribeCompletedExercises(
-      filter,
-      (list) => {
-        startTransition(() => {
-          setFilteredListReady(true);
-          setRows(list);
-        });
-      },
-      (error) => {
-        logFirestoreQueryError(
-          "HistoryPage",
-          "subscribeCompletedExercises(filtered)",
-          error,
-        );
-      },
-    );
-    return () => unsubscribe();
-  }, [typeFilter, domainQ, fromDate, toDate]);
-
-  useEffect(() => {
-    const unsubscribe = subscribeCompletedExercises(
-      undefined,
-      (list) => {
-        startTransition(() => {
-          setAllCompletedRows(list);
-          setStreakDays(computeStreak(list));
-        });
-      },
-      (error) => {
-        logFirestoreQueryError(
-          "HistoryPage",
-          "subscribeCompletedExercises(all)",
-          error,
-        );
-      },
-    );
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!selectedId) {
-      startTransition(() => {
-        setDetailEx(null);
-      });
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      const ex = await getExercise(selectedId);
-      if (cancelled) return;
-      startTransition(() => {
-        setDetailEx(ex ?? null);
-      });
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedId]);
-
-  useEffect(() => {
-    if (!pendingDelete) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setPendingDelete(null);
-        setDeletePhrase("");
-        setDeleteErr(null);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [pendingDelete]);
-
-  const selected = useMemo(
-    () => rows.find((r) => r.id === selectedId) ?? null,
-    [rows, selectedId],
-  );
-
-  const openDeleteDialog = (ex: Exercise) => {
-    setPendingDelete({ id: ex.id, title: ex.title });
-    setDeletePhrase("");
-    setDeleteErr(null);
-  };
-
-  const closeDeleteDialog = () => {
-    setPendingDelete(null);
-    setDeletePhrase("");
-    setDeleteErr(null);
-    setDeleteSubmitting(false);
-  };
-
-  const confirmDeleteExercise = async () => {
-    if (!pendingDelete || deletePhrase !== "Delete") return;
-    setDeleteErr(null);
-    setDeleteSubmitting(true);
-    try {
-      await deleteExercise(pendingDelete.id);
-      if (selectedId === pendingDelete.id) {
-        setSelectedId(null);
-      }
-      closeDeleteDialog();
-      showToast("Exercise removed from your account.", "success");
-    } catch (e) {
-      setDeleteErr(e instanceof Error ? e.message : "Delete failed");
-    } finally {
-      setDeleteSubmitting(false);
-    }
-  };
-
+    shown,
+    goingIds,
+    filtersActive,
+    showFilters,
+    flip,
+    clearHistoryFilters,
+    openExerciseMissing,
+    openExerciseHiddenByFilters,
+    selected,
+    openDeleteDialog,
+    closeDeleteDialog,
+    confirmDeleteExercise,
+  } = useHistoryPage();
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
       <PageHeader
@@ -661,9 +269,7 @@ function HistoryPageInner() {
                       </span>
                     </div>
                     <p className="mt-1 flex min-w-0 items-baseline gap-2 text-meta text-muted-foreground">
-                      <span className="section-label shrink-0">
-                        {ex.type}
-                      </span>
+                      <span className="section-label shrink-0">{ex.type}</span>
                       <span className="min-w-0 truncate">{ex.domain}</span>
                     </p>
                   </button>
