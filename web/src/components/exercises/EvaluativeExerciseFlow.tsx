@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import {
   ExerciseShell,
   practicePhase,
@@ -20,11 +19,10 @@ import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { AIPerspective } from "@/components/shared/AIPerspective";
 import { EvaluativeAnswerKey } from "@/components/exercises/EvaluativeAnswerKey";
 import { LevelPicker } from "@/components/exercises/LevelPicker";
-import { LevelSuggestionCard } from "@/components/shared/LevelSuggestionCard";
-import { useToast } from "@/components/ui/toast";
+import { DomainField, SetupActions, SourceSelect, SuggestedTopics } from "@/components/exercises/flow/SetupParts";
+import { LevelSuggestionPrompt } from "@/components/exercises/flow/LevelSuggestionPrompt";
 import { EVALUATIVE_LEVELS } from "@/lib/exercise/evaluative-levels";
-import { LEVEL_LABELS, type PracticeLevel } from "@/lib/exercise/levels";
-import { dismissLevelSuggestion } from "@/lib/db/settings";
+import { type PracticeLevel } from "@/lib/exercise/levels";
 import { evaluativeResultOf, scoreEvaluative } from "@/lib/exercise/evaluative-score";
 import { isCoachingStructured } from "@/lib/types/perspective";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
@@ -80,11 +78,14 @@ import { takeScenarioHandoff } from "@/lib/topics/scenario-handoff";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import type { EvaluativeScoringCriterionBreakdown } from "@/lib/types/perspective";
-import { DomainInput } from "@/components/shared/DomainInput";
-import { TopicSuggestionPicker } from "@/components/shared/TopicSuggestionPicker";
 import { listRecentDomains } from "@/lib/db/exercises";
 import { isEvaluativeExercise } from "@/lib/types/exercise";
 import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
+
+const SOURCE_OPTIONS = [
+  { value: "generated", label: "AI-generated from domain" },
+  { value: "custom_scenario", label: "My scenario" },
+] as const;
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
@@ -207,7 +208,6 @@ export function EvaluativeExerciseFlow({
     initialSource === "custom_scenario" ? "custom_scenario" : "generated",
   );
   const [evaluativeTaskType, setEvaluativeTaskType] = useState<EvaluativeTaskType>("auto");
-  const { show: showToast } = useToast();
   const flow = useExerciseFlow<EvaluativeExerciseRow, FlowStep>({
     type: "evaluative",
     resumeId,
@@ -870,48 +870,27 @@ export function EvaluativeExerciseFlow({
             </div>
             ) : null}
 
-            <div className={cn(entryMode !== "suggested" && "hidden")}>
-              <TopicSuggestionPicker
-                area="evaluative"
-                kind="exercise"
-                onPick={({ title }) => {
-                  setSetupMode("generated");
-                  setDomain(title);
-                  void startGenerate(title, "generated");
-                }}
-              />
-            </div>
+            <SuggestedTopics
+              area="evaluative"
+              hidden={entryMode !== "suggested"}
+              onPick={(title) => {
+                setSetupMode("generated");
+                setDomain(title);
+                void startGenerate(title, "generated");
+              }}
+            />
             <div className={cn("space-y-4", entryMode !== "manual" && "hidden")}>
-            <div className="grid gap-2">
-              <Label>{setupMode === "custom_scenario" ? "Domain (optional)" : "Domain"}</Label>
-              <DomainInput
-                value={domain}
-                onChange={setDomain}
-                suggestions={domainSuggestions}
-                placeholder={
-                  setupMode === "custom_scenario"
-                    ? "e.g. DevOps - leave blank to let AI infer"
-                    : undefined
-                }
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Source</Label>
-              <Select
-                value={setupMode}
-                onValueChange={(v) =>
-                  setSetupMode((v as "generated" | "custom_scenario") ?? "generated")
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="generated">AI-generated from domain</SelectItem>
-                  <SelectItem value="custom_scenario">My scenario</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <DomainField
+              value={domain}
+              onChange={setDomain}
+              suggestions={domainSuggestions}
+              optional={setupMode === "custom_scenario"}
+            />
+            <SourceSelect
+              value={setupMode}
+              onChange={setSetupMode}
+              options={SOURCE_OPTIONS}
+            />
             {setupMode === "custom_scenario" ? (
               <div className="grid gap-2">
                 <Label htmlFor="ev-custom-scenario">Your scenario</Label>
@@ -925,29 +904,11 @@ export function EvaluativeExerciseFlow({
                 />
               </div>
             ) : null}
-            <p className="text-muted-foreground text-meta">
-              Personal context for AI is read from{" "}
-              <Link href="/settings" className="font-medium text-foreground">
-                Settings
-              </Link>
-              .
-            </p>
-            <div className="flex gap-2">
-              <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
-                {loading ? (
-                  <>
-                    <InlineSpinner /> Generating…
-                  </>
-                ) : (
-                  "Generate exercise"
-                )}
-              </Button>
-              {exercise ? (
-                <Button type="button" variant="secondary" onClick={() => setStep((exercise.currentStep ?? 1) as FlowStep)}>
-                  Continue existing exercise
-                </Button>
-              ) : null}
-            </div>
+            <SetupActions
+              loading={loading}
+              onGenerate={() => void startGenerate()}
+              onContinue={exercise ? () => setStep((exercise.currentStep ?? 1) as FlowStep) : undefined}
+            />
             </div>
           </CardContent>
         </Card>
@@ -1521,17 +1482,11 @@ export function EvaluativeExerciseFlow({
       ) : null}
 
       {step === 7 && levelSuggestion ? (
-        <LevelSuggestionCard
+        <LevelSuggestionPrompt
+          type="evaluative"
           suggestion={levelSuggestion}
-          onAccept={() => {
-            chooseLevel(levelSuggestion.to);
-            showToast(`Level set to ${LEVEL_LABELS[levelSuggestion.to]} for your next exercise.`);
-            setLevelSuggestion(null);
-          }}
-          onDismiss={() => {
-            void dismissLevelSuggestion("evaluative");
-            setLevelSuggestion(null);
-          }}
+          onChoose={chooseLevel}
+          onClose={() => setLevelSuggestion(null)}
         />
       ) : null}
 

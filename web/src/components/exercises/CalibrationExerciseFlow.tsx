@@ -6,7 +6,7 @@ import { ExerciseStepCard, EXERCISE_STEP_META_BADGE } from "@/components/shared/
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
 import { PracticeFinishCard } from "@/components/shared/PracticeFinishCard";
-import { LevelSuggestionCard } from "@/components/shared/LevelSuggestionCard";
+import { LevelSuggestionPrompt } from "@/components/exercises/flow/LevelSuggestionPrompt";
 import { LevelPicker } from "@/components/exercises/LevelPicker";
 import { LearnFirst } from "@/components/exercises/LearnFirst";
 import { CalibrationAnswerKey } from "@/components/exercises/CalibrationAnswerKey";
@@ -14,13 +14,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import { listCompletedExercises, putExercise } from "@/lib/db/exercises";
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
-import { dismissLevelSuggestion, getUserContext } from "@/lib/db/settings";
+import { getUserContext } from "@/lib/db/settings";
 import { isCalibrationExercise, type CalibrationExerciseRow } from "@/lib/types/exercise";
 import { isCoachingStructured } from "@/lib/types/perspective";
 import { useDebouncedSave, useExerciseFlow } from "@/components/exercises/flow/useExerciseFlow";
@@ -112,7 +111,6 @@ export function CalibrationExerciseFlow({
   initialSource?: "generated" | "real_data" | "custom_scenario";
   autoGenerate?: boolean;
 } = {}) {
-  const { show: showToast } = useToast();
   const flow = useExerciseFlow<CalibrationExerciseRow, FlowStep>({
     type: "calibration",
     resumeId,
@@ -506,17 +504,11 @@ export function CalibrationExerciseFlow({
             coaching={isCoachingStructured(perspectiveStructured) ? perspectiveStructured : null}
           />
           {step === 7 && levelSuggestion ? (
-            <LevelSuggestionCard
+            <LevelSuggestionPrompt
+              type="calibration"
               suggestion={levelSuggestion}
-              onAccept={() => {
-                chooseLevel(levelSuggestion.to);
-                showToast(`Level set to ${LEVEL_LABELS[levelSuggestion.to]} for your next exercise.`);
-                setLevelSuggestion(null);
-              }}
-              onDismiss={() => {
-                void dismissLevelSuggestion("calibration");
-                setLevelSuggestion(null);
-              }}
+              onChoose={chooseLevel}
+              onClose={() => setLevelSuggestion(null)}
             />
           ) : null}
           <PracticeFinishCard

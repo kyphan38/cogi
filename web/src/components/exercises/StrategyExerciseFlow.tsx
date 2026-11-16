@@ -7,7 +7,8 @@ import { ExerciseStepCard, EXERCISE_STEP_META_BADGE } from "@/components/shared/
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
 import { PracticeFinishCard } from "@/components/shared/PracticeFinishCard";
-import { LevelSuggestionCard } from "@/components/shared/LevelSuggestionCard";
+import { GenerateButton } from "@/components/exercises/flow/SetupParts";
+import { LevelSuggestionPrompt } from "@/components/exercises/flow/LevelSuggestionPrompt";
 import { LevelPicker } from "@/components/exercises/LevelPicker";
 import { ConceptList, LearnFirst } from "@/components/exercises/LearnFirst";
 import { RankList } from "@/components/exercises/RankList";
@@ -18,14 +19,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { InlineSpinner } from "@/components/ui/inline-spinner";
-import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import { putExercise } from "@/lib/db/exercises";
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
-import { dismissLevelSuggestion, getLanguageLevelForRequest, getUserContext } from "@/lib/db/settings";
+import { getLanguageLevelForRequest, getUserContext } from "@/lib/db/settings";
 import { isStrategyExercise, type StrategyExerciseRow } from "@/lib/types/exercise";
 import { isCoachingStructured } from "@/lib/types/perspective";
 import type { StrategyExercisePayload } from "@/lib/ai/validators/strategy";
@@ -68,7 +67,6 @@ export function StrategyExerciseFlow({
   initialSource?: "generated" | "real_data" | "custom_scenario";
   autoGenerate?: boolean;
 } = {}) {
-  const { show: showToast } = useToast();
   const flow = useExerciseFlow<StrategyExerciseRow, FlowStep>({
     type: "strategy",
     resumeId,
@@ -391,15 +389,7 @@ export function StrategyExerciseFlow({
             ) : null}
           </div>
           <div>
-            <Button type="button" disabled={loading} onClick={() => void generate()}>
-              {loading ? (
-                <>
-                  <InlineSpinner /> Generating…
-                </>
-              ) : (
-                "Generate exercise"
-              )}
-            </Button>
+            <GenerateButton loading={loading} onClick={() => void generate()} />
           </div>
         </ExerciseStepCard>
       ) : null}
@@ -632,17 +622,11 @@ export function StrategyExerciseFlow({
             coaching={isCoachingStructured(perspectiveStructured) ? perspectiveStructured : null}
           />
           {step === 7 && levelSuggestion ? (
-            <LevelSuggestionCard
+            <LevelSuggestionPrompt
+              type="strategy"
               suggestion={levelSuggestion}
-              onAccept={() => {
-                chooseLevel(levelSuggestion.to);
-                showToast(`Level set to ${LEVEL_LABELS[levelSuggestion.to]} for your next exercise.`);
-                setLevelSuggestion(null);
-              }}
-              onDismiss={() => {
-                void dismissLevelSuggestion("strategy");
-                setLevelSuggestion(null);
-              }}
+              onChoose={chooseLevel}
+              onClose={() => setLevelSuggestion(null)}
             />
           ) : null}
           <PracticeFinishCard

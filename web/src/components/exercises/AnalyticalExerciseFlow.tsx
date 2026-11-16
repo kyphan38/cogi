@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { ExerciseShell, practicePhase, practiceStepLabels } from "@/components/shared/ExerciseShell";
 import { HighlightTag } from "@/components/exercises/HighlightTag";
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
@@ -18,18 +17,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/toast";
-import { InlineSpinner } from "@/components/ui/inline-spinner";
 import type {
   AnalyticalExerciseRow,
   UserHighlight,
@@ -45,8 +36,6 @@ import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import { sanitizeRealDataText } from "@/lib/text/sanitizeRealData";
 import { sanitizeUserPasteOrClipboard } from "@/lib/text/sanitizeRealDataBrowser";
-import { DomainInput } from "@/components/shared/DomainInput";
-import { TopicSuggestionPicker } from "@/components/shared/TopicSuggestionPicker";
 import { listRecentDomains } from "@/lib/db/exercises";
 import { isAnalyticalExercise } from "@/lib/types/exercise";
 import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
@@ -70,13 +59,13 @@ import {
   guidedPart,
 } from "@/components/exercises/GuidedWalkthrough";
 import { LevelPicker } from "@/components/exercises/LevelPicker";
-import { LevelSuggestionCard } from "@/components/shared/LevelSuggestionCard";
+import { DomainField, SetupActions, SourceSelect, SuggestedTopics } from "@/components/exercises/flow/SetupParts";
+import { LevelSuggestionPrompt } from "@/components/exercises/flow/LevelSuggestionPrompt";
 import { ANALYTICAL_LEVELS, GEO_ANALYTICAL_LEVELS } from "@/lib/exercise/analytical-levels";
 import { LearnFirst } from "@/components/exercises/LearnFirst";
 import { GeoGuessStep, GeoReveal, geoGuessMissing, geoLensLines } from "@/components/exercises/GeoGuessStep";
 import { scoreGeoGuess } from "@/lib/exercise/geo-guess";
 import { LEVEL_LABELS, type PracticeLevel } from "@/lib/exercise/levels";
-import { dismissLevelSuggestion } from "@/lib/db/settings";
 import { isAnalyticalCoachingStructured } from "@/lib/types/perspective";
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -627,49 +616,31 @@ export function AnalyticalExerciseFlow({
               options={ENTRY_MODE_OPTIONS}
             />
 
-            <div className={cn(entryMode !== "suggested" && "hidden")}>
-              <TopicSuggestionPicker
-                area="analytical"
-                kind="exercise"
-                onPick={({ title }) => {
-                  setMode("generated");
-                  setDomain(title);
-                  void startGenerate(title, "generated");
-                }}
-              />
-            </div>
+            <SuggestedTopics
+              area="analytical"
+              hidden={entryMode !== "suggested"}
+              onPick={(title) => {
+                setMode("generated");
+                setDomain(title);
+                void startGenerate(title, "generated");
+              }}
+            />
             <div className={cn("space-y-4", entryMode !== "manual" && "hidden")}>
-            <div className="grid gap-2">
-              <Label>{mode === "custom_scenario" ? "Domain (optional)" : "Domain"}</Label>
-              <DomainInput
-                value={domain}
-                onChange={setDomain}
-                suggestions={domainSuggestions}
-                placeholder={
-                  mode === "custom_scenario"
-                    ? "e.g. DevOps - leave blank to let AI infer"
-                    : undefined
-                }
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Source</Label>
-              <Select
-                value={mode}
-                onValueChange={(v) =>
-                  setMode((v as "generated" | "real_data" | "custom_scenario") ?? "generated")
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="generated">AI-generated passage</SelectItem>
-                  <SelectItem value="real_data">Use my own text</SelectItem>
-                  <SelectItem value="custom_scenario">My scenario</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <DomainField
+              value={domain}
+              onChange={setDomain}
+              suggestions={domainSuggestions}
+              optional={mode === "custom_scenario"}
+            />
+            <SourceSelect
+              value={mode}
+              onChange={setMode}
+              options={[
+                { value: "generated", label: "AI-generated passage" },
+                { value: "real_data", label: "Use my own text" },
+                { value: "custom_scenario", label: "My scenario" },
+              ] as const}
+            />
             <GeopoliticsRealDataHints domain={domain} mode={mode} />
             {mode === "custom_scenario" ? (
               <div className="grid gap-2">
@@ -787,29 +758,11 @@ export function AnalyticalExerciseFlow({
                 )}
               </div>
             ) : null}
-            <p className="text-muted-foreground text-meta">
-              Personal context for AI is read from{" "}
-              <Link href="/settings" className="font-medium text-foreground">
-                Settings
-              </Link>
-              .
-            </p>
-            <div className="flex gap-2">
-              <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
-                {loading ? (
-                  <>
-                    <InlineSpinner /> Generating…
-                  </>
-                ) : (
-                  "Generate exercise"
-                )}
-              </Button>
-              {exercise ? (
-                <Button type="button" variant="secondary" onClick={() => setStep((exercise.currentStep ?? 1) as FlowStep)}>
-                  Continue existing exercise
-                </Button>
-              ) : null}
-            </div>
+            <SetupActions
+              loading={loading}
+              onGenerate={() => void startGenerate()}
+              onContinue={exercise ? () => setStep((exercise.currentStep ?? 1) as FlowStep) : undefined}
+            />
             </div>
         </ExerciseStepCard>
       ) : null}
@@ -1069,17 +1022,11 @@ export function AnalyticalExerciseFlow({
             />
           ) : null}
           {step === 7 && levelSuggestion ? (
-            <LevelSuggestionCard
+            <LevelSuggestionPrompt
+              type="analytical"
               suggestion={levelSuggestion}
-              onAccept={() => {
-                chooseLevel(levelSuggestion.to);
-                showToast(`Level set to ${LEVEL_LABELS[levelSuggestion.to]} for your next exercise.`);
-                setLevelSuggestion(null);
-              }}
-              onDismiss={() => {
-                void dismissLevelSuggestion("analytical");
-                setLevelSuggestion(null);
-              }}
+              onChoose={chooseLevel}
+              onClose={() => setLevelSuggestion(null)}
             />
           ) : null}
           <PracticeFinishCard

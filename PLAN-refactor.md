@@ -1,6 +1,6 @@
 # PLAN-refactor (cogi)
 
-Trạng thái: Phase 0 và Phase 1 xong (2026-11-15). Unit 897/897, Playwright 215/215 (1 test 404 không liên quan bị flaky khi chạy song song, chạy lại thì pass). Phase 2 chưa làm.
+Trạng thái: Phase 0, 1, 2 xong (Phase 2: 2026-11-16, branch `refactor/flow-phase2`). Playwright 215/215. Phase 3 chưa làm.
 
 Mục tiêu: tách 7 file `*ExerciseFlow.tsx` (570 - 1600 dòng) thành các phần nhỏ.
 Sau refactor, thêm một loại bài tập mới chỉ cần viết phần riêng của nó, không phải copy 1000 dòng.
@@ -129,6 +129,14 @@ Kết quả:
 4. Giữ nguyên `data-testid` cũ. Có thể truyền testid qua props.
 
 Xong khi: không flow nào còn tự vẽ LevelPicker / TopicSuggestionPicker / khung feedback.
+
+Kết quả (khác plan một chút):
+- Không làm một khung `SetupStep` / `FeedbackStep` lớn: thứ tự và nội dung khác nhau nhiều giữa các flow (Analytical có dán văn bản; Systems có thẻ pattern; Evaluative đặt gợi ý level ngoài khung), một khung chung sẽ đầy điều kiện.
+- Thay vào đó là các mảnh nhỏ trong `components/exercises/flow/`:
+  - `LevelSuggestionPrompt`: thẻ gợi ý level + toast + dismiss (7 flow).
+  - `SetupParts.tsx`: `GenerateButton` (6 flow), `SuggestedTopics`, `DomainField`, `SourceSelect`, `SetupActions` (Analytical, Systems, Evaluative).
+- `LevelPicker` đã là component chung từ trước, giữ nguyên.
+- 7 flow: 6 887 -> 6 678 dòng.
 
 ## Phase 3: tách từng bước thành file riêng
 

@@ -7,7 +7,8 @@ import { ExerciseStepCard, EXERCISE_STEP_META_BADGE } from "@/components/shared/
 import { ConfidenceSlider } from "@/components/shared/ConfidenceSlider";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
 import { PracticeFinishCard } from "@/components/shared/PracticeFinishCard";
-import { LevelSuggestionCard } from "@/components/shared/LevelSuggestionCard";
+import { GenerateButton } from "@/components/exercises/flow/SetupParts";
+import { LevelSuggestionPrompt } from "@/components/exercises/flow/LevelSuggestionPrompt";
 import { LevelPicker } from "@/components/exercises/LevelPicker";
 import { ConceptList, LearnFirst } from "@/components/exercises/LearnFirst";
 import { ReframeAnswerKey } from "@/components/exercises/ReframeAnswerKey";
@@ -17,19 +18,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
-import { InlineSpinner } from "@/components/ui/inline-spinner";
-import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import { putExercise } from "@/lib/db/exercises";
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
-import {
-  dismissLevelSuggestion,
-  getLanguageLevelForRequest,
-  getPracticeLevel,
-  getUserContext,
-} from "@/lib/db/settings";
+import { getLanguageLevelForRequest, getPracticeLevel, getUserContext } from "@/lib/db/settings";
 import { isReframeExercise, type ReframeExerciseRow } from "@/lib/types/exercise";
 import { useDebouncedSave, useExerciseFlow } from "@/components/exercises/flow/useExerciseFlow";
 import { takeScenarioText } from "@/lib/topics/scenario-handoff";
@@ -171,7 +165,6 @@ export function ReframeExerciseFlow({
   initialSource?: "generated" | "real_data" | "custom_scenario";
   autoGenerate?: boolean;
 } = {}) {
-  const { show: showToast } = useToast();
   const flow = useExerciseFlow<ReframeExerciseRow, FlowStep>({
     type: "reframe",
     resumeId,
@@ -681,15 +674,7 @@ export function ReframeExerciseFlow({
             </div>
           ) : null}
           <div>
-            <Button type="button" disabled={loading} onClick={() => void generate()}>
-              {loading ? (
-                <>
-                  <InlineSpinner /> Generating…
-                </>
-              ) : (
-                "Generate exercise"
-              )}
-            </Button>
+            <GenerateButton loading={loading} onClick={() => void generate()} />
           </div>
         </ExerciseStepCard>
       ) : null}
@@ -849,17 +834,11 @@ export function ReframeExerciseFlow({
             coaching={isCoachingStructured(perspectiveStructured) ? perspectiveStructured : null}
           />
           {step === 7 && levelSuggestion ? (
-            <LevelSuggestionCard
+            <LevelSuggestionPrompt
+              type="reframe"
               suggestion={levelSuggestion}
-              onAccept={() => {
-                chooseLevel(levelSuggestion.to);
-                showToast(`Level set to ${LEVEL_LABELS[levelSuggestion.to]} for your next exercise.`);
-                setLevelSuggestion(null);
-              }}
-              onDismiss={() => {
-                void dismissLevelSuggestion("reframe");
-                setLevelSuggestion(null);
-              }}
+              onChoose={chooseLevel}
+              onClose={() => setLevelSuggestion(null)}
             />
           ) : null}
           <PracticeFinishCard

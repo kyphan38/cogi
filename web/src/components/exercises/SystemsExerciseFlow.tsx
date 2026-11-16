@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import {
   ExerciseShell,
   practicePhase,
@@ -21,11 +20,10 @@ import { SystemsLoopList } from "@/components/exercises/SystemsLoopList";
 import { SystemsLookAheadForm } from "@/components/exercises/SystemsLookAheadForm";
 import { SystemsPatternCard } from "@/components/exercises/SystemsPatternCard";
 import { CONNECTION_TYPE_INFO, linkTypesFor } from "@/lib/exercise/systems-labels";
-import { LevelSuggestionCard } from "@/components/shared/LevelSuggestionCard";
-import { useToast } from "@/components/ui/toast";
+import { DomainField, SetupActions, SourceSelect, SuggestedTopics } from "@/components/exercises/flow/SetupParts";
+import { LevelSuggestionPrompt } from "@/components/exercises/flow/LevelSuggestionPrompt";
 import { SYSTEMS_LEVELS } from "@/lib/exercise/systems-levels";
-import { LEVEL_LABELS, type PracticeLevel } from "@/lib/exercise/levels";
-import { dismissLevelSuggestion } from "@/lib/db/settings";
+import { type PracticeLevel } from "@/lib/exercise/levels";
 import { scoreSystems, systemsResultOf, withFairExtras } from "@/lib/exercise/systems-score";
 import { isCoachingStructured } from "@/lib/types/perspective";
 import { PerspectiveLoadingCard } from "@/components/shared/PerspectiveLoadingCard";
@@ -75,14 +73,17 @@ import { useDebouncedSave, useExerciseFlow } from "@/components/exercises/flow/u
 import { takeScenarioHandoff } from "@/lib/topics/scenario-handoff";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
-import { DomainInput } from "@/components/shared/DomainInput";
-import { TopicSuggestionPicker } from "@/components/shared/TopicSuggestionPicker";
 import { listRecentDomains, putExercise } from "@/lib/db/exercises";
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
 import { isSystemsExercise } from "@/lib/types/exercise";
 import { resolveDomainAndScenario } from "@/lib/ai/prompts/scenario-steering";
 
 const EMPTY_LOOK_AHEAD: SystemsLookAhead = { loop: null, forecast: "", fix: "" };
+
+const SOURCE_OPTIONS = [
+  { value: "generated", label: "AI-generated from domain" },
+  { value: "custom_scenario", label: "My scenario" },
+] as const;
 
 type FlowStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
@@ -172,7 +173,6 @@ export function SystemsExerciseFlow({
   const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
 
   const [systemsTaskType, setSystemsTaskType] = useState<SystemsTaskType>("auto");
-  const { show: showToast } = useToast();
   const flow = useExerciseFlow<SystemsExerciseRow, FlowStep>({
     type: "systems",
     resumeId,
@@ -724,48 +724,27 @@ export function SystemsExerciseFlow({
             </div>
             ) : null}
 
-            <div className={cn(entryMode !== "suggested" && "hidden")}>
-              <TopicSuggestionPicker
-                area="systems"
-                kind="exercise"
-                onPick={({ title }) => {
-                  setSetupMode("generated");
-                  setDomain(title);
-                  void startGenerate(title, "generated");
-                }}
-              />
-            </div>
+            <SuggestedTopics
+              area="systems"
+              hidden={entryMode !== "suggested"}
+              onPick={(title) => {
+                setSetupMode("generated");
+                setDomain(title);
+                void startGenerate(title, "generated");
+              }}
+            />
             <div className={cn("space-y-4", entryMode !== "manual" && "hidden")}>
-            <div className="grid gap-2">
-              <Label>{setupMode === "custom_scenario" ? "Domain (optional)" : "Domain"}</Label>
-              <DomainInput
-                value={domain}
-                onChange={setDomain}
-                suggestions={domainSuggestions}
-                placeholder={
-                  setupMode === "custom_scenario"
-                    ? "e.g. DevOps - leave blank to let AI infer"
-                    : undefined
-                }
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Source</Label>
-              <Select
-                value={setupMode}
-                onValueChange={(v) =>
-                  setSetupMode((v as "generated" | "custom_scenario") ?? "generated")
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="generated">AI-generated from domain</SelectItem>
-                  <SelectItem value="custom_scenario">My scenario</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <DomainField
+              value={domain}
+              onChange={setDomain}
+              suggestions={domainSuggestions}
+              optional={setupMode === "custom_scenario"}
+            />
+            <SourceSelect
+              value={setupMode}
+              onChange={setSetupMode}
+              options={SOURCE_OPTIONS}
+            />
             {setupMode === "custom_scenario" ? (
               <div className="grid gap-2">
                 <Label htmlFor="sys-custom-scenario">Your scenario</Label>
@@ -779,29 +758,11 @@ export function SystemsExerciseFlow({
                 />
               </div>
             ) : null}
-            <p className="text-muted-foreground text-meta">
-              Personal context for AI is read from{" "}
-              <Link href="/settings" className="font-medium text-foreground">
-                Settings
-              </Link>
-              .
-            </p>
-            <div className="flex gap-2">
-              <Button type="button" disabled={loading} onClick={() => void startGenerate()}>
-                {loading ? (
-                  <>
-                    <InlineSpinner /> Generating…
-                  </>
-                ) : (
-                  "Generate exercise"
-                )}
-              </Button>
-              {exercise ? (
-                <Button type="button" variant="secondary" onClick={() => setStep((exercise.currentStep ?? 1) as FlowStep)}>
-                  Continue existing exercise
-                </Button>
-              ) : null}
-            </div>
+            <SetupActions
+              loading={loading}
+              onGenerate={() => void startGenerate()}
+              onContinue={exercise ? () => setStep((exercise.currentStep ?? 1) as FlowStep) : undefined}
+            />
             </div>
           </CardContent>
         </Card>
@@ -1458,17 +1419,11 @@ export function SystemsExerciseFlow({
             <AIPerspective text={perspectiveText} structured={systemsFeedback} perspectiveKind="systems" />
           ) : null}
           {step === doneStep && levelSuggestion ? (
-            <LevelSuggestionCard
+            <LevelSuggestionPrompt
+              type="systems"
               suggestion={levelSuggestion}
-              onAccept={() => {
-                chooseLevel(levelSuggestion.to);
-                showToast(`Level set to ${LEVEL_LABELS[levelSuggestion.to]} for your next exercise.`);
-                setLevelSuggestion(null);
-              }}
-              onDismiss={() => {
-                void dismissLevelSuggestion("systems");
-                setLevelSuggestion(null);
-              }}
+              onChoose={chooseLevel}
+              onClose={() => setLevelSuggestion(null)}
             />
           ) : null}
           {exercise.archetype ? (
