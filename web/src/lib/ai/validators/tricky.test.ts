@@ -8,9 +8,9 @@ const round = {
   trap: "Forced choice",
   trapWhy: "w",
   options: [
-    { text: "one", quality: "ok", why: "w" },
-    { text: "two", quality: "best", why: "w" },
-    { text: "three", quality: "poor", why: "w" },
+    { text: "one", quality: "ok" as const, why: "w" },
+    { text: "two", quality: "best" as const, why: "w" },
+    { text: "three", quality: "poor" as const, why: "w" },
   ],
 };
 
