@@ -153,6 +153,9 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
       case "judgment":
         data = makeMockJudgmentPayload(body.level === "guided" ? 3 : 4);
         break;
+      case "tricky":
+        data = makeMockTrickyPayload(body.level === "expert" ? 3 : 2);
+        break;
       case "reframe":
         if (typeof body.customScenario === "string" && /hopeless|give up on everything/i.test(body.customScenario)) {
           // The server's support reply (the model flagged the situation).
@@ -359,6 +362,31 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
                 elsewhere: { area: "Friends", thought: "Mock: they did not invite me, they don't like me.", balanced: "Mock: I was not invited this time; I can ask why." },
               },
             ],
+          },
+        }),
+      });
+      return;
+    }
+    if (kind === "tricky") {
+      const sent = JSON.parse(route.request().postData() ?? "{}") as { exercise?: { rounds?: unknown[] } };
+      const rounds = sent.exercise?.rounds?.length ?? 2;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          result: {
+            mode: "write",
+            score: 0.75,
+            overall: "Mock overall: you stay fair; hand the decision back more often.",
+            rounds: Array.from({ length: rounds }, (_, i) => ({
+              picked: null,
+              quality: null,
+              steps: { criteria: true, view: true, fair: true, handBack: i === 0 },
+              strong: "Mock strong: you asked what the task needs.",
+              missing: i === 0 ? "" : "Mock missing: leave the final call with your manager.",
+              better: "Mock better: If speed matters most, I lean to A. Your call in the end.",
+            })),
           },
         }),
       });
@@ -892,5 +920,42 @@ export function makeMockGeoSystemsPayload() {
     perspectiveBName: "Country B",
     intendedConnectionsB: base.intendedConnections,
     shockEventB: { directlyAffected: ["node_2", "node_4"], indirectlyAffected: ["node_1"], explanation: "B depends on other routes." },
+  };
+}
+
+export function makeMockTrickyPayload(rounds: 2 | 3) {
+  const questions = [
+    "Between Minh and Lan, who would you pick for the new project?",
+    "I hear you, but if you had to pick one right now?",
+    "Others already told me who they prefer. So, who?",
+  ];
+  return {
+    safety: "ok",
+    title: "Pick one of two colleagues",
+    setting: "Your manager calls you into a small room after the weekly meeting. They need one person for a new project.",
+    asker: "Your manager",
+    concepts: [
+      { term: "False choice", plain: "A question that hides other good answers.", example: "Tea or coffee? Maybe water." },
+      { term: "Criteria first", plain: "Say what the job needs before you name a person.", example: "Speed or care?" },
+      { term: "Decision owner", plain: "The person whose call it is.", example: "Your manager picks the team." },
+    ],
+    conceptChecks: [
+      {
+        question: "What does criteria first mean?",
+        options: ["Name what the work needs first", "Name your favourite first", "Never answer"],
+        answerIndex: 0,
+        explanation: "Criteria keep the choice about the work.",
+      },
+    ],
+    rounds: questions.slice(0, rounds).map((question, i) => ({
+      question,
+      trap: i === 0 ? "Forced choice" : "Closing the exit",
+      trapWhy: "Any name can hurt the other person.",
+      options: [
+        { text: `Mock poor ${i + 1}: I really can't answer that.`, quality: "poor", why: "A flat dodge looks weak." },
+        { text: `Mock best ${i + 1}: It depends on what the project needs. For speed, Minh; for client work, Lan. Your call.`, quality: "best", why: "Criteria, a fair view, and the call stays with the manager." },
+        { text: `Mock ok ${i + 1}: Minh, because he is faster.`, quality: "ok", why: "A clear view, but nothing fair about Lan." },
+      ],
+    })),
   };
 }

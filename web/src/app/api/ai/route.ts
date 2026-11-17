@@ -28,6 +28,7 @@ import {
   evaluativeResponseSchema,
   judgmentResponseSchema,
   reframeResponseSchema,
+  trickyResponseSchema,
   strategyResponseSchema,
   systemsResponseSchema,
 } from "@/lib/ai/response-schemas";
@@ -90,6 +91,9 @@ import {
   validateJudgmentSemantics,
 } from "@/lib/ai/validators/judgment";
 import { REFRAME_LEVELS } from "@/lib/exercise/reframe-levels";
+import { TRICKY_LEVELS } from "@/lib/exercise/tricky-levels";
+import { buildTrickyGenerationPrompt } from "@/lib/ai/prompts/tricky";
+import { parseTrickyExerciseJson, TRICKY_RETRY_SUFFIX, validateTrickySemantics } from "@/lib/ai/validators/tricky";
 import { buildReframeGenerationPrompt } from "@/lib/ai/prompts/reframe";
 import {
   REFRAME_RETRY_SUFFIX,
@@ -281,6 +285,32 @@ export async function POST(req: Request) {
         retrySuffix: REFRAME_RETRY_SUFFIX,
         responseJsonSchema: reframeResponseSchema(),
         // The user's own situation includes a safety check: keep the stronger model.
+        model: ownSituation ? "thinking" : "fast",
+      });
+      if (!r.ok) return validatedJsonFailureResponse(r);
+      if (r.data.safety === "concern") return safetyConcernResponse();
+      return NextResponse.json({ ok: true, data: r.data });
+    }
+
+    if (rawType === "tricky") {
+      // Tricky questions: a loaded question, then follow-ups that push harder.
+      const cfg = TRICKY_LEVELS[practiceLevel];
+      const ownSituation = cfg.ownSituation ? scenarioForPrompt : undefined;
+      if (ownSituation && hasCrisisLanguage(ownSituation)) return safetyConcernResponse();
+      const rawTrickyContext = (body as { context?: unknown }).context;
+      const r = await generateValidatedJson({
+        prompt: buildTrickyGenerationPrompt({
+          asker: effectiveDomain,
+          context: rawTrickyContext === "vietnam" ? "vietnam" : "general",
+          level: cfg,
+          userContext,
+          ownSituation,
+          adaptationAppendix,
+        }),
+        parse: parseTrickyExerciseJson,
+        validate: (data) => validateTrickySemantics(data, { rounds: cfg.rounds, ownSituation: Boolean(ownSituation) }),
+        retrySuffix: TRICKY_RETRY_SUFFIX,
+        responseJsonSchema: trickyResponseSchema(),
         model: ownSituation ? "thinking" : "fast",
       });
       if (!r.ok) return validatedJsonFailureResponse(r);

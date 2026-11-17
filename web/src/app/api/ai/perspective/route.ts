@@ -31,7 +31,13 @@ import type {
   CalibrationExerciseRow,
   ReframeExerciseRow,
   StrategyExerciseRow,
+  TrickyExerciseRow,
 } from "@/lib/types/exercise";
+import { generateValidatedJson } from "@/lib/ai/generate-validated";
+import { buildTrickyGradePrompt } from "@/lib/ai/prompts/tricky-grade";
+import { parseTrickyGradeJson, TRICKY_RETRY_SUFFIX, validateTrickyGrade } from "@/lib/ai/validators/tricky";
+import { trickyGradeResponseSchema } from "@/lib/ai/response-schemas";
+import { scoreTrickyWritten } from "@/lib/exercise/tricky-score";
 import { calibrationCoachingRefs, scoreCalibration } from "@/lib/exercise/calibration-score";
 import { CALIBRATION_LEVELS } from "@/lib/exercise/calibration-levels";
 import { buildCalibrationPerspectivePrompt } from "@/lib/ai/prompts/calibration-perspective";
@@ -326,6 +332,39 @@ export async function POST(req: Request) {
       );
       const checked = { ...structured, takeaways: [], trapCards: sanitizeTrapCards(structured.trapCards, cardTraps, cardCtx) };
       return NextResponse.json({ ok: true, structured: checked, text, result });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      const timeout = e instanceof Error && (e.name === "AbortError" || /time(d)? ?out/i.test(e.message));
+      return NextResponse.json(
+        { ok: false, error: timeout ? "Exercise generation timed out. Please try again." : message },
+        { status: timeout ? 504 : 500 },
+      );
+    }
+  }
+
+  if (b.kind === "tricky") {
+    const exercise = b.exercise as TrickyExerciseRow | undefined;
+    if (!exercise || exercise.type !== "tricky" || !Array.isArray(exercise.rounds) || !Array.isArray(exercise.answers)) {
+      return NextResponse.json({ ok: false, error: "tricky requires the exercise row with answers" }, { status: 400 });
+    }
+    if (anyCrisisLanguage(exercise.answers)) return safetyConcernResponse();
+    try {
+      const prompt = [
+        buildTrickyGradePrompt({ exercise, userContext: typeof b.userContext === "string" ? b.userContext : undefined }),
+        languageAppendix,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+      const r = await generateValidatedJson({
+        prompt,
+        parse: parseTrickyGradeJson,
+        validate: (data) => validateTrickyGrade(data, exercise.rounds.length),
+        retrySuffix: TRICKY_RETRY_SUFFIX,
+        responseJsonSchema: trickyGradeResponseSchema(),
+        model: "thinking",
+      });
+      if (!r.ok) return NextResponse.json({ ok: false, error: "AI feedback was incomplete. Please try again." }, { status: 422 });
+      return NextResponse.json({ ok: true, result: scoreTrickyWritten(r.data, exercise.rounds.length) });
     } catch (e) {
       const message = e instanceof Error ? e.message : "Unknown error";
       const timeout = e instanceof Error && (e.name === "AbortError" || /time(d)? ?out/i.test(e.message));

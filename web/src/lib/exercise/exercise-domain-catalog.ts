@@ -140,7 +140,7 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
   {
     id: "relationships-family",
     label: "Relationships & family",
-    bestFor: ["judgment", "reframe", "strategy"],
+    bestFor: ["judgment", "reframe", "strategy", "tricky"],
     domains: [
       "Social & communication",
       "Parents & adult children",
@@ -265,7 +265,7 @@ export const EXERCISE_DOMAIN_CATALOG: ExerciseDomainGroup[] = [
   {
     id: "professional",
     label: "Professional judgment",
-    bestFor: ["judgment", "evaluative", "strategy"],
+    bestFor: ["judgment", "evaluative", "strategy", "tricky"],
     domains: [
       "Organizational change & leadership",
       "Project & program management",

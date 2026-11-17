@@ -4,6 +4,7 @@ import {
   isAnalyticalExercise,
   isEvaluativeExercise,
   isJudgmentExercise,
+  isTrickyExercise,
   isReframeExercise,
   isCalibrationExercise,
   isStrategyExercise,
@@ -15,6 +16,7 @@ import { rateAnalytical } from "@/lib/exercise/analytical-levels";
 import { rateSystems, systemsResultOf } from "@/lib/exercise/systems-score";
 import { evaluativeResultOf, rateEvaluative } from "@/lib/exercise/evaluative-score";
 import { rateJudgment } from "@/lib/exercise/judgment-score";
+import { rateTricky } from "@/lib/exercise/tricky-score";
 import { rateStrategy } from "@/lib/exercise/strategy-score";
 import { rateReframe } from "@/lib/exercise/reframe-score";
 import { suggestCalibrationLevel } from "@/lib/exercise/calibration-score";
@@ -51,6 +53,9 @@ function rateRow(type: LevelledExerciseType, row: Exercise): ResultRating | null
   }
   if (type === "judgment" && isJudgmentExercise(row)) {
     return row.result ? rateJudgment(row.result) : null;
+  }
+  if (type === "tricky" && isTrickyExercise(row)) {
+    return row.result ? rateTricky(row.result) : null;
   }
   return null;
 }

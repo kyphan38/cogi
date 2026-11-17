@@ -9,7 +9,7 @@ export const SCENARIO_HANDOFF_KEY = "cogi:home-source-text";
 export const OWN_TEXT_MIN_WORDS = 120;
 
 /** Modes that can work from the learner's own scenario. */
-export const SCENARIO_MODES = ["analytical", "systems", "evaluative", "judgment", "reframe"] as const;
+export const SCENARIO_MODES = ["analytical", "systems", "evaluative", "judgment", "reframe", "tricky"] as const;
 export type ScenarioMode = (typeof SCENARIO_MODES)[number];
 
 export function wordCount(text: string): number {

@@ -48,6 +48,17 @@ export function scoreSummary(ex: Exercise): ScoreSummary | null {
         ratio: r.closeness,
       };
     }
+    case "tricky": {
+      const r = ex.result;
+      if (!r) return null;
+      return {
+        line:
+          r.mode === "choose"
+            ? `${r.rounds.filter((x) => x.quality === "best").length} of ${r.rounds.length} best answers picked`
+            : `${Math.round(r.score * 100)}% of the four steps used`,
+        ratio: r.score,
+      };
+    }
     case "strategy": {
       const r = ex.result;
       if (!r) return null;

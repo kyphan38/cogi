@@ -5,6 +5,7 @@ import {
   isAnalyticalExercise,
   isEvaluativeExercise,
   isJudgmentExercise,
+  isTrickyExercise,
   isReframeExercise,
   isCalibrationExercise,
   isGeoLabExercise,
@@ -20,6 +21,7 @@ import {
 import { SystemsAnswerKey } from "@/components/exercises/SystemsAnswerKey";
 import { EvaluativeAnswerKey } from "@/components/exercises/EvaluativeAnswerKey";
 import { JudgmentAnswerKey } from "@/components/exercises/JudgmentAnswerKey";
+import { TrickyAnswerKey } from "@/components/exercises/TrickyAnswerKey";
 import { StrategyAnswerKey } from "@/components/exercises/StrategyAnswerKey";
 import { ReframeAnswerKey } from "@/components/exercises/ReframeAnswerKey";
 import { CalibrationAnswerKey } from "@/components/exercises/CalibrationAnswerKey";
@@ -147,6 +149,17 @@ export function HistoryDetailBody({
             }
           />
         ) : null}
+      </>
+    ) : isTrickyExercise(detailEx) ? (
+      <>
+        <div>
+          <h3 className="mb-1 font-medium">Setting</h3>
+          <p className="whitespace-pre-wrap leading-relaxed">{detailEx.setting}</p>
+        </div>
+        <p className="text-muted-foreground">
+          Level: {LEVEL_LABELS[detailEx.level]} · {detailEx.context === "vietnam" ? "Vietnam" : "General"}
+        </p>
+        {detailEx.result ? <TrickyAnswerKey exercise={detailEx} result={detailEx.result} /> : null}
       </>
     ) : isCalibrationExercise(detailEx) ? (
       <>

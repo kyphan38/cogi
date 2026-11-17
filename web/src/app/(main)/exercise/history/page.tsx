@@ -149,6 +149,7 @@ function HistoryPageInner() {
                   <SelectItem value="systems">Systems</SelectItem>
                   <SelectItem value="evaluative">Evaluative</SelectItem>
                   <SelectItem value="judgment">Life situations</SelectItem>
+                  <SelectItem value="tricky">Tricky questions</SelectItem>
                   <SelectItem value="strategy">Strategic situations</SelectItem>
                   <SelectItem value="reframe">Reframe</SelectItem>
                   <SelectItem value="calibration">Calibration</SelectItem>

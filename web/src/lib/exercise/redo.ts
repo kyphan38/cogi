@@ -99,6 +99,16 @@ export function redoRow(ex: PracticeRow, id: string, now: string): PracticeRow {
         ),
       };
     }
+    case "tricky":
+      return {
+        ...ex,
+        ...common,
+        part: "learn" as const,
+        conceptAnswers: [],
+        roundsDone: 0,
+        picks: [],
+        answers: [],
+      };
     case "judgment":
       return {
         ...ex,

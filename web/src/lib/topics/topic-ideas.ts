@@ -1,4 +1,5 @@
 import { EXERCISE_DOMAIN_CATALOG, type ExerciseDomainGroup } from "@/lib/exercise/exercise-domain-catalog";
+import { TRICKY_ASKERS } from "@/lib/exercise/tricky-levels";
 import { GEOPOLITICS_DOMAIN_GROUPS } from "@/lib/exercise/geopolitics-domains";
 import { CALIBRATION_CATEGORIES } from "@/lib/exercise/calibration-bank";
 import type { ThinkingType } from "@/lib/types/exercise";
@@ -165,6 +166,16 @@ export function calibrationIdeas(): TopicIdea[] {
     mode: "calibration" as const,
     groupId: "calibration",
     domain: c,
+  }));
+}
+
+/** Tricky questions start from who asks, not from a topic. */
+export function trickyIdeas(): TopicIdea[] {
+  return TRICKY_ASKERS.map((a) => ({
+    title: `A tricky question from ${a.charAt(0).toLowerCase()}${a.slice(1)}`,
+    mode: "tricky" as const,
+    groupId: "tricky",
+    domain: a,
   }));
 }
 
