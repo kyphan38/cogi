@@ -7,6 +7,7 @@ import {
 } from "@/lib/ai/prompts/evaluative-perspective";
 import { buildSystemsShockPerspectivePrompt } from "@/lib/ai/prompts/systems-shock-perspective";
 import { generateAnalyticalExerciseRaw } from "@/lib/ai/gemini";
+import { retryOnTimeout } from "@/lib/ai/retry-on-timeout";
 import {
   ANALYTICAL_COACHING_RETRY_SUFFIX,
   COACHING_RETRY_SUFFIX,
@@ -78,7 +79,13 @@ import type { GeoGuessResult } from "@/lib/exercise/geo-guess";
 import { requireAuthenticatedRouteUser } from "@/lib/auth/server-route-auth";
 import { buildLanguageLevelAppendix, resolveLanguageLevel } from "@/lib/adaptive/language-level";
 
-export const maxDuration = 60;
+// Coaching can retry after a timeout, and once more on a bad reply: up to 4 calls of 35 s.
+export const maxDuration = 180;
+
+/** Coaching call: a longer timeout than the default, and one retry when it still runs out. */
+function coachingRaw(prompt: string): Promise<string> {
+  return retryOnTimeout(() => generateAnalyticalExerciseRaw(prompt, "thinking", 35_000));
+}
 
 /**
  * Coaching feedback (Systems, Evaluative): generate, check every required ref is
@@ -100,18 +107,17 @@ async function generateCoaching(
       requireMetaNote: refs.requireMetaNote,
       takeawaysOptional: refs.takeawaysOptional,
     });
-  let parsed = parse(await generateAnalyticalExerciseRaw(fullPrompt, "thinking"));
+  let parsed = parse(await coachingRaw(fullPrompt));
   const incomplete = parsed.success ? retryIf?.(parsed.data) : null;
   if (incomplete) {
     const second = parse(
-      await generateAnalyticalExerciseRaw(`${fullPrompt}\n${COACHING_RETRY_SUFFIX}\nReason: ${incomplete}`, "thinking"),
+      await coachingRaw(`${fullPrompt}\n${COACHING_RETRY_SUFFIX}\nReason: ${incomplete}`),
     );
     if (second.success) parsed = second;
   } else if (!parsed.success) {
     parsed = parse(
-      await generateAnalyticalExerciseRaw(
+      await coachingRaw(
         `${fullPrompt}\n${COACHING_RETRY_SUFFIX}\nReason: ${parsed.error}`,
-        "thinking",
       ),
     );
   }
@@ -362,6 +368,7 @@ export async function POST(req: Request) {
         retrySuffix: TRICKY_RETRY_SUFFIX,
         responseJsonSchema: trickyGradeResponseSchema(),
         model: "thinking",
+        timeoutMs: 35_000,
       });
       if (!r.ok) return NextResponse.json({ ok: false, error: "AI feedback was incomplete. Please try again." }, { status: 422 });
       return NextResponse.json({ ok: true, result: scoreTrickyWritten(r.data, exercise.rounds.length) });
@@ -877,21 +884,19 @@ export async function POST(req: Request) {
     });
 
   try {
-    let parsed = parse(await generateAnalyticalExerciseRaw(fullPrompt, "thinking"));
+    let parsed = parse(await coachingRaw(fullPrompt));
     // One retry when the cards are incomplete; the second reply is kept either way.
     if (parsed.success && sanitizeTrapCards(parsed.data.trapCards, cardKeys, cardCtx).length < cardKeys.length) {
       const second = parse(
-        await generateAnalyticalExerciseRaw(
+        await coachingRaw(
           `${fullPrompt}\n${ANALYTICAL_COACHING_RETRY_SUFFIX}\nReason: trapCards: one complete card for each of ${cardKeys.join(", ")}`,
-          "thinking",
         ),
       );
       if (second.success) parsed = second;
     } else if (!parsed.success) {
       parsed = parse(
-        await generateAnalyticalExerciseRaw(
+        await coachingRaw(
           `${fullPrompt}\n${ANALYTICAL_COACHING_RETRY_SUFFIX}\nReason: ${parsed.error}`,
-          "thinking",
         ),
       );
     }
