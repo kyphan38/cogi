@@ -25,6 +25,18 @@ test.describe("Home page - resume and navigation", () => {
     await page.waitForURL("/reasoning", { timeout: 15_000 });
   });
 
+  test("All exercises: Today links to a grouped list of every exercise", async ({ page }) => {
+    await gotoAuthenticated(page, "/");
+    await page.getByTestId("all-exercises-link").click();
+    await page.waitForURL("/reasoning#all-exercises", { timeout: 15_000 });
+    const list = page.getByTestId("all-exercises");
+    await expect(list).toBeVisible();
+    await expect(list.getByText("People and yourself")).toBeVisible();
+    await expect(list.getByTestId("all-exercises-row")).toHaveCount(9);
+    await list.getByRole("link", { name: /Light replies/ }).click();
+    await page.waitForURL("/exercise/humor", { timeout: 15_000 });
+  });
+
   test("no longer shows math or learning notes on the start page", async ({ page }) => {
     await gotoAuthenticated(page, "/");
     await expect(page.getByRole("link", { name: "Math", exact: true })).toHaveCount(0);
@@ -66,7 +78,7 @@ test.describe("Reasoning page - exercise picker and navigation", () => {
     await page.getByTestId("options-toggle").click();
     const modes = page.getByRole("radiogroup", { name: "Exercise mode" });
     await expect(modes.getByRole("radio")).toHaveText([
-      "Picked for you", "Evaluative", "Systems", "Analytical", "Life situations", "Strategic situations", "Reframe", "Calibration",
+      "Picked for you", "Evaluative", "Systems", "Analytical", "Life situations", "Tricky questions", "Light replies", "Strategic situations", "Reframe", "Calibration",
     ]);
     await expect(modes.getByRole("radio", { name: "Picked for you" })).toHaveAttribute("aria-checked", "true");
     for (const name of [/Combo/, /Sequential/, /Generative/]) {
@@ -139,7 +151,7 @@ test.describe("AppTopNav navigation", () => {
     await expect(nav.getByRole("link", { name: "Handbook" })).toHaveClass(/font-medium/);
     await expect(page.getByTestId("handbook-start")).toContainText("Start here");
     // Every exercise type and tool has an entry, reachable from the contents.
-    await expect(page.getByTestId("handbook-entry")).toHaveCount(23);
+    await expect(page.getByTestId("handbook-entry")).toHaveCount(25);
     await page.getByTestId("handbook-contents").getByRole("link", { name: "Strategic situations" }).click();
     await expect(page).toHaveURL(/#strategy$/);
   });

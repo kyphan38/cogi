@@ -78,7 +78,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     title: "Choosing what to practise",
     href: "/reasoning",
     group: "basics",
-    trains: "Two ways to start, from Today > New exercise: type what is on your mind, or pick a suggested topic.",
+    trains: "Three ways to start, from Today > New exercise: type what is on your mind, pick a suggested topic, or open an exercise from the full list.",
     benefits: [
       "You never get stuck on a blank topic box.",
       "Every topic ends up in the exercise that trains it best.",
@@ -93,6 +93,8 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Under \"change\" you can also choose an area and a domain. Then press \"get topics\" for topics that fit.",
       "Tap a topic to open the exercise with it filled in. You still choose your level there.",
       "Like a topic? Tap the bookmark next to it. Saved topics show under \"Saved topics\", so you can start them later. Tap the bookmark again to remove one.",
+      "At the bottom, \"All exercises\" lists every exercise in three groups: Reason well, Systems and games, People and yourself. Tap one to open it with no topic yet.",
+      "On Today, \"All exercises\" under New exercise jumps straight to that list.",
       "Go back from an exercise and your text, mode and topics are still there.",
       "Left an exercise half way? Back, Forward or a reload opens it at the same step. Open the same topic again and you can choose Continue or Start over.",
       "Inside an exercise, the quick buttons (Work, Family, Negotiation...) are a shortcut for a broad area. New exercise is for a specific topic.",

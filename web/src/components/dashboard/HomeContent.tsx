@@ -136,6 +136,9 @@ export function HomeContent() {
             5-minute question
           </span>
         </Link>
+        <Link href="/reasoning#all-exercises" className="mt-3 inline-block text-meta text-muted-foreground hover:text-foreground" data-testid="all-exercises-link">
+          All exercises ›
+        </Link>
       </Section>
 
       {inProgress.length > 0 ? (

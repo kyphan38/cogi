@@ -3,70 +3,71 @@ export const ALL_EXERCISE_CARDS: {
   href: string;
   label: string;
   title: string;
-  desc?: string;
+  /** One short line, shown in the "All exercises" list. */
+  desc: string;
 }[] = [
   {
     type: "analytical",
     href: "/exercise/analytical",
     label: "Analytical",
     title: "Spot flawed reasoning",
-    desc: "Find embedded issues and decoys in a short passage.",
+    desc: "Find weak reasoning in a text.",
   },
   {
     type: "systems",
     href: "/exercise/systems",
     label: "Systems",
     title: "Map feedback loops",
-    desc: "Draw nodes and edges, then trace a shock ripple.",
+    desc: "See how parts affect each other.",
   },
   {
     type: "evaluative",
     href: "/exercise/evaluative",
     label: "Evaluative",
     title: "Compare options fairly",
-    desc: "Matrix or weighted scoring against hidden tradeoffs.",
+    desc: "Compare options and weigh what matters.",
   },
   {
     type: "judgment",
     href: "/exercise/judgment",
     label: "Life situations",
     title: "Handle real-life situations",
-    desc: "Read a situation through three lenses, then choose how to respond.",
+    desc: "Handle real moments through three lenses.",
   },
   {
     type: "tricky",
     href: "/exercise/tricky",
     label: "Tricky questions",
     title: "Answer tricky questions wisely",
-    desc: "Someone asks a loaded question and pushes harder. Answer with a clear, fair view.",
+    desc: "Answer a loaded question wisely.",
   },
   {
     type: "humor",
     href: "/exercise/humor",
     label: "Light replies",
     title: "Reply with light humor",
-    desc: "Short social moments. Find a reply that is kind, short and a little funny.",
+    desc: "Kind, short, a little funny.",
   },
   {
     type: "strategy",
     href: "/exercise/strategy",
     label: "Strategic situations",
     title: "Think like a game theorist",
-    desc: "Find each side's best reply and predict where they end up.",
+    desc: "Best replies and where things settle.",
   },
   {
     type: "reframe",
     href: "/exercise/reframe",
     label: "Reframe",
     title: "Spot thinking traps",
-    desc: "Name the traps in a hard moment, then rewrite one thought fairly.",
+    desc: "Rewrite a thought that is too dark.",
   },
   {
     type: "calibration",
     href: "/exercise/calibration",
     label: "Calibration",
     title: "Know how sure to be",
-    desc: "Answer, say how sure you are, and see if your confidence matches your results.",
+    desc: "Know how sure to be.",
   },
 ];
 
@@ -80,6 +81,13 @@ export const PRACTICE_EXERCISE_TYPES = ["evaluative", "systems", "analytical", "
 export const PRACTICE_EXERCISE_CARDS = PRACTICE_EXERCISE_TYPES.map(
   (type) => ALL_EXERCISE_CARDS.find((c) => c.type === type)!,
 );
+
+/** The "All exercises" list: every practice type in one of three groups, by what it trains. */
+export const EXERCISE_GROUPS: { title: string; types: (typeof PRACTICE_EXERCISE_TYPES)[number][] }[] = [
+  { title: "Reason well", types: ["analytical", "evaluative", "calibration"] },
+  { title: "Systems and games", types: ["systems", "strategy"] },
+  { title: "People and yourself", types: ["judgment", "tricky", "humor", "reframe"] },
+];
 
 export const TYPE_LABEL: Record<string, string> = {
   analytical: "Analytical",
