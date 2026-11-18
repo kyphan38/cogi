@@ -1,5 +1,6 @@
 import { EXERCISE_DOMAIN_CATALOG, type ExerciseDomainGroup } from "@/lib/exercise/exercise-domain-catalog";
 import { TRICKY_ASKERS } from "@/lib/exercise/tricky-levels";
+import { HUMOR_PLACES } from "@/lib/exercise/humor-levels";
 import { GEOPOLITICS_DOMAIN_GROUPS } from "@/lib/exercise/geopolitics-domains";
 import { CALIBRATION_CATEGORIES } from "@/lib/exercise/calibration-bank";
 import type { ThinkingType } from "@/lib/types/exercise";
@@ -176,6 +177,16 @@ export function trickyIdeas(): TopicIdea[] {
     mode: "tricky" as const,
     groupId: "tricky",
     domain: a,
+  }));
+}
+
+/** Light replies start from where the moment happens, not from a topic. */
+export function humorIdeas(): TopicIdea[] {
+  return HUMOR_PLACES.map((p) => ({
+    title: `Light replies: ${p.charAt(0).toLowerCase()}${p.slice(1)}`,
+    mode: "humor" as const,
+    groupId: "humor",
+    domain: p,
   }));
 }
 

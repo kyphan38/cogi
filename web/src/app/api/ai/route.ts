@@ -29,6 +29,7 @@ import {
   judgmentResponseSchema,
   reframeResponseSchema,
   trickyResponseSchema,
+  humorResponseSchema,
   strategyResponseSchema,
   systemsResponseSchema,
 } from "@/lib/ai/response-schemas";
@@ -92,6 +93,9 @@ import {
 } from "@/lib/ai/validators/judgment";
 import { REFRAME_LEVELS } from "@/lib/exercise/reframe-levels";
 import { TRICKY_LEVELS } from "@/lib/exercise/tricky-levels";
+import { HUMOR_LEVELS } from "@/lib/exercise/humor-levels";
+import { buildHumorGenerationPrompt } from "@/lib/ai/prompts/humor";
+import { parseHumorExerciseJson, HUMOR_RETRY_SUFFIX, validateHumorSemantics } from "@/lib/ai/validators/humor";
 import { buildTrickyGenerationPrompt } from "@/lib/ai/prompts/tricky";
 import { parseTrickyExerciseJson, TRICKY_RETRY_SUFFIX, validateTrickySemantics } from "@/lib/ai/validators/tricky";
 import { buildReframeGenerationPrompt } from "@/lib/ai/prompts/reframe";
@@ -311,6 +315,33 @@ export async function POST(req: Request) {
         validate: (data) => validateTrickySemantics(data, { rounds: cfg.rounds, ownSituation: Boolean(ownSituation) }),
         retrySuffix: TRICKY_RETRY_SUFFIX,
         responseJsonSchema: trickyResponseSchema(),
+        model: ownSituation ? "thinking" : "fast",
+      });
+      if (!r.ok) return validatedJsonFailureResponse(r);
+      if (r.data.safety === "concern") return safetyConcernResponse();
+      return NextResponse.json({ ok: true, data: r.data });
+    }
+
+    if (rawType === "humor") {
+      // Light replies: short social moments, one of them serious from Standard.
+      const cfg = HUMOR_LEVELS[practiceLevel];
+      const ownSituation = cfg.ownSituation ? scenarioForPrompt : undefined;
+      if (ownSituation && hasCrisisLanguage(ownSituation)) return safetyConcernResponse();
+      const rawHumorContext = (body as { context?: unknown }).context;
+      const r = await generateValidatedJson({
+        prompt: buildHumorGenerationPrompt({
+          place: effectiveDomain,
+          context: rawHumorContext === "vietnam" ? "vietnam" : "general",
+          level: cfg,
+          userContext,
+          ownSituation,
+          adaptationAppendix,
+        }),
+        parse: parseHumorExerciseJson,
+        validate: (data) =>
+          validateHumorSemantics(data, { rounds: cfg.rounds, ownSituation: Boolean(ownSituation), seriousRound: cfg.seriousRound }),
+        retrySuffix: HUMOR_RETRY_SUFFIX,
+        responseJsonSchema: humorResponseSchema(),
         model: ownSituation ? "thinking" : "fast",
       });
       if (!r.ok) return validatedJsonFailureResponse(r);

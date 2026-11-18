@@ -33,12 +33,17 @@ import type {
   ReframeExerciseRow,
   StrategyExerciseRow,
   TrickyExerciseRow,
+  HumorExerciseRow,
 } from "@/lib/types/exercise";
 import { generateValidatedJson } from "@/lib/ai/generate-validated";
 import { buildTrickyGradePrompt } from "@/lib/ai/prompts/tricky-grade";
 import { parseTrickyGradeJson, TRICKY_RETRY_SUFFIX, validateTrickyGrade } from "@/lib/ai/validators/tricky";
 import { trickyGradeResponseSchema } from "@/lib/ai/response-schemas";
 import { scoreTrickyWritten } from "@/lib/exercise/tricky-score";
+import { buildHumorGradePrompt } from "@/lib/ai/prompts/humor-grade";
+import { parseHumorGradeJson, HUMOR_RETRY_SUFFIX, validateHumorGrade } from "@/lib/ai/validators/humor";
+import { humorGradeResponseSchema } from "@/lib/ai/response-schemas";
+import { scoreHumorWritten } from "@/lib/exercise/humor-score";
 import { calibrationCoachingRefs, scoreCalibration } from "@/lib/exercise/calibration-score";
 import { CALIBRATION_LEVELS } from "@/lib/exercise/calibration-levels";
 import { buildCalibrationPerspectivePrompt } from "@/lib/ai/prompts/calibration-perspective";
@@ -372,6 +377,40 @@ export async function POST(req: Request) {
       });
       if (!r.ok) return NextResponse.json({ ok: false, error: "AI feedback was incomplete. Please try again." }, { status: 422 });
       return NextResponse.json({ ok: true, result: scoreTrickyWritten(r.data, exercise.rounds.length) });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      const timeout = e instanceof Error && (e.name === "AbortError" || /time(d)? ?out/i.test(e.message));
+      return NextResponse.json(
+        { ok: false, error: timeout ? "Exercise generation timed out. Please try again." : message },
+        { status: timeout ? 504 : 500 },
+      );
+    }
+  }
+
+  if (b.kind === "humor") {
+    const exercise = b.exercise as HumorExerciseRow | undefined;
+    if (!exercise || exercise.type !== "humor" || !Array.isArray(exercise.rounds) || !Array.isArray(exercise.answers)) {
+      return NextResponse.json({ ok: false, error: "humor requires the exercise row with answers" }, { status: 400 });
+    }
+    if (anyCrisisLanguage(exercise.answers)) return safetyConcernResponse();
+    try {
+      const prompt = [
+        buildHumorGradePrompt({ exercise, userContext: typeof b.userContext === "string" ? b.userContext : undefined }),
+        languageAppendix,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+      const r = await generateValidatedJson({
+        prompt,
+        parse: parseHumorGradeJson,
+        validate: (data) => validateHumorGrade(data, exercise.rounds.length),
+        retrySuffix: HUMOR_RETRY_SUFFIX,
+        responseJsonSchema: humorGradeResponseSchema(),
+        model: "thinking",
+        timeoutMs: 35_000,
+      });
+      if (!r.ok) return NextResponse.json({ ok: false, error: "AI feedback was incomplete. Please try again." }, { status: 422 });
+      return NextResponse.json({ ok: true, result: scoreHumorWritten(r.data, exercise.rounds.length) });
     } catch (e) {
       const message = e instanceof Error ? e.message : "Unknown error";
       const timeout = e instanceof Error && (e.name === "AbortError" || /time(d)? ?out/i.test(e.message));

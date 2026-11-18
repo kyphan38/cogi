@@ -41,6 +41,13 @@ export const ALL_EXERCISE_CARDS: {
     desc: "Someone asks a loaded question and pushes harder. Answer with a clear, fair view.",
   },
   {
+    type: "humor",
+    href: "/exercise/humor",
+    label: "Light replies",
+    title: "Reply with light humor",
+    desc: "Short social moments. Find a reply that is kind, short and a little funny.",
+  },
+  {
     type: "strategy",
     href: "/exercise/strategy",
     label: "Strategic situations",
@@ -68,7 +75,7 @@ export const ALL_EXERCISE_CARDS: {
  * systems 3, analytical 1 of 9 exercises). Old exercises of removed types still
  * show in History, under their raw type name.
  */
-export const PRACTICE_EXERCISE_TYPES = ["evaluative", "systems", "analytical", "judgment", "tricky", "strategy", "reframe", "calibration"] as const;
+export const PRACTICE_EXERCISE_TYPES = ["evaluative", "systems", "analytical", "judgment", "tricky", "humor", "strategy", "reframe", "calibration"] as const;
 
 export const PRACTICE_EXERCISE_CARDS = PRACTICE_EXERCISE_TYPES.map(
   (type) => ALL_EXERCISE_CARDS.find((c) => c.type === type)!,
@@ -80,6 +87,7 @@ export const TYPE_LABEL: Record<string, string> = {
   evaluative: "Evaluative",
   judgment: "Life situations",
   tricky: "Tricky questions",
+  humor: "Light replies",
   strategy: "Strategic situations",
   reframe: "Reframe",
   calibration: "Calibration",

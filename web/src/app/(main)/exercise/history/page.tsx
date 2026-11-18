@@ -150,6 +150,7 @@ function HistoryPageInner() {
                   <SelectItem value="evaluative">Evaluative</SelectItem>
                   <SelectItem value="judgment">Life situations</SelectItem>
                   <SelectItem value="tricky">Tricky questions</SelectItem>
+                  <SelectItem value="humor">Light replies</SelectItem>
                   <SelectItem value="strategy">Strategic situations</SelectItem>
                   <SelectItem value="reframe">Reframe</SelectItem>
                   <SelectItem value="calibration">Calibration</SelectItem>

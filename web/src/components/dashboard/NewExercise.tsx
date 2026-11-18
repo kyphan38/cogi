@@ -17,6 +17,7 @@ import { savedTopicKey, toggleSavedTopic, type SavedTopic } from "@/lib/topics/s
 import {
   calibrationIdeas,
   trickyIdeas,
+  humorIdeas,
   groupsForMode,
   TOPIC_GROUPS,
   topicGroupById,
@@ -44,7 +45,7 @@ interface PageState {
 }
 
 const topicHref = (idea: TopicIdea) =>
-  `/exercise/${idea.mode}?domain=${encodeURIComponent(idea.mode === "calibration" || idea.mode === "tricky" ? idea.domain : idea.title)}`;
+  `/exercise/${idea.mode}?domain=${encodeURIComponent(idea.mode === "calibration" || idea.mode === "tricky" || idea.mode === "humor" ? idea.domain : idea.title)}`;
 
 const isScenarioMode = (m: string | null): m is ScenarioMode =>
   m != null && (SCENARIO_MODES as readonly string[]).includes(m);
@@ -77,8 +78,8 @@ export function NewExercise() {
   // The first-visit load runs once, also when dev Strict Mode mounts twice.
   const firstLoad = useRef(false);
 
-  // Calibration and Tricky questions list fixed starters, not AI topics.
-  const isCalibration = mode === "calibration" || mode === "tricky";
+  // Calibration, Tricky questions and Light replies list fixed starters, not AI topics.
+  const isCalibration = mode === "calibration" || mode === "tricky" || mode === "humor";
   const groups = mode && !isCalibration ? groupsForMode(mode as AiTopicMode) : TOPIC_GROUPS;
   const group = topicGroupById(groupId);
 
@@ -135,7 +136,7 @@ export function NewExercise() {
 
   const chooseMode = (next: ThinkingType | null) => {
     setMode(next);
-    if (next && next !== "calibration" && next !== "tricky" && group && !group.modes.includes(next)) {
+    if (next && next !== "calibration" && next !== "tricky" && next !== "humor" && group && !group.modes.includes(next)) {
       setGroupId("");
       setDomain("");
     }
@@ -182,7 +183,7 @@ export function NewExercise() {
 
   const textReady = text.trim().length >= MIN_OWN_TEXT;
   const textMode = mode == null || isScenarioMode(mode);
-  const listed = mode === "tricky" ? trickyIdeas() : isCalibration ? calibrationIdeas() : ideas;
+  const listed = mode === "tricky" ? trickyIdeas() : mode === "humor" ? humorIdeas() : isCalibration ? calibrationIdeas() : ideas;
   const shown = listed && !showAll ? listed.slice(0, FIRST_ROWS) : listed;
 
   return (

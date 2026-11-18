@@ -100,6 +100,7 @@ export function redoRow(ex: PracticeRow, id: string, now: string): PracticeRow {
       };
     }
     case "tricky":
+    case "humor":
       return {
         ...ex,
         ...common,

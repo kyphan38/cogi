@@ -7,6 +7,7 @@
 import { judgmentExerciseSchema } from "@/lib/ai/validators/judgment";
 import { reframeExerciseSchema } from "@/lib/ai/validators/reframe";
 import { trickyExerciseSchema, trickyGradeSchema } from "@/lib/ai/validators/tricky";
+import { humorExerciseSchema, humorGradeSchema } from "@/lib/ai/validators/humor";
 import { strategyExerciseSchema } from "@/lib/ai/validators/strategy";
 import { z } from "zod";
 import { analyticalExerciseSchema } from "@/lib/ai/validators/common";
@@ -79,6 +80,16 @@ export function trickyResponseSchema(): Record<string, unknown> {
 /** Tricky questions: the grade of written answers. */
 export function trickyGradeResponseSchema(): Record<string, unknown> {
   return toGeminiSchema(trickyGradeSchema);
+}
+
+/** Light replies: the exercise. */
+export function humorResponseSchema(): Record<string, unknown> {
+  return toGeminiSchema(humorExerciseSchema);
+}
+
+/** Light replies: the grade of written replies. */
+export function humorGradeResponseSchema(): Record<string, unknown> {
+  return toGeminiSchema(humorGradeSchema);
 }
 
 /** Reframe (PLAN-psychology.md P1). */

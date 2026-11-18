@@ -5,6 +5,7 @@ export const EXERCISE_MODE_DESCRIPTIONS: Record<string, string> = {
   evaluative: "comparing options with weighted criteria, tradeoff analysis, and decision matrices",
   judgment: "handling real-life situations with people (work, family, money) through three lenses: think clearly, understand people, stay steady",
   tricky: "answering a tricky, loaded question wisely (pick A or B, rank two colleagues, a loyalty test): ask what matters, give a fair view, hand the decision back",
+  humor: "replying with light, kind humor in everyday social moments (a tease, a small mistake, an awkward pause), and knowing when not to joke",
   strategy: "game theory in real stories: what each side wants, their best replies, and where they end up (competition, negotiation, cooperation)",
   reframe: "spotting thinking traps (cognitive distortions) in hard personal moments and rewriting a thought in a balanced way",
   calibration: "judging how sure to be: estimates, probabilities, base rates, and forecasts checked against real answers",

@@ -156,6 +156,9 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
       case "tricky":
         data = makeMockTrickyPayload(body.level === "expert" ? 3 : 2);
         break;
+      case "humor":
+        data = makeMockHumorPayload(body.level === "expert" ? 4 : 3, body.level !== "guided");
+        break;
       case "reframe":
         if (typeof body.customScenario === "string" && /hopeless|give up on everything/i.test(body.customScenario)) {
           // The server's support reply (the model flagged the situation).
@@ -362,6 +365,31 @@ export async function stubFirestoreReads(page: Page): Promise<void> {
                 elsewhere: { area: "Friends", thought: "Mock: they did not invite me, they don't like me.", balanced: "Mock: I was not invited this time; I can ask why." },
               },
             ],
+          },
+        }),
+      });
+      return;
+    }
+    if (kind === "humor") {
+      const sent = JSON.parse(route.request().postData() ?? "{}") as { exercise?: { rounds?: unknown[] } };
+      const rounds = sent.exercise?.rounds?.length ?? 3;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          result: {
+            mode: "write",
+            score: 0.75,
+            overall: "Mock overall: kind and short; add a small twist more often.",
+            rounds: Array.from({ length: rounds }, (_, i) => ({
+              picked: null,
+              quality: null,
+              steps: { kind: true, fits: true, short: true, twist: i === 0 },
+              strong: "Mock strong: you laughed at yourself, not at them.",
+              missing: i === 0 ? "" : "Mock missing: make it a bit bigger.",
+              better: "Mock better: Ten minutes of setup, two minutes of slides. Classic me.",
+            })),
           },
         }),
       });
@@ -957,5 +985,46 @@ export function makeMockTrickyPayload(rounds: 2 | 3) {
         { text: `Mock ok ${i + 1}: Minh, because he is faster.`, quality: "ok", why: "A clear view, but nothing fair about Lan." },
       ],
     })),
+  };
+}
+
+export function makeMockHumorPayload(rounds: 3 | 4, withSerious: boolean) {
+  const moments = [
+    "You join the video call and your camera shows the ceiling. Your manager says: \"Nice view.\"",
+    "Your friend looks at your new haircut and says: \"Did you lose a bet?\"",
+    "A colleague says quietly: \"My father is in hospital, I may be slow this week.\"",
+    "Your joke in the meeting gets total silence.",
+  ];
+  return {
+    safety: "ok",
+    title: "Camera on the ceiling",
+    setting: "It is Monday morning. Your team is on a video call and everyone is a bit tired.",
+    concepts: [
+      { term: "Laugh at yourself", plain: "Make the small mistake the joke, gently.", example: "My camera wanted a break too." },
+      { term: "Agree and exaggerate", plain: "Accept the tease and make it bigger.", example: "Yes, and I lost two bets." },
+      { term: "Callback", plain: "Link back to something said before.", example: "At least the ceiling is ready." },
+    ],
+    conceptChecks: [
+      {
+        question: "What is the safest kind of joke?",
+        options: ["Laughing at yourself", "Laughing at a colleague", "Laughing at a boss"],
+        answerIndex: 0,
+        explanation: "Nobody gets hurt.",
+      },
+    ],
+    rounds: moments.slice(0, rounds).map((moment, i) => {
+      const serious = withSerious && i === 2;
+      return {
+        moment,
+        serious,
+        trap: serious ? "Joking at the wrong time" : "Over-explaining",
+        trapWhy: serious ? "Wanting to lighten the mood can feel cold." : "A long excuse makes the moment heavier.",
+        options: [
+          { text: `Mock poor ${i + 1}: Sorry, my laptop is old, the stand broke, and...`, quality: "poor", why: "Too long and defensive." },
+          { text: `Mock best ${i + 1}: The ceiling has been asking for more screen time.`, quality: "best", why: "Short, kind, and a light twist." },
+          { text: `Mock ok ${i + 1}: Oops, one second.`, quality: "ok", why: "Safe, but flat." },
+        ],
+      };
+    }),
   };
 }

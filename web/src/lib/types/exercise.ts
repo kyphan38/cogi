@@ -33,9 +33,12 @@ import type {
 import type { TrickyRound } from "@/lib/ai/validators/tricky";
 import type { TrickyResult } from "@/lib/exercise/tricky-score";
 import type { TrickyContext } from "@/lib/exercise/tricky-levels";
+import type { HumorRound } from "@/lib/ai/validators/humor";
+import type { HumorResult } from "@/lib/exercise/humor-score";
+import type { HumorContext } from "@/lib/exercise/humor-levels";
 
 /** The exercise types the app offers. Old rows of removed types may still exist in Firestore. */
-export type ThinkingType = "analytical" | "systems" | "evaluative" | "judgment" | "strategy" | "reframe" | "calibration" | "tricky";
+export type ThinkingType = "analytical" | "systems" | "evaluative" | "judgment" | "strategy" | "reframe" | "calibration" | "tricky" | "humor";
 
 /** Pre-defined combo chains (Phase 6.5). */
 export type { EvaluativeQuadrant };
@@ -560,6 +563,44 @@ export interface TrickyExerciseRow {
   redoOf?: string;
 }
 
+/** Light replies: short social moments answered with light, kind humor. */
+export interface HumorExerciseRow {
+  id: string;
+  type: "humor";
+  /** Where the moments happen, as picked at setup, e.g. "At work". */
+  domain: string;
+  context: HumorContext;
+  /** "My situation": a moment the user really faced, in their words. */
+  customScenario?: string;
+  title: string;
+  setting: string;
+  concepts: JudgmentConcept[];
+  conceptChecks: JudgmentChoiceQuestion[];
+  rounds: HumorRound[];
+  level: PracticeLevel;
+  /** Where the user is inside the work step, for resuming. */
+  part?: "learn" | "rounds";
+  /** Picked option index per concept check. */
+  conceptAnswers?: number[];
+  /** Rounds answered so far. */
+  roundsDone?: number;
+  /** Choose mode: picked option index per round (original order). */
+  picks?: (number | null)[];
+  /** Write mode: the user's reply per round. */
+  answers?: string[];
+  result?: HumorResult | null;
+  confidenceBefore: number | null;
+  aiPerspective: string | null;
+  aiPerspectiveStructured?: AIPerspectiveStructured | null;
+  createdAt: string;
+  completedAt: string | null;
+  currentStep?: number;
+  takeaway?: string | null;
+  usePlan?: string | null;
+  useCheck?: UseCheck | null;
+  redoOf?: string;
+}
+
 /** Strategic situation: a 2-player game in a real story (PLAN-learning.md L2). */
 export interface StrategyExerciseRow {
   id: string;
@@ -762,7 +803,8 @@ export type Exercise =
   | StrategyExerciseRow
   | ReframeExerciseRow
   | CalibrationExerciseRow
-  | TrickyExerciseRow;
+  | TrickyExerciseRow
+  | HumorExerciseRow;
 
 export function isGeoLabExercise(ex: Exercise): ex is GeoLabExerciseRow {
   return ex.type === "geo";
@@ -791,6 +833,10 @@ export function isStrategyExercise(ex: Exercise): ex is StrategyExerciseRow {
 
 export function isTrickyExercise(ex: Exercise): ex is TrickyExerciseRow {
   return ex.type === "tricky";
+}
+
+export function isHumorExercise(ex: Exercise): ex is HumorExerciseRow {
+  return ex.type === "humor";
 }
 
 export function isJudgmentExercise(ex: Exercise): ex is JudgmentExerciseRow {

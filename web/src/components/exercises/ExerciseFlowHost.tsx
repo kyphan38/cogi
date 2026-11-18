@@ -9,6 +9,7 @@ import { EvaluativeExerciseFlow } from "@/components/exercises/evaluative/Evalua
 import { SystemsExerciseFlow } from "@/components/exercises/systems/SystemsExerciseFlow";
 import { JudgmentExerciseFlow } from "@/components/exercises/judgment/JudgmentExerciseFlow";
 import { TrickyExerciseFlow } from "@/components/exercises/tricky/TrickyExerciseFlow";
+import { HumorExerciseFlow } from "@/components/exercises/humor/HumorExerciseFlow";
 import { StrategyExerciseFlow } from "@/components/exercises/strategy/StrategyExerciseFlow";
 import { ReframeExerciseFlow } from "@/components/exercises/reframe/ReframeExerciseFlow";
 import { CalibrationExerciseFlow } from "@/components/exercises/calibration/CalibrationExerciseFlow";
@@ -29,6 +30,7 @@ const FLOW_BY_TYPE: Record<string, FlowComponent> = {
   evaluative: EvaluativeExerciseFlow,
   judgment: JudgmentExerciseFlow,
   tricky: TrickyExerciseFlow,
+  humor: HumorExerciseFlow,
   strategy: StrategyExerciseFlow,
   reframe: ReframeExerciseFlow,
   calibration: CalibrationExerciseFlow,
