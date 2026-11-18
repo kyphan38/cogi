@@ -164,6 +164,45 @@ test.describe("Resume and autosave", () => {
     await expect(feeling).toBeChecked();
   });
 
+  test("tricky: a written answer autosaves and comes back after reload", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/tricky");
+    await choosePracticeLevel(page, "Standard");
+    await page.getByRole("button", { name: "Generate exercise" }).click();
+    await expect(page.getByText("Pick one of two colleagues")).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Check yourself" }).click();
+    await page.getByRole("radio", { name: "Name what the work needs first" }).click();
+    await page.getByRole("button", { name: "Start the exercise" }).click();
+    await expect(page.getByText("Part 2 of 2 · Answer")).toBeVisible();
+
+    const answer = "It depends on what the project needs most.";
+    await page.getByLabel("What do you say?").fill(answer);
+    await expectSaved(page, (r) => [r.part, Array.isArray(r.answers) ? r.answers[0] : null], ["rounds", answer]);
+
+    await reloadExercise(page);
+    await expect(page.getByText("Part 2 of 2 · Answer")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByLabel("What do you say?")).toHaveValue(answer);
+  });
+
+  test("humor: a picked reply autosaves and comes back after reload", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/humor");
+    await choosePracticeLevel(page, "Guided");
+    await page.getByRole("button", { name: "Generate exercise" }).click();
+    await expect(page.getByText("Camera on the ceiling")).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Check yourself" }).click();
+    await page.getByRole("radio", { name: "Laughing at yourself" }).click();
+    await page.getByRole("button", { name: "Start the exercise" }).click();
+    await expect(page.getByText("Part 2 of 2 · Reply")).toBeVisible();
+
+    await page.getByRole("radio", { name: /Mock best 1/ }).click();
+    await page.getByRole("button", { name: "Next moment" }).click();
+    await expectSaved(page, (r) => [r.part, r.roundsDone, count(r.picks)], ["rounds", 1, 1]);
+
+    await reloadExercise(page);
+    await expect(page.getByText("Part 2 of 2 · Reply")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Moment 2 of 3")).toBeVisible();
+    await expect(page.getByRole("radio", { name: /Mock best 1/ })).toBeChecked();
+  });
+
   test("calibration: answers autosave and come back after reload", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/calibration");
     await choosePracticeLevel(page, "Guided");

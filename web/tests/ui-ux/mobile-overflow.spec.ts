@@ -137,7 +137,7 @@ for (const width of [360, 390]) {
       expect(await layoutProblems(page)).toEqual([]);
     });
 
-    for (const path of ["/reasoning", "/exercise/history", "/settings", "/exercise/analytical", "/exercise/evaluative", "/exercise/systems", "/exercise/judgment", "/terms", "/tracks", "/exercise/strategy", "/exercise/reframe", "/exercise/calibration", "/simulators", "/handbook", "/geo"]) {
+    for (const path of ["/reasoning", "/exercise/history", "/settings", "/exercise/analytical", "/exercise/evaluative", "/exercise/systems", "/exercise/judgment", "/terms", "/tracks", "/exercise/strategy", "/exercise/reframe", "/exercise/calibration", "/exercise/tricky", "/exercise/humor", "/simulators", "/handbook", "/geo"]) {
       test(`page ${path}`, async ({ page }) => {
         await gotoAuthenticated(page, path);
         await page.waitForTimeout(500);
@@ -258,6 +258,56 @@ for (const width of [360, 390]) {
         expect(await layoutProblems(page)).toEqual([]);
         await page.getByRole("button", { name: "Get AI feedback" }).click();
         await expect(page.getByTestId("reframe-answer-key")).toBeVisible({ timeout: 15_000 });
+        expect(await layoutProblems(page)).toEqual([]);
+      }
+    });
+
+    test("tricky questions: guided picks, expert writing and answer key", async ({ page }) => {
+      for (const level of ["Guided", "Expert"] as const) {
+        await gotoAuthenticated(page, "/exercise/tricky");
+        await page.getByTestId("level-picker").getByRole("button", { name: new RegExp(`^${level}`) }).click();
+        await page.getByRole("button", { name: "Generate exercise" }).click();
+        await page.getByRole("button", { name: "Check yourself" }).click({ timeout: 15_000 });
+        await page.getByRole("radio", { name: "Name what the work needs first" }).click();
+        await page.getByRole("button", { name: "Start the exercise" }).click();
+        const rounds = level === "Guided" ? 2 : 3;
+        for (let i = 0; i < rounds; i++) {
+          if (level === "Guided") {
+            await page.getByRole("radio", { name: new RegExp(`Mock best ${i + 1}`) }).click();
+            await page.getByRole("button", { name: i < rounds - 1 ? "Next question" : "Done" }).click();
+          } else {
+            await page.getByLabel("What do you say?").fill("It depends on what the project needs. Your call in the end.");
+            await page.getByRole("button", { name: "Answer" }).click();
+          }
+        }
+        expect(await layoutProblems(page)).toEqual([]);
+        await page.getByRole("button", { name: level === "Guided" ? "See results" : "Get AI feedback" }).click();
+        await expect(page.getByTestId("tricky-answer-key")).toBeVisible({ timeout: 15_000 });
+        expect(await layoutProblems(page)).toEqual([]);
+      }
+    });
+
+    test("light replies: guided picks, expert writing and answer key", async ({ page }) => {
+      for (const level of ["Guided", "Expert"] as const) {
+        await gotoAuthenticated(page, "/exercise/humor");
+        await page.getByTestId("level-picker").getByRole("button", { name: new RegExp(`^${level}`) }).click();
+        await page.getByRole("button", { name: "Generate exercise" }).click();
+        await page.getByRole("button", { name: "Check yourself" }).click({ timeout: 15_000 });
+        await page.getByRole("radio", { name: "Laughing at yourself" }).click();
+        await page.getByRole("button", { name: "Start the exercise" }).click();
+        const rounds = level === "Guided" ? 3 : 4;
+        for (let i = 0; i < rounds; i++) {
+          if (level === "Guided") {
+            await page.getByRole("radio", { name: new RegExp(`Mock best ${i + 1}`) }).click();
+            await page.getByRole("button", { name: i < rounds - 1 ? "Next moment" : "Done" }).click();
+          } else {
+            await page.getByLabel("What do you say?").fill("The ceiling wanted to join the standup.");
+            await page.getByRole("button", { name: "Answer" }).click();
+          }
+        }
+        expect(await layoutProblems(page)).toEqual([]);
+        await page.getByRole("button", { name: level === "Guided" ? "See results" : "Get AI feedback" }).click();
+        await expect(page.getByTestId("humor-answer-key")).toBeVisible({ timeout: 15_000 });
         expect(await layoutProblems(page)).toEqual([]);
       }
     });
