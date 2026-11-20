@@ -11,6 +11,8 @@
 
 import { ApiError, GoogleGenAI, ThinkingLevel } from "@google/genai";
 
+import { logAiCost } from "./ai-cost-log";
+
 export const AI_QUOTA_MESSAGE = "AI credit is used up. Top it up in AI Studio, then try again.";
 
 /**
@@ -80,8 +82,8 @@ async function generateText(
   audio?: InlineAudio,
 ): Promise<string> {
   let response;
+  const { model, thinkingConfig } = tier(modelName);
   try {
-    const { model, thinkingConfig } = tier(modelName);
     response = await getClient().models.generateContent({
       model,
       contents: audio ? [{ role: "user", parts: [{ inlineData: audio }, { text: fullPrompt }] }] : fullPrompt,
@@ -94,6 +96,7 @@ async function generateText(
   } catch (e) {
     throw plainGeminiError(e);
   }
+  await logAiCost(model, response.usageMetadata);
   const text = response.text;
   if (!text) {
     throw new Error("Empty response from Gemini");
@@ -159,8 +162,8 @@ export async function generateWithSearch(
   timeoutMs: number = 35_000,
 ): Promise<{ text: string; sources: WebSource[] }> {
   let response;
+  const { model, thinkingConfig } = tier(modelName);
   try {
-    const { model, thinkingConfig } = tier(modelName);
     response = await getClient().models.generateContent({
       model,
       contents: fullPrompt,
@@ -174,6 +177,7 @@ export async function generateWithSearch(
   } catch (e) {
     throw plainGeminiError(e);
   }
+  await logAiCost(model, response.usageMetadata);
   const text = response.text;
   if (!text) throw new Error("Empty response from Gemini");
   const seen = new Set<string>();

@@ -30,6 +30,7 @@ import { getFirebaseAuth } from "@/lib/auth/firebase-client";
 import { awaitRouterReplace } from "@/lib/nav/await-router-replace";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Section } from "@/components/shared/Section";
+import AiCostRow from "@/components/shared/AiCostRow";
 
 const THEMES: readonly Theme[] = ["system", "light", "dark"];
 
@@ -214,6 +215,10 @@ export default function SettingsPage() {
               </button>
             ))}
           </div>
+        </Section>
+
+        <Section className="mt-12" title="AI cost">
+          <AiCostRow />
         </Section>
 
         <Section className="mt-12" title="Keyboard">
