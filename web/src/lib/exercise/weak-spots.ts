@@ -79,10 +79,10 @@ export function weakSpotHref(spot: Pick<WeakSpot, "key" | "type">): string {
   return `/exercise/${spot.type}?focus=${encodeURIComponent(spot.key)}`;
 }
 
-/** One chance to get something right, and whether it was missed. */
-type Tally = (key: string, missed: boolean) => void;
+/** Records one chance to get something right, and whether it was missed. */
+type AddChance = (key: string, missed: boolean) => void;
 
-function tallyExercise(ex: Exercise, add: Tally): void {
+function tallyExercise(ex: Exercise, add: AddChance): void {
   switch (ex.type) {
     case "analytical": {
       const r = analyticalResultOf(ex);
@@ -153,24 +153,36 @@ export function missesOf(ex: Exercise): string[] {
     .filter((label): label is string => !!label);
 }
 
-/**
- * The few things missed most often in the newest finished exercises
- * (`completed` is newest first). Most misses first; ties go to the higher miss rate.
- */
-export function weakSpots(completed: Exercise[], count: number = WEAK_SPOT_COUNT): WeakSpot[] {
-  const tallies = new Map<string, { misses: number; chances: number }>();
-  const add: Tally = (key, missed) => {
+/** Misses and chances per spot key, over the given finished rows. */
+export type Tally = { misses: number; chances: number };
+
+export function tallyRows(rows: Exercise[]): Map<string, Tally> {
+  const tallies = new Map<string, Tally>();
+  const add: AddChance = (key, missed) => {
     const t = tallies.get(key) ?? { misses: 0, chances: 0 };
     t.chances += 1;
     if (missed) t.misses += 1;
     tallies.set(key, t);
   };
-  for (const ex of completed.filter((e) => e.completedAt).slice(0, WEAK_SPOT_WINDOW)) tallyExercise(ex, add);
+  for (const ex of rows) if (ex.completedAt) tallyExercise(ex, add);
+  return tallies;
+}
 
+/** True when a tally is bad enough to be a weak spot. */
+export function isWeak(t: Tally): boolean {
+  return t.misses >= MIN_MISSES && t.misses / t.chances >= MIN_RATE;
+}
+
+/**
+ * The few things missed most often in the newest finished exercises
+ * (`completed` is newest first). Most misses first; ties go to the higher miss rate.
+ */
+export function weakSpots(completed: Exercise[], count: number = WEAK_SPOT_COUNT): WeakSpot[] {
+  const tallies = tallyRows(completed.filter((e) => e.completedAt).slice(0, WEAK_SPOT_WINDOW));
   const spots: WeakSpot[] = [];
   for (const [key, t] of tallies) {
     const info = weakSpotInfo(key);
-    if (!info || t.misses < MIN_MISSES || t.misses / t.chances < MIN_RATE) continue;
+    if (!info || !isWeak(t)) continue;
     spots.push({ key, type: info.type, label: info.label, ...t });
   }
   return spots

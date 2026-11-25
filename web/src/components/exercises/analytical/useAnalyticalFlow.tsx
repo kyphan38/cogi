@@ -9,7 +9,7 @@ import type {
 } from "@/lib/types/exercise";
 import type { AnalyticalExercise } from "@/lib/ai/validators/common";
 import { getLanguageLevelForRequest } from "@/lib/db/settings";
-import { getGenerationContext } from "@/lib/db/generation-context";
+import { getGenerationContext, trackStepFromUrl } from "@/lib/db/generation-context";
 import { putExercise } from "@/lib/db/exercises";
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
 import { getUserContext } from "@/lib/db/settings";
@@ -293,6 +293,7 @@ export function useAnalyticalFlow({
           guidedIndex: 0,
           confidenceBefore: null,
           aiPerspective: null,
+          trackStepId: trackStepFromUrl(),
           createdAt: new Date().toISOString(),
           completedAt: null,
           currentStep: 1,

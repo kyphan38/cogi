@@ -1,26 +1,7 @@
 import { listCompletedExercises } from "@/lib/db/exercises";
 import { getAppSettings } from "@/lib/db/settings";
-import {
-  isAnalyticalExercise,
-  isEvaluativeExercise,
-  isJudgmentExercise,
-  isTrickyExercise,
-  isHumorExercise,
-  isReframeExercise,
-  isCalibrationExercise,
-  isStrategyExercise,
-  isSystemsExercise,
-  type Exercise,
-} from "@/lib/types/exercise";
-import { analyticalResultOf } from "@/lib/exercise/analytical-score";
-import { rateAnalytical } from "@/lib/exercise/analytical-levels";
-import { rateSystems, systemsResultOf } from "@/lib/exercise/systems-score";
-import { evaluativeResultOf, rateEvaluative } from "@/lib/exercise/evaluative-score";
-import { rateJudgment } from "@/lib/exercise/judgment-score";
-import { rateTricky } from "@/lib/exercise/tricky-score";
-import { rateHumor } from "@/lib/exercise/humor-score";
-import { rateStrategy } from "@/lib/exercise/strategy-score";
-import { rateReframe } from "@/lib/exercise/reframe-score";
+import { isCalibrationExercise } from "@/lib/types/exercise";
+import { rateExercise } from "@/lib/exercise/rate-exercise";
 import { suggestCalibrationLevel } from "@/lib/exercise/calibration-score";
 import {
   suggestLevelChange,
@@ -32,38 +13,6 @@ import {
 
 /** How many recent finished exercises to look at; streaks need at most 3. */
 const LOOKBACK = 30;
-
-/**
- * Rate one finished row of `type`, or null when it is another type.
- */
-function rateRow(type: LevelledExerciseType, row: Exercise): ResultRating | null {
-  // Geopolitics rows count too: they have levels since PLAN-geopolitics.md G1.
-  if (type === "analytical" && isAnalyticalExercise(row)) {
-    return rateAnalytical(analyticalResultOf(row));
-  }
-  if (type === "systems" && isSystemsExercise(row)) {
-    return rateSystems(systemsResultOf(row));
-  }
-  if (type === "evaluative" && isEvaluativeExercise(row)) {
-    return rateEvaluative(evaluativeResultOf(row));
-  }
-  if (type === "strategy" && isStrategyExercise(row)) {
-    return row.result ? rateStrategy(row.result) : null;
-  }
-  if (type === "reframe" && isReframeExercise(row)) {
-    return row.result ? rateReframe(row.result) : null;
-  }
-  if (type === "judgment" && isJudgmentExercise(row)) {
-    return row.result ? rateJudgment(row.result) : null;
-  }
-  if (type === "tricky" && isTrickyExercise(row)) {
-    return row.result ? rateTricky(row.result) : null;
-  }
-  if (type === "humor" && isHumorExercise(row)) {
-    return row.result ? rateHumor(row.result) : null;
-  }
-  return null;
-}
 
 /**
  * Level suggestion after finishing an exercise: rates the exercises of `type` finished
@@ -86,7 +35,7 @@ export async function levelSuggestionFor(
     return suggestCalibrationLevel(level, results);
   }
   const ratings = atLevel
-    .map((r) => rateRow(type, r))
+    .map((r) => (r.type === type ? rateExercise(r) : null))
     .filter((r): r is ResultRating => r != null);
   return suggestLevelChange(level, ratings);
 }

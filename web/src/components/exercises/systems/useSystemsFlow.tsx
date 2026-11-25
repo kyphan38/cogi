@@ -29,7 +29,7 @@ import {
 } from "@/lib/ai/validators/systems";
 import { isGeopoliticsAnalyticalDomain } from "@/lib/exercise/geopolitics-domains";
 import { getLanguageLevelForRequest } from "@/lib/db/settings";
-import { getGenerationContext } from "@/lib/db/generation-context";
+import { getGenerationContext, trackStepFromUrl } from "@/lib/db/generation-context";
 import { getUserContext } from "@/lib/db/settings";
 import {
   useDebouncedSave,
@@ -277,6 +277,7 @@ export function useSystemsFlow({
           level,
           confidenceBefore: null,
           aiPerspective: null,
+          trackStepId: trackStepFromUrl(),
           createdAt: new Date().toISOString(),
           completedAt: null,
           currentStep: 1,

@@ -12,7 +12,7 @@ import {
   getPracticeLevel,
   getUserContext,
 } from "@/lib/db/settings";
-import { getGenerationContext } from "@/lib/db/generation-context";
+import { getGenerationContext, trackStepFromUrl } from "@/lib/db/generation-context";
 import {
   isJudgmentExercise,
   type JudgmentExerciseRow,
@@ -197,6 +197,7 @@ export function useJudgmentFlow({
         userWhy: "",
         confidenceBefore: null,
         aiPerspective: null,
+        trackStepId: trackStepFromUrl(),
         createdAt: new Date().toISOString(),
         completedAt: null,
         currentStep: 1,

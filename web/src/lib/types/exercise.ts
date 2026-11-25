@@ -206,6 +206,8 @@ export interface AnalyticalExerciseRow {
   useCheck?: UseCheck | null;
   /** Set on a redo: the id of the finished exercise this one repeats. */
   redoOf?: string;
+  /** Set when started from an adaptive track step (`?step=`): that step's id. */
+  trackStepId?: string;
 }
 
 export interface SystemsUserEdge {
@@ -277,6 +279,8 @@ export interface SystemsExerciseRow {
   useCheck?: UseCheck | null;
   /** Set on a redo: the id of the finished exercise this one repeats. */
   redoOf?: string;
+  /** Set when started from an adaptive track step (`?step=`): that step's id. */
+  trackStepId?: string;
   /** The loop pattern behind the scenario. Older rows lack it. */
   archetype?: SystemsExercisePayload["archetype"];
   /** The user's look ahead, written with the shock: key loop, 5-year forecast, better fix. */
@@ -345,6 +349,8 @@ export interface EvaluativeMatrixRow {
   useCheck?: UseCheck | null;
   /** Set on a redo: the id of the finished exercise this one repeats. */
   redoOf?: string;
+  /** Set when started from an adaptive track step (`?step=`): that step's id. */
+  trackStepId?: string;
   /** Work compared with the model when feedback was requested. */
   result?: EvaluativeResult | null;
   /** Practice level the exercise was made for. Older rows lack it. */
@@ -420,6 +426,8 @@ export interface EvaluativeScoringRow {
   useCheck?: UseCheck | null;
   /** Set on a redo: the id of the finished exercise this one repeats. */
   redoOf?: string;
+  /** Set when started from an adaptive track step (`?step=`): that step's id. */
+  trackStepId?: string;
   /** Work compared with the model when feedback was requested. */
   result?: EvaluativeResult | null;
   /** Practice level the exercise was made for. Older rows lack it. */
@@ -469,6 +477,8 @@ export interface EvaluativeUncertaintyRow {
   useCheck?: UseCheck | null;
   /** Set on a redo: the id of the finished exercise this one repeats. */
   redoOf?: string;
+  /** Set when started from an adaptive track step (`?step=`): that step's id. */
+  trackStepId?: string;
   /** Work compared with the model when feedback was requested. */
   result?: EvaluativeResult | null;
   /** Practice level the exercise was made for. Older rows lack it. */
@@ -521,6 +531,8 @@ export interface JudgmentExerciseRow {
   useCheck?: UseCheck | null;
   /** Set on a redo: the id of the finished exercise this one repeats. */
   redoOf?: string;
+  /** Set when started from an adaptive track step (`?step=`): that step's id. */
+  trackStepId?: string;
 }
 
 /** Tricky question: a loaded question, then follow-ups that push harder. */
@@ -561,6 +573,8 @@ export interface TrickyExerciseRow {
   usePlan?: string | null;
   useCheck?: UseCheck | null;
   redoOf?: string;
+  /** Set when started from an adaptive track step (`?step=`): that step's id. */
+  trackStepId?: string;
 }
 
 /** Light replies: short social moments answered with light, kind humor. */
@@ -599,6 +613,8 @@ export interface HumorExerciseRow {
   usePlan?: string | null;
   useCheck?: UseCheck | null;
   redoOf?: string;
+  /** Set when started from an adaptive track step (`?step=`): that step's id. */
+  trackStepId?: string;
 }
 
 /** Strategic situation: a 2-player game in a real story (PLAN-learning.md L2). */
@@ -640,6 +656,8 @@ export interface StrategyExerciseRow {
   useCheck?: UseCheck | null;
   /** Set on a redo: the id of the finished exercise this one repeats. */
   redoOf?: string;
+  /** Set when started from an adaptive track step (`?step=`): that step's id. */
+  trackStepId?: string;
 }
 
 /** Reframe: spot thinking traps, then rewrite a thought (PLAN-psychology.md P1). */
@@ -691,6 +709,8 @@ export interface ReframeExerciseRow {
   useCheck?: UseCheck | null;
   /** Set on a redo: the id of the finished exercise this one repeats. */
   redoOf?: string;
+  /** Set when started from an adaptive track step (`?step=`): that step's id. */
+  trackStepId?: string;
 }
 
 /** Calibration: how sure vs how right (PLAN-psychology.md P2). Built in code, not by the AI. */
@@ -722,6 +742,8 @@ export interface CalibrationExerciseRow {
   useCheck?: UseCheck | null;
   /** Set on a redo: the id of the finished exercise this one repeats. */
   redoOf?: string;
+  /** Set when started from an adaptive track step (`?step=`): that step's id. */
+  trackStepId?: string;
 }
 
 /** The AI's short note after "Close the strait"; it may only use the fixed facts. */

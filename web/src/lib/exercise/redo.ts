@@ -1,5 +1,6 @@
 import { shuffledOrder } from "@/lib/exercise/guided-candidates";
 import { addDays, localDay } from "@/lib/review/schedule";
+import type { ResultRating } from "@/lib/exercise/levels";
 import type { Exercise, GeoLabExerciseRow, QuickExerciseRow } from "@/lib/types/exercise";
 
 /** A finished exercise can be done again this many days later. */
@@ -16,6 +17,8 @@ function freshCommon(id: string, redoOf: string, now: string) {
   return {
     id,
     redoOf,
+    // A redo belongs to the step that started it, never to the original's step.
+    trackStepId: undefined,
     confidenceBefore: null,
     aiPerspective: null,
     aiPerspectiveStructured: null,
@@ -180,6 +183,22 @@ export function canRedo(ex: RedoMeta, all: RedoMeta[], today: string): boolean {
  */
 export function redoSuggestion<Row extends RedoMeta>(completed: Row[], all: RedoMeta[], today: string): Row | null {
   const ready = completed.filter((e) => canRedo(e, all, today));
+  ready.sort((a, b) => a.completedAt!.localeCompare(b.completedAt!));
+  return ready[0] ?? null;
+}
+
+/**
+ * The exercise an adaptive track offers to redo: one that can be redone, rated
+ * "poor", and of a type the track aims at. Oldest first. Null when there is none.
+ */
+export function redoForTrack<Row extends RedoMeta>(
+  completed: Row[],
+  all: RedoMeta[],
+  today: string,
+  types: readonly string[],
+  rate: (row: Row) => ResultRating | null,
+): Row | null {
+  const ready = completed.filter((e) => types.includes(e.type) && canRedo(e, all, today) && rate(e) === "poor");
   ready.sort((a, b) => a.completedAt!.localeCompare(b.completedAt!));
   return ready[0] ?? null;
 }

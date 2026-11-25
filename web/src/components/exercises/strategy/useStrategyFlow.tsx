@@ -9,7 +9,7 @@ import { parsePerspectiveFetchJson } from "@/lib/ai/perspective-response";
 import { putExercise } from "@/lib/db/exercises";
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
 import { getLanguageLevelForRequest, getUserContext } from "@/lib/db/settings";
-import { getGenerationContext } from "@/lib/db/generation-context";
+import { getGenerationContext, trackStepFromUrl } from "@/lib/db/generation-context";
 import {
   isStrategyExercise,
   type StrategyExerciseRow,
@@ -192,6 +192,7 @@ export function useStrategyFlow({
         userWhy: "",
         confidenceBefore: null,
         aiPerspective: null,
+        trackStepId: trackStepFromUrl(),
         createdAt: new Date().toISOString(),
         completedAt: null,
         currentStep: 1,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AnalyticalExerciseRow, CalibrationExerciseRow, JudgmentExerciseRow, StrategyExerciseRow } from "@/lib/types/exercise";
-import { canRedo, redoRow, redoSuggestion } from "./redo";
+import { canRedo, redoForTrack, redoRow, redoSuggestion } from "./redo";
 import { compareTries, scoreSummary } from "./score-summary";
 
 const NOW = "2026-11-16T08:00:00.000Z";
@@ -52,6 +52,9 @@ describe("redoRow", () => {
       currentStep: 1,
     });
     expect(r.deepDives).toBeUndefined();
+    // A step id from an adaptive track stays with the first try.
+    const fromTrack = { ...analytical, trackStepId: "t1-2" } as AnalyticalExerciseRow;
+    expect(redoRow(fromTrack, "a3", NOW).trackStepId).toBeUndefined();
     // The first try is not changed.
     expect(analytical.userHighlights).toHaveLength(1);
   });
@@ -102,6 +105,15 @@ describe("canRedo and redoSuggestion", () => {
     const rows = [row("new", "2026-11-10"), row("mid", "2026-10-01"), row("old", "2026-09-01")];
     expect(redoSuggestion(rows, rows, "2026-11-16")?.id).toBe("old");
     expect(redoSuggestion([rows[0]!], rows, "2026-11-16")).toBeNull();
+  });
+
+  it("for a track, takes the oldest ready one rated poor, of an aimed type", () => {
+    const sys = (id: string, day: string) => ({ ...row(id, day), type: "systems" as const });
+    const rows = [row("good", "2026-08-01"), row("poor", "2026-09-01"), sys("sysPoor", "2026-07-01"), row("fresh", "2026-11-10")];
+    const rate = (r: { id: string }) => (r.id === "good" ? "good" : "poor");
+    expect(redoForTrack(rows, rows, "2026-11-16", ["analytical"], rate)?.id).toBe("poor");
+    expect(redoForTrack(rows, rows, "2026-11-16", ["systems", "analytical"], rate)?.id).toBe("sysPoor");
+    expect(redoForTrack(rows, rows, "2026-11-16", ["judgment"], rate)).toBeNull();
   });
 });
 

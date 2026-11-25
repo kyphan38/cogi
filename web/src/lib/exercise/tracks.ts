@@ -1,7 +1,7 @@
 import type { Exercise } from "@/lib/types/exercise";
 
-/** Exercise types a track step can use. */
-export type TrackStepType = "analytical" | "systems" | "evaluative" | "judgment";
+/** Exercise types a track step can use (the topic tracks use the first four). */
+export type TrackStepType = "analytical" | "systems" | "evaluative" | "judgment" | "strategy" | "reframe";
 
 export interface TrackStep {
   id: string;

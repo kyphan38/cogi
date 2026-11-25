@@ -15,7 +15,7 @@ import {
   getPracticeLevel,
   getUserContext,
 } from "@/lib/db/settings";
-import { getGenerationContext } from "@/lib/db/generation-context";
+import { getGenerationContext, trackStepFromUrl } from "@/lib/db/generation-context";
 import {
   isReframeExercise,
   type ReframeExerciseRow,
@@ -214,6 +214,7 @@ export function useReframeFlow({
         rewriteChoice: null,
         confidenceBefore: null,
         aiPerspective: null,
+        trackStepId: trackStepFromUrl(),
         createdAt: new Date().toISOString(),
         completedAt: null,
         currentStep: 1,

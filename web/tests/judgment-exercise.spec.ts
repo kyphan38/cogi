@@ -42,6 +42,19 @@ test.describe("Life situations", () => {
     await stubFirestoreReads(page);
   });
 
+  test("an exercise opened from a track step keeps the step id", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/judgment?step=t9-2");
+    await choosePracticeLevel(page, "Guided");
+    await page.getByTestId("life-areas").getByRole("button", { name: "Work" }).click();
+    await page.getByRole("button", { name: "Generate exercise" }).click();
+    await expect(page.getByText("Criticized in a meeting")).toBeVisible({ timeout: 15_000 });
+    const rows = await page.evaluate(() => {
+      const store = JSON.parse(window.sessionStorage.getItem("cogi:e2e-firestore") ?? "{}");
+      return Object.values(store["e2e-test-user-uid"]?.exercises ?? {}) as { trackStepId?: string }[];
+    });
+    expect(rows.map((r) => r.trackStepId)).toEqual(["t9-2"]);
+  });
+
   test("guided: learn first, one lens at a time, rank 3, feedback, saved, in History and My terms", async ({ page }) => {
     await start(page, "Guided");
     await learnFirst(page);

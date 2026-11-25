@@ -24,7 +24,7 @@ import {
 } from "@/lib/ai/validators/evaluative";
 import { EVALUATIVE_UNCERTAINTY_PROBABILITY_EPSILON } from "@/lib/analytics/calibration-evaluative";
 import { getLanguageLevelForRequest } from "@/lib/db/settings";
-import { getGenerationContext } from "@/lib/db/generation-context";
+import { getGenerationContext, trackStepFromUrl } from "@/lib/db/generation-context";
 import { putExercise } from "@/lib/db/exercises";
 import { rememberExerciseInUrl } from "@/lib/nav/exercise-url";
 import { getUserContext } from "@/lib/db/settings";
@@ -284,6 +284,7 @@ export function useEvaluativeFlow({
           ...base,
           // Geopolitics has levels too (PLAN-geopolitics.md G1.1).
           level,
+          trackStepId: trackStepFromUrl(),
           currentStep: 1,
         };
         await putExercise(row);
