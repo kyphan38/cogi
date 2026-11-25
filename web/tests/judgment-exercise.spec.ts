@@ -42,6 +42,12 @@ test.describe("Life situations", () => {
     await stubFirestoreReads(page);
   });
 
+  test("a track's own step opens My situation, at Standard when Guided has none", async ({ page }) => {
+    await gotoAuthenticated(page, "/exercise/judgment?source=custom_scenario&step=t9-6");
+    await expect(page.getByRole("textbox", { name: "My situation" })).toBeVisible();
+    await expect(page.getByTestId("level-picker").getByRole("button", { name: /^Standard/ })).toHaveAttribute("aria-pressed", "true");
+  });
+
   test("an exercise opened from a track step keeps the step id", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/judgment?step=t9-2");
     await choosePracticeLevel(page, "Guided");

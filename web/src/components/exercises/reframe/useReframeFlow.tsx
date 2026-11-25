@@ -54,6 +54,7 @@ import {
 export function useReframeFlow({
   resumeId,
   initialDomain,
+  initialSource,
 }: {
   resumeId?: string;
   initialDomain?: string;
@@ -119,14 +120,16 @@ export function useReframeFlow({
     if (handedScenario.current === undefined)
       handedScenario.current = resumeId ? null : takeScenarioText();
     const handed = handedScenario.current;
+    // `?source=custom_scenario` (a track's "your own" step) opens "My situation" empty.
+    const ownOnly = !resumeId && initialSource === "custom_scenario";
     void getPracticeLevel("reframe").then((saved) => {
-      if (!handed) {
+      if (!handed && !ownOnly) {
         setLevel(saved);
         return;
       }
       setLevel(REFRAME_LEVELS[saved].ownSituation ? saved : "standard");
       setSource("custom_scenario");
-      setOwnSituation(handed);
+      if (handed) setOwnSituation(handed);
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

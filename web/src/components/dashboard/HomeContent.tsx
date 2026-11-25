@@ -17,15 +17,14 @@ import { localDay } from "@/lib/review/schedule";
 import type { Exercise } from "@/lib/types/exercise";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
 import { computeStreak } from "@/lib/exercise/streak";
-import { currentTrack, trackProgress } from "@/lib/exercise/tracks";
 import { Section } from "@/components/shared/Section";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { NextUp, exerciseForStep } from "@/components/dashboard/NextUp";
+import { NextUp } from "@/components/dashboard/NextUp";
+import { useAdaptiveTrack } from "@/components/dashboard/useAdaptiveTrack";
+import { exerciseForGenStep, genTrackProgress } from "@/lib/tracks/adaptive";
 import { HomeExplore } from "@/components/dashboard/HomeExplore";
 import { UseCheckRow } from "@/components/dashboard/UseCheckRow";
 import { ForecastsDue } from "@/components/dashboard/ForecastsDue";
-import { RedoRow } from "@/components/dashboard/RedoRow";
-import { WeakSpots } from "@/components/dashboard/WeakSpots";
 import { DISCARD_BUTTON_CLASS } from "@/components/dashboard/discard-button";
 
 /** How many unfinished exercises the page lists. */
@@ -40,7 +39,8 @@ const noSubscribe = () => () => {};
 const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" });
 
 /**
- * Today (PLAN-refine R5): one main action (the next track step), a way to
+ * Today (PLAN-refine R5): one main action (the next adaptive track step, which
+ * also carries weak-spot practice and redos), a way to
  * start your own, unfinished work, and the Explore tools. Past work lives in
  * History.
  */
@@ -87,8 +87,9 @@ export function HomeContent() {
   const stats = completed && completed.length > 0 ? { n: completed.length, streak: computeStreak(completed) } : null;
 
   // The track step's own unfinished exercise is already under Next up.
-  const track = completed ? currentTrack(completed) : null;
-  const stepExercise = track && completed ? exerciseForStep(incomplete, trackProgress(track, completed).next) : undefined;
+  const adaptive = useAdaptiveTrack(completed, incomplete);
+  const track = adaptive.doc?.current ?? null;
+  const stepExercise = track && completed ? exerciseForGenStep(incomplete, genTrackProgress(track, completed).next) : undefined;
   const inProgress = incomplete.filter((ex) => ex.id !== stepExercise?.id).slice(0, HOME_LIST_SIZE);
 
   return (
@@ -110,7 +111,17 @@ export function HomeContent() {
         }
       />
 
-      {completed ? <NextUp completed={completed} incomplete={incomplete} onDiscard={discardIncomplete} /> : null}
+      {completed && track ? (
+        <NextUp
+          track={track}
+          completed={completed}
+          incomplete={incomplete}
+          busy={adaptive.busy}
+          onDiscard={discardIncomplete}
+          onSkip={(id) => void adaptive.skip(id)}
+          onCloseStale={() => void adaptive.closeStale()}
+        />
+      ) : null}
 
       {completed ? <UseCheckRow completed={completed} /> : null}
 
@@ -169,10 +180,6 @@ export function HomeContent() {
           </div>
         </Section>
       ) : null}
-
-      {completed ? <WeakSpots completed={completed} /> : null}
-
-      {completed ? <RedoRow completed={completed} incomplete={incomplete} /> : null}
 
       <HomeExplore completed={completed} termsDue={termsDue} />
     </main>

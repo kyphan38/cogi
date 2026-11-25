@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AnalyticalExerciseRow, CalibrationExerciseRow, JudgmentExerciseRow, StrategyExerciseRow } from "@/lib/types/exercise";
-import { canRedo, redoForTrack, redoRow, redoSuggestion } from "./redo";
+import { canRedo, redoForTrack, redoRow } from "./redo";
 import { compareTries, scoreSummary } from "./score-summary";
 
 const NOW = "2026-11-16T08:00:00.000Z";
@@ -82,7 +82,7 @@ describe("redoRow", () => {
   });
 });
 
-describe("canRedo and redoSuggestion", () => {
+describe("canRedo and redoForTrack", () => {
   const row = (id: string, day: string, redoOf?: string) => ({ id, type: "analytical" as const, completedAt: `${day}T12:00:00`, redoOf });
 
   it("waits 30 days", () => {
@@ -99,12 +99,6 @@ describe("canRedo and redoSuggestion", () => {
     const open = { id: "c", type: "analytical" as const, completedAt: null, redoOf: "a" };
     expect(canRedo(first, [first, open], "2026-11-16")).toBe(false);
     expect(canRedo({ id: "g", type: "geo", completedAt: "2026-09-01T12:00:00" }, [], "2026-11-16")).toBe(false);
-  });
-
-  it("suggests the oldest one that is ready", () => {
-    const rows = [row("new", "2026-11-10"), row("mid", "2026-10-01"), row("old", "2026-09-01")];
-    expect(redoSuggestion(rows, rows, "2026-11-16")?.id).toBe("old");
-    expect(redoSuggestion([rows[0]!], rows, "2026-11-16")).toBeNull();
   });
 
   it("for a track, takes the oldest ready one rated poor, of an aimed type", () => {

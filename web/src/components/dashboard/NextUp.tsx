@@ -1,109 +1,173 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 
 import { Section, WORD_LINK } from "@/components/shared/Section";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { DISCARD_BUTTON_CLASS } from "@/components/dashboard/discard-button";
-import type { Exercise } from "@/lib/types/exercise";
+import { startRedo } from "@/lib/db/redo";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
-import { currentTrack, trackProgress, trackStepHref } from "@/lib/exercise/tracks";
+import type { PracticeRow } from "@/lib/exercise/redo";
+import { weakSpotInfo } from "@/lib/exercise/weak-spots";
 import {
   isSkippedToday,
   readSkippedDay,
   subscribeSkippedDay,
   writeSkippedDay,
 } from "@/lib/exercise/next-up-skip";
-import { localDay } from "@/lib/geo/quiz";
+import { localDay } from "@/lib/review/schedule";
+import {
+  exerciseForGenStep,
+  genTrackProgress,
+  isStale,
+  stepHref,
+  type GenStep,
+  type GenTrack,
+} from "@/lib/tracks/adaptive";
+import { ownPrompts } from "@/lib/tracks/own-prompts";
+import type { Exercise } from "@/lib/types/exercise";
 
-/** The unfinished exercise for a track step, matched by type and topic. */
-export function exerciseForStep(
-  incomplete: Exercise[],
-  step: { type: string; domain: string } | null,
-): Exercise | undefined {
-  return step ? incomplete.find((e) => e.type === step.type && e.domain.trim() === step.domain) : undefined;
+/** The small line above a step: what kind of step it is. */
+function kindLine(step: GenStep): string {
+  if (step.kind === "fix") return `fix · ${weakSpotInfo(step.focus ?? "")?.label ?? "a weak spot"}`;
+  if (step.kind === "redo") return "redo";
+  if (step.kind === "own") return "your own";
+  return "new";
+}
+
+/** The step's main line. */
+function stepTitle(step: GenStep): string {
+  if (step.kind === "own") return "A situation from your own life";
+  if (step.kind === "redo") return `Again: ${step.domain}`;
+  return step.domain || "Pick a topic";
 }
 
 /**
- * Today's one main action: the next step of the track in progress (PLAN-refine
- * R5). Holds the page's only filled button. "not today" hides it until tomorrow.
+ * Today's one main action: the next step of the adaptive track
+ * (PLAN-adaptive-tracks.md A3). Holds the page's only filled button.
+ * "not today" hides it until tomorrow; "skip" passes the step for good.
  */
 export function NextUp({
+  track,
   completed,
   incomplete,
+  busy,
   onDiscard,
+  onSkip,
+  onCloseStale,
 }: {
+  track: GenTrack;
   completed: Exercise[];
   incomplete: Exercise[];
+  busy: boolean;
   onDiscard: (e: React.MouseEvent, id: string) => void;
+  onSkip: (stepId: string) => void;
+  onCloseStale: () => void;
 }) {
+  const router = useRouter();
+  const [opening, setOpening] = useState(false);
   // The server has no localStorage: it renders the step, the device decides.
-  const skipped = useSyncExternalStore(
+  const skippedToday = useSyncExternalStore(
     subscribeSkippedDay,
     () => isSkippedToday(readSkippedDay(), localDay(new Date())),
     () => false,
   );
-  const skip = (on: boolean) => writeSkippedDay(on ? localDay(new Date()) : null);
+  const notToday = (on: boolean) => writeSkippedDay(on ? localDay(new Date()) : null);
 
-  const track = currentTrack(completed);
+  const { doneIds, next } = genTrackProgress(track, completed);
+  const total = track.steps.length;
+  const passed = track.steps.filter((s) => doneIds.has(s.id) || s.skipped).length;
+  const i = track.steps.findIndex((s) => s.id === next?.id);
+  const inProgress = exerciseForGenStep(incomplete, next);
+  const redoOf = next?.kind === "redo" ? completed.find((e) => e.id === next.redoOf) : undefined;
+  const stale = isStale(track, completed, localDay(new Date()));
+
+  const startRedoStep = async () => {
+    if (!next || !redoOf || opening) return;
+    setOpening(true);
+    try {
+      router.push(await startRedo(redoOf as PracticeRow, next.id));
+    } catch {
+      setOpening(false);
+    }
+  };
+
   const allTracks = (
     <Link href="/tracks" className={WORD_LINK}>
       All tracks
     </Link>
   );
 
-  if (!track) {
-    return (
-      <Section data-testid="track-card" title="Next up" action={allTracks}>
-        <p className="text-body text-muted-foreground">You finished every track. New ones will come.</p>
-      </Section>
+  const skipLink = next ? (
+    <button type="button" className={WORD_LINK} onClick={() => onSkip(next.id)} disabled={busy} data-testid="track-skip">
+      skip
+    </button>
+  ) : null;
+
+  let start: React.ReactNode = null;
+  if (next && inProgress) {
+    start = (
+      <Link href={`/exercise/${inProgress.type}?resumeId=${inProgress.id}`} className={buttonVariants()} data-testid="track-next-step">
+        Continue
+      </Link>
+    );
+  } else if (next?.kind === "redo") {
+    // The first try may have been deleted: then only skip is left.
+    start = redoOf ? (
+      <button type="button" className={buttonVariants()} onClick={() => void startRedoStep()} disabled={opening} data-testid="track-next-step">
+        {opening ? "Opening" : "Start"}
+      </button>
+    ) : null;
+  } else if (next) {
+    start = (
+      <Link href={stepHref(next)} className={buttonVariants()} data-testid="track-next-step">
+        Start
+      </Link>
     );
   }
-
-  const { doneIds, next } = trackProgress(track, completed);
-  const total = track.steps.length;
-  const i = track.steps.findIndex((s) => s.id === next?.id);
-  const inProgress = exerciseForStep(incomplete, next);
 
   return (
     <Section data-testid="track-card" title="Next up" action={allTracks}>
       <div
         className="h-0.5 overflow-hidden rounded-full bg-input"
         role="progressbar"
-        aria-label={`${track.title} progress`}
+        aria-label={`Track ${track.n} progress`}
         aria-valuemin={0}
         aria-valuemax={total}
-        aria-valuenow={doneIds.size}
+        aria-valuenow={passed}
       >
-        <div className="h-full origin-left bg-foreground" style={{ transform: `scaleX(${doneIds.size / total})` }} />
+        <div className="h-full origin-left bg-foreground" style={{ transform: `scaleX(${passed / total})` }} />
       </div>
       <p className="mt-2 text-meta text-muted-foreground tabular-nums">
-        {track.title} · {doneIds.size} of {total} steps done
+        Track {track.n} · {doneIds.size} of {total} done
       </p>
 
-      {!next ? null : skipped ? (
+      {!next ? null : skippedToday ? (
         <p className="mt-6 text-meta text-muted-foreground" data-testid="next-up-skipped">
           Back tomorrow.{" "}
-          <button type="button" className={WORD_LINK} onClick={() => skip(false)}>
+          <button type="button" className={WORD_LINK} onClick={() => notToday(false)}>
             show
           </button>
         </p>
       ) : (
-        <div className="mt-6">
+        <div className="mt-6" data-testid="track-step-now" data-kind={next.kind}>
           <p className="text-meta text-muted-foreground">
-            Step {i + 1} · {TYPE_LABEL[next.type]}
+            Step {i + 1} · {TYPE_LABEL[next.type] ?? next.type} · {kindLine(next)}
           </p>
-          <p className="mt-1 max-w-xl text-lead">{next.learn}</p>
+          <p className="mt-1 max-w-xl text-lead">{stepTitle(next)}</p>
+          {next.kind === "own" && !inProgress ? (
+            <ul className="mt-3 space-y-1 text-body text-muted-foreground" data-testid="own-prompts">
+              {ownPrompts(next.type).map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+          ) : null}
           <div className="group/item mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
-            <Link
-              href={inProgress ? `/exercise/${inProgress.type}?resumeId=${inProgress.id}` : trackStepHref(next)}
-              className={buttonVariants()}
-              data-testid="track-next-step"
-            >
-              {inProgress ? "Continue" : "Start"}
-            </Link>
+            {start}
             {inProgress ? (
               <button
                 type="button"
@@ -115,11 +179,26 @@ export function NextUp({
                 <Trash2 className="size-3.5" aria-hidden />
               </button>
             ) : (
-              <button type="button" className={WORD_LINK} onClick={() => skip(true)} data-testid="next-up-skip">
-                not today
-              </button>
+              <>
+                {/* The own step's skip sits right next to Start: some weeks have no fitting situation. */}
+                {skipLink}
+                <button type="button" className={WORD_LINK} onClick={() => notToday(true)} data-testid="next-up-skip">
+                  not today
+                </button>
+              </>
             )}
           </div>
+          {stale ? (
+            <button
+              type="button"
+              className={cn(WORD_LINK, "mt-4 block")}
+              onClick={onCloseStale}
+              disabled={busy}
+              data-testid="track-close-stale"
+            >
+              close and make a new one
+            </button>
+          ) : null}
         </div>
       )}
     </Section>

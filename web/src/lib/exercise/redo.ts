@@ -178,16 +178,6 @@ export function canRedo(ex: RedoMeta, all: RedoMeta[], today: string): boolean {
 }
 
 /**
- * The one exercise Today offers to redo: the oldest that can be. `all` holds finished
- * and unfinished rows, so an exercise with a redo in progress is not offered twice.
- */
-export function redoSuggestion<Row extends RedoMeta>(completed: Row[], all: RedoMeta[], today: string): Row | null {
-  const ready = completed.filter((e) => canRedo(e, all, today));
-  ready.sort((a, b) => a.completedAt!.localeCompare(b.completedAt!));
-  return ready[0] ?? null;
-}
-
-/**
  * The exercise an adaptive track offers to redo: one that can be redone, rated
  * "poor", and of a type the track aims at. Oldest first. Null when there is none.
  */

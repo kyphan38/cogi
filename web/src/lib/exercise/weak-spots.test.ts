@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Exercise } from "@/lib/types/exercise";
-import { missesOf, practiceFocusLine, weakSpotHref, weakSpotInfo, weakSpots } from "./weak-spots";
+import { missesOf, practiceFocusLine, weakSpotInfo, weakSpots } from "./weak-spots";
 
 let n = 0;
 const base = () => ({ id: `e${++n}`, domain: "d", title: "t", createdAt: "2026-11-01T00:00:00Z", completedAt: "2026-11-01T01:00:00Z" });
@@ -107,9 +107,5 @@ describe("practice focus", () => {
     expect(practiceFocusLine("calibration:overconfident")).toBe("");
     expect(practiceFocusLine("made:up")).toBe("");
     expect(practiceFocusLine(null)).toBe("");
-  });
-
-  it("links to the exercise type with the focus", () => {
-    expect(weakSpotHref({ key: "judgment:top", type: "judgment" })).toBe("/exercise/judgment?focus=judgment%3Atop");
   });
 });

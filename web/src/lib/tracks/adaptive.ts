@@ -298,3 +298,23 @@ export function closeTrack(
 export function withRecap(past: TrackRecap[], recap: TrackRecap): TrackRecap[] {
   return [recap, ...past.filter((r) => r.id !== recap.id)].slice(0, PAST_KEEP);
 }
+
+/** Where a step's Start goes. A redo step has no link: it calls `startRedo` instead. */
+export function stepHref(step: GenStep): string {
+  const q = new URLSearchParams();
+  if (step.kind === "own") q.set("source", "custom_scenario");
+  else if (step.domain) q.set("domain", step.domain);
+  if (step.focus) q.set("focus", step.focus);
+  q.set("step", step.id);
+  return `/exercise/${step.type}?${q.toString()}`;
+}
+
+/** The track with one step marked skipped. */
+export function skipStep(track: GenTrack, stepId: string): GenTrack {
+  return { ...track, steps: track.steps.map((s) => (s.id === stepId ? { ...s, skipped: true } : s)) };
+}
+
+/** The unfinished exercise that belongs to a step, if any. */
+export function exerciseForGenStep(incomplete: Exercise[], step: GenStep | null): Exercise | undefined {
+  return step ? incomplete.find((e) => stepIdOf(e) === step.id) : undefined;
+}

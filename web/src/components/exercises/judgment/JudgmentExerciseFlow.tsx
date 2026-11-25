@@ -15,13 +15,14 @@ import { FeedbackStep } from "@/components/exercises/judgment/steps/FeedbackStep
 export function JudgmentExerciseFlow({
   resumeId,
   initialDomain,
+  initialSource,
 }: {
   resumeId?: string;
   initialDomain?: string;
   initialSource?: "generated" | "real_data" | "custom_scenario";
   autoGenerate?: boolean;
 } = {}) {
-  const s = useJudgmentFlow({ resumeId, initialDomain });
+  const s = useJudgmentFlow({ resumeId, initialDomain, initialSource });
   const { needsSupport, step, exercise, error, phase, partLabel } = s;
 
   return (

@@ -13,15 +13,17 @@ test.describe("Learning tracks", () => {
   test("Home shows the first track; Start opens the step with its topic filled in", async ({ page }) => {
     await gotoAuthenticated(page, "/");
     const card = page.getByTestId("track-card");
-    await expect(card).toContainText("Money and interest rates");
-    await expect(card).toContainText("0 of 5 steps done");
+    await expect(card).toContainText("Track 1 · 0 of 6 done");
+    await expect(card).toContainText("Step 1 · Analytical · new");
+    await expect(card).toContainText(FIRST_DOMAIN);
     await card.getByTestId("track-next-step").click();
-    await expect(page).toHaveURL(/\/exercise\/analytical\?domain=/);
+    await expect(page).toHaveURL(/\/exercise\/analytical\?domain=.*&step=t1-\w+-1$/);
     await expect(page.getByRole("main").getByRole("textbox", { name: "Domain" })).toHaveValue(FIRST_DOMAIN);
   });
 
   test("finishing a step moves the track to the next one", async ({ page }) => {
-    await gotoAuthenticated(page, `/exercise/analytical?domain=${encodeURIComponent(FIRST_DOMAIN)}`);
+    await gotoAuthenticated(page, "/");
+    await page.getByTestId("track-next-step").click();
     await generateExercise(page, FIRST_DOMAIN);
     await expect(page.getByText("Structural reasoning passage")).toBeVisible({ timeout: 15_000 });
     await addPassageHighlight(page);
@@ -32,8 +34,8 @@ test.describe("Learning tracks", () => {
     // Client navigation keeps the in-page e2e store.
     await clickMainNavLink(page, "Today", /\/$/);
     const card = page.getByTestId("track-card");
-    await expect(card).toContainText("1 of 5 steps done");
-    await expect(card).toContainText("Step 2 · Systems");
+    await expect(card).toContainText("Track 1 · 1 of 6 done");
+    await expect(card).toContainText("Step 2 · Systems · new");
   });
 
   test("the tracks page lists every track and step", async ({ page }) => {
@@ -56,7 +58,8 @@ test.describe("Learning tracks", () => {
 
   test("an unfinished step shows Continue with a visible discard icon on phones", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await gotoAuthenticated(page, `/exercise/analytical?domain=${encodeURIComponent(FIRST_DOMAIN)}`);
+    await gotoAuthenticated(page, "/");
+    await page.getByTestId("track-next-step").click();
     await generateExercise(page, FIRST_DOMAIN);
     await expect(page.getByText("Structural reasoning passage")).toBeVisible({ timeout: 15_000 });
     // Leave it unfinished (client navigation keeps the e2e store).

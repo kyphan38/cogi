@@ -34,6 +34,37 @@ function calibrationRow(id: string, finishedDaysAgo: number, misses: number, ext
   };
 }
 
+/** A finished Analytical row that missed `missed` (one issue each) and found one bias. */
+function analyticalRow(id: string, finishedDaysAgo: number, missed: string[], extra: object = {}) {
+  const at = daysAgo(finishedDaysAgo);
+  const issues = [...missed.map((type) => ({ type, found: false })), { type: "bias", found: true }].map((i, index) => ({
+    index,
+    ...i,
+    severity: "moderate",
+    highlightId: null,
+    userTag: null,
+    tagCorrect: i.found,
+  }));
+  return {
+    id,
+    type: "analytical",
+    domain: `Seeded topic ${id}`,
+    title: `Seeded ${id}`,
+    passage: "A short passage.",
+    embeddedIssues: [],
+    validPoints: [],
+    userHighlights: [],
+    level: "standard",
+    result: { issues, decoys: [], extraHighlightIds: [], found: 1, total: issues.length, tagsCorrect: 1, trapsHit: 0, decoyTotal: 0 },
+    confidenceBefore: 60,
+    aiPerspective: "seeded",
+    createdAt: at,
+    completedAt: at,
+    currentStep: 7,
+    ...extra,
+  };
+}
+
 async function seed(page: Page, store: { exercises?: Record<string, object>; settings?: Record<string, object> }) {
   // Seed once per test: later page loads keep what the app saved.
   await page.addInitScript((data) => {
@@ -96,26 +127,63 @@ test.describe("Today follow-ups (C1, C2, C4)", () => {
     await expect(page.getByTestId("use-check")).toHaveCount(0);
   });
 
-  test("lists the most missed thing with a link to practise it", async ({ page }) => {
-    await seed(page, { exercises: { w1: calibrationRow("w1", 2, 3), w2: calibrationRow("w2", 1, 2) } });
+  test("a weak spot becomes a fix step in the track, with its focus", async ({ page }) => {
+    await seed(page, {
+      exercises: Object.fromEntries([1, 2, 3].map((i) => [`w${i}`, analyticalRow(`w${i}`, i, ["hidden_assumption"])])),
+    });
     await gotoAuthenticated(page, "/");
-    const spot = page.getByTestId("weak-spot");
-    await expect(spot).toHaveCount(1);
-    await expect(spot).toContainText("Ranges that miss the answer");
-    await expect(spot).toContainText("missed 5 of 8");
-    await expect(spot).toHaveAttribute("href", "/exercise/calibration?focus=calibration%3Ainterval");
+    const card = page.getByTestId("track-card");
+    await expect(card).toContainText("Step 1 · Analytical · new");
+    await card.getByTestId("track-skip").click();
+    await expect(card).toContainText("Step 2 · Analytical · fix · Missing: Hidden Assumption");
+    await expect(card.getByTestId("track-next-step")).toHaveAttribute("href", /focus=analytical%3Ahidden_assumption&step=t1-\w+-2$/);
   });
 
-  test("offers an exercise from 30 days ago again and opens a fresh copy", async ({ page }) => {
-    await seed(page, { exercises: { old: calibrationRow("old", 40, 1), recent: calibrationRow("recent", 5, 1) } });
+  test("a redo step opens a fresh copy of an old hard exercise, marked with the step", async ({ page }) => {
+    await seed(page, {
+      exercises: {
+        // Found 1 of 4: rated poor, so the track offers it again.
+        old: analyticalRow("old", 40, ["hidden_assumption", "weak_evidence", "logical_fallacy"], { domain: "Old memo" }),
+        recent: analyticalRow("recent", 2, ["hidden_assumption", "weak_evidence"]),
+      },
+    });
     await gotoAuthenticated(page, "/");
-    const redo = page.getByTestId("redo-row");
-    await expect(redo).toContainText("Seeded old");
-    await redo.getByRole("button").click();
-    await expect(page).toHaveURL(/\/exercise\/calibration\?resumeId=[\w-]+&redo=1$/);
+    const card = page.getByTestId("track-card");
+    for (let i = 0; i < 3; i++) await card.getByTestId("track-skip").click();
+    await expect(card).toContainText("Step 4 · Analytical · redo");
+    await expect(card).toContainText("Again: Old memo");
+    await card.getByTestId("track-next-step").click();
+    await expect(page).toHaveURL(/\/exercise\/analytical\?resumeId=[\w-]+&redo=1$/);
     const rows = Object.values((await stored(page))[UID]!.exercises!);
     const copy = rows.find((r) => r.redoOf === "old")!;
-    expect(copy).toMatchObject({ completedAt: null, result: null, currentStep: 1, title: "Seeded old" });
+    expect(copy).toMatchObject({ completedAt: null, result: null });
+    expect(copy.trackStepId).toMatch(/^t1-\w+-4$/);
+  });
+
+  test("the own step shows ideas; skipping the last step makes the next track", async ({ page }) => {
+    await gotoAuthenticated(page, "/");
+    const card = page.getByTestId("track-card");
+    for (let i = 0; i < 5; i++) await card.getByTestId("track-skip").click();
+    await expect(card).toContainText("Step 6");
+    await expect(card).toContainText("your own");
+    await expect(card.getByTestId("own-prompts").getByRole("listitem")).toHaveCount(3);
+    await expect(card.getByTestId("track-next-step")).toHaveAttribute("href", /source=custom_scenario&step=t1-\w+-6$/);
+    await card.getByTestId("track-skip").click();
+    await expect(card).toContainText("Track 2 · 0 of 6 done");
+  });
+
+  test("a track with nothing done for 14 days offers a fresh one", async ({ page }) => {
+    const steps = [1, 2, 3, 4, 5, 6].map((i) => ({ id: `t1-old-${i}`, kind: i === 6 ? "own" : "new", type: "judgment", domain: i === 6 ? "" : `Topic ${i}` }));
+    const current = { id: "t1-old", n: 1, startedAt: daysAgo(20), targets: [], baseline: {}, steps };
+    await seed(page, { settings: { adaptiveTracks: { id: "adaptiveTracks", current, past: [] } } });
+    await gotoAuthenticated(page, "/");
+    const card = page.getByTestId("track-card");
+    await expect(card).toContainText("Track 1 · 0 of 6 done");
+    await card.getByTestId("track-close-stale").click();
+    await expect(card).toContainText("Track 2 · 0 of 6 done");
+    await expect(card.getByTestId("track-close-stale")).toHaveCount(0);
+    const doc = (await stored(page))[UID]!.settings!.adaptiveTracks!;
+    expect(doc.past).toMatchObject([{ id: "t1-old", closeReason: "stale", done: 0 }]);
   });
 
   test("History shows the two tries of a redone exercise next to each other", async ({ page }) => {

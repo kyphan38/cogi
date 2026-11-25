@@ -15,13 +15,14 @@ import { FeedbackStep } from "@/components/exercises/reframe/steps/FeedbackStep"
 export function ReframeExerciseFlow({
   resumeId,
   initialDomain,
+  initialSource,
 }: {
   resumeId?: string;
   initialDomain?: string;
   initialSource?: "generated" | "real_data" | "custom_scenario";
   autoGenerate?: boolean;
 } = {}) {
-  const s = useReframeFlow({ resumeId, initialDomain });
+  const s = useReframeFlow({ resumeId, initialDomain, initialSource });
   const { needsSupport, step, exercise, error, phase, partLabel } = s;
 
   return (

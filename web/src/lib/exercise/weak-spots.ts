@@ -75,10 +75,6 @@ export function practiceFocusLine(key: string | null | undefined): string {
   return `Practice focus: this learner often gets one thing wrong: ${aim}. Build the exercise so this skill is tested more than once, at different difficulty. Stay inside every rule above, and do not name the focus in the text.`;
 }
 
-export function weakSpotHref(spot: Pick<WeakSpot, "key" | "type">): string {
-  return `/exercise/${spot.type}?focus=${encodeURIComponent(spot.key)}`;
-}
-
 /** Records one chance to get something right, and whether it was missed. */
 type AddChance = (key: string, missed: boolean) => void;
 

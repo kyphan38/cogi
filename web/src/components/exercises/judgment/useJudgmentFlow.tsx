@@ -40,6 +40,7 @@ import {
 export function useJudgmentFlow({
   resumeId,
   initialDomain,
+  initialSource,
 }: {
   resumeId?: string;
   initialDomain?: string;
@@ -98,14 +99,16 @@ export function useJudgmentFlow({
     if (handedScenario.current === undefined)
       handedScenario.current = resumeId ? null : takeScenarioText();
     const handed = handedScenario.current;
+    // `?source=custom_scenario` (a track's "your own" step) opens "My situation" empty.
+    const ownOnly = !resumeId && initialSource === "custom_scenario";
     void getPracticeLevel("judgment").then((saved) => {
-      if (!handed) {
+      if (!handed && !ownOnly) {
         setLevel(saved);
         return;
       }
       setLevel(JUDGMENT_LEVELS[saved].ownSituation ? saved : "standard");
       setSource("custom_scenario");
-      setOwnSituation(handed);
+      if (handed) setOwnSituation(handed);
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

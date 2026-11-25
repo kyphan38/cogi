@@ -3,11 +3,14 @@ import type { Exercise } from "@/lib/types/exercise";
 import {
   buildNextTrack,
   closeTrack,
+  exerciseForGenStep,
   genTrackProgress,
   isStale,
   missingTopics,
   OWN_TYPES,
   PAST_KEEP,
+  skipStep,
+  stepHref,
   withRecap,
   type BuildInput,
   type GenTrack,
@@ -199,5 +202,28 @@ describe("progress, stale and close", () => {
     expect(next).toHaveLength(PAST_KEEP);
     expect(next[0]!.id).toBe("new");
     expect(withRecap([r("a")], r("a"))).toHaveLength(1);
+  });
+});
+
+describe("step links and skip", () => {
+  const base = { id: "t3-2", type: "analytical" as const, domain: "A memo" };
+
+  it("links new and fix steps with topic, focus and step id; own opens My situation", () => {
+    expect(stepHref({ ...base, kind: "new" })).toBe("/exercise/analytical?domain=A+memo&step=t3-2");
+    expect(stepHref({ ...base, kind: "fix", focus: "analytical:bias" })).toBe(
+      "/exercise/analytical?domain=A+memo&focus=analytical%3Abias&step=t3-2",
+    );
+    expect(stepHref({ ...base, kind: "new", domain: "" })).toBe("/exercise/analytical?step=t3-2");
+    expect(stepHref({ ...base, kind: "own", type: "judgment", domain: "" })).toBe("/exercise/judgment?source=custom_scenario&step=t3-2");
+  });
+
+  it("skips one step and finds a step's unfinished exercise by its id", () => {
+    const t = buildNextTrack(input());
+    const skipped = skipStep(t, "t1-1");
+    expect(skipped.steps.filter((s) => s.skipped).map((s) => s.id)).toEqual(["t1-1"]);
+    expect(t.steps[0]!.skipped).toBeUndefined();
+    const open = { ...analytical("o", { step: "t1-2" }), completedAt: null } as Exercise;
+    expect(exerciseForGenStep([open], t.steps[1]!)?.id).toBe("o");
+    expect(exerciseForGenStep([open], t.steps[2]!)).toBeUndefined();
   });
 });
