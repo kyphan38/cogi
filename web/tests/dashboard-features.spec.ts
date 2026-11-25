@@ -151,7 +151,7 @@ test.describe("AppTopNav navigation", () => {
     await expect(nav.getByRole("link", { name: "Handbook" })).toHaveClass(/font-medium/);
     await expect(page.getByTestId("handbook-start")).toContainText("Start here");
     // Every exercise type and tool has an entry, reachable from the contents.
-    await expect(page.getByTestId("handbook-entry")).toHaveCount(25);
+    await expect(page.getByTestId("handbook-entry")).toHaveCount(26);
     await page.getByTestId("handbook-contents").getByRole("link", { name: "Strategic situations" }).click();
     await expect(page).toHaveURL(/#strategy$/);
   });
