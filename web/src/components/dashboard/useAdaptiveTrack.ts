@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { logFirestoreQueryError } from "@/lib/db/firestore";
-import { skipAdaptiveStep, syncAdaptiveTrack } from "@/lib/tracks/sync";
+import { markAdaptiveRecapSeen, skipAdaptiveStep, syncAdaptiveTrack } from "@/lib/tracks/sync";
 import type { AdaptiveTracksDoc } from "@/lib/tracks/adaptive";
 import type { Exercise } from "@/lib/types/exercise";
 
@@ -46,5 +46,6 @@ export function useAdaptiveTrack(completed: Exercise[] | null, incomplete: Exerc
     busy,
     skip: (stepId: string) => run(() => skipAdaptiveStep(stepId, completed ?? [], incomplete)),
     closeStale: () => run(() => syncAdaptiveTrack(completed ?? [], incomplete, { closeStale: true })),
+    markSeen: (recapId: string) => run(() => markAdaptiveRecapSeen(recapId)),
   };
 }

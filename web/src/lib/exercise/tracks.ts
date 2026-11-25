@@ -327,24 +327,6 @@ export function trackProgress(track: Track, completed: Exercise[]): { doneIds: S
   return { doneIds, next: track.steps.find((s) => !doneIds.has(s.id)) ?? null };
 }
 
-/**
- * The track to show on Home: the unfinished one the user worked on most recently;
- * otherwise the first unfinished track. Null when every track is done.
- */
-export function currentTrack(completed: Exercise[]): Track | null {
-  let best: { track: Track; at: string } | null = null;
-  for (const track of TRACKS) {
-    if (!trackProgress(track, completed).next) continue;
-    const last = completed
-      .filter((e) => e.completedAt && track.steps.some((s) => s.type === e.type && s.domain === e.domain.trim()))
-      .map((e) => e.completedAt!)
-      .sort()
-      .at(-1);
-    if (last && (!best || last > best.at)) best = { track, at: last };
-  }
-  return best?.track ?? TRACKS.find((t) => trackProgress(t, completed).next) ?? null;
-}
-
 /** True when the topic is a step of a track about real events and institutions. */
 export function isRealWorldTrackDomain(domain: string): boolean {
   const d = domain.trim();

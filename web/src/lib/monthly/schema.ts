@@ -31,6 +31,7 @@ export const monthStatsSchema = z.object({
   takeaways: z.array(z.string().max(240)).max(12),
   used: z.object({ yes: z.number().int().min(0), partly: z.number().int().min(0), no: z.number().int().min(0) }),
   weakSpots: z.array(z.string().max(200)).max(5),
+  tracksDone: z.number().int().min(0).max(100).optional(),
 }) satisfies z.ZodType<MonthStats>;
 
 export function parseMonthlyReviewJson(text: string): { success: true; data: MonthlyReviewText } | { success: false; error: string } {

@@ -9,6 +9,7 @@ import { getMonthlyReviews, saveMonthlyReview } from "@/lib/db/monthly-reviews";
 import { monthLabel, monthStats, monthToReview, TREND_WORD, type MonthlyReview, type MonthlyReviewText } from "@/lib/monthly/stats";
 import { localDay } from "@/lib/review/schedule";
 import type { Exercise } from "@/lib/types/exercise";
+import { getAdaptiveTracks } from "@/lib/db/adaptive-tracks";
 
 function Items({ title, items }: { title: string; items: string[] }) {
   if (items.length === 0) return null;
@@ -97,7 +98,9 @@ export function MonthlyReviewSection({ completed }: { completed: Exercise[] }) {
     setWriting(true);
     setError(null);
     try {
-      const stats = monthStats(completed, due);
+      // A failed read only leaves the track count out.
+      const recaps = await getAdaptiveTracks().then((d) => d.past).catch(() => []);
+      const stats = monthStats(completed, due, recaps);
       const res = await aiFetch("/api/ai/monthly-review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

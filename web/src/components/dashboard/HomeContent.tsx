@@ -21,7 +21,8 @@ import { Section } from "@/components/shared/Section";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { NextUp } from "@/components/dashboard/NextUp";
 import { useAdaptiveTrack } from "@/components/dashboard/useAdaptiveTrack";
-import { exerciseForGenStep, genTrackProgress } from "@/lib/tracks/adaptive";
+import { exerciseForGenStep, genTrackProgress, unseenRecap } from "@/lib/tracks/adaptive";
+import { TrackRecap } from "@/components/dashboard/TrackRecap";
 import { HomeExplore } from "@/components/dashboard/HomeExplore";
 import { UseCheckRow } from "@/components/dashboard/UseCheckRow";
 import { ForecastsDue } from "@/components/dashboard/ForecastsDue";
@@ -89,6 +90,7 @@ export function HomeContent() {
   // The track step's own unfinished exercise is already under Next up.
   const adaptive = useAdaptiveTrack(completed, incomplete);
   const track = adaptive.doc?.current ?? null;
+  const recap = adaptive.doc ? unseenRecap(adaptive.doc) : null;
   const stepExercise = track && completed ? exerciseForGenStep(incomplete, genTrackProgress(track, completed).next) : undefined;
   const inProgress = incomplete.filter((ex) => ex.id !== stepExercise?.id).slice(0, HOME_LIST_SIZE);
 
@@ -110,6 +112,15 @@ export function HomeContent() {
           ) : undefined
         }
       />
+
+      {completed && recap ? (
+        <TrackRecap
+          recap={recap}
+          previous={adaptive.doc?.past[1]}
+          completed={completed}
+          onSeen={() => void adaptive.markSeen(recap.id)}
+        />
+      ) : null}
 
       {completed && track ? (
         <NextUp

@@ -32,6 +32,8 @@ export interface MonthStats {
   /** Answers to "Did you use it?" given for this month's exercises. */
   used: { yes: number; partly: number; no: number };
   weakSpots: string[];
+  /** Adaptive tracks finished (all steps done or skipped) in the month. Older reviews lack it. */
+  tracksDone?: number;
 }
 
 /** Fewer finished exercises than this is too little to review. */
@@ -70,7 +72,11 @@ function trendOf(score: number | null, prev: number | null, prevCount: number): 
   return "flat";
 }
 
-export function monthStats(completed: Exercise[], month: string): MonthStats {
+export function monthStats(
+  completed: Exercise[],
+  month: string,
+  recaps: { closedAt: string; closeReason: "done" | "stale" }[] = [],
+): MonthStats {
   const done = completed.filter((e) => e.completedAt);
   const inMonth = done.filter((e) => monthOf(e.completedAt!) === month);
   const before = done.filter((e) => monthOf(e.completedAt!) === previousMonth(month));
@@ -109,6 +115,7 @@ export function monthStats(completed: Exercise[], month: string): MonthStats {
     takeaways,
     used,
     weakSpots: weakSpots(inMonth).map((s) => `${TYPE_LABEL[s.type]}: ${s.label} (missed ${s.misses} of ${s.chances})`),
+    tracksDone: recaps.filter((r) => r.closeReason === "done" && monthOf(r.closedAt) === month).length,
   };
 }
 

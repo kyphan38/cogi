@@ -6,11 +6,14 @@ import {
   exerciseForGenStep,
   genTrackProgress,
   isStale,
+  markRecapSeen,
   missingTopics,
   OWN_TYPES,
   PAST_KEEP,
+  recapExerciseTypes,
   skipStep,
   stepHref,
+  unseenRecap,
   withRecap,
   type BuildInput,
   type GenTrack,
@@ -225,5 +228,27 @@ describe("step links and skip", () => {
     const open = { ...analytical("o", { step: "t1-2" }), completedAt: null } as Exercise;
     expect(exerciseForGenStep([open], t.steps[1]!)?.id).toBe("o");
     expect(exerciseForGenStep([open], t.steps[2]!)).toBeUndefined();
+  });
+});
+
+describe("recap helpers", () => {
+  const recap = (id: string, seen?: boolean) => ({ id, seen }) as TrackRecap;
+
+  it("shows the newest recap once, until it is marked seen", () => {
+    expect(unseenRecap({ past: [] })).toBeNull();
+    expect(unseenRecap({ past: [recap("b"), recap("a", true)] })?.id).toBe("b");
+    const seen = markRecapSeen({ past: [recap("b"), recap("a", true)] }, "b");
+    expect(unseenRecap(seen)).toBeNull();
+    expect(seen.past.map((r) => r.seen)).toEqual([true, true]);
+  });
+
+  it("lists the types finished in a closed track", () => {
+    const rows = [
+      analytical("x", { step: "t4-ab-1" }),
+      analytical("y", { step: "t4-ab-3" }),
+      { ...analytical("z", { step: "t4-ab-2" }), type: "systems" } as Exercise,
+      analytical("w", { step: "t5-cd-1" }),
+    ];
+    expect(recapExerciseTypes("t4-ab", rows)).toEqual(["analytical", "systems"]);
   });
 });

@@ -9,7 +9,12 @@ import { listCompletedExercises } from "@/lib/db/exercises";
 import { logFirestoreQueryError } from "@/lib/db/firestore";
 import type { Exercise } from "@/lib/types/exercise";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
-import { currentTrack, TRACKS, trackProgress, trackStepHref, type Track } from "@/lib/exercise/tracks";
+import { TRACKS, trackProgress, trackStepHref, type Track } from "@/lib/exercise/tracks";
+import { getAdaptiveTracks } from "@/lib/db/adaptive-tracks";
+import { formatDay } from "@/lib/history";
+import { genTrackProgress, stepHref, type AdaptiveTracksDoc, type GenTrack, type TrackRecap } from "@/lib/tracks/adaptive";
+import { stepKindLine, stepTitle } from "@/lib/tracks/step-text";
+import { RecapBody } from "@/components/tracks/RecapBody";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Section } from "@/components/shared/Section";
 import { ExploreTabs } from "@/components/shell/ExploreTabs";
@@ -42,11 +47,10 @@ function ProgressBar({ done, total, label }: { done: number; total: number; labe
 }
 
 /**
- * A track's links and steps. Done steps are muted with "done"; the next step
- * is medium with Start (a filled button only for your track); later steps
- * show Start when the pointer is on them.
+ * A topic pack's links and steps. Done steps are muted with "done"; the next step's
+ * Start always shows; later steps show Start when the pointer is on them.
  */
-function TrackSteps({ track, completed, main }: { track: Track; completed: Exercise[]; main: boolean }) {
+function TrackSteps({ track, completed }: { track: Track; completed: Exercise[] }) {
   const { doneIds, next } = trackProgress(track, completed);
   return (
     <div className="space-y-3">
@@ -86,12 +90,7 @@ function TrackSteps({ track, completed, main }: { track: Track; completed: Exerc
                 <p className={cn("text-body", done && "text-muted-foreground", isNext && "font-medium")}>{step.learn}</p>
                 <p className="text-meta text-muted-foreground">{TYPE_LABEL[step.type]}</p>
               </div>
-              {isNext && main ? (
-                <Link href={trackStepHref(step)} className={cn(buttonVariants(), "self-center")} data-testid="track-step-start">
-                  Start
-                </Link>
-              ) : (
-                <span className="flex items-baseline gap-3">
+              <span className="flex items-baseline gap-3">
                   {done ? <span className="text-meta text-muted-foreground">done</span> : null}
                   {/* The next step's link always shows; the others wait for the pointer
                       (faint but visible on touch screens, which have no hover). */}
@@ -107,11 +106,98 @@ function TrackSteps({ track, completed, main }: { track: Track; completed: Exerc
                     {done ? "Again" : "Start"}
                   </Link>
                 </span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+/** The adaptive track's six steps with where each one stands. Start for the next one (a redo starts on Today). */
+function YourTrack({ track, completed }: { track: GenTrack; completed: Exercise[] }) {
+  const { doneIds, next } = genTrackProgress(track, completed);
+  const passed = track.steps.filter((s) => doneIds.has(s.id) || s.skipped).length;
+  return (
+    <div className="space-y-4">
+      <p className="text-meta text-muted-foreground tabular-nums">
+        Track {track.n} · {doneIds.size} of {track.steps.length} done
+      </p>
+      <ProgressBar done={passed} total={track.steps.length} label={`Track ${track.n} progress`} />
+      <ol className="border-b border-border">
+        {track.steps.map((step, i) => {
+          const done = doneIds.has(step.id);
+          const isNext = next?.id === step.id;
+          return (
+            <li
+              key={step.id}
+              className="grid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-baseline gap-x-3 border-t border-border py-3"
+              data-testid="gen-step"
+              data-state={done ? "done" : step.skipped ? "skipped" : isNext ? "next" : "later"}
+            >
+              <span className={cn("text-meta tabular-nums", isNext ? "font-medium text-foreground" : "text-muted-foreground")}>{i + 1}</span>
+              <div className="min-w-0">
+                <p className={cn("text-body", (done || step.skipped) && "text-muted-foreground", isNext && "font-medium")}>{stepTitle(step)}</p>
+                <p className="text-meta text-muted-foreground">
+                  {TYPE_LABEL[step.type] ?? step.type} · {stepKindLine(step)}
+                </p>
+              </div>
+              {done || step.skipped ? (
+                <span className="text-meta text-muted-foreground">{done ? "done" : "skipped"}</span>
+              ) : isNext ? (
+                <Link
+                  href={step.kind === "redo" ? "/" : stepHref(step)}
+                  className={cn(buttonVariants(), "self-center")}
+                  data-testid="gen-step-start"
+                >
+                  {step.kind === "redo" ? "On Today" : "Start"}
+                </Link>
+              ) : (
+                <span />
               )}
             </li>
           );
         })}
       </ol>
+    </div>
+  );
+}
+
+/** Closed tracks, newest first; a row opens its recap in place. */
+function PastTracks({ past }: { past: TrackRecap[] }) {
+  const [open, setOpen] = useState<string | null>(null);
+  return (
+    <div className="border-b border-border">
+      {past.map((r, i) => {
+        const isOpen = open === r.id;
+        const cleared = r.targets.filter((t) => t.cleared).length;
+        return (
+          <div key={r.id} className="border-t border-border" data-testid="past-track">
+            <button
+              type="button"
+              aria-expanded={isOpen}
+              onClick={() => setOpen(isOpen ? null : r.id)}
+              className="group/row flex w-full items-center justify-between gap-4 py-3 text-left"
+            >
+              <span className="min-w-0">
+                <span className="block text-body">Track {r.n}</span>
+                <span className="block text-meta text-muted-foreground tabular-nums">
+                  {formatDay(r.closedAt)} · {r.done} of {r.total}
+                  {cleared ? ` · ${cleared} cleared` : ""}
+                </span>
+              </span>
+              <span className="w-10 text-right text-body text-muted-foreground transition-colors group-hover/row:text-foreground">
+                {isOpen ? "Close" : "Open"}
+              </span>
+            </button>
+            {isOpen ? (
+              <div className="pb-5">
+                <RecapBody recap={r} previous={past[i + 1]} />
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -122,6 +208,7 @@ function TrackSteps({ track, completed, main }: { track: Track; completed: Exerc
  */
 export default function TracksPage() {
   const [completed, setCompleted] = useState<Exercise[] | null>(null);
+  const [adaptive, setAdaptive] = useState<AdaptiveTracksDoc | null>(null);
   const [open, setOpen] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -131,6 +218,10 @@ export default function TracksPage() {
         logFirestoreQueryError("TracksPage", "listCompletedExercises", e);
         setCompleted([]);
       });
+    // Read only: Today builds and closes tracks.
+    void getAdaptiveTracks()
+      .then(setAdaptive)
+      .catch((e) => logFirestoreQueryError("TracksPage", "getAdaptiveTracks", e));
   }, []);
 
   const toggle = (id: string) =>
@@ -142,40 +233,31 @@ export default function TracksPage() {
     });
 
   const rows = completed ?? [];
-  const mine = completed ? currentTrack(completed) : null;
-  const others = TRACKS.filter((t) => t.id !== mine?.id);
 
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
       <div className="space-y-3">
-        <PageHeader title="Learning tracks" sub="One exercise a day, in order." />
+        <PageHeader title="Learning tracks" sub="Six steps at a time, made from your results." />
         <ExploreTabs />
       </div>
 
-      {mine ? (
-        <Section title="Your track" data-testid="track" data-current="true">
-          <div className="space-y-4">
-            <div>
-              <p className="text-lead">{mine.title}</p>
-              <p className="text-meta text-muted-foreground tabular-nums">
-                {AREA_LABELS[mine.area]} · {trackProgress(mine, rows).doneIds.size} of {mine.steps.length} done
-              </p>
-            </div>
-            <ProgressBar
-              done={trackProgress(mine, rows).doneIds.size}
-              total={mine.steps.length}
-              label={`${mine.title} progress`}
-            />
-            <p className="max-w-xl text-body text-muted-foreground">{mine.description}</p>
-            <TrackSteps track={mine} completed={rows} main />
-          </div>
+      {completed && adaptive?.current ? (
+        <Section title="Your track" data-testid="your-track">
+          <YourTrack track={adaptive.current} completed={rows} />
+        </Section>
+      ) : null}
+
+      {adaptive?.past.length ? (
+        <Section title="Past tracks" data-testid="past-tracks">
+          <PastTracks past={adaptive.past} />
         </Section>
       ) : null}
 
       {completed ? (
-        <Section title={mine ? "All tracks" : "Tracks"}>
+        <Section title="Topic packs" data-testid="topic-packs">
+          <p className="mb-4 max-w-xl text-meta text-muted-foreground">Your track takes new topics from here. Steps you do here do not count in it.</p>
           <div className="border-b border-border">
-            {others.map((track) => {
+            {TRACKS.map((track) => {
               const done = trackProgress(track, rows).doneIds.size;
               const isOpen = open.has(track.id);
               return (
@@ -203,7 +285,7 @@ export default function TracksPage() {
                   {isOpen ? (
                     <div className="space-y-3 pb-5">
                       <p className="max-w-xl text-body text-muted-foreground">{track.description}</p>
-                      <TrackSteps track={track} completed={rows} main={false} />
+                      <TrackSteps track={track} completed={rows} />
                     </div>
                   ) : null}
                 </div>

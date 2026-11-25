@@ -43,6 +43,16 @@ describe("monthStats", () => {
     expect(s.types[1]).toMatchObject({ type: "geo", count: 1, score: null, trend: null });
   });
 
+  it("counts adaptive tracks finished in the month, not closed ones or other months", () => {
+    const recaps = [
+      { closedAt: "2026-10-04T09:00:00", closeReason: "done" as const },
+      { closedAt: "2026-10-20T09:00:00", closeReason: "stale" as const },
+      { closedAt: "2026-09-28T09:00:00", closeReason: "done" as const },
+    ];
+    expect(monthStats([], "2026-10", recaps).tracksDone).toBe(1);
+    expect(monthStats([], "2026-10").tracksDone).toBe(0);
+  });
+
   it("calls a small change steady and a first month new", () => {
     expect(monthStats([cal("2026-10-03", 2), cal("2026-09-03", 2)], "2026-10").types[0]!.trend).toBe("flat");
     expect(monthStats([cal("2026-10-03", 1), cal("2026-09-03", 3)], "2026-10").types[0]!.trend).toBe("down");

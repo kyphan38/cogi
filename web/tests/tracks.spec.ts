@@ -38,22 +38,25 @@ test.describe("Learning tracks", () => {
     await expect(card).toContainText("Step 2 · Systems · new");
   });
 
-  test("the tracks page lists every track and step", async ({ page }) => {
+  test("the tracks page shows your track, then every topic pack", async ({ page }) => {
+    // Today builds the first track.
+    await gotoAuthenticated(page, "/");
+    await expect(page.getByTestId("track-card")).toContainText("Track 1");
     await gotoAuthenticated(page, "/tracks");
+    const mine = page.getByTestId("your-track");
+    await expect(mine.getByTestId("gen-step")).toHaveCount(6);
+    await expect(mine.locator('[data-state="next"]')).toContainText(FIRST_DOMAIN);
+    await expect(mine.getByTestId("gen-step-start")).toHaveAttribute("href", /\/exercise\/analytical\?domain=.*&step=t1-\w+-1$/);
+    await expect(page.getByTestId("past-tracks")).toHaveCount(0);
+    // Topic packs open in place, and close again.
     await expect(page.getByTestId("track")).toHaveCount(7);
-    // Your track is open with its steps and the page's one filled Start.
-    const mine = page.locator('[data-testid="track"][data-current="true"]');
-    await expect(mine).toContainText("Money and interest rates");
-    await expect(page.getByTestId("track-step")).toHaveCount(5);
-    await expect(mine.getByTestId("track-step-start")).toHaveAttribute("href", /\/exercise\/analytical\?domain=/);
-    // Another track opens in place, and closes again.
     const row = page.getByRole("button", { name: /How countries trade and compete/ });
     await expect(row).toHaveAttribute("aria-expanded", "false");
     await row.click();
     await expect(row).toHaveAttribute("aria-expanded", "true");
-    await expect(page.getByTestId("track-step")).toHaveCount(10);
-    await row.click();
     await expect(page.getByTestId("track-step")).toHaveCount(5);
+    await row.click();
+    await expect(page.getByTestId("track-step")).toHaveCount(0);
   });
 
   test("an unfinished step shows Continue with a visible discard icon on phones", async ({ page }) => {

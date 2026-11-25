@@ -12,7 +12,6 @@ import { DISCARD_BUTTON_CLASS } from "@/components/dashboard/discard-button";
 import { startRedo } from "@/lib/db/redo";
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
 import type { PracticeRow } from "@/lib/exercise/redo";
-import { weakSpotInfo } from "@/lib/exercise/weak-spots";
 import {
   isSkippedToday,
   readSkippedDay,
@@ -25,26 +24,11 @@ import {
   genTrackProgress,
   isStale,
   stepHref,
-  type GenStep,
   type GenTrack,
 } from "@/lib/tracks/adaptive";
 import { ownPrompts } from "@/lib/tracks/own-prompts";
+import { stepKindLine, stepTitle } from "@/lib/tracks/step-text";
 import type { Exercise } from "@/lib/types/exercise";
-
-/** The small line above a step: what kind of step it is. */
-function kindLine(step: GenStep): string {
-  if (step.kind === "fix") return `fix · ${weakSpotInfo(step.focus ?? "")?.label ?? "a weak spot"}`;
-  if (step.kind === "redo") return "redo";
-  if (step.kind === "own") return "your own";
-  return "new";
-}
-
-/** The step's main line. */
-function stepTitle(step: GenStep): string {
-  if (step.kind === "own") return "A situation from your own life";
-  if (step.kind === "redo") return `Again: ${step.domain}`;
-  return step.domain || "Pick a topic";
-}
 
 /**
  * Today's one main action: the next step of the adaptive track
@@ -156,7 +140,7 @@ export function NextUp({
       ) : (
         <div className="mt-6" data-testid="track-step-now" data-kind={next.kind}>
           <p className="text-meta text-muted-foreground">
-            Step {i + 1} · {TYPE_LABEL[next.type] ?? next.type} · {kindLine(next)}
+            Step {i + 1} · {TYPE_LABEL[next.type] ?? next.type} · {stepKindLine(next)}
           </p>
           <p className="mt-1 max-w-xl text-lead">{stepTitle(next)}</p>
           {next.kind === "own" && !inProgress ? (

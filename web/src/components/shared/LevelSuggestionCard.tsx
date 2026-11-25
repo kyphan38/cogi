@@ -7,10 +7,13 @@ import { LEVEL_LABELS, type LevelSuggestion } from "@/lib/exercise/levels";
 /** Offer a level change after an exercise. The user decides; nothing changes on its own. */
 export function LevelSuggestionCard({
   suggestion,
+  typeLabel,
   onAccept,
   onDismiss,
 }: {
   suggestion: NonNullable<LevelSuggestion>;
+  /** Names the exercise type when the card is not inside that exercise (the track recap). */
+  typeLabel?: string;
   onAccept: () => void;
   onDismiss: () => void;
 }) {
@@ -19,6 +22,7 @@ export function LevelSuggestionCard({
     <Card data-testid="level-suggestion">
       <CardContent className="space-y-3 pt-6 text-body">
         <p>
+          {typeLabel ? `${typeLabel}: ` : ""}
           {suggestion.direction === "up"
             ? `Your last three exercises went well. Ready to try ${to}?`
             : `The last two exercises were hard. ${to} gives more help - want to switch for a while?`}

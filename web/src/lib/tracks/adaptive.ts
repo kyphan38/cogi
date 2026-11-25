@@ -318,3 +318,22 @@ export function skipStep(track: GenTrack, stepId: string): GenTrack {
 export function exerciseForGenStep(incomplete: Exercise[], step: GenStep | null): Exercise | undefined {
   return step ? incomplete.find((e) => stepIdOf(e) === step.id) : undefined;
 }
+
+/** The newest recap when the user has not seen it yet. */
+export function unseenRecap(doc: Pick<AdaptiveTracksDoc, "past">): TrackRecap | null {
+  const r = doc.past[0];
+  return r && !r.seen ? r : null;
+}
+
+/** The doc with one recap marked seen. */
+export function markRecapSeen<D extends Pick<AdaptiveTracksDoc, "past">>(doc: D, recapId: string): D {
+  return { ...doc, past: doc.past.map((r) => (r.id === recapId ? { ...r, seen: true } : r)) };
+}
+
+/** Exercise types finished in a closed track (its step ids start with the track id). */
+export function recapExerciseTypes(recapId: string, completed: Exercise[]): Exercise["type"][] {
+  const types = completed
+    .filter((e) => e.completedAt && stepIdOf(e)?.startsWith(`${recapId}-`))
+    .map((e) => e.type);
+  return [...new Set(types)];
+}

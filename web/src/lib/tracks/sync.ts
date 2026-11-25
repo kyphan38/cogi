@@ -7,6 +7,7 @@ import {
   buildNextTrack,
   closeTrack,
   genTrackProgress,
+  markRecapSeen,
   missingTopics,
   skipStep,
   withRecap,
@@ -97,4 +98,11 @@ export async function skipAdaptiveStep(
   if (!doc.current) return syncAdaptiveTrack(completed, incomplete);
   await setAdaptiveTracks({ current: skipStep(doc.current, stepId), past: doc.past });
   return syncAdaptiveTrack(completed, incomplete);
+}
+
+/** Hide a recap on Today for good. */
+export async function markAdaptiveRecapSeen(recapId: string): Promise<AdaptiveTracksDoc> {
+  const doc = markRecapSeen(await getAdaptiveTracks(), recapId);
+  await setAdaptiveTracks(doc);
+  return doc;
 }

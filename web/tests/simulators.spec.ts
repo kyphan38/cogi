@@ -41,10 +41,12 @@ test.describe("Simulators", () => {
 
   test("tracks link to their simulator", async ({ page }) => {
     await gotoAuthenticated(page, "/tracks");
-    // Your track (Money and interest rates) is open and links to the loan simulator.
-    await expect(page.getByTestId("track-simulator-link")).toHaveCount(1);
+    // Topic packs start closed; Money and interest rates links to the loan simulator.
+    await expect(page.getByTestId("track")).toHaveCount(7);
+    await expect(page.getByTestId("track-simulator-link")).toHaveCount(0);
+    await page.getByRole("button", { name: /Money and interest rates/ }).click();
     await expect(page.getByTestId("track-simulator-link").first()).toHaveAttribute("href", "/simulators#loan");
-    // Open every other track: four tracks have a simulator.
+    // Open every pack: four have a simulator.
     const closed = page.getByRole("button", { expanded: false });
     while ((await closed.count()) > 0) await closed.first().click();
     await expect(page.getByTestId("track-simulator-link")).toHaveCount(4);

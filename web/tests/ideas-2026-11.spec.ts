@@ -186,6 +186,45 @@ test.describe("Today follow-ups (C1, C2, C4)", () => {
     expect(doc.past).toMatchObject([{ id: "t1-old", closeReason: "stale", done: 0 }]);
   });
 
+  test("a closed track shows its recap once, offers a level, and stays under Past tracks", async ({ page }) => {
+    // Three good Guided analytical exercises from track 1: the usual rule suggests Standard.
+    const good = (id: string, i: number) =>
+      analyticalRow(id, i, [], { level: "guided", trackStepId: `t1-old-${i}`, result: {
+        issues: [{ index: 0, type: "bias", found: true, severity: "moderate", highlightId: null, userTag: null, tagCorrect: true }],
+        decoys: [], extraHighlightIds: [], found: 1, total: 1, tagsCorrect: 1, trapsHit: 0, decoyTotal: 0 } });
+    const recap = {
+      id: "t1-old", n: 1, startedAt: daysAgo(9), closedAt: daysAgo(0), closeReason: "done", done: 3, skipped: 3, total: 6,
+      ratings: { good: 3, ok: 0, poor: 0 },
+      targets: [{ key: "analytical:hidden_assumption", before: { misses: 4, chances: 7 }, during: { misses: 1, chances: 5 }, below: true, cleared: false }],
+    };
+    await seed(page, {
+      exercises: { g1: good("g1", 1), g2: good("g2", 2), g3: good("g3", 3) },
+      settings: { adaptiveTracks: { id: "adaptiveTracks", current: null, past: [recap] } },
+    });
+    await gotoAuthenticated(page, "/");
+    const card = page.getByTestId("track-recap");
+    await expect(card).toContainText("Track 1 done · 3 of 6 · 3 skipped");
+    await expect(card).toContainText("Missing: Hidden Assumption: missed 4 of 7 before → 1 of 5 in this track");
+    await expect(page.getByTestId("track-card")).toContainText("Track 2 · 0 of 6 done");
+    await card.getByRole("button", { name: "Switch to Standard" }).click();
+    await expect(card.getByTestId("level-suggestion")).toHaveCount(0);
+    await expect
+      .poll(async () => ((await stored(page))[UID]!.settings!.app as { practiceLevels?: Record<string, string> })?.practiceLevels?.analytical)
+      .toBe("standard");
+    await card.getByTestId("track-recap-ok").click();
+    await expect(page.getByTestId("track-recap")).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByTestId("track-card")).toContainText("Track 2");
+    await expect(page.getByTestId("track-recap")).toHaveCount(0);
+
+    await gotoAuthenticated(page, "/tracks");
+    const past = page.getByTestId("past-track");
+    await expect(past).toHaveCount(1);
+    await expect(past).toContainText("Track 1");
+    await past.getByRole("button").click();
+    await expect(past.getByTestId("recap-body")).toContainText("1 of 5 in this track");
+  });
+
   test("History shows the two tries of a redone exercise next to each other", async ({ page }) => {
     await seed(page, {
       exercises: { first: calibrationRow("first", 40, 3), again: calibrationRow("again", 1, 1, { redoOf: "first" }) },
