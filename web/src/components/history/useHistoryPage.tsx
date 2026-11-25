@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useFlip } from "@/lib/hooks/useFlip";
 import { useRowMotion } from "@/lib/hooks/useRowMotion";
@@ -37,6 +37,8 @@ export function useHistoryPage() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailEx, setDetailEx] = useState<Exercise | null>(null);
+  // The review sits far below the activity grid: scroll to it once it loads.
+  const scrollToReview = useRef(false);
 
   const [pendingDelete, setPendingDelete] = useState<{
     id: string;
@@ -174,6 +176,22 @@ export function useHistoryPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [pendingDelete]);
 
+  useEffect(() => {
+    if (!detailEx || !scrollToReview.current) return;
+    scrollToReview.current = false;
+    document.getElementById("history-review")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [detailEx]);
+
+  const openFromActivity = (id: string) => {
+    scrollToReview.current = true;
+    if (id === selectedId && detailEx) {
+      scrollToReview.current = false;
+      document.getElementById("history-review")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    setSelectedId(id);
+  };
+
   const selected = useMemo(
     () => rows.find((r) => r.id === selectedId) ?? null,
     [rows, selectedId],
@@ -227,6 +245,7 @@ export function useHistoryPage() {
     setFiltersOpen,
     selectedId,
     setSelectedId,
+    openFromActivity,
     detailEx,
     setDetailEx,
     pendingDelete,

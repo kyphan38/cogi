@@ -142,6 +142,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Next time, ask: the question to ask yourself in a new situation. This is the part to remember.",
       "Take with you: one or two lessons for the next exercise.",
       "Analytical only: press \"Go deeper\" under a row for a longer explanation. It is saved, so it opens again in History for free.",
+      "In History, tap a day on the activity grid to see what you did that day: type, level, score and the main miss. Tap a row to open its review.",
     ],
     tips: [
       "For judgment calls (weights, life situations), the app says \"close\" or \"different\", never \"wrong\". The model is a reference, not the only answer.",

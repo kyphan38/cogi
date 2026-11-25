@@ -339,3 +339,5 @@ Chữ tiếng Anh, ngắn, kiểu đời thường.
 ## Tiến độ
 
 (AI làm ghi một dòng mỗi phase: ngày, commit, ghi chú, số test trước/sau.)
+
+- A1 (2026-11-25): heatmap bấm được. Màu ô theo số bài (0, 1, 2, 3+), chú thích "less · more". Bấm ô: danh sách bài ngày đó (dạng · level · điểm · lỗi chính), bấm dòng thì mở Review và cuộn tới. Hàm mới: `activityByDay`, `activityLevel`, `activitySwatchClass` (`lib/history.ts`, thay `typeSwatchClass`), `missesOf` (`weak-spots.ts`, dùng chung `tallyExercise`). Heatmap dùng `rows` đã lọc, nên bài nào bấm được cũng nằm trong danh sách (không cần `openExerciseHiddenByFilters`). Không có mục Handbook "History": thêm một dòng vào mục "Reading the feedback". Kiểm tra: tsc sạch, eslint 0 lỗi (19 cảnh báo, giống trước), vitest 970/970 (trước 967), Playwright 244/247 (thêm 1 test, sửa 1 test chú thích). 3 lỗi không do A1: `dashboard-features:154` đếm 25 mục Handbook nhưng commit `9da2fe2f` (AI cost) đã thêm mục thứ 26; 2 test khác (`dashboard-features:22`, `evaluative-dealbreaker:50`) qua khi chạy lại riêng. Ảnh 1280px và 375px, sáng và tối.

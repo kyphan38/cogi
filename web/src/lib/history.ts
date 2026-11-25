@@ -42,17 +42,35 @@ export function startOfWeekMonday(d: Date): Date {
   return x;
 }
 
-// Four gray steps far enough apart to tell at a glance (DESIGN.md: gray only,
-// the name always next to it). Opacity on ink works in light and dark.
-export function typeSwatchClass(t: Exercise["type"]): string {
-  switch (t) {
-    case "evaluative":
-      return "bg-foreground";
-    case "systems":
-      return "bg-foreground/55";
-    case "analytical":
-      return "bg-foreground/30";
-    default:
-      return "bg-foreground/15";
+/** Local day key, e.g. "2026-11-25". */
+export function dayKey(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-CA");
+}
+
+/** Finished exercises grouped by local day, newest first within a day. */
+export function activityByDay(rows: Exercise[]): Map<string, Exercise[]> {
+  const days = new Map<string, Exercise[]>();
+  const done = rows
+    .filter((ex) => ex.completedAt)
+    .sort((a, b) => b.completedAt!.localeCompare(a.completedAt!));
+  for (const ex of done) {
+    const key = dayKey(ex.completedAt!);
+    const list = days.get(key);
+    if (list) list.push(ex);
+    else days.set(key, [ex]);
   }
+  return days;
+}
+
+/** Heatmap shade step for a day: 0 (none), 1, 2, or 3 (three or more). */
+export function activityLevel(count: number): 0 | 1 | 2 | 3 {
+  return count <= 0 ? 0 : count >= 3 ? 3 : (count as 1 | 2);
+}
+
+// Gray only (DESIGN.md), far enough apart to tell at a glance. Opacity on ink
+// works in light and dark.
+const ACTIVITY_SWATCH = ["bg-muted/50", "bg-foreground/30", "bg-foreground/60", "bg-foreground"] as const;
+
+export function activitySwatchClass(level: 0 | 1 | 2 | 3): string {
+  return ACTIVITY_SWATCH[level];
 }

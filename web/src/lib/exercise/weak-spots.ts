@@ -139,6 +139,21 @@ function tallyExercise(ex: Exercise, add: Tally): void {
 }
 
 /**
+ * Labels of what one finished exercise missed, most missed first. Unknown keys are
+ * left out. Same counting as `weakSpots`.
+ */
+export function missesOf(ex: Exercise): string[] {
+  const counts = new Map<string, number>();
+  tallyExercise(ex, (key, missed) => {
+    if (missed) counts.set(key, (counts.get(key) ?? 0) + 1);
+  });
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([key]) => weakSpotInfo(key)?.label)
+    .filter((label): label is string => !!label);
+}
+
+/**
  * The few things missed most often in the newest finished exercises
  * (`completed` is newest first). Most misses first; ties go to the higher miss rate.
  */

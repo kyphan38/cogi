@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Exercise } from "@/lib/types/exercise";
-import { practiceFocusLine, weakSpotHref, weakSpotInfo, weakSpots } from "./weak-spots";
+import { missesOf, practiceFocusLine, weakSpotHref, weakSpotInfo, weakSpots } from "./weak-spots";
 
 let n = 0;
 const base = () => ({ id: `e${++n}`, domain: "d", title: "t", createdAt: "2026-11-01T00:00:00Z", completedAt: "2026-11-01T01:00:00Z" });
@@ -71,6 +71,26 @@ describe("weakSpots", () => {
       ]),
     ];
     expect(weakSpots(rows)).toHaveLength(3);
+  });
+});
+
+describe("missesOf", () => {
+  it("lists what one exercise missed, most missed first", () => {
+    const ex = analytical(
+      [
+        { type: "weak_evidence", found: false },
+        { type: "hidden_assumption", found: false },
+        { type: "hidden_assumption", found: false },
+        { type: "bias", found: true },
+      ],
+      [false],
+    );
+    expect(missesOf(ex)).toEqual(["Missing: Hidden Assumption", "Missing: Weak Evidence"]);
+  });
+
+  it("is empty when nothing was missed or there is no result", () => {
+    expect(missesOf(analytical([{ type: "bias", found: true }]))).toEqual([]);
+    expect(missesOf({ ...base(), type: "geo" } as unknown as Exercise)).toEqual([]);
   });
 });
 

@@ -49,6 +49,7 @@ function HistoryPageInner() {
     setFiltersOpen,
     selectedId,
     setSelectedId,
+    openFromActivity,
     detailEx,
     setDetailEx,
     pendingDelete,
@@ -122,7 +123,7 @@ function HistoryPageInner() {
           </p>
         }
       >
-        <HistoryActivityHeatmap rows={rows} />
+        <HistoryActivityHeatmap rows={rows} onOpenExercise={openFromActivity} />
       </Section>
 
       <MonthlyReviewSection completed={allCompletedRows} />
@@ -277,7 +278,7 @@ function HistoryPageInner() {
       </Section>
 
       {selected && detailEx ? (
-        <section className="group/review relative">
+        <section id="history-review" className="group/review relative scroll-mt-20">
           <div className="flex flex-row flex-wrap items-start justify-between gap-2 pb-4">
             <div className="min-w-0 flex-1">
               <h2 className="text-lead font-semibold">Review</h2>

@@ -80,13 +80,72 @@ test.describe("History page - layout and structure", () => {
     ).toBeVisible();
   });
 
-  test("heatmap legend shows the three exercise types", async ({ page }) => {
+  test("heatmap legend shows how many exercises a shade means", async ({ page }) => {
     await gotoAuthenticated(page, "/exercise/history");
     const heatmapCard = page.locator("section").filter({
       has: page.getByRole("heading", { name: "Activity" }),
     });
-    await expect(heatmapCard.getByText("Analytical", { exact: true })).toBeVisible();
-    await expect(heatmapCard.getByText("Systems", { exact: true })).toBeVisible();
-    await expect(heatmapCard.getByText("Evaluative", { exact: true })).toBeVisible();
+    await expect(heatmapCard.getByText("less", { exact: true })).toBeVisible();
+    await expect(heatmapCard.getByText("more", { exact: true })).toBeVisible();
+  });
+});
+
+test.describe("History page - activity grid", () => {
+  const UID = "e2e-test-user-uid";
+
+  test.beforeEach(async ({ page }) => {
+    await bypassFirebaseAuth(page);
+    await stubFirestoreReads(page);
+  });
+
+  test("a tap on a day lists its exercises and a row opens the review", async ({ page }) => {
+    const at = new Date(Date.now() - 2 * 86_400_000);
+    at.setHours(12, 0, 0, 0);
+    const iso = at.toISOString();
+    const items = [0, 1, 2, 3].map((i) => ({ id: `q${i}`, kind: "interval", answered: true, correct: i >= 2 }));
+    const row = {
+      id: "day1",
+      type: "calibration",
+      domain: "Mixed",
+      title: "Seeded day exercise",
+      items: [],
+      concepts: [],
+      conceptChecks: [],
+      level: "standard",
+      answers: {},
+      result: {
+        items,
+        binary: { count: 0, right: 0, brier: null, buckets: [] },
+        interval: { count: 4, hits: 2, target: 90, veryWide: 0 },
+        baseRate: { count: 0, right: 0 },
+      },
+      confidenceBefore: 60,
+      aiPerspective: "seeded",
+      createdAt: iso,
+      completedAt: iso,
+      currentStep: 7,
+    };
+    await page.addInitScript((data) => {
+      if (!window.sessionStorage.getItem("cogi:e2e-firestore")) {
+        window.sessionStorage.setItem("cogi:e2e-firestore", JSON.stringify(data));
+      }
+    }, { [UID]: { exercises: { day1: row } } });
+
+    await gotoAuthenticated(page, "/exercise/history");
+    const day = page.locator(`[data-testid="heatmap-day"][data-day="${at.toLocaleDateString("en-CA")}"]`);
+    await expect(day).toHaveAttribute("aria-label", /1 exercise$/);
+    await expect(page.getByTestId("heatmap-day-list")).toHaveCount(0);
+
+    await day.click();
+    const list = page.getByTestId("heatmap-day-list");
+    await expect(list).toContainText("Seeded day exercise");
+    await expect(list).toContainText("Standard");
+    await expect(list).toContainText("Ranges that miss the answer");
+
+    await list.getByRole("button", { name: /Seeded day exercise/ }).click();
+    await expect(page.getByRole("heading", { name: "Review" })).toBeInViewport();
+
+    await day.click();
+    await expect(page.getByTestId("heatmap-day-list")).toHaveCount(0);
   });
 });
