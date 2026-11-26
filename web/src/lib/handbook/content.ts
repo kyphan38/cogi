@@ -770,20 +770,6 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "The brief does not say which view is right. Decide after the exercise, not before.",
     ],
   },
-  {
-    id: "ai-cost",
-    title: "AI cost",
-    href: "/settings",
-    group: "tool",
-    trains: "Knowing how much the AI in cogi costs each month.",
-    benefits: ["You see the cost early, before the bill comes."],
-    howToPractice: [
-      "Open Settings. \"AI cost\" shows this month in US dollars.",
-      "Tap the amount to see the earlier months.",
-      "It counts from 20 Nov 2026. It is an estimate from token counts, so the Google bill can differ a little.",
-    ],
-    tips: ["Each app has its own number. The shared Gemini key bill is the sum of all apps."],
-  },
 ];
 
 export const HANDBOOK_GROUPS: { id: HandbookEntry["group"]; title: string }[] = [
