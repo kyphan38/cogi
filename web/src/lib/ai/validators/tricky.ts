@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { choiceErrors, choiceQuestionSchema, conceptSchema, stripJsonFences } from "@/lib/ai/validators/judgment";
+import { choiceErrors, choiceQuestionSchema, conceptSchema, stripJsonFences, isSafetyConcern } from "@/lib/ai/validators/judgment";
 import { TRICKY_STEPS } from "@/lib/exercise/tricky-levels";
 
 export const TRICKY_QUALITIES = ["best", "ok", "poor"] as const;
@@ -50,6 +50,10 @@ export function parseTrickyExerciseJson(
     parsed = JSON.parse(stripJsonFences(text));
   } catch {
     return { success: false, error: "Invalid JSON from model" };
+  }
+  if (isSafetyConcern(parsed)) {
+    const data: TrickyExercisePayload = { safety: "concern", title: "", setting: "", asker: "", concepts: [], conceptChecks: [], rounds: [] };
+    return { success: true, data };
   }
   const result = trickyExerciseSchema.safeParse(parsed);
   if (!result.success) {

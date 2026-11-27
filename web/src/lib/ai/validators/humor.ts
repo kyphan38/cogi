@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { choiceErrors, choiceQuestionSchema, conceptSchema, stripJsonFences } from "@/lib/ai/validators/judgment";
+import { choiceErrors, choiceQuestionSchema, conceptSchema, stripJsonFences, isSafetyConcern } from "@/lib/ai/validators/judgment";
 import { HUMOR_STEPS } from "@/lib/exercise/humor-levels";
 
 export const HUMOR_QUALITIES = ["best", "ok", "poor"] as const;
@@ -50,6 +50,10 @@ export function parseHumorExerciseJson(
     parsed = JSON.parse(stripJsonFences(text));
   } catch {
     return { success: false, error: "Invalid JSON from model" };
+  }
+  if (isSafetyConcern(parsed)) {
+    const data: HumorExercisePayload = { safety: "concern", title: "", setting: "", concepts: [], conceptChecks: [], rounds: [] };
+    return { success: true, data };
   }
   const result = humorExerciseSchema.safeParse(parsed);
   if (!result.success) {

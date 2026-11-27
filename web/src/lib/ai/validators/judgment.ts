@@ -53,6 +53,15 @@ export type JudgmentChoiceQuestion = z.infer<typeof choiceQuestionSchema>;
 export type JudgmentLensQuestion = z.infer<typeof lensQuestionSchema>;
 export type JudgmentResponse = z.infer<typeof responseSchema>;
 
+/**
+ * A "concern" answer (the user's own situation needs real support) often comes with
+ * empty or placeholder fields. The routes only read `safety` then, so the parsers
+ * skip the strict schema for it; otherwise the user gets an error, not the support message.
+ */
+export function isSafetyConcern(parsed: unknown): boolean {
+  return (parsed as { safety?: unknown } | null)?.safety === "concern";
+}
+
 export function stripJsonFences(text: string): string {
   const trimmed = text.trim();
   const m = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
@@ -67,6 +76,10 @@ export function parseJudgmentExerciseJson(
     parsed = JSON.parse(stripJsonFences(text));
   } catch {
     return { success: false, error: "Invalid JSON from model" };
+  }
+  if (isSafetyConcern(parsed)) {
+    const data: JudgmentExercisePayload = { safety: "concern", title: "", scenario: "", concepts: [], conceptChecks: [], lensQuestions: [], responses: [] };
+    return { success: true, data };
   }
   const result = judgmentExerciseSchema.safeParse(parsed);
   if (!result.success) {

@@ -3,6 +3,7 @@ import {
   choiceErrors,
   choiceQuestionSchema,
   conceptSchema,
+  isSafetyConcern,
   stripJsonFences,
 } from "@/lib/ai/validators/judgment";
 import { mostlyRepeats } from "@/lib/text/overlap";
@@ -59,6 +60,16 @@ export const reframeExerciseSchema = z.object({
 });
 
 export type ReframeExercisePayload = z.infer<typeof reframeExerciseSchema>;
+
+const CONCERN: ReframeExercisePayload = {
+  safety: "concern",
+  title: "",
+  scenario: "",
+  concepts: [],
+  conceptChecks: [],
+  thoughts: [],
+  rewrite: { question: "", options: [], answerIndex: 0, explanation: "", thoughtId: "", balancedExample: "" },
+};
 export type ReframeThought = z.infer<typeof thoughtSchema>;
 export type ReframeRewrite = z.infer<typeof rewriteSchema>;
 
@@ -70,6 +81,9 @@ export function parseReframeExerciseJson(
     parsed = JSON.parse(stripJsonFences(text));
   } catch {
     return { success: false, error: "Invalid JSON from model" };
+  }
+  if (isSafetyConcern(parsed)) {
+    return { success: true, data: CONCERN };
   }
   const result = reframeExerciseSchema.safeParse(parsed);
   if (!result.success) {
