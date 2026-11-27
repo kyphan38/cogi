@@ -57,7 +57,7 @@ test.describe("Geo Lab timelines (G4)", () => {
     await expect(summary).toContainText("close to history 1 of 2 times");
     await expect(page.getByTestId("timeline-calibration")).toContainText("You were 50% sure on average, and close 50% of the time.");
 
-    await clickMainNavLink(page, "History", /\/exercise\/history/);
+    await clickMainNavLink(page, "Memory", /\/exercise\/history/);
     await page.getByRole("button", { name: /Timeline: The Suez Crisis/ }).first().click();
     await expect(page.getByTestId("history-geo-timeline")).toContainText("Close to history.");
     await expect(page.getByTestId("history-geo-timeline")).toContainText("Off-ramp: found.");

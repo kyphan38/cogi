@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { BriefView } from "@/components/briefs/BriefView";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Section, WORD_LINK } from "@/components/shared/Section";
-import { ExploreTabs } from "@/components/shell/ExploreTabs";
 import { Button } from "@/components/ui/button";
 import { aiFetch, safeAiJson } from "@/lib/api/ai-fetch";
 import { BRIEF_AREAS, BRIEFS_PER_MONTH, briefsThisMonth, type Brief, type BriefArea, type BriefContent } from "@/lib/briefs/schema";
@@ -78,7 +77,6 @@ export default function BriefsPage() {
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
       <PageHeader title="Briefs" sub="One big story of the last month, in five minutes." />
-      <ExploreTabs />
 
       <Section title="New brief">
         <div className="space-y-3">

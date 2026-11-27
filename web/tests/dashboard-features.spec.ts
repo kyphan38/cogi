@@ -21,7 +21,7 @@ test.describe("Home page - resume and navigation", () => {
 
   test("shows one primary New exercise action that opens the picker", async ({ page }) => {
     await gotoAuthenticated(page, "/");
-    await page.getByRole("link", { name: "New exercise" }).click();
+    await page.getByRole("main").getByRole("link", { name: "New exercise" }).click();
     await page.waitForURL("/reasoning", { timeout: 15_000 });
   });
 
@@ -140,18 +140,22 @@ test.describe("AppTopNav navigation", () => {
   test("nav bar renders all primary links", async ({ page }) => {
     await gotoAuthenticated(page, "/");
     const nav = page.getByRole("navigation", { name: "Main" });
-    await expect(nav.getByRole("link")).toHaveText(["cogi", "Today", "Explore", "History", "Handbook", "Settings"]);
+    await expect(nav.getByRole("link")).toHaveText([
+      "cogi", "Practice", "Labs", "Memory", "Guide",
+      "Today", "5-minute question", "Tracks", "New exercise",
+    ]);
   });
 
   test("the Handbook tab opens the handbook, active in the nav", async ({ page }) => {
     await gotoAuthenticated(page, "/");
-    await clickMainNavLink(page, "Handbook", "/handbook");
+    await clickMainNavLink(page, "Guide", "/handbook");
     await expect(page.getByRole("heading", { name: "Handbook", level: 1 })).toBeVisible();
     const nav = page.getByRole("navigation", { name: "Main" });
-    await expect(nav.getByRole("link", { name: "Handbook" })).toHaveClass(/font-medium/);
+    await expect(nav.getByRole("link", { name: "Guide" })).toHaveClass(/font-medium/);
+    await expect(nav.getByRole("link", { name: "Handbook" })).toHaveAttribute("aria-current", "page");
     await expect(page.getByTestId("handbook-start")).toContainText("Start here");
     // Every exercise type and tool has an entry, reachable from the contents.
-    await expect(page.getByTestId("handbook-entry")).toHaveCount(26);
+    await expect(page.getByTestId("handbook-entry")).toHaveCount(25);
     await page.getByTestId("handbook-contents").getByRole("link", { name: "Strategic situations" }).click();
     await expect(page).toHaveURL(/#strategy$/);
   });
@@ -160,26 +164,26 @@ test.describe("AppTopNav navigation", () => {
     const nav = page.getByRole("navigation", { name: "Main" });
     for (const [path, section, here] of [
       // The exercise page goes last: leaving it mid-load can abort the next goto.
-      ["/tracks", "Explore", "Tracks"],
-      ["/geo", "Explore", "Geo Lab"],
-      ["/simulators", "Explore", "Simulators"],
-      ["/terms", "History", "My terms"],
-      ["/reasoning", "Today", "New exercise"],
-      ["/exercise/evaluative", "Today", "Evaluative"],
+      ["/tracks", "Practice", "Tracks"],
+      ["/geo", "Labs", "Geo Lab"],
+      ["/simulators", "Labs", "Simulators"],
+      ["/terms", "Memory", "My terms"],
+      ["/reasoning", "Practice", "New exercise"],
+      ["/exercise/evaluative", "Practice", "Evaluative"],
     ] as const) {
       // A busy dev server can abort a goto that follows a heavy page; one retry.
       await gotoAuthenticated(page, path).catch(() => gotoAuthenticated(page, path));
-      await expect(nav.getByRole("link", { name: section, exact: true })).toBeVisible();
+      await expect(nav.getByRole("link", { name: section, exact: true })).toHaveClass(/font-medium/);
       await expect(nav.locator('[aria-current="page"]')).toHaveText(here);
     }
   });
 
-  test("Explore opens Tracks, with tabs to Geo Lab and Simulators", async ({ page }) => {
+  test("Labs opens Geo Lab, with its pages in the row below", async ({ page }) => {
     await gotoAuthenticated(page, "/");
-    await clickMainNavLink(page, "Explore", "/tracks");
-    const tabs = page.getByTestId("explore-tabs");
-    await expect(tabs.getByRole("link")).toHaveText(["Tracks", "Geo Lab", "Simulators", "Forecasts", "Briefs"]);
-    await expect(tabs.getByRole("link", { name: "Tracks" })).toHaveAttribute("aria-current", "page");
+    await clickMainNavLink(page, "Labs", "/geo");
+    const tabs = page.getByTestId("group-pages");
+    await expect(tabs.getByRole("link")).toHaveText(["Geo Lab", "Simulators", "Briefs"]);
+    await expect(tabs.getByRole("link", { name: "Geo Lab" })).toHaveAttribute("aria-current", "page");
     await tabs.getByRole("link", { name: "Simulators" }).click();
     await expect(page).toHaveURL(/\/simulators$/);
     await expect(page.getByRole("heading", { name: "Simulators", level: 1 })).toBeVisible();
@@ -187,25 +191,27 @@ test.describe("AppTopNav navigation", () => {
 
   test("navigating to /settings via nav link", async ({ page }) => {
     await gotoAuthenticated(page, "/");
+    await clickMainNavLink(page, "Guide", "/handbook");
     await clickMainNavLink(page, "Settings", "/settings");
   });
 
   test("navigating to /exercise/history via nav link", async ({ page }) => {
     await gotoAuthenticated(page, "/");
-    await clickMainNavLink(page, "History", "/exercise/history");
+    await clickMainNavLink(page, "Memory", "/exercise/history");
   });
 
   test("nav bar persists across route transitions", async ({ page }) => {
     await gotoAuthenticated(page, "/");
     const nav = page.getByRole("navigation", { name: "Main" });
 
+    await clickMainNavLink(page, "Guide", "/handbook");
     await clickMainNavLink(page, "Settings", "/settings");
     await expect(nav).toBeVisible();
 
-    await clickMainNavLink(page, "History", "/exercise/history");
+    await clickMainNavLink(page, "Memory", "/exercise/history");
     await expect(nav).toBeVisible();
 
-    await clickMainNavLink(page, "Today", "/");
+    await clickMainNavLink(page, "Practice", "/");
     await expect(nav).toBeVisible();
   });
 

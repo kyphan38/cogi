@@ -8,7 +8,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { Hint } from "@/components/guide/Hint";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { stepGoal } from "@/lib/guide/step-goals";
 import { reducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -148,7 +150,8 @@ export function ExerciseShell({
     const moved = Math.abs(stepIndex - lastStep.current) === 1;
     lastStep.current = stepIndex;
     const el = body.current;
-    if (!moved || !el || reducedMotion() || typeof el.animate !== "function") return;
+    if (!moved || !el || reducedMotion() || typeof el.animate !== "function")
+      return;
     el.animate(
       [
         { opacity: 0, transform: "translateY(6px)" },
@@ -167,42 +170,60 @@ export function ExerciseShell({
     setFresh(stepIndex === stepLabels.length - 1 && prevStep === stepIndex - 1);
   }
 
+  const goal = stepGoal(stepLabels[stepIndex]);
+
   return (
-    <div className="mx-auto flex min-h-full w-full min-w-0 max-w-3xl flex-col gap-8 px-4 pt-8 pb-24 sm:px-6">
+    <div className="relative mx-auto flex min-h-full w-full min-w-0 max-w-3xl flex-col gap-8 px-4 pt-8 pb-24 sm:px-6">
       {/* Each step is a short bar and a word: done and current in ink, later
           ones faint. The current word is medium. */}
-      <nav
-        aria-label="Exercise progress"
-        className="grid gap-1.5"
-        style={{ gridTemplateColumns: `repeat(${stepLabels.length}, minmax(0, 1fr))` }}
-      >
-        {stepLabels.map((label, i) => (
-          <div key={`${i}-${label}`} className="min-w-0">
-            <div
-              aria-hidden
-              className={cn(
-                "h-0.5 rounded-full transition-colors duration-150",
-                i <= stepIndex ? "bg-foreground" : "bg-input",
-              )}
-            />
-            <span
-              aria-current={i === stepIndex ? "step" : undefined}
-              className={cn(
-                "mt-2 block truncate text-meta transition-colors duration-150",
-                i === stepIndex
-                  ? "font-medium text-foreground"
-                  : i < stepIndex
-                    ? "text-muted-foreground"
-                    : "text-muted-foreground/70",
-              )}
-            >
-              {label}
-            </span>
-          </div>
-        ))}
-      </nav>
-      {partLabel ? <p className="-mt-6 text-meta text-muted-foreground">{partLabel}</p> : null}
-      {title ? <PageHeader title={title} sub={stepIndex === 0 ? sub : undefined} /> : null}
+      <div className="space-y-3">
+        <nav
+          aria-label="Exercise progress"
+          className="grid gap-1.5"
+          style={{
+            gridTemplateColumns: `repeat(${stepLabels.length}, minmax(0, 1fr))`,
+          }}
+        >
+          {stepLabels.map((label, i) => (
+            <div key={`${i}-${label}`} className="min-w-0">
+              <div
+                aria-hidden
+                className={cn(
+                  "h-0.5 rounded-full transition-colors duration-150",
+                  i <= stepIndex ? "bg-foreground" : "bg-input",
+                )}
+              />
+              <span
+                aria-current={i === stepIndex ? "step" : undefined}
+                className={cn(
+                  "mt-2 block truncate text-meta transition-colors duration-150",
+                  i === stepIndex
+                    ? "font-medium text-foreground"
+                    : i < stepIndex
+                      ? "text-muted-foreground"
+                      : "text-muted-foreground/70",
+                )}
+              >
+                {label}
+              </span>
+            </div>
+          ))}
+        </nav>
+        {goal ? (
+          <Hint
+            key={stepLabels[stepIndex]}
+            id={`step:${stepLabels[stepIndex]}`}
+            full={goal.full}
+            short={goal.short}
+          />
+        ) : null}
+      </div>
+      {partLabel ? (
+        <p className="-mt-6 text-meta text-muted-foreground">{partLabel}</p>
+      ) : null}
+      {title ? (
+        <PageHeader title={title} sub={stepIndex === 0 ? sub : undefined} />
+      ) : null}
       <FreshFeedbackContext.Provider value={fresh}>
         <div ref={body} className="flex-1">
           {children}

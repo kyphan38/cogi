@@ -23,7 +23,6 @@ import { makeQuizRow, makeStraitRow, makeTimelineRow, placesAskedOn, quizAttempt
 import type { StraitResult } from "@/lib/geo/strait";
 import type { Exercise, GeoLabExerciseRow } from "@/lib/types/exercise";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { ExploreTabs } from "@/components/shell/ExploreTabs";
 
 type View =
   | { kind: "home" }
@@ -141,7 +140,6 @@ export default function GeoLabPage() {
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-10 px-4 pt-8 pb-24 sm:px-6">
       <div className="space-y-3">
         <PageHeader title="Geo Lab" sub="Guess first, then check. Every fact has a source." />
-        <ExploreTabs />
         {view.kind !== "home" ? (
           <button
             type="button"

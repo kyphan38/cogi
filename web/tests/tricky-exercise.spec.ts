@@ -46,7 +46,7 @@ test.describe("Tricky questions", () => {
     await page.getByRole("button", { name: "Finish" }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 15_000 });
 
-    await clickMainNavLink(page, "History", /\/exercise\/history/);
+    await clickMainNavLink(page, "Memory", /\/exercise\/history/);
     await page.getByRole("button", { name: /Pick one of two colleagues/ }).first().click();
     await expect(page.getByTestId("tricky-answer-key")).toBeVisible();
   });

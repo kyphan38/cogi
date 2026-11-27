@@ -29,7 +29,7 @@ test.describe("Geo Lab", () => {
     await stubFirestoreReads(page);
   });
 
-  test("Today links to the Geo Lab, and so do the Explore tabs and the geopolitics track", async ({ page }) => {
+  test("Today links to the Geo Lab, and so do the Labs group and the geopolitics track", async ({ page }) => {
     await gotoAuthenticated(page, "/");
     await expect(page.getByTestId("geo-lab-card")).toBeVisible();
     await expect(page.getByTestId("geo-lab-card-status")).toHaveText("Today's map quiz is ready.");
@@ -38,7 +38,7 @@ test.describe("Geo Lab", () => {
     await expect(page.getByRole("heading", { name: "Geo Lab" })).toBeVisible();
 
     await gotoAuthenticated(page, "/tracks");
-    await expect(page.getByTestId("explore-tabs").getByRole("link", { name: "Geo Lab" })).toHaveAttribute("href", "/geo");
+    await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Labs" })).toHaveAttribute("href", "/geo");
     await page.getByRole("button", { name: /How countries trade and compete/ }).click();
     await expect(page.getByTestId("track-geo-lab-link")).toHaveCount(1);
   });
@@ -105,7 +105,7 @@ test.describe("Geo Lab", () => {
     expect(asked).not.toContain(await page.getByTestId("quiz-question").textContent());
     await page.getByTestId("geo-back").click();
 
-    await clickMainNavLink(page, "History", /\/exercise\/history/);
+    await clickMainNavLink(page, "Memory", /\/exercise\/history/);
     await page.getByRole("button", { name: /Map quiz/ }).first().click();
     await expect(page.getByTestId("history-geo-quiz")).toContainText("Map quiz: 3 of 5");
   });
@@ -146,7 +146,7 @@ test.describe("Geo Lab", () => {
     await expect(page.getByTestId("strait-data")).toContainText("20.9 million barrels a day");
     await expect(page.getByTestId("strait-data")).toContainText("Not a top user · you picked it");
 
-    await clickMainNavLink(page, "History", /\/exercise\/history/);
+    await clickMainNavLink(page, "Memory", /\/exercise\/history/);
     await page.getByRole("button", { name: /Close the strait: Strait of Hormuz/ }).first().click();
     await expect(page.getByTestId("history-geo-strait")).toContainText("Found: China, India");
     await expect(page.getByTestId("history-geo-strait")).toContainText("Mock note");

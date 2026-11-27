@@ -1,52 +1,93 @@
 import { TYPE_LABEL } from "@/lib/exercise/exercise-mode-cards";
 
-export interface NavSection {
+export interface NavPage {
   href: string;
   label: string;
 }
 
-/** The top places, in nav order (PLAN-refine R4). */
-export const NAV_SECTIONS = [
-  { href: "/", label: "Today" },
-  { href: "/tracks", label: "Explore" },
-  { href: "/exercise/history", label: "History" },
-  { href: "/handbook", label: "Handbook" },
-  { href: "/settings", label: "Settings" },
-] as const satisfies readonly NavSection[];
-
-/** Explore holds these pages; each also shows them as tabs. */
-export const EXPLORE_PAGES = [
-  { href: "/tracks", label: "Tracks" },
-  { href: "/geo", label: "Geo Lab" },
-  { href: "/simulators", label: "Simulators" },
-  { href: "/forecasts", label: "Forecasts" },
-  { href: "/briefs", label: "Briefs" },
-] as const satisfies readonly NavSection[];
-
-export interface NavPlace {
-  section: NavSection;
-  /** A page under the section, shown after it in the path. */
-  page?: string;
+export interface NavGroup extends NavPage {
+  pages: readonly NavPage[];
 }
 
-/** Where a path sits in the nav: its section, and a page name when deeper. */
+/**
+ * The four groups of the top bar, in order (PLAN-guide G1). A group's link opens
+ * its first page. URLs did not change when the groups did.
+ */
+export const NAV_GROUPS = [
+  {
+    href: "/",
+    label: "Practice",
+    pages: [
+      { href: "/", label: "Today" },
+      { href: "/quick", label: "5-minute question" },
+      { href: "/tracks", label: "Tracks" },
+      { href: "/reasoning", label: "New exercise" },
+    ],
+  },
+  {
+    href: "/geo",
+    label: "Labs",
+    pages: [
+      { href: "/geo", label: "Geo Lab" },
+      { href: "/simulators", label: "Simulators" },
+      { href: "/briefs", label: "Briefs" },
+    ],
+  },
+  {
+    href: "/exercise/history",
+    label: "Memory",
+    pages: [
+      { href: "/exercise/history", label: "Past exercises" },
+      { href: "/terms/review", label: "Review terms" },
+      { href: "/terms", label: "My terms" },
+      { href: "/forecasts", label: "Forecasts" },
+    ],
+  },
+  {
+    href: "/handbook",
+    label: "Guide",
+    pages: [
+      { href: "/handbook", label: "Handbook" },
+      { href: "/settings", label: "Settings" },
+    ],
+  },
+] as const satisfies readonly NavGroup[];
+
+export interface NavPlace {
+  group: NavGroup;
+  /** The open page of the group, null when it is not one of its pages. */
+  page: NavPage | null;
+  /** An exercise being done: shown after Today in the Practice row. */
+  exercise?: string;
+}
+
+const clean = (pathname: string | null) =>
+  (pathname ?? "/").replace(/\/+$/, "") || "/";
+
+/** Where a path sits in the nav: its group, its page, and an open exercise. */
 export function navPlace(pathname: string | null): NavPlace {
-  const [today, explore, history, handbook, settings] = NAV_SECTIONS;
-  const path = (pathname ?? "/").replace(/\/+$/, "") || "/";
+  const path = clean(pathname);
+  const [practice] = NAV_GROUPS;
 
-  const explorePage = EXPLORE_PAGES.find((p) => path === p.href || path.startsWith(p.href + "/"));
-  if (explorePage) return { section: explore, page: explorePage.label };
-
-  if (path === "/exercise/history" || path.startsWith("/exercise/history/")) return { section: history };
-  if (path === "/terms") return { section: history, page: "My terms" };
-  if (path === "/terms/review") return { section: history, page: "Review terms" };
-  if (path === "/handbook") return { section: handbook };
-  if (path === "/settings") return { section: settings };
-  if (path === "/reasoning") return { section: today, page: "New exercise" };
-  if (path === "/quick") return { section: today, page: "5-minute question" };
+  // Exact match first: "/terms" and "/terms/review" are both pages.
+  for (const group of NAV_GROUPS) {
+    const page = group.pages.find((p) => p.href === path);
+    if (page) return { group, page };
+  }
+  for (const group of NAV_GROUPS) {
+    const page = group.pages.find(
+      (p) => p.href !== "/" && path.startsWith(p.href + "/"),
+    );
+    if (page) return { group, page };
+  }
 
   const exercise = /^\/exercise\/([^/]+)/.exec(path);
-  if (exercise) return { section: today, page: TYPE_LABEL[exercise[1]!] ?? "Exercise" };
+  if (exercise)
+    return {
+      group: practice,
+      page: null,
+      exercise: TYPE_LABEL[exercise[1]!] ?? "Exercise",
+    };
 
-  return { section: today };
+  return { group: practice, page: practice.pages[0] };
 }

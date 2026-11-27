@@ -61,7 +61,7 @@ test.describe("Calibration", () => {
     await page.getByRole("button", { name: "Finish" }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 15_000 });
 
-    await clickMainNavLink(page, "History", /\/exercise\/history/);
+    await clickMainNavLink(page, "Memory", /\/exercise\/history/);
     await page.getByRole("button", { name: /How sure are you\? Science/ }).first().click();
     await expect(page.getByTestId("calibration-answer-key")).toBeVisible();
     // One exercise is far below the 30 answers the summary needs.

@@ -95,7 +95,7 @@ test.describe("Life situations", () => {
     await page.getByRole("button", { name: "Finish" }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 15_000 });
 
-    await clickMainNavLink(page, "History", /\/exercise\/history/);
+    await clickMainNavLink(page, "Memory", /\/exercise\/history/);
     await page.getByRole("button", { name: /Criticized in a meeting/ }).first().click();
     await expect(page.getByTestId("judgment-answer-key")).toBeVisible();
     await page.getByTestId("my-terms-link").click();

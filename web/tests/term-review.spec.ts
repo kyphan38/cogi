@@ -85,7 +85,7 @@ test.describe("Review terms", () => {
     }
     await expect(page.getByTestId("term-review-done")).toContainText("4 of 5 right.");
 
-    await page.getByRole("link", { name: "My terms" }).click();
+    await page.getByRole("main").getByRole("link", { name: "My terms" }).click();
     await expect(page.getByTestId("term-status")).toHaveCount(5);
     await expect(page.getByTestId("term-status").filter({ hasText: "Due" })).toHaveCount(0);
     await expect(page.getByTestId("terms-review-link")).toHaveCount(0);

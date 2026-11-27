@@ -7,7 +7,6 @@ import { ForecastRecord } from "@/components/forecasts/ForecastRecord";
 import { useForecasts } from "@/components/forecasts/useForecasts";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Section, WORD_LINK } from "@/components/shared/Section";
-import { ExploreTabs } from "@/components/shell/ExploreTabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -96,7 +95,6 @@ export default function ForecastsPage() {
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
       <PageHeader title="Forecasts" sub="Guess a real event. Check it when the day comes." />
-      <ExploreTabs />
 
       {error ? (
         <p className="text-body font-medium text-foreground" role="alert">

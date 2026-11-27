@@ -16,7 +16,6 @@ import {
   savingsVsInflation,
 } from "@/lib/sim/finance";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { ExploreTabs } from "@/components/shell/ExploreTabs";
 
 function SliderRow({
   id,
@@ -225,7 +224,6 @@ export default function SimulatorsPage() {
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
       <div className="space-y-3">
         <PageHeader title="Simulators" sub="Guess first, then move the sliders." />
-        <ExploreTabs />
       </div>
       <LoanSim />
       <SavingsSim />

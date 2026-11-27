@@ -7,7 +7,18 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Hint } from "@/components/guide/Hint";
+import { whereItWent } from "@/lib/guide/where-it-went";
+import { localDay } from "@/lib/review/schedule";
 import { cn } from "@/lib/utils";
+
+const dayFmt = new Intl.DateTimeFormat("en-GB", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
+const showDay = (day: string) => dayFmt.format(new Date(`${day}T00:00:00Z`));
 
 export interface PracticeFinishCardProps {
   takeaway: string;
@@ -43,6 +54,7 @@ export function PracticeFinishCard({
   const redoId = sp.get("redo") === "1" ? sp.get("resumeId") : null;
   const [prevFinished, setPrevFinished] = useState(finished);
   const [justSaved, setJustSaved] = useState(false);
+  const [today] = useState(() => localDay(new Date()));
   if (finished !== prevFinished) {
     setPrevFinished(finished);
     setJustSaved(finished);
@@ -67,6 +79,36 @@ export function PracticeFinishCard({
               {usePlan.trim()}
             </p>
           ) : null}
+          {redoId ? null : (
+            <div data-testid="where-it-went">
+              <p className="text-meta text-muted-foreground">Where this went</p>
+              <Hint
+                id="finish"
+                full="It comes back later, so practice turns into memory."
+                short="it comes back"
+              />
+              <ul className="mt-1 divide-y divide-border border-y border-border text-body">
+                {whereItWent({ today, usePlan }).map((r) => (
+                  <li key={r.href}>
+                    <Link
+                      href={r.href}
+                      className="group flex flex-wrap items-baseline gap-x-4 py-2"
+                    >
+                      <span className="w-24 shrink-0 font-medium">
+                        {r.what}
+                      </span>
+                      <span className="text-muted-foreground transition-colors group-hover:text-foreground after:ml-1 after:content-['›']">
+                        {r.where}
+                      </span>
+                      <span className="ml-auto text-meta text-faint">
+                        {r.backLabel} {showDay(r.back)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             {redoId ? (
               <Link
@@ -77,10 +119,22 @@ export function PracticeFinishCard({
                 Compare with first try
               </Link>
             ) : null}
-            <Link href="/reasoning" className={cn(buttonVariants(redoId ? { variant: "secondary" } : undefined), "inline-flex items-center")}>
+            <Link
+              href="/reasoning"
+              className={cn(
+                buttonVariants(redoId ? { variant: "secondary" } : undefined),
+                "inline-flex items-center",
+              )}
+            >
               New exercise
             </Link>
-            <Link href="/" className={cn(buttonVariants({ variant: "secondary" }), "inline-flex items-center")}>
+            <Link
+              href="/"
+              className={cn(
+                buttonVariants({ variant: "secondary" }),
+                "inline-flex items-center",
+              )}
+            >
               Practice
             </Link>
           </div>
@@ -93,7 +147,8 @@ export function PracticeFinishCard({
     <Card>
       <CardContent className="space-y-3 pt-6">
         <Label htmlFor="practice-takeaway" className="text-body font-medium">
-          What will you take away? <span className="text-muted-foreground font-normal">(optional)</span>
+          What will you take away?{" "}
+          <span className="text-muted-foreground font-normal">(optional)</span>
         </Label>
         <Textarea
           id="practice-takeaway"
@@ -104,7 +159,8 @@ export function PracticeFinishCard({
           disabled={saving}
         />
         <Label htmlFor="practice-use-plan" className="text-body font-medium">
-          Where will you use this this week? <span className="text-muted-foreground font-normal">(optional)</span>
+          Where will you use this this week?{" "}
+          <span className="text-muted-foreground font-normal">(optional)</span>
         </Label>
         <Textarea
           id="practice-use-plan"

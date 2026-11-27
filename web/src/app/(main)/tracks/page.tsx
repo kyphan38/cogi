@@ -17,7 +17,6 @@ import { stepKindLine, stepTitle } from "@/lib/tracks/step-text";
 import { RecapBody } from "@/components/tracks/RecapBody";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Section } from "@/components/shared/Section";
-import { ExploreTabs } from "@/components/shell/ExploreTabs";
 
 const AREA_LABELS = {
   finance: "Finance",
@@ -238,7 +237,6 @@ export default function TracksPage() {
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-12 px-4 pt-8 pb-24 sm:px-6">
       <div className="space-y-3">
         <PageHeader title="Learning tracks" sub="Six steps at a time, made from your results." />
-        <ExploreTabs />
       </div>
 
       {completed && adaptive?.current ? (

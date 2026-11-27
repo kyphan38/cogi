@@ -4,7 +4,7 @@ Follow `.cursor/rules/git-commits.mdc`. Git root is `../` - run `git` from `cogi
 
 ## Handbook (user docs) - keep it in sync
 
-The in-app Handbook (`/handbook`, tab next to Today / Explore / History / Settings) explains every
+The in-app Handbook (`/handbook`, under Guide in the top bar) explains every
 user-facing feature. Its content lives in `src/lib/handbook/content.ts`.
 
 When you add a feature or change how one works (a new exercise type, a level, a tool, a
@@ -19,8 +19,10 @@ page), update its Handbook entry **in the same change**:
 
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+## This is NOT the Next.js you know
 
-This version has breaking changes - APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->

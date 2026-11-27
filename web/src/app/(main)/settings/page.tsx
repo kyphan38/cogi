@@ -25,6 +25,7 @@ import {
   LANGUAGE_LEVELS,
 } from "@/lib/adaptive/language-level";
 import { exportAllJsonString, importBackupJson } from "@/lib/db/backup";
+import { HintsSetting } from "@/components/guide/HintsSetting";
 import { themeStore, type Theme } from "@/lib/theme";
 import { getFirebaseAuth } from "@/lib/auth/firebase-client";
 import { awaitRouterReplace } from "@/lib/nav/await-router-replace";
@@ -168,7 +169,9 @@ export default function SettingsPage() {
           </div>
           {/* Sets sentence length and vocabulary in generated exercises, not
               difficulty. Default Intermediate (about IELTS 6.0-6.5). */}
-          <p className="text-meta text-muted-foreground">Sets how hard the English is.</p>
+          <p className="text-meta text-muted-foreground">
+            Sets how hard the English is.
+          </p>
         </section>
 
         <section className="mt-10 grid gap-2">
@@ -216,6 +219,10 @@ export default function SettingsPage() {
           </div>
         </Section>
 
+        <Section className="mt-12" title="Hints">
+          <HintsSetting />
+        </Section>
+
         <Section className="mt-12" title="Keyboard">
           <p className="text-body text-muted-foreground">
             <span className="font-medium text-foreground">Delete dialog:</span>{" "}
@@ -241,7 +248,10 @@ export default function SettingsPage() {
               Download JSON backup
             </button>
             {/* The file input is hidden; its label is the word you tap. */}
-            <label htmlFor="import-json" className={cn(WORD, "w-fit cursor-pointer")}>
+            <label
+              htmlFor="import-json"
+              className={cn(WORD, "w-fit cursor-pointer")}
+            >
               Import JSON backup
             </label>
             <input
@@ -277,5 +287,3 @@ export default function SettingsPage() {
 /** A secondary action as a plain word (DESIGN.md "Words as buttons"). */
 const WORD =
   "text-body text-muted-foreground hover:text-foreground active:text-foreground";
-
-

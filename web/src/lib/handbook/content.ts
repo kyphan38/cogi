@@ -45,6 +45,9 @@ export const HANDBOOK_START: { title: string; steps: string[]; rhythm: string } 
     "Write one line in \"What will you take away?\" at the end. It makes the lesson stick.",
     "Then write where you will use it this week. A week later, Today asks if you did.",
     "When the app suggests a higher level, try it. If it feels too hard, go back - that is normal.",
+    "The top bar has four groups: Practice (do exercises), Labs (maps, simulators, briefs), Memory (past exercises, terms, forecasts) and Guide (this Handbook, Settings). The row under it shows the pages of the group you are in.",
+    "Some steps show a short hint. It shows in full 3 times, then in a few words, then it goes away. Settings > Hints can show them again.",
+    "After Finish, \"Where this went\" shows when the exercise comes back: your plan on Today in 7 days, a redo after 30 days.",
   ],
   rhythm: "A good rhythm: 3-4 short exercises a week (10-15 minutes each), mixing two or three types.",
 };
@@ -66,7 +69,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Do the work. Your answers save by themselves, so you can stop and come back from Today > In progress.",
       "Do not want to finish one? Tap the small bin icon next to it in Continue (on a computer, it shows when you point at the row).",
       "Before feedback, set how sure you are. Later, compare it with your result.",
-      "Finish with one takeaway line and, if you like, where you will use it this week. History keeps everything.",
+      "Finish with one takeaway line and, if you like, where you will use it this week. Memory > Past exercises keeps everything.",
     ],
     tips: [
       "Do not rush to the feedback. The thinking you do first is the practice.",
@@ -141,8 +144,8 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Clue: the words in the text that point to it, and what kind of signal they are. Learn to notice these.",
       "Next time, ask: the question to ask yourself in a new situation. This is the part to remember.",
       "Take with you: one or two lessons for the next exercise.",
-      "Analytical only: press \"Go deeper\" under a row for a longer explanation. It is saved, so it opens again in History for free.",
-      "In History, tap a day on the activity grid to see what you did that day: type, level, score and the main miss. Tap a row to open its review.",
+      "Analytical only: press \"Go deeper\" under a row for a longer explanation. It is saved, so it opens again in Past exercises for free.",
+      "In Past exercises, tap a day on the activity grid to see what you did that day: type, level, score and the main miss. Tap a row to open its review.",
     ],
     tips: [
       "For judgment calls (weights, life situations), the app says \"close\" or \"different\", never \"wrong\". The model is a reference, not the only answer.",
@@ -437,8 +440,8 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "For two-answer questions, pick one and say how sure you are. 50% means a pure guess.",
       "For ranges, give a low and a high number. Make the range wide enough that you are really 80% (or 90%) sure.",
       "For base-rate problems, think \"out of 10,000 people\": how many have it, and how many test positive by mistake?",
-      "Look at History over time. One exercise has only a few questions.",
-      "A question you saw in an earlier exercise is marked \"Seen before\". It still counts in the exercise, but not in your History chart: you may remember the answer.",
+      "Look at Past exercises over time. One exercise has only a few questions.",
+      "A question you saw in an earlier exercise is marked \"Seen before\". It still counts in the exercise, but not in your Past exercises chart: you may remember the answer.",
       "A base-rate answer counts as close enough within half of the true value, from 1 to 5 points. For a rare case, being 3 times too high is not close.",
       "At the end, \"Take with you\" has a card for 1 or 2 ideas, picked from your results: overconfidence, wide enough ranges, underconfidence, base rates, or keeping score.",
     ],
@@ -498,9 +501,9 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     howToPractice: [
       "\"Next up\" on the Today page shows the next step of your track. Press Start.",
       "A track has six steps, in this order: new, fix, new, redo, new, your own.",
-      "New: a topic you have not done yet. Most come from the topic packs on Explore > Tracks.",
+      "New: a topic you have not done yet. Most come from the topic packs on Practice > Tracks.",
       "Fix: a new topic that tests a skill you often miss. The small line names it, for example \"fix · Missing a connection\".",
-      "Redo: an old exercise you found hard, done again on the same text. History shows both tries. With nothing to redo, this is a second fix.",
+      "Redo: an old exercise you found hard, done again on the same text. Past exercises shows both tries. With nothing to redo, this is a second fix.",
       "Your own: a situation from your own life. Pick one of the ideas shown, or skip if nothing fits this week.",
       "Your first track has no weak spots yet: five new steps of different types, then your own.",
       "A step is done when you finish the exercise you started from it. Choose your level and press Generate as usual.",
@@ -508,11 +511,11 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "Then Today shows \"Last track\" once: how many steps you did, and each weak spot it aimed at, before and during the track, for example \"missed 4 of 7 before → 1 of 5 in this track\".",
       "If your results suggest a new level for a type, the recap offers it. One tap switches. Press \"ok\" to hide the recap.",
       "\"cleared\" next to a weak spot means you stayed below the weak-spot line in two tracks in a row. One good track is too small a test.",
-      "Explore > Tracks shows your track's six steps, and your past tracks. Tap a past track to see its recap again.",
+      "Practice > Tracks shows your track's six steps, and your past tracks. Tap a past track to see its recap again.",
       "If you started a step, the button says Continue. To drop that exercise, tap the small bin icon next to it.",
       "Not today? Press \"not today\" and the step waits until tomorrow. Press \"show\" to bring it back.",
       "Nothing done for 14 days? \"close and make a new one\" starts a fresh track.",
-      "Topic packs (Explore > Tracks, at the bottom) are hand-made paths through one subject. Your track takes its new topics from them first. Steps you do there do not count in your track.",
+      "Topic packs (Practice > Tracks, at the bottom) are hand-made paths through one subject. Your track takes its new topics from them first. Steps you do there do not count in your track.",
     ],
     tips: [
       "Some tracks have a simulator. Try it after a few steps to see the numbers behind the ideas.",
@@ -531,7 +534,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "These are exact formulas, not forecasts, so you can trust the numbers.",
     ],
     howToPractice: [
-      "Open it from Explore > Simulators, or from a track that has one.",
+      "Open it from Labs > Simulators, or from a track that has one.",
       "Answer the \"Guess first\" question before you touch the sliders.",
       "After you answer, the sliders jump to that case. Check the numbers.",
       "Then move one slider at a time and watch what changes.",
@@ -550,7 +553,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "A short daily quiz builds your mental map, a little each day.",
     ],
     howToPractice: [
-      "Open it from Explore > Geo Lab, the Daily map quiz row on the Today page, or the geopolitics track.",
+      "Open it from Labs > Geo Lab, the Daily map quiz row on the Today page, or the geopolitics track.",
       "Daily map quiz: 5 places, about 2 minutes. Tap where each place is. The question tells you how close you need to be.",
       "Your tap puts a mark on the map. Tap again to move it. Press \"Check\" when you are sure.",
       "Not sure? Press \"I don't know\" to see the answer. That is fine.",
@@ -590,7 +593,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "You remember ideas for months, not days, because you recall them just before you forget.",
     ],
     howToPractice: [
-      "Open it from History > My terms.",
+      "Open it from Memory > My terms.",
       "When terms are due, a \"Review terms\" row shows on Today. It also shows as a button on My terms.",
       "A review has up to 5 terms, about 2 minutes. You see the meaning and an example with the term hidden. Pick the right term.",
       "With fewer than 4 terms, you see the term instead. Say its meaning in your head, press \"Show the meaning\", then say if you knew it.",
@@ -620,7 +623,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "It is optional. Leave it empty and nothing is asked later.",
       "Seven days later, Today shows \"Did you use it?\" with your plan.",
       "Pick yes, partly or no. You can add one line about what happened. Press save.",
-      "Your plan and your answer stay with the exercise in History.",
+      "Your plan and your answer stay with the exercise in Past exercises.",
       "A question you do not answer goes away after three weeks.",
     ],
     tips: [
@@ -663,11 +666,11 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
     howToPractice: [
       "Thirty days after you finish an exercise, you can do it again.",
       "Your track may include a redo step: an old exercise you found hard, of a type it is fixing.",
-      "Or open any old exercise in History and tap \"redo\" at the top of its review.",
+      "Or open any old exercise in Past exercises and tap \"redo\" at the top of its review.",
       "You get the same text and questions, with your old answers removed.",
-      "When you finish, press \"Compare with first try\". History shows both results next to each other.",
+      "When you finish, press \"Compare with first try\". Past exercises shows both results next to each other.",
       "Tap \"show the first try\" to read your old answers under the new ones.",
-      "Each exercise can be redone once. A redo is marked \"Redo\" in History.",
+      "Each exercise can be redone once. A redo is marked \"Redo\" in Past exercises.",
     ],
     tips: [
       "Do not look at your old answers before the redo. The surprise is the point.",
@@ -692,7 +695,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "The feedback has three parts: what was strong, what was missing, and a question to ask next time.",
       "A spoken answer also gets \"How you said it\": what was clear, and one thing to try next time.",
       "The app shows the words it heard. The recording is not kept.",
-      "The answer is saved to History. Tap \"another question\" for a different one.",
+      "The answer is saved to Past exercises. Tap \"another question\" for a different one.",
     ],
     tips: [
       "Say your answer first, then your reason: \"I think X, because Y.\"",
@@ -711,7 +714,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "A written forecast cannot be changed later, so you get an honest record.",
     ],
     howToPractice: [
-      "Open it from Explore > Forecasts.",
+      "Open it from Memory > Forecasts.",
       "Write something that will be clearly true or false on a day, for example \"The release ships by 30 November\".",
       "Set how likely it is, from 1% to 99%, and the day you will know.",
       "When that day comes, Today shows \"Forecast due\". Tap \"it happened\" or \"it did not\".",
@@ -736,7 +739,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "You get one clear thing to work on next month.",
     ],
     howToPractice: [
-      "From the first day of a month, History shows \"Write review for\" the month before. You need at least 3 finished exercises in that month.",
+      "From the first day of a month, Past exercises shows \"Write review for\" the month before. You need at least 3 finished exercises in that month.",
       "Press the button. The app counts your results, and the AI puts them into words.",
       "The table shows each exercise type: how many you did, your score out of 100, the month before, and the trend.",
       "\"Went up\" and \"Stayed the same\" name the types. \"Next month\" gives one thing to practise.",
@@ -758,7 +761,7 @@ export const HANDBOOK_ENTRIES: HandbookEntry[] = [
       "You practise holding two or three views before you choose one.",
     ],
     howToPractice: [
-      "Open it from Explore > Briefs.",
+      "Open it from Labs > Briefs.",
       "Pick an area: World, Economy, Technology or Vietnam. Press \"New brief\".",
       "The AI searches the web for a big story of the last 30 days and writes the brief. This takes up to a minute.",
       "Read the background, the key facts and the ways to see it. Each fact names its source.",
