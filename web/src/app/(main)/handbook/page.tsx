@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LEVEL_LABELS, PRACTICE_LEVELS } from "@/lib/exercise/levels";
 import { HANDBOOK_ENTRIES, HANDBOOK_GROUPS, HANDBOOK_START, type HandbookEntry } from "@/lib/handbook/content";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { HANDBOOK_SHORTCUTS } from "@/lib/handbook/shortcuts";
 
 function List({ items }: { items: string[] }) {
   return (
@@ -129,6 +130,9 @@ export default function HandbookPage() {
             {e.title}
           </a>
         ))}
+        <a href="#shortcuts" className="shrink-0 text-muted-foreground hover:text-foreground active:text-foreground">
+          {HANDBOOK_SHORTCUTS.title}
+        </a>
       </nav>
 
       <Card data-testid="handbook-start">
@@ -155,6 +159,18 @@ export default function HandbookPage() {
           </div>
         </section>
       ))}
+
+      <section id="shortcuts" className="scroll-mt-16" data-testid="handbook-shortcuts">
+        <h2 className="mb-3 text-lead font-semibold tracking-tight">{HANDBOOK_SHORTCUTS.title}</h2>
+        <dl className="space-y-2 text-body leading-relaxed">
+          {HANDBOOK_SHORTCUTS.rows.map((r) => (
+            <div key={r.action} className="grid gap-0.5 sm:grid-cols-[9rem_1fr]">
+              <dt className="text-foreground">{r.keys}</dt>
+              <dd className="text-muted-foreground">{r.action}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
     </main>
   );
 }
